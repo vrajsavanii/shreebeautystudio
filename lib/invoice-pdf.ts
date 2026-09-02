@@ -17,6 +17,7 @@ export function formatIndianDate(dateStr: string): string {
 export function cleanServiceNameForBill(name: string): string {
   if (!name) return '';
   return name
+    .replace(/^\[.*?\]\s*/g, '')
     .replace(/\s*\(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s*@\s*\d{1,2}:\d{2}\)/gi, '')
     .replace(/\s*\(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\)/gi, '')
     .replace(/\s*\(\d{2}[-/\.]\d{2}[-/\.]\d{4}.*?\)/g, '')
