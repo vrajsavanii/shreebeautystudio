@@ -32,7 +32,7 @@ import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransac
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
+import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
@@ -991,7 +991,7 @@ function BillingContent() {
                 return (
                   <tr key={i}>
                     <td style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 12, fontWeight: 600 }}>
-                      <div>{l.name}</div>
+                      <div>{cleanServiceNameForBill(l.name)}</div>
                       {discAmt > 0 && <div style={{ fontSize: 9.5, color: '#16a34a' }}>(Disc: −₹{discAmt})</div>}
                     </td>
                     <td style={{ border: '1.5px solid #222', textAlign: 'center', padding: '6px 4px', fontSize: 12, fontWeight: 600 }}>{l.qty}</td>
