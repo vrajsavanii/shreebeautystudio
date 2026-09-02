@@ -181,26 +181,37 @@ function BillingContent() {
           );
         });
 
-      // 2. Remove invoice from invoices list
+      // 2. Sync / remove corresponding bridal booking if linked
+      let bridal = [...(d.bridal || [])];
+      if (inv.bridalBookingId) {
+        bridal = bridal.filter((b) => b.id !== inv.bridalBookingId);
+      } else {
+        bridal = bridal.filter(
+          (b) => !(b.name === inv.customer && b.mobile === inv.mobile)
+        );
+      }
+
+      // 3. Remove invoice from invoices list
       const invoices = (d.invoices || []).filter((i) => i.id !== id);
 
-      // 3. Remove sales transaction audit entries
+      // 4. Remove sales transaction audit entries
       const inventoryTx = (d.inventoryTx || []).filter((tx) => tx.invoiceNo !== inv.no);
 
-      // 4. Remove linked payment vouchers
+      // 5. Remove linked payment vouchers
       const vouchers = (d.vouchers || []).filter((v) => v.linkedDocNo !== inv.no);
 
       return {
         ...d,
         inventory,
         invoices,
+        bridal,
         inventoryTx,
         vouchers,
       };
     });
 
     scheduleSave();
-    toast(`Invoice ${inv.no} deleted and product stock restored!`, 'info');
+    toast(`Invoice ${inv.no} & linked Bridal Booking deleted and stock restored!`, 'info');
     setDeleteInvoiceId(null);
   };
 
@@ -565,7 +576,25 @@ function BillingContent() {
         // 3. Update invoice in list
         const invoices = (d.invoices || []).map((i) => (i.id === editingInvoiceId ? updatedInv : i));
 
-        // 4. Update sales transactions
+        // 4. Sync linked bridal booking if present
+        let bridal = [...(d.bridal || [])];
+        if (existingInv.bridalBookingId || existingInv.customer) {
+          bridal = bridal.map((b) => {
+            if (b.id === existingInv.bridalBookingId || (b.name === existingInv.customer && b.mobile === existingInv.mobile)) {
+              return {
+                ...b,
+                name: updatedInv.customer,
+                mobile: updatedInv.mobile,
+                package: updatedInv.total,
+                advance: updatedInv.advance,
+                balance: updatedInv.balance,
+              };
+            }
+            return b;
+          });
+        }
+
+        // 5. Update sales transactions
         const remainingTx = (d.inventoryTx || []).filter((tx) => tx.invoiceNo !== existingInv.no);
         const newInvTxs = validLines
           .filter((l) => l.type === 'P')
@@ -590,6 +619,7 @@ function BillingContent() {
           ...d,
           inventory,
           invoices,
+          bridal,
           inventoryTx: [...remainingTx, ...newInvTxs],
         };
       });
@@ -1612,8 +1642,19 @@ function BillingContent() {
                     {filteredInvoices.map((inv) => (
                       <tr key={inv.id}>
                         <td>
-                          <div style={{ fontWeight: 700, color: 'var(--teal)' }}>{inv.no}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fmtDate(inv.date)}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{inv.no}</span>
+                            {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
+                              <span style={{ fontSize: 10, fontWeight: 800, color: '#be185d', background: '#fce7f3', padding: '1px 6px', borderRadius: 6 }}>
+                                👑 Bridal
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: 6 }}>
+                                🛍️ POS
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{fmtDate(inv.date)}</div>
                         </td>
                         <td>
                           <div style={{ fontWeight: 600 }}>{inv.customer}</div>

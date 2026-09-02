@@ -127,6 +127,7 @@ export interface Invoice {
   customer: string;
   mobile: string;
   appointmentId?: string;
+  bridalBookingId?: string;
   lines: InvoiceLine[];
   subtotal: number;
   discount: number;

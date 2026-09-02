@@ -405,29 +405,59 @@ const OTHER_EVENT_OPTIONS = [
       }
 
       const list = [...(d.bridal || [])];
+      let invoices = [...(d.invoices || [])];
+
+      // Reconcile and sync linked invoice if present
+      invoices = invoices.map((inv) => {
+        if (inv.bridalBookingId === booking.id || (inv.mobile === booking.mobile && inv.customer === booking.name)) {
+          return {
+            ...inv,
+            customer: booking.name,
+            mobile: booking.mobile,
+            subtotal: booking.package,
+            total: booking.package,
+            advance: booking.advance,
+            paid: booking.advance,
+            balance: Math.max(0, booking.package - booking.advance),
+          };
+        }
+        return inv;
+      });
+
       if (editId) {
         return {
           ...d,
           customers,
           bridal: list.map((b) => (b.id === editId ? booking : b)),
+          invoices,
         };
       }
       return {
         ...d,
         customers,
         bridal: [booking, ...list],
+        invoices,
       };
     });
 
     scheduleSave();
-    toast(editId ? 'Bridal booking updated & Customer profile synced!' : 'Bridal booking saved & Customer profile synced!');
+    toast(editId ? 'Bridal booking updated & Receipts History synced!' : 'Bridal booking saved & Receipts History synced!');
     setModalOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    updateData((d) => ({ ...d, bridal: (d.bridal || []).filter((b) => b.id !== id) }));
+    updateData((d) => {
+      const target = (d.bridal || []).find((b) => b.id === id);
+      return {
+        ...d,
+        bridal: (d.bridal || []).filter((b) => b.id !== id),
+        invoices: (d.invoices || []).filter(
+          (inv) => inv.bridalBookingId !== id && !(target && inv.mobile === target.mobile && inv.customer === target.name)
+        ),
+      };
+    });
     scheduleSave();
-    toast('Booking deleted', 'info');
+    toast('Bridal booking & linked Invoice Receipts History deleted', 'info');
     setDeleteId(null);
   };
 
@@ -479,18 +509,23 @@ const OTHER_EVENT_OPTIONS = [
       };
     });
 
-    const invSeq = (data?.invoiceSeq || 1001) + 1;
-    const invNo = `INV-${data?.invoiceSeq || 1001}`;
-    const invId = uid();
+    const existingInv = (data?.invoices || []).find(
+      (i) => i.bridalBookingId === b.id || (i.mobile === b.mobile && i.customer === b.name)
+    );
+
+    const invId = existingInv ? existingInv.id : uid();
+    const invNo = existingInv ? existingInv.no : `INV-${data?.invoiceSeq || 1001}`;
+    const invSeq = existingInv ? (data?.invoiceSeq || 1001) : (data?.invoiceSeq || 1001) + 1;
     const advPaid = Number(b.advance || 0);
     const bal = Math.max(0, totalPkg - advPaid);
 
     const newInv: Invoice = {
       id: invId,
       no: invNo,
-      date: todayISO(),
+      date: existingInv?.date || todayISO(),
       customer: b.name,
       mobile: b.mobile || '',
+      bridalBookingId: b.id,
       lines,
       subtotal: totalPkg,
       discount: 0,
@@ -501,11 +536,14 @@ const OTHER_EVENT_OPTIONS = [
       mode: b.advanceAccount || data?.settings?.payments?.[0] || 'Cash',
     };
 
-    updateData((d) => ({
-      ...d,
-      invoiceSeq: invSeq,
-      invoices: [newInv, ...(d.invoices || [])],
-    }));
+    updateData((d) => {
+      const otherInvoices = (d.invoices || []).filter((i) => i.id !== invId);
+      return {
+        ...d,
+        invoiceSeq: invSeq,
+        invoices: [newInv, ...otherInvoices],
+      };
+    });
 
     scheduleSave();
     toast(`🧾 Bill ${invNo} generated! (${events.length} ticked function${events.length > 1 ? 's' : ''} added)`);
