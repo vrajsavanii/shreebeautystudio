@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
-import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
+import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
 import { money } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 
@@ -455,7 +455,7 @@ export default function InvoiceReceiptModal({
                           textAlign: 'left',
                         }}
                       >
-                        <div>{l.name}</div>
+                        <div>{cleanServiceNameForBill(l.name)}</div>
                         {discAmt > 0 && (
                           <div style={{ fontSize: 10, color: '#16a34a' }}>
                             (Disc: -₹{discAmt})
@@ -471,7 +471,7 @@ export default function InvoiceReceiptModal({
                           textAlign: 'center',
                         }}
                       >
-                        ${qty}
+                        {qty}
                       </td>
                       <td
                         style={{

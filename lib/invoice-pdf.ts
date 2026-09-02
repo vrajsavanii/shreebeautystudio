@@ -14,6 +14,16 @@ export function formatIndianDate(dateStr: string): string {
   }
 }
 
+export function cleanServiceNameForBill(name: string): string {
+  if (!name) return '';
+  return name
+    .replace(/\s*\(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\s*@\s*\d{1,2}:\d{2}\)/gi, '')
+    .replace(/\s*\(\d{1,2}\s+[A-Za-z]{3}\s+\d{4}\)/gi, '')
+    .replace(/\s*\(\d{2}[-/\.]\d{2}[-/\.]\d{4}.*?\)/g, '')
+    .replace(/\s*\(\d{1,2}:\d{2}\s*(AM|PM)?\)/gi, '')
+    .trim();
+}
+
 function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   const container = document.createElement('div');
   container.id = 'temp-pdf-render-container';
@@ -46,11 +56,12 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
       const disc = Number(l.discount || 0);
       const discAmt = disc > 0 ? (l.discountType === '%' ? (gross * disc) / 100 : disc) : 0;
       const lineTotal = Math.max(0, gross - discAmt);
+      const displayName = cleanServiceNameForBill(l.name);
 
       return `
         <tr>
           <td style="border: 1.5px solid #222; padding: 8px 10px; font-size: 13px; font-weight: 600; text-align: left;">
-            <div>${l.name}</div>
+            <div>${displayName}</div>
             ${discAmt > 0 ? `<div style="font-size: 10.5px; color: #16a34a;">(Disc: -₹${discAmt})</div>` : ''}
           </td>
           <td style="border: 1.5px solid #222; padding: 8px 6px; font-size: 13px; font-weight: 600; text-align: center;">
