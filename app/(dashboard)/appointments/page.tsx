@@ -171,9 +171,23 @@ export default function AppointmentsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
-          <Plus size={15} /> New Appointment
-        </motion.button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => {
+              const link = typeof window !== 'undefined' ? `${window.location.origin}/book` : '/book';
+              navigator.clipboard.writeText(link);
+              toast('🔗 Public Online Self-Booking Link copied to clipboard!');
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--teal)', color: 'var(--teal)', fontWeight: 700 }}
+          >
+            <Eye size={15} /> Copy Customer Booking Link
+          </button>
+          <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
+            <Plus size={15} /> New Appointment
+          </motion.button>
+        </div>
       </div>
 
       {/* Sub Tabs */}
