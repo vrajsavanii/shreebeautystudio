@@ -38,7 +38,7 @@ export default function CustomersPage() {
   const [adjustPoints, setAdjustPoints] = useState<number | ''>('');
   const [adjustType, setAdjustType] = useState<'add' | 'deduct'>('add');
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Customer>();
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<Customer>();
 
   const currentMonth = new Date().getMonth() + 1;
   const today = todayISO();
@@ -111,6 +111,67 @@ export default function CustomersPage() {
     setEditId(c.id);
     reset(c);
     setModalOpen(true);
+  };
+
+  const handleCustomerSelect = (val: string) => {
+    setValue('name', val);
+    const trimmed = val.trim();
+    if (!trimmed) return;
+    const found = (data?.customers || []).find(
+      (c) => c.name.toLowerCase() === trimmed.toLowerCase() || c.mobile === trimmed
+    );
+    if (found) {
+      setEditId(found.id);
+      setValue('name', found.name);
+      setValue('mobile', found.mobile);
+      setValue('birthday', found.birthday || '');
+      setValue('sagaiDate', found.sagaiDate || found.engagementDate || '');
+      setValue('anniversary', found.anniversary || '');
+      setValue('notes', found.notes || '');
+      toast(`✨ Existing Customer "${found.name}" loaded!`);
+    }
+  };
+
+  const handleMobileSelect = (val: string) => {
+    setValue('mobile', val);
+    const trimmed = val.trim();
+    const cleanNum = trimmed.replace(/\D/g, '');
+    if (!trimmed) return;
+    const found = (data?.customers || []).find(
+      (c) => c.mobile === cleanNum || c.mobile === trimmed || c.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (found) {
+      setEditId(found.id);
+      setValue('name', found.name);
+      setValue('mobile', found.mobile);
+      setValue('birthday', found.birthday || '');
+      setValue('sagaiDate', found.sagaiDate || found.engagementDate || '');
+      setValue('anniversary', found.anniversary || '');
+      setValue('notes', found.notes || '');
+      toast(`✨ Existing Customer "${found.name}" loaded!`);
+    }
+  };
+
+  const handlePickDeviceContact = async () => {
+    if (typeof window !== 'undefined' && 'contacts' in navigator && 'select' in (navigator as any).contacts) {
+      try {
+        const contacts = await (navigator as any).contacts.select(['name', 'tel'], { multiple: false });
+        if (contacts && contacts[0]) {
+          const c = contacts[0];
+          const name = c.name?.[0] || '';
+          const tel = c.tel?.[0]?.replace(/\D/g, '').slice(-10) || '';
+          if (name) handleCustomerSelect(name);
+          if (tel) handleMobileSelect(tel);
+          if (name) setValue('name', name);
+          if (tel) setValue('mobile', tel);
+          toast(`📇 Contact loaded: ${name} (${tel})`);
+        }
+      } catch {
+        // User cancelled or permission denied
+      }
+    } else {
+      toast('Device contacts picker works on mobile Chrome/Safari. Use name/mobile search below!', 'info');
+    }
   };
 
   const onSubmit = (form: Customer) => {
@@ -372,15 +433,57 @@ export default function CustomersPage() {
           </>
         }
       >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+            Type name or phone number to load contact details
+          </span>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            onClick={handlePickDeviceContact}
+            style={{ fontSize: 11.5, padding: '3px 8px', color: 'var(--teal)', fontWeight: 700 }}
+          >
+            📇 Pick Phone Contact
+          </button>
+        </div>
+
         <div className="form-grid">
           <div className="form-group">
             <label className="label">Full Name *</label>
-            <input type="text" className="input" placeholder="e.g. Anjali Mehta / Ritu Patel" {...register('name', { required: 'Name is required' })} />
+            <input
+              type="text"
+              className="input"
+              list="add-cust-name-list"
+              placeholder="e.g. Anjali Mehta / Ritu Patel"
+              {...register('name', { required: 'Name is required' })}
+              onChange={(e) => handleCustomerSelect(e.target.value)}
+            />
+            <datalist id="add-cust-name-list">
+              {(data?.customers || []).map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name} — 📞 {c.mobile}
+                </option>
+              ))}
+            </datalist>
             {errors.name && <span className="error-msg">{errors.name.message}</span>}
           </div>
           <div className="form-group">
             <label className="label">Mobile Number *</label>
-            <input type="tel" className="input" placeholder="10-digit mobile" {...register('mobile', { required: 'Mobile is required' })} />
+            <input
+              type="tel"
+              className="input"
+              list="add-cust-mob-list"
+              placeholder="10-digit mobile"
+              {...register('mobile', { required: 'Mobile is required' })}
+              onChange={(e) => handleMobileSelect(e.target.value)}
+            />
+            <datalist id="add-cust-mob-list">
+              {(data?.customers || []).map((c) => (
+                <option key={c.id} value={c.mobile}>
+                  {c.mobile} — 👤 {c.name}
+                </option>
+              ))}
+            </datalist>
             {errors.mobile && <span className="error-msg">{errors.mobile.message}</span>}
           </div>
         </div>
