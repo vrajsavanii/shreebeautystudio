@@ -450,6 +450,7 @@ export default function CustomersPage() {
                     <td style={{ fontSize: 12 }}>{c.lastVisit ? fmtDate(c.lastVisit) : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <button className="btn-icon edit" onClick={() => openEdit(c)} title="Edit Customer Profile"><Pencil size={13} /></button>
                         <button
                           className="btn-icon wa"
                           title="Send WhatsApp via Meta API"
