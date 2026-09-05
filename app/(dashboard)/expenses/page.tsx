@@ -26,9 +26,11 @@ import {
   BadgeIndianRupee,
   CircleDollarSign,
   Activity,
-  Eye,
   ChevronDown,
+  ChevronUp,
   Landmark,
+  Phone,
+  User,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -65,6 +67,8 @@ export default function ExpensesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bankExpanded, setBankExpanded] = useState(false);
+  const [toCollectExpanded, setToCollectExpanded] = useState(false);
+  const [toPayExpanded, setToPayExpanded] = useState(false);
 
   // Day Book Selected Date
   const [daybookDate, setDaybookDate] = useState(todayISO());
@@ -292,6 +296,71 @@ export default function ExpensesPage() {
       expenseCount: expenses.length,
     };
   }, [invoices, purchases, expenses, vouchers, bridals, today]);
+
+  // Pending Collections List (Customer Bills & Bridal Bookings with pending balance)
+  const pendingCollections = useMemo(() => {
+    const list: Array<{
+      id: string;
+      type: 'Invoice' | 'Bridal';
+      no: string;
+      name: string;
+      mobile: string;
+      date: string;
+      total: number;
+      paid: number;
+      balance: number;
+    }> = [];
+
+    invoices.forEach((inv) => {
+      if (Number(inv.balance || 0) > 0) {
+        list.push({
+          id: inv.id,
+          type: 'Invoice',
+          no: inv.no || 'INV',
+          name: inv.customer || 'Walk-in Customer',
+          mobile: inv.mobile || '-',
+          date: inv.date,
+          total: Number(inv.total || 0),
+          paid: Number(inv.paid || 0) + Number(inv.advance || 0),
+          balance: Number(inv.balance || 0),
+        });
+      }
+    });
+
+    bridals.forEach((b) => {
+      if (Number(b.balance || 0) > 0) {
+        list.push({
+          id: b.id,
+          type: 'Bridal',
+          no: b.packageName || 'Bridal Booking',
+          name: b.name || 'Bride',
+          mobile: b.mobile || '-',
+          date: b.date || b.weddingDate || '-',
+          total: Number(b.package || 0),
+          paid: Number(b.advance || 0),
+          balance: Number(b.balance || 0),
+        });
+      }
+    });
+
+    return list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }, [invoices, bridals]);
+
+  // Pending Supplier Payments List
+  const pendingPayments = useMemo(() => {
+    return purchases
+      .filter((p) => Number(p.balance || 0) > 0)
+      .map((p) => ({
+        id: p.id,
+        no: p.purchaseNo || 'PUR',
+        supplier: p.supplierName || 'Supplier',
+        date: p.date,
+        total: Number(p.total || 0),
+        paid: Number(p.paid || 0),
+        balance: Number(p.balance || 0),
+      }))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  }, [purchases]);
 
   // Old KPI Metrics (for expense tabs)
   const stats = useMemo(() => {
@@ -560,47 +629,229 @@ export default function ExpensesPage() {
             }}>
 
               {/* To Collect */}
-              <div style={{
-                background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
-                borderRadius: 14,
-                padding: '20px 18px',
-                color: '#fff',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(37,99,235,0.25)',
-              }}>
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                  borderRadius: 14,
+                  padding: '20px 18px',
+                  color: '#fff',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 20px rgba(37,99,235,0.25)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+                onClick={() => setToCollectExpanded(!toCollectExpanded)}
+              >
                 <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 80 }}>📥</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <ArrowDownLeft size={18} />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>To Collect (લેવાના)</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ArrowDownLeft size={18} />
+                    <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>To Collect (લેવાના)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 20 }}>
+                    <span>{pendingCollections.length} parties</span>
+                    {toCollectExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </div>
                 </div>
                 <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.toCollect)}</div>
-                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85 }}>
-                  Pending from Customers + Bridal
+                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Pending from Customers + Bridal</span>
+                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>{toCollectExpanded ? 'Close Details ▲' : 'Click for Details ▼'}</span>
                 </div>
               </div>
 
               {/* To Pay */}
-              <div style={{
-                background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-                borderRadius: 14,
-                padding: '20px 18px',
-                color: '#fff',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(124,58,237,0.25)',
-              }}>
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
+                  borderRadius: 14,
+                  padding: '20px 18px',
+                  color: '#fff',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 20px rgba(124,58,237,0.25)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+                onClick={() => setToPayExpanded(!toPayExpanded)}
+              >
                 <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 80 }}>📤</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <ArrowUpRight size={18} />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>To Pay (આપવાના)</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ArrowUpRight size={18} />
+                    <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>To Pay (આપવાના)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 20 }}>
+                    <span>{pendingPayments.length} suppliers</span>
+                    {toPayExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </div>
                 </div>
                 <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.toPay)}</div>
-                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85 }}>
-                  Pending to Suppliers
+                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Pending to Suppliers</span>
+                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>{toPayExpanded ? 'Close Details ▲' : 'Click for Details ▼'}</span>
                 </div>
               </div>
             </div>
+
+            {/* ---- EXPANDED DETAILS: TO COLLECT ---- */}
+            <AnimatePresence>
+              {toCollectExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 14 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="card"
+                  style={{ padding: 18, borderLeft: '4px solid #2563eb', overflow: 'hidden' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>📥 Customer & Bridal Pending Collections Details ({pendingCollections.length})</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                        નીચે તમામ ગ્રાહકો અને બ્રાઇડલ બુકિંગના બાકી નાણાંની યાદી છે
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#2563eb', background: '#dbeafe', padding: '4px 12px', borderRadius: 20 }}>
+                      Total Pending: {money(vyaparStats.toCollect)}
+                    </div>
+                  </div>
+
+                  {pendingCollections.length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '20px 0' }}>
+                      ✅ કોઈ બાકી નથી! બધા ગ્રાહકોનું Payment જમા થઈ ગયું છે. 🎉
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            <th style={{ padding: '10px 12px' }}>Customer / Party</th>
+                            <th style={{ padding: '10px 12px' }}>Bill / Package</th>
+                            <th style={{ padding: '10px 12px' }}>Date</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Total Bill</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Received</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Pending Balance (લેવાના)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingCollections.map((item) => (
+                            <tr key={`${item.type}-${item.id}`} style={{ borderBottom: '1px dashed var(--border)', transition: 'background 0.15s' }}>
+                              <td style={{ padding: '12px 12px', fontWeight: 700 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <User size={14} style={{ color: '#2563eb' }} />
+                                  <span>{item.name}</span>
+                                </div>
+                                {item.mobile && item.mobile !== '-' && (
+                                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                    <Phone size={11} />
+                                    <span>{item.mobile}</span>
+                                  </div>
+                                )}
+                              </td>
+                              <td style={{ padding: '12px 12px' }}>
+                                <span style={{
+                                  padding: '3px 10px',
+                                  borderRadius: 8,
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  background: item.type === 'Bridal' ? '#fce7f3' : '#e0f2fe',
+                                  color: item.type === 'Bridal' ? '#be185d' : '#0369a1',
+                                }}>
+                                  {item.type === 'Bridal' ? '👑 Bridal' : '📄 Bill'}: {item.no}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 12px', color: 'var(--muted)', fontSize: 12 }}>{fmtDate(item.date)}</td>
+                              <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 600 }}>{money(item.total)}</td>
+                              <td style={{ padding: '12px 12px', textAlign: 'right', color: '#059669', fontWeight: 700 }}>{money(item.paid)}</td>
+                              <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 900, color: '#dc2626', fontSize: 14 }}>{money(item.balance)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ---- EXPANDED DETAILS: TO PAY ---- */}
+            <AnimatePresence>
+              {toPayExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: 'auto', marginTop: 14 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="card"
+                  style={{ padding: 18, borderLeft: '4px solid #7c3aed', overflow: 'hidden' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>📤 Supplier Pending Payments Details ({pendingPayments.length})</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                        નીચે વેપારીઓ/સપ્લાયરોને ચૂકવવાના બાકી નાણાંની યાદી છે
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#7c3aed', background: '#f3e8ff', padding: '4px 12px', borderRadius: 20 }}>
+                      Total Payable: {money(vyaparStats.toPay)}
+                    </div>
+                  </div>
+
+                  {pendingPayments.length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '20px 0' }}>
+                      ✅ કોઈ ચૂકવણી બાકી નથી! બધા સપ્લાયરનું ચૂકવણું થઈ ગયું છે. 🎉
+                    </div>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            <th style={{ padding: '10px 12px' }}>Supplier / Party</th>
+                            <th style={{ padding: '10px 12px' }}>Purchase Bill #</th>
+                            <th style={{ padding: '10px 12px' }}>Date</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Total Bill</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Paid Amount</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Pending Payable (આપવાના)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingPayments.map((item) => (
+                            <tr key={item.id} style={{ borderBottom: '1px dashed var(--border)' }}>
+                              <td style={{ padding: '12px 12px', fontWeight: 700 }}>{item.supplier}</td>
+                              <td style={{ padding: '12px 12px' }}>
+                                <span style={{
+                                  padding: '3px 10px',
+                                  borderRadius: 8,
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                  background: '#f3e8ff',
+                                  color: '#6b21a8',
+                                }}>
+                                  🛒 Purchase: {item.no}
+                                </span>
+                              </td>
+                              <td style={{ padding: '12px 12px', color: 'var(--muted)', fontSize: 12 }}>{fmtDate(item.date)}</td>
+                              <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 600 }}>{money(item.total)}</td>
+                              <td style={{ padding: '12px 12px', textAlign: 'right', color: '#059669', fontWeight: 700 }}>{money(item.paid)}</td>
+                              <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 900, color: '#dc2626', fontSize: 14 }}>{money(item.balance)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ---- ROW 2: Cash in Hand + Month Profit/Loss + Today Summary ---- */}
             <div style={{
