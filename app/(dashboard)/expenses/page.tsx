@@ -551,77 +551,13 @@ export default function ExpensesPage() {
         {activeTab === 'dashboard' && (
           <motion.div key="vyapar-dash" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit">
 
-            {/* ---- ROW 1: Big 5 KPI Cards (Vyapar style) ---- */}
+            {/* ---- ROW 1: KPI Cards (To Collect & To Pay) ---- */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: 14,
               marginTop: 16,
             }}>
-              {/* Total Sale */}
-              <div style={{
-                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                borderRadius: 14,
-                padding: '20px 18px',
-                color: '#fff',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(5,150,105,0.25)',
-              }}>
-                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 80 }}>💰</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <TrendingUp size={18} />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>Total Sale</span>
-                </div>
-                <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.totalSale)}</div>
-                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>This Month: {money(vyaparStats.monthSale)}</span>
-                  <span>{vyaparStats.totalInvoices} bills</span>
-                </div>
-              </div>
-
-              {/* Total Purchase */}
-              <div style={{
-                background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-                borderRadius: 14,
-                padding: '20px 18px',
-                color: '#fff',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(220,38,38,0.25)',
-              }}>
-                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 80 }}>🛒</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <ShoppingBag size={18} />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>Total Purchase</span>
-                </div>
-                <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.totalPurchase)}</div>
-                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85 }}>
-                  This Month: {money(vyaparStats.monthPurchase)}
-                </div>
-              </div>
-
-              {/* Total Expenses */}
-              <div style={{
-                background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
-                borderRadius: 14,
-                padding: '20px 18px',
-                color: '#fff',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 4px 20px rgba(217,119,6,0.25)',
-              }}>
-                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 80 }}>💸</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <Wallet size={18} />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>Salon Expenses</span>
-                </div>
-                <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.totalExpenses)}</div>
-                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85, display: 'flex', justifyContent: 'space-between' }}>
-                  <span>This Month: {money(vyaparStats.monthExpenses)}</span>
-                  <span>{vyaparStats.expenseCount} vouchers</span>
-                </div>
-              </div>
 
               {/* To Collect */}
               <div style={{
