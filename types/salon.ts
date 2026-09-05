@@ -95,6 +95,7 @@ export interface Appointment {
   service: string;
   staff: string;
   advance: number;
+  advanceMode?: string;
   status: AppointmentStatus;
   workStatus?: WorkStatus;
   serviceStartedAt?: string;

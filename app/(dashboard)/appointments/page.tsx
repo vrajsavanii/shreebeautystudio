@@ -32,7 +32,7 @@ export default function AppointmentsPage() {
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<Appointment>({
     defaultValues: {
       id: '', date: today, time: '10:00', customer: '', mobile: '',
-      service: '', staff: '', advance: 0, status: 'Confirmed', workStatus: 'Booked', notes: '',
+      service: '', staff: '', advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: '',
     },
   });
 
@@ -78,14 +78,17 @@ export default function AppointmentsPage() {
       id: '', date: today, time: '10:00', customer: '', mobile: '',
       service: data?.services?.[0]?.name || '',
       staff: data?.staff?.[0]?.name || '',
-      advance: 0, status: 'Confirmed', workStatus: 'Booked', notes: ''
+      advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: ''
     });
     setModalOpen(true);
   };
 
   const openEdit = (a: Appointment) => {
     setEditId(a.id);
-    reset(a);
+    reset({
+      ...a,
+      advanceMode: a.advanceMode || data?.settings?.payments?.[0] || 'Cash',
+    });
     setModalOpen(true);
   };
 
@@ -329,7 +332,7 @@ export default function AppointmentsPage() {
                             <td>
                               <div style={{ fontWeight: 600, color: 'var(--text)' }}>{a.service}</div>
                               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                                Beautician: {a.staff || 'Any'} {a.advance ? `· Adv: ${money(a.advance)}` : ''}
+                                Beautician: {a.staff || 'Any'} {a.advance ? `· Adv: ${money(a.advance)} (${a.advanceMode || 'Cash'})` : ''}
                               </div>
                             </td>
                             <td>
@@ -556,15 +559,24 @@ export default function AppointmentsPage() {
 
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Advance (₹)</label>
+            <label className="label">Advance Deposit (₹)</label>
             <input type="number" className="input" min="0" placeholder="₹ 0 (Advance deposit)" {...register('advance', { valueAsNumber: true })} />
           </div>
           <div className="form-group">
-            <label className="label">Status</label>
-            <select className="input" {...register('status')}>
-              {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            <label className="label">Payment Mode / Received In Account *</label>
+            <select className="input" {...register('advanceMode')}>
+              {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank']).map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
             </select>
           </div>
+        </div>
+
+        <div className="form-group">
+          <label className="label">Appointment Status</label>
+          <select className="input" {...register('status')}>
+            {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
 
         <div className="form-group">
