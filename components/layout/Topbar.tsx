@@ -32,7 +32,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/inventory':    { title: 'Inventory & Products', subtitle: 'Retail stock, audit logs & batch expiry' },
   '/purchases':    { title: 'Product Purchases', subtitle: 'Vendor invoices & inward stock orders' },
   '/suppliers':    { title: 'Supplier Management', subtitle: 'Vendor ledgers, GSTIN & payments' },
-  '/expenses':     { title: 'Expenses & Daybook', subtitle: 'Daily studio cash flow & expense vouchers' },
+  '/expenses':     { title: 'Expenses & Rojmel (Day Book)', subtitle: 'Daily studio cash flow, rojmel ledger & expense vouchers' },
   '/bridal':       { title: 'Bridal & Event Studio', subtitle: '13 Luxury packages, siders & multi-events' },
   '/staff':        { title: 'Staff & Team Management', subtitle: 'Beauticians, roles, commissions & user accounts' },
   '/whatsapp':     { title: 'WhatsApp Web & Client Messenger', subtitle: 'Chat with customers, send invoices & automated promos' },

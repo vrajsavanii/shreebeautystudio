@@ -387,7 +387,7 @@ export default function ExpensesPage() {
           onClick={() => setActiveTab('daybook')}
         >
           <BookOpen size={14} />
-          <span>Daily Day Book (Cashflow)</span>
+          <span>📖 Daily Rojmel (Cashbook)</span>
         </button>
       </div>
 
@@ -546,9 +546,9 @@ export default function ExpensesPage() {
             <div className="card" style={{ padding: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>📖 Daily Cashbook / Day Book</h3>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>📖 Daily Rojmel (Cashbook / Day Book)</h3>
                   <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>
-                    Chronological audit of Cash In vs Cash Out for selected day.
+                    Comprehensive Rojmel audit of Cash In vs Cash Out for selected day.
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -21,7 +21,7 @@ const NAV = [
   { href: '/inventory',    label: 'Inventory',          icon: Package,         role: 'all' },
   { href: '/purchases',    label: 'Product Purchase',   icon: ShoppingBag,     role: 'all' },
   { href: '/suppliers',    label: 'Suppliers',          icon: Building2,       role: 'admin' },
-  { href: '/expenses',     label: 'Expenses & Daybook', icon: Wallet,          role: 'admin' },
+  { href: '/expenses',     label: 'Expenses & Rojmel',  icon: Wallet,          role: 'admin' },
   { href: '/bridal',       label: 'Bridal Bookings',    icon: Heart,           role: 'all' },
   { href: '/staff',        label: 'Staff & Users',      icon: UserCog,         role: 'admin' },
   { href: '/whatsapp',     label: 'WhatsApp Meta Hub',  icon: MessageCircle,   role: 'admin' },
