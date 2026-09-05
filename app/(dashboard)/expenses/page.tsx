@@ -352,8 +352,8 @@ export default function ExpensesPage() {
       .filter((p) => Number(p.balance || 0) > 0)
       .map((p) => ({
         id: p.id,
-        no: p.purchaseNo || 'PUR',
-        supplier: p.supplierName || 'Supplier',
+        no: p.no || 'PUR',
+        supplier: p.supplier || 'Supplier',
         date: p.date,
         total: Number(p.total || 0),
         paid: Number(p.paid || 0),
