@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -27,6 +27,8 @@ import {
   Globe,
   Download,
   Settings,
+  Pencil,
+  RotateCcw,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { useToast } from '@/components/ui/Toast';
@@ -234,6 +236,26 @@ export default function WhatsAppHubPage() {
     data?.settings?.googleReviewLink,
   ]);
 
+  const [manualText, setManualText] = useState('');
+  const [isManualEdited, setIsManualEdited] = useState(false);
+
+  useEffect(() => {
+    if (!isManualEdited) {
+      setManualText(generatedMessage);
+    }
+  }, [generatedMessage, isManualEdited]);
+
+  const handleTemplateSelect = (tplId: TemplateId) => {
+    setSelectedTemplate(tplId);
+    setIsManualEdited(false);
+  };
+
+  const handleResetTemplateText = () => {
+    setManualText(generatedMessage);
+    setIsManualEdited(false);
+    toast('🔄 Reset message text to default template!');
+  };
+
   const handleSelectCustomer = (mob: string) => {
     const trimmed = mob.trim();
     setTargetPhone(trimmed);
@@ -336,8 +358,9 @@ export default function WhatsAppHubPage() {
       return;
     }
 
+    const messageToSend = manualText || generatedMessage;
     toast(`⏳ Sending WhatsApp message to ${targetName || targetPhone} via Meta Cloud API…`);
-    const res = await sendDirectWhatsAppMessage(targetPhone, generatedMessage);
+    const res = await sendDirectWhatsAppMessage(targetPhone, messageToSend);
     if (res.success) {
       toast(`✅ WhatsApp message sent directly to ${targetName || targetPhone} via Meta Cloud API!`);
       setPdfSentStatus(`✅ Message Sent via Meta API!`);
@@ -347,12 +370,14 @@ export default function WhatsAppHubPage() {
   };
 
   const handleDirectWebLaunch = () => {
-    openWAWeb();
-    toast('Opening WhatsApp Web in a new tab…');
+    const messageToSend = manualText || generatedMessage;
+    openWAWeb(targetPhone, messageToSend);
+    toast('Opening WhatsApp Web with your message in a new tab…');
   };
 
   const handleCopyMessage = () => {
-    navigator.clipboard.writeText(generatedMessage);
+    const messageToCopy = manualText || generatedMessage;
+    navigator.clipboard.writeText(messageToCopy);
     toast('Message copied to clipboard! Ready to paste into WhatsApp.');
   };
 
@@ -609,7 +634,7 @@ export default function WhatsAppHubPage() {
                   <button
                     key={tpl.id}
                     type="button"
-                    onClick={() => setSelectedTemplate(tpl.id as TemplateId)}
+                    onClick={() => handleTemplateSelect(tpl.id as TemplateId)}
                     style={{
                       padding: '8px 10px',
                       borderRadius: 8,
@@ -817,6 +842,64 @@ export default function WhatsAppHubPage() {
                 />
               </div>
             )}
+
+            {/* Interactive Manual Template Editor */}
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="label" style={{ fontWeight: 800, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
+                  <Pencil size={14} color="var(--teal)" /> 2. Edit &amp; Customise Message Text (Manual Edit)
+                </label>
+                {isManualEdited && (
+                  <button
+                    type="button"
+                    onClick={handleResetTemplateText}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0284c7',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: 0,
+                    }}
+                  >
+                    <RotateCcw size={12} /> Reset to Default Template
+                  </button>
+                )}
+              </div>
+              <textarea
+                className="input"
+                rows={6}
+                value={manualText}
+                onChange={(e) => {
+                  setManualText(e.target.value);
+                  setIsManualEdited(true);
+                }}
+                placeholder="Type or edit your custom WhatsApp message here..."
+                style={{
+                  width: '100%',
+                  fontFamily: 'inherit',
+                  fontSize: 12.5,
+                  lineHeight: 1.5,
+                  padding: 10,
+                  borderColor: isManualEdited ? '#3b82f6' : 'var(--border)',
+                  background: isManualEdited ? '#eff6ff' : '#ffffff',
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                <span style={{ fontSize: 10.5, color: '#64748b' }}>
+                  ✏️ Live editable message box! Updates live in WhatsApp preview on the right.
+                </span>
+                {isManualEdited && (
+                  <span style={{ fontSize: 10.5, color: '#2563eb', fontWeight: 700 }}>
+                    ● Manually Customized
+                  </span>
+                )}
+              </div>
+            </div>
 
             {/* Launch Settings */}
             <div
@@ -1030,7 +1113,7 @@ export default function WhatsAppHubPage() {
                     </div>
                   )}
 
-                  {generatedMessage}
+                  {manualText || generatedMessage}
                   <div
                     style={{
                       display: 'flex',
