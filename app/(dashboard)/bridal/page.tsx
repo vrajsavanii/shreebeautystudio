@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, formatCustomerContactName } from '@/lib/utils';
 import { BridalBooking, BridalPackage, Invoice, InvoiceLine } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -19,8 +19,6 @@ import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/l
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { subDays, format, parseISO } from 'date-fns';
-
-import ContactPickerButton from '@/components/ui/ContactPickerButton';
 
 type MainTab = 'bookings' | 'packages';
 
@@ -190,11 +188,16 @@ const OTHER_EVENT_OPTIONS = [
   // Customer Autocomplete: auto-fills Birthday, Sagai Date, and Wedding Date
   const handleCustomerSelect = (query: string) => {
     set('name', query);
-    const trimmed = query.trim();
+    const trimmed = query.trim().toLowerCase();
     if (!trimmed) return;
+    const cleanNum = query.replace(/\D/g, '');
 
     const found = (data?.customers || []).find(
-      (c) => c.name.toLowerCase() === trimmed.toLowerCase() || c.mobile === trimmed
+      (c) =>
+        c.name.toLowerCase() === trimmed ||
+        formatCustomerContactName(c.name).toLowerCase() === trimmed ||
+        (cleanNum.length >= 4 && c.mobile.includes(cleanNum)) ||
+        c.mobile === query.trim()
     );
 
     if (found) {
@@ -223,7 +226,7 @@ const OTHER_EVENT_OPTIONS = [
           musicDate: prev.musicDate || prevDay,
         };
       });
-      toast(`Loaded profile for ${found.name} (Sagai / Wedding / Birthday auto-filled)`);
+      toast(`✨ Bride details auto-filled for ${found.name}`);
     }
   };
 
@@ -957,60 +960,48 @@ const OTHER_EVENT_OPTIONS = [
         {/* Step 0: Bride Details */}
         {tab === 0 && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                Select existing bride or pick from phone contacts
-              </span>
-              <ContactPickerButton
-                onSelectContact={({ name, mobile }) => {
-                  if (name) {
-                    setForm((prev) => ({ ...prev, name }));
-                    handleCustomerSelect(name);
-                  }
-                  if (mobile) {
-                    setForm((prev) => ({ ...prev, mobile }));
-                    handleCustomerSelect(mobile);
-                  }
-                }}
-              />
-            </div>
-
             <div className="form-grid">
               <div className="form-group">
-                <label className="label">Bride / Customer Name * (Select or Type)</label>
+                <label className="label">Bride / Customer Name * (Type to auto pick contact)</label>
                 <input
                   type="text"
                   className="input"
                   list="bridal-cust-name-list"
                   value={form.name || ''}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
-                  placeholder="Type or select existing customer..."
+                  placeholder="Start typing name or contact..."
                   autoFocus
                 />
                 <datalist id="bridal-cust-name-list">
-                  {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name} — 📞 {c.mobile} {c.sagaiDate ? `(Sagai: ${fmtDate(c.sagaiDate)})` : ''} {c.anniversary ? `(Wedding: ${fmtDate(c.anniversary)})` : ''}
+                  {(data?.customers || []).flatMap((c) => [
+                    <option key={`${c.id}-name`} value={c.name}>
+                      {c.name} — 📞 {c.mobile}
+                    </option>,
+                    <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+                      {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                     </option>
-                  ))}
+                  ])}
                 </datalist>
               </div>
               <div className="form-group">
-                <label className="label">Mobile Number *</label>
+                <label className="label">Mobile Number * (Type to auto pick contact)</label>
                 <input
                   type="tel"
                   className="input"
                   list="bridal-cust-mob-list"
                   value={form.mobile || ''}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
-                  placeholder="10-digit mobile (e.g. 9876543210)"
+                  placeholder="10-digit mobile number"
                 />
                 <datalist id="bridal-cust-mob-list">
-                  {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={c.mobile}>
+                  {(data?.customers || []).flatMap((c) => [
+                    <option key={`${c.id}-mob`} value={c.mobile}>
                       {c.mobile} — 👤 {c.name}
+                    </option>,
+                    <option key={`${c.id}-mob-name`} value={c.name}>
+                      👤 {c.name} — 📞 {c.mobile}
                     </option>
-                  ))}
+                  ])}
                 </datalist>
               </div>
             </div>

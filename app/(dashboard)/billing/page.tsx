@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, formatCustomerContactName } from '@/lib/utils';
 import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransaction, BridalBooking } from '@/types/salon';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -37,7 +37,6 @@ import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
-import ContactPickerButton from '@/components/ui/ContactPickerButton';
 
 const EMPTY_LINE = (): InvoiceLine => ({
   type: 'S',
@@ -445,9 +444,18 @@ function BillingContent() {
 
   const handleCustomerSelect = (name: string) => {
     setCustomer(name);
-    const trimmed = name.trim();
+    const trimmed = name.trim().toLowerCase();
+    if (!trimmed) {
+      setSelectedCustomerObj(null);
+      return;
+    }
+    const cleanNum = name.replace(/\D/g, '');
     const c = (data?.customers || []).find(
-      (x) => x.name.toLowerCase() === trimmed.toLowerCase() || x.mobile === trimmed
+      (x) =>
+        x.name.toLowerCase() === trimmed ||
+        formatCustomerContactName(x.name).toLowerCase() === trimmed ||
+        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
+        x.mobile === name.trim()
     );
     if (c) {
       setCustomer(c.name);
@@ -464,8 +472,14 @@ function BillingContent() {
     setMobile(inputMobile);
     const trimmed = inputMobile.trim();
     const cleanNum = trimmed.replace(/\D/g, '');
+    if (!trimmed) return;
     const c = (data?.customers || []).find(
-      (x) => x.mobile === cleanNum || x.mobile === trimmed || x.name.toLowerCase() === trimmed.toLowerCase()
+      (x) =>
+        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
+        x.mobile === cleanNum ||
+        x.mobile === trimmed ||
+        x.name.toLowerCase() === trimmed.toLowerCase() ||
+        formatCustomerContactName(x.name).toLowerCase() === trimmed.toLowerCase()
     );
     if (c) {
       setCustomer(c.name);
@@ -1126,59 +1140,47 @@ function BillingContent() {
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
-                Customer Information &amp; Contact Auto-fill
-              </span>
-              <ContactPickerButton
-                onSelectContact={({ name, mobile: m }) => {
-                  if (name) {
-                    setCustomer(name);
-                    handleCustomerSelect(name);
-                  }
-                  if (m) {
-                    setMobile(m);
-                    handleMobileSelect(m);
-                  }
-                }}
-              />
-            </div>
-
             <div className="form-grid">
               <div className="form-group">
-                <label className="label">Customer Name</label>
+                <label className="label">Customer Name (Type to auto pick contact)</label>
                 <input
                   type="text"
                   className="input"
                   list="billing-cust-name-list"
-                  placeholder="e.g. Priya Sharma / Anjali Patel"
+                  placeholder="Start typing customer name or contact..."
                   value={customer}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
                 />
                 <datalist id="billing-cust-name-list">
-                  {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={c.name}>
+                  {(data?.customers || []).flatMap((c) => [
+                    <option key={`${c.id}-name`} value={c.name}>
                       {c.name} — 📞 {c.mobile}
+                    </option>,
+                    <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+                      {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                     </option>
-                  ))}
+                  ])}
                 </datalist>
               </div>
               <div className="form-group">
-                <label className="label">Mobile Number</label>
+                <label className="label">Mobile Number (Type to auto pick contact)</label>
                 <input
                   type="tel"
                   className="input"
                   list="billing-cust-mob-list"
-                  placeholder="10-digit mobile (e.g. 9876543210)"
+                  placeholder="10-digit mobile number"
                   value={mobile}
                   onChange={(e) => handleMobileSelect(e.target.value)}
                 />
                 <datalist id="billing-cust-mob-list">
-                  {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={c.mobile}>
+                  {(data?.customers || []).flatMap((c) => [
+                    <option key={`${c.id}-mob`} value={c.mobile}>
                       {c.mobile} — 👤 {c.name}
+                    </option>,
+                    <option key={`${c.id}-mob-name`} value={c.name}>
+                      👤 {c.name} — 📞 {c.mobile}
                     </option>
-                  ))}
+                  ])}
                 </datalist>
               </div>
             </div>

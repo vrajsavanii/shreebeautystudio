@@ -15,8 +15,6 @@ import { useForm } from 'react-hook-form';
 import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
 import { isSameDayAndMonth } from '@/lib/auto-wish';
 
-import ContactPickerButton from '@/components/ui/ContactPickerButton';
-
 type CustomerTab = 'all' | 'todayWishes' | 'birthdays' | 'anniversaries' | 'vip';
 
 export default function CustomersPage() {
@@ -118,10 +116,15 @@ export default function CustomersPage() {
 
   const handleCustomerSelect = (val: string) => {
     setValue('name', val);
-    const trimmed = val.trim();
+    const trimmed = val.trim().toLowerCase();
     if (!trimmed) return;
+    const cleanNum = val.replace(/\D/g, '');
     const found = (data?.customers || []).find(
-      (c) => c.name.toLowerCase() === trimmed.toLowerCase() || c.mobile === trimmed
+      (c) =>
+        c.name.toLowerCase() === trimmed ||
+        formatCustomerContactName(c.name).toLowerCase() === trimmed ||
+        (cleanNum.length >= 4 && c.mobile.includes(cleanNum)) ||
+        c.mobile === val.trim()
     );
     if (found) {
       setEditId(found.id);
@@ -141,7 +144,12 @@ export default function CustomersPage() {
     const cleanNum = trimmed.replace(/\D/g, '');
     if (!trimmed) return;
     const found = (data?.customers || []).find(
-      (c) => c.mobile === cleanNum || c.mobile === trimmed || c.name.toLowerCase() === trimmed.toLowerCase()
+      (c) =>
+        (cleanNum.length >= 4 && c.mobile.includes(cleanNum)) ||
+        c.mobile === cleanNum ||
+        c.mobile === trimmed ||
+        c.name.toLowerCase() === trimmed.toLowerCase() ||
+        formatCustomerContactName(c.name).toLowerCase() === trimmed.toLowerCase()
     );
     if (found) {
       setEditId(found.id);
@@ -480,41 +488,27 @@ export default function CustomersPage() {
           </>
         }
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Type name or phone number to load contact details
-          </span>
-          <ContactPickerButton
-            onSelectContact={({ name, mobile }) => {
-              if (name) {
-                setValue('name', name);
-                handleCustomerSelect(name);
-              }
-              if (mobile) {
-                setValue('mobile', mobile);
-                handleMobileSelect(mobile);
-              }
-            }}
-          />
-        </div>
-
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Full Name *</label>
+            <label className="label">Full Name * (Type to auto pick contact)</label>
             <input
               type="text"
               className="input"
               list="add-cust-name-list"
-              placeholder="e.g. Anjali Mehta / Ritu Patel"
+              placeholder="Start typing name or contact..."
               {...register('name', { required: 'Name is required' })}
               onChange={(e) => handleCustomerSelect(e.target.value)}
+              autoFocus
             />
             <datalist id="add-cust-name-list">
-              {(data?.customers || []).map((c) => (
-                <option key={c.id} value={c.name}>
+              {(data?.customers || []).flatMap((c) => [
+                <option key={`${c.id}-name`} value={c.name}>
                   {c.name} — 📞 {c.mobile}
+                </option>,
+                <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+                  {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                 </option>
-              ))}
+              ])}
             </datalist>
             {watchName && (
               <div style={{ fontSize: 11.5, color: '#05424a', marginTop: 4, fontWeight: 700 }}>
@@ -524,7 +518,7 @@ export default function CustomersPage() {
             {errors.name && <span className="error-msg">{errors.name.message}</span>}
           </div>
           <div className="form-group">
-            <label className="label">Mobile Number *</label>
+            <label className="label">Mobile Number * (Type to auto pick contact)</label>
             <input
               type="tel"
               className="input"
@@ -534,11 +528,14 @@ export default function CustomersPage() {
               onChange={(e) => handleMobileSelect(e.target.value)}
             />
             <datalist id="add-cust-mob-list">
-              {(data?.customers || []).map((c) => (
-                <option key={c.id} value={c.mobile}>
+              {(data?.customers || []).flatMap((c) => [
+                <option key={`${c.id}-mob`} value={c.mobile}>
                   {c.mobile} — 👤 {c.name}
+                </option>,
+                <option key={`${c.id}-mob-name`} value={c.name}>
+                  👤 {c.name} — 📞 {c.mobile}
                 </option>
-              ))}
+              ])}
             </datalist>
             {errors.mobile && <span className="error-msg">{errors.mobile.message}</span>}
           </div>

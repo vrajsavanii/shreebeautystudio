@@ -15,8 +15,6 @@ import { openWA, appointmentStaffMessage } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 
-import ContactPickerButton from '@/components/ui/ContactPickerButton';
-
 type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'cancelled';
 const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed'];
 
@@ -93,10 +91,15 @@ export default function AppointmentsPage() {
 
   const handleCustomerSelect = (val: string) => {
     setValue('customer', val);
-    const trimmed = val.trim();
+    const trimmed = val.trim().toLowerCase();
     if (!trimmed) return;
+    const cleanNum = val.replace(/\D/g, '');
     const c = (data?.customers || []).find(
-      (x) => x.name.toLowerCase() === trimmed.toLowerCase() || x.mobile === trimmed
+      (x) =>
+        x.name.toLowerCase() === trimmed ||
+        formatCustomerContactName(x.name).toLowerCase() === trimmed ||
+        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
+        x.mobile === val.trim()
     );
     if (c) {
       setValue('customer', c.name);
@@ -110,7 +113,12 @@ export default function AppointmentsPage() {
     const cleanNum = trimmed.replace(/\D/g, '');
     if (!trimmed) return;
     const c = (data?.customers || []).find(
-      (x) => x.mobile === cleanNum || x.mobile === trimmed || x.name.toLowerCase() === trimmed.toLowerCase()
+      (x) =>
+        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
+        x.mobile === cleanNum ||
+        x.mobile === trimmed ||
+        x.name.toLowerCase() === trimmed.toLowerCase() ||
+        formatCustomerContactName(x.name).toLowerCase() === trimmed.toLowerCase()
     );
     if (c) {
       setValue('customer', c.name);
@@ -486,60 +494,48 @@ export default function AppointmentsPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-            Select existing customer or pick from phone contacts
-          </span>
-          <ContactPickerButton
-            onSelectContact={({ name, mobile }) => {
-              if (name) {
-                setValue('customer', name);
-                handleCustomerSelect(name);
-              }
-              if (mobile) {
-                setValue('mobile', mobile);
-                handleMobileSelect(mobile);
-              }
-            }}
-          />
-        </div>
-
         <div className="form-group">
-          <label className="label">Customer</label>
+          <label className="label">Customer (Type to auto pick contact)</label>
           <input
             type="text"
             className="input"
             list="appt-cust-name-list"
-            placeholder="e.g. Neha Patel / Sneha Shah"
+            placeholder="Start typing customer name or contact..."
             {...register('customer', { required: 'Customer is required' })}
             onChange={(e) => handleCustomerSelect(e.target.value)}
           />
           <datalist id="appt-cust-name-list">
-            {(data?.customers || []).map((c) => (
-              <option key={c.id} value={c.name}>
+            {(data?.customers || []).flatMap((c) => [
+              <option key={`${c.id}-name`} value={c.name}>
                 {c.name} — 📞 {c.mobile}
+              </option>,
+              <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+                {formatCustomerContactName(c.name)} — 📞 {c.mobile}
               </option>
-            ))}
+            ])}
           </datalist>
           {errors.customer && <span className="error-msg">{errors.customer.message}</span>}
         </div>
 
         <div className="form-group">
-          <label className="label">Mobile</label>
+          <label className="label">Mobile Number (Type to auto pick contact)</label>
           <input
             type="tel"
             className="input"
             list="appt-cust-mob-list"
-            placeholder="10-digit mobile (e.g. 9825012345)"
+            placeholder="10-digit mobile number"
             {...register('mobile')}
             onChange={(e) => handleMobileSelect(e.target.value)}
           />
           <datalist id="appt-cust-mob-list">
-            {(data?.customers || []).map((c) => (
-              <option key={c.id} value={c.mobile}>
+            {(data?.customers || []).flatMap((c) => [
+              <option key={`${c.id}-mob`} value={c.mobile}>
                 {c.mobile} — 👤 {c.name}
+              </option>,
+              <option key={`${c.id}-mob-name`} value={c.name}>
+                👤 {c.name} — 📞 {c.mobile}
               </option>
-            ))}
+            ])}
           </datalist>
         </div>
 
