@@ -186,7 +186,7 @@ const OTHER_EVENT_OPTIONS = [
 ];
 
   // Customer Autocomplete: auto-fills Birthday, Sagai Date, and Wedding Date
-  const handleCustomerSelect = (query: string) => {
+  const handleSelectCustomerName = (query: string) => {
     set('name', query);
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return;
@@ -196,8 +196,47 @@ const OTHER_EVENT_OPTIONS = [
       (c) =>
         c.name.toLowerCase() === trimmed ||
         formatCustomerContactName(c.name).toLowerCase() === trimmed ||
-        (cleanNum.length >= 4 && c.mobile.includes(cleanNum)) ||
-        c.mobile === query.trim()
+        (cleanNum.length >= 7 && c.mobile === query.trim())
+    );
+
+    if (found) {
+      setForm((prev) => {
+        const today = todayISO();
+        const wDate = found.anniversary || prev.weddingDate || today;
+        let prevDay = wDate;
+        try {
+          prevDay = format(subDays(parseISO(wDate), 1), 'yyyy-MM-dd');
+        } catch {
+          prevDay = today;
+        }
+
+        const sagai = found.sagaiDate || found.engagementDate || prev.sagaiDate || '';
+
+        return {
+          ...prev,
+          name: found.name,
+          mobile: found.mobile,
+          birthday: found.birthday || prev.birthday || '',
+          weddingDate: wDate,
+          includeWedding: true,
+          sagaiDate: sagai,
+          includeSagai: !!sagai,
+          mandapDate: prev.mandapDate || prevDay,
+          musicDate: prev.musicDate || prevDay,
+        };
+      });
+      toast(`✨ Bride details auto-filled for ${found.name}`);
+    }
+  };
+
+  const handleSelectCustomerMobile = (mob: string) => {
+    set('mobile', mob);
+    const trimmed = mob.trim();
+    if (!trimmed) return;
+    const cleanNum = mob.replace(/\D/g, '');
+
+    const found = (data?.customers || []).find(
+      (c) => c.mobile === trimmed || (cleanNum.length >= 7 && c.mobile.includes(cleanNum))
     );
 
     if (found) {
@@ -968,7 +1007,7 @@ const OTHER_EVENT_OPTIONS = [
                   className="input"
                   list="bridal-cust-name-list"
                   value={form.name || ''}
-                  onChange={(e) => handleCustomerSelect(e.target.value)}
+                  onChange={(e) => handleSelectCustomerName(e.target.value)}
                   placeholder="Start typing name or contact..."
                   autoFocus
                 />
@@ -987,7 +1026,7 @@ const OTHER_EVENT_OPTIONS = [
                   className="input"
                   list="bridal-cust-mob-list"
                   value={form.mobile || ''}
-                  onChange={(e) => handleCustomerSelect(e.target.value)}
+                  onChange={(e) => handleSelectCustomerMobile(e.target.value)}
                   placeholder="10-digit mobile number"
                 />
                 <datalist id="bridal-cust-mob-list">
