@@ -13,10 +13,27 @@ import { cloudSync } from '@/lib/sync';
 import { initSupabaseRealtime } from '@/lib/realtime';
 import { fadeSlideUp } from '@/variants';
 
+import { usePathname } from 'next/navigation';
+import { useSalonStore } from '@/lib/store';
+
+const ALLOWED_SALES_ROUTES = ['/appointments', '/bridal', '/purchases', '/inventory', '/billing', '/customers'];
+
 function DashboardShell({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { currentUser } = useSalonStore();
 
   useEffect(() => {
+    // Role permissions guard
+    if (currentUser && currentUser.role === 'Salesperson') {
+      const isAllowed = ALLOWED_SALES_ROUTES.some((route) => pathname === route || (route !== '/' && pathname.startsWith(route)));
+      if (!isAllowed) {
+        toast('🔒 Salesperson Mode: Access restricted to Appointments, Bridal, Purchase, Inventory & Billing.', 'error');
+        router.replace('/billing');
+      }
+    }
+
     // Auth guard & cloud sync on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -35,7 +52,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
     return () => {
       unsubscribeRealtime();
     };
-  }, [toast]);
+  }, [toast, pathname, currentUser, router]);
 
   return (
     <div className="app-shell">

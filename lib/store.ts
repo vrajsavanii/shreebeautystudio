@@ -1,7 +1,7 @@
 // lib/store.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { SalonData, BridalPackage, MembershipPlan } from '@/types/salon';
+import { SalonData, BridalPackage, MembershipPlan, UserAccount } from '@/types/salon';
 import { uid } from './utils';
 
 export const DEFAULT_BRIDAL_PACKAGES: BridalPackage[] = [
@@ -24,6 +24,25 @@ export const DEFAULT_MEMBERSHIP_PLANS: MembershipPlan[] = [
   { id: 'mem-silver', name: 'Silver', price: 1999, validityDays: 180, discountPercent: 5, color: '#9ca3af', perks: '5% off on all services, Priority booking' },
   { id: 'mem-gold', name: 'Gold', price: 3999, validityDays: 365, discountPercent: 10, color: '#f59e0b', perks: '10% off on all services, Free birthday facial, Priority booking' },
   { id: 'mem-vip', name: 'VIP', price: 7999, validityDays: 365, discountPercent: 15, color: '#8b5cf6', perks: '15% off on all services, Free birthday + anniversary facial, Complimentary threading, Priority booking' },
+];
+
+export const DEFAULT_USERS: UserAccount[] = [
+  {
+    id: 'user-admin',
+    name: 'Studio Owner (Admin)',
+    email: 'shree@admin.com',
+    password: 'shree1234',
+    role: 'Admin',
+    createdAt: '2026-01-01',
+  },
+  {
+    id: 'user-sales',
+    name: 'Sales Executive',
+    email: 'sales@shree.com',
+    password: 'sales1234',
+    role: 'Salesperson',
+    createdAt: '2026-01-01',
+  },
 ];
 
 export const DEFAULT_DATA: SalonData = {
@@ -756,6 +775,7 @@ export const DEFAULT_DATA: SalonData = {
   memberships: DEFAULT_MEMBERSHIP_PLANS,
   customerMemberships: [],
   attendance: [],
+  users: DEFAULT_USERS,
 };
 
 export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonData {
@@ -812,6 +832,7 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     memberships: Array.isArray(incoming.memberships) && incoming.memberships.length ? incoming.memberships : DEFAULT_MEMBERSHIP_PLANS,
     customerMemberships: Array.isArray(incoming.customerMemberships) ? incoming.customerMemberships : DEFAULT_DATA.customerMemberships,
     attendance: Array.isArray(incoming.attendance) ? incoming.attendance : DEFAULT_DATA.attendance,
+    users: Array.isArray(incoming.users) && incoming.users.length ? incoming.users : DEFAULT_USERS,
   };
 }
 
@@ -823,6 +844,9 @@ interface SalonStore {
   setCloudStatus: (s: 'idle' | 'syncing' | 'saved' | 'error' | 'offline') => void;
   lastSynced: string | null;
   setLastSynced: (t: string) => void;
+  currentUser: UserAccount | null;
+  setCurrentUser: (user: UserAccount | null) => void;
+  logoutUser: () => void;
 }
 
 export const useSalonStore = create<SalonStore>()(
@@ -835,6 +859,9 @@ export const useSalonStore = create<SalonStore>()(
       setCloudStatus: (s) => set({ cloudStatus: s }),
       lastSynced: null,
       setLastSynced: (t) => set({ lastSynced: t }),
+      currentUser: DEFAULT_USERS[0], // default Admin user
+      setCurrentUser: (user) => set({ currentUser: user }),
+      logoutUser: () => set({ currentUser: null }),
     }),
     {
       name: 'shreeSalonV1',
@@ -842,6 +869,7 @@ export const useSalonStore = create<SalonStore>()(
         ...currentState,
         ...persistedState,
         data: mergeWithDefaults(persistedState?.data),
+        currentUser: persistedState?.currentUser ?? DEFAULT_USERS[0],
       }),
     }
   )

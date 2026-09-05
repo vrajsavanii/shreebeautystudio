@@ -12,12 +12,16 @@ import {
   AlertTriangle,
   Sparkles,
   MessageCircle,
+  ShieldCheck,
+  UserCheck,
+  LogOut,
 } from 'lucide-react';
 import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { format } from 'date-fns';
 import { useSalonStore } from '@/lib/store';
 import { todayISO } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/':             { title: 'Dashboard Overview', subtitle: 'Real-time studio KPIs & analytics' },
@@ -30,7 +34,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/suppliers':    { title: 'Supplier Management', subtitle: 'Vendor ledgers, GSTIN & payments' },
   '/expenses':     { title: 'Expenses & Daybook', subtitle: 'Daily studio cash flow & expense vouchers' },
   '/bridal':       { title: 'Bridal & Event Studio', subtitle: '13 Luxury packages, siders & multi-events' },
-  '/staff':        { title: 'Staff & Team', subtitle: 'Beauticians, roles & performance' },
+  '/staff':        { title: 'Staff & Team Management', subtitle: 'Beauticians, roles, commissions & user accounts' },
   '/whatsapp':     { title: 'WhatsApp Web & Client Messenger', subtitle: 'Chat with customers, send invoices & automated promos' },
   '/reminders':    { title: 'Smart Reminders', subtitle: 'Birthdays, anniversaries & follow-ups' },
   '/reports':      { title: 'Financial & Reports', subtitle: 'Sales analysis, GST summary & profit' },
@@ -43,8 +47,10 @@ interface TopbarProps {
 
 export default function Topbar({ onMenuClick }: TopbarProps) {
   const pathname = usePathname();
-  const { data } = useSalonStore();
+  const router = useRouter();
+  const { data, currentUser, logoutUser } = useSalonStore();
   const today = todayISO();
+  const isSalesperson = currentUser?.role === 'Salesperson';
 
   const [timeStr, setTimeStr] = useState('');
 
@@ -169,25 +175,27 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
         {/* Quick Action Shortcuts */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} className="topbar-actions">
-          <Link
-            href="/whatsapp"
-            className="btn btn-sm"
-            style={{
-              fontSize: 11.5,
-              padding: '5.5px 11px',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              background: '#25D366',
-              color: '#053320',
-              fontWeight: 700,
-              border: 'none',
-            }}
-            title="Open WhatsApp Web & Client Messenger"
-          >
-            <MessageCircle size={13} /> WhatsApp
-          </Link>
+          {!isSalesperson && (
+            <Link
+              href="/whatsapp"
+              className="btn btn-sm"
+              style={{
+                fontSize: 11.5,
+                padding: '5.5px 11px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                background: '#25D366',
+                color: '#053320',
+                fontWeight: 700,
+                border: 'none',
+              }}
+              title="Open WhatsApp Web & Client Messenger"
+            >
+              <MessageCircle size={13} /> WhatsApp
+            </Link>
+          )}
           <Link
             href="/billing"
             className="btn btn-primary btn-sm"
@@ -216,6 +224,28 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           >
             <Plus size={12} /> Book
           </Link>
+        </div>
+
+        {/* Active User Pill */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: isSalesperson ? '#f0fdf4' : '#fefce8',
+            border: isSalesperson ? '1px solid #bbf7d0' : '1px solid #fef08a',
+            padding: '4px 10px',
+            borderRadius: 99,
+            fontSize: 11.5,
+          }}
+        >
+          {isSalesperson ? <UserCheck size={13} color="#16a34a" /> : <ShieldCheck size={13} color="#ca8a04" />}
+          <span style={{ fontWeight: 700, color: isSalesperson ? '#15803d' : '#854d0e' }}>
+            {currentUser?.name || 'Owner'}
+          </span>
+          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: isSalesperson ? '#dcfce7' : '#fef9c3', color: isSalesperson ? '#166534' : '#713f12', fontWeight: 800 }}>
+            {isSalesperson ? 'Sales' : 'Admin'}
+          </span>
         </div>
 
         {/* Cloud Sync Status */}

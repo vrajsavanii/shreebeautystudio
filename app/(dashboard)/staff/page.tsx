@@ -14,7 +14,11 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
-type StaffTab = 'all' | 'performance' | 'attendance' | 'commission';
+import { ShieldCheck, UserCheck, KeyRound, Lock, Eye, EyeOff } from 'lucide-react';
+import { DEFAULT_USERS } from '@/lib/store';
+import { UserAccount, UserRole } from '@/types/salon';
+
+type StaffTab = 'all' | 'performance' | 'attendance' | 'commission' | 'users';
 
 export default function StaffPage() {
   const { data, updateData } = useSalonStore();
@@ -30,6 +34,14 @@ export default function StaffPage() {
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceLog['status']>('Present');
   const [checkIn, setCheckIn] = useState('10:00');
   const [checkOut, setCheckOut] = useState('19:00');
+
+  // User account modal state
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [userRole, setUserRole] = useState<UserRole>('Salesperson');
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   const today = new Date();
   const monthFrom = format(startOfMonth(today), 'yyyy-MM-dd');
@@ -167,6 +179,7 @@ export default function StaffPage() {
     { id: 'performance', label: '📊 Performance' },
     { id: 'attendance', label: '📅 Attendance' },
     { id: 'commission', label: '💰 Commission' },
+    { id: 'users', label: '🔑 User Accounts & Roles' },
   ];
 
   return (
@@ -176,9 +189,15 @@ export default function StaffPage() {
           <Search size={15} className="search-icon" />
           <input type="search" className="input" placeholder="Search staff name, mobile, role, skills…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
-          <Plus size={15} /> Add Team Member
-        </motion.button>
+        {activeTab === 'users' ? (
+          <motion.button className="btn btn-primary" onClick={() => setUserModalOpen(true)} whileTap={{ scale: 0.97 }}>
+            <Plus size={15} /> Create User Account
+          </motion.button>
+        ) : (
+          <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
+            <Plus size={15} /> Add Team Member
+          </motion.button>
+        )}
       </div>
 
       <div className="tabs">
@@ -397,6 +416,92 @@ export default function StaffPage() {
         </div>
       )}
 
+      {/* TAB: User Accounts & Roles */}
+      {activeTab === 'users' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--teal)' }}>
+                🔑 System User Accounts &amp; Access Roles
+              </h3>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--muted)' }}>
+                Create accounts for your staff. <b>Salespersons</b> can only access Appointments, Bridal, Purchase, Inventory, and Billing POS.
+              </p>
+            </div>
+            <motion.button className="btn btn-primary btn-sm" onClick={() => setUserModalOpen(true)} whileTap={{ scale: 0.97 }}>
+              <Plus size={14} /> Create Account
+            </motion.button>
+          </div>
+
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User Name</th>
+                  <th>Login Email</th>
+                  <th>Role</th>
+                  <th>Password</th>
+                  <th>Permissions Matrix</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                {(data?.users && data.users.length > 0 ? data.users : DEFAULT_USERS).map((user) => (
+                  <motion.tr key={user.id} variants={fadeSlideUp}>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: 13.5 }}>{user.name}</div>
+                      <div style={{ fontSize: 10.5, color: '#94a3b8' }}>ID: {user.id}</div>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600, color: '#0369a1' }}>{user.email}</span>
+                    </td>
+                    <td>
+                      {user.role === 'Salesperson' ? (
+                        <span className="badge" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', fontWeight: 800 }}>
+                          👤 Salesperson
+                        </span>
+                      ) : (
+                        <span className="badge" style={{ background: '#fef08a', color: '#854d0e', border: '1px solid #fde047', fontWeight: 800 }}>
+                          👑 Admin / Owner
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <code style={{ fontSize: 12, background: '#f1f5f9', padding: '3px 7px', borderRadius: 4, color: '#475569' }}>
+                        {user.password || '******'}
+                      </code>
+                    </td>
+                    <td style={{ fontSize: 11.5, color: '#64748b' }}>
+                      {user.role === 'Salesperson'
+                        ? '📅 Appointments, 💍 Bridal, 🛍️ Purchase, 📦 Inventory, 🧾 Billing POS'
+                        : '⭐ Unrestricted Full Admin Access (All 15 Modules)'}
+                    </td>
+                    <td>
+                      {(data?.users || DEFAULT_USERS).length > 1 && (
+                        <button
+                          className="btn-icon danger"
+                          onClick={() => {
+                            updateData((d) => ({
+                              ...d,
+                              users: (d.users || DEFAULT_USERS).filter((u) => u.id !== user.id),
+                            }));
+                            scheduleSave();
+                            toast(`User account ${user.name} removed!`);
+                          }}
+                          title="Delete User Account"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </td>
+                  </motion.tr>
+                ))}
+              </motion.tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Add / Edit Staff Modal */}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editId ? '✎ Edit Team Member' : '👥 Add Team Member'}
         footer={
@@ -479,6 +584,90 @@ export default function StaffPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Create User Account Modal */}
+      <Modal
+        isOpen={userModalOpen}
+        onClose={() => setUserModalOpen(false)}
+        title="🔑 Create New User Account"
+        footer={
+          <>
+            <button className="btn btn-ghost" onClick={() => setUserModalOpen(false)}>Cancel</button>
+            <motion.button
+              className="btn btn-primary"
+              onClick={() => {
+                if (!userName.trim() || !userEmail.trim() || !userPassword.trim()) {
+                  toast('Please fill in Name, Email, and Password.', 'error');
+                  return;
+                }
+                const newUser: UserAccount = {
+                  id: `usr_${uid()}`,
+                  name: userName.trim(),
+                  email: userEmail.trim().toLowerCase(),
+                  password: userPassword.trim(),
+                  role: userRole,
+                  createdAt: todayISO(),
+                };
+                updateData((d) => ({
+                  ...d,
+                  users: [...(d.users || DEFAULT_USERS), newUser],
+                }));
+                scheduleSave();
+                toast(`✅ Created ${userRole} account for ${newUser.name}!`);
+                setUserName('');
+                setUserEmail('');
+                setUserPassword('');
+                setUserModalOpen(false);
+              }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Create Account
+            </motion.button>
+          </>
+        }
+      >
+        <div className="form-group">
+          <label className="label">Full Name *</label>
+          <input
+            type="text"
+            className="input"
+            placeholder="e.g. Priya (Sales Executive)"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label className="label">Email / Login ID *</label>
+          <input
+            type="email"
+            className="input"
+            placeholder="e.g. priya@shree.com"
+            value={userEmail}
+            onChange={(e) => setUserEmail(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label className="label">Password *</label>
+          <input
+            type="text"
+            className="input"
+            placeholder="Set account password (e.g. priya1234)"
+            value={userPassword}
+            onChange={(e) => setUserPassword(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label className="label">Account Role &amp; Access Level *</label>
+          <select
+            className="input"
+            value={userRole}
+            onChange={(e) => setUserRole(e.target.value as UserRole)}
+          >
+            <option value="Salesperson">👤 Salesperson (Restricted: Appointments, Bridal, Purchase, Inventory, Billing POS only)</option>
+            <option value="Admin">👑 Admin / Owner (Full Access to all 15 modules)</option>
+          </select>
+        </div>
       </Modal>
 
       {/* Delete Confirm */}

@@ -416,6 +416,17 @@ export interface AttendanceLog {
   notes?: string;
 }
 
+export type UserRole = 'Admin' | 'Salesperson';
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  createdAt?: string;
+}
+
 // ── Main SalonData ────────────────────────────────────────────────────────────
 export interface SalonData {
   settings: SalonSettings;
@@ -443,4 +454,5 @@ export interface SalonData {
   memberships?: MembershipPlan[];
   customerMemberships?: CustomerMembership[];
   attendance?: AttendanceLog[];
+  users?: UserAccount[];
 }
