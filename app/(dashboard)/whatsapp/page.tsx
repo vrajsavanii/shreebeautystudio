@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MessageCircle,
@@ -66,6 +67,7 @@ type TemplateId =
   | 'bridal';
 
 export default function WhatsAppHubPage() {
+  const router = useRouter();
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
 
@@ -360,7 +362,7 @@ export default function WhatsAppHubPage() {
       setSimResult(json);
       if (json.success) {
         if (json.aiResponse?.replyText) {
-          setCustomMessage(json.aiResponse.replyText);
+          setCustomText(json.aiResponse.replyText);
         }
         if (json.aiResponse?.intent === 'BRIDAL_PDF') {
           setSelectedTemplate('bridal');

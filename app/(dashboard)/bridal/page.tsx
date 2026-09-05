@@ -703,7 +703,7 @@ const OTHER_EVENT_OPTIONS = [
               borderRadius: 12,
               padding: '14px 18px',
               display: 'flex',
-              justify: 'space-between',
+              justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: 12,

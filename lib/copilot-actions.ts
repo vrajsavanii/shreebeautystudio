@@ -39,7 +39,8 @@ export async function executeCopilotAction(
         date: date || todayISO(),
         time: time || '04:00 PM',
         staff: staff || 'Pooja',
-        status: 'Scheduled',
+        advance: 0,
+        status: 'Confirmed',
         notes: notes || 'Booked via AI Copilot',
       };
 
@@ -80,12 +81,12 @@ export async function executeCopilotAction(
           type: 'S',
         })),
         subtotal,
-        gst: 0,
         discount: discAmt,
         total,
+        advance: 0,
         paid: total,
         balance: 0,
-        paymentMode: paymentMode || 'GPay UPI',
+        mode: paymentMode || 'GPay UPI',
       };
 
       store.updateData((d) => ({

@@ -44,7 +44,7 @@ export default function PublicBookingPage() {
   const { data, updateData } = useSalonStore();
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
-  const phone = data?.settings?.phone || '9898012345';
+  const phone = data?.settings?.whatsapp || '9824183769';
   const address = data?.settings?.address || 'Ring Road, Surat, Gujarat';
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || [];
@@ -83,7 +83,7 @@ export default function PublicBookingPage() {
     if (!searchService) return services;
     const q = searchService.toLowerCase();
     return services.filter(
-      (s) => s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q)
+      (s) => s.name.toLowerCase().includes(q) || (s.category || '').toLowerCase().includes(q)
     );
   }, [services, searchService]);
 
@@ -209,10 +209,10 @@ export default function PublicBookingPage() {
           sagaiDate: sagaiDate || undefined,
           includeWedding: true,
           includeSagai: !!sagaiDate,
-          packages: selectedPkgsList,
-          total: bridalTotal,
+          packageName: selectedPkgsList.join(', '),
+          package: bridalTotal,
           advance: 0,
-          due: bridalTotal,
+          balance: bridalTotal,
           status: 'Booked',
           notes: notes.trim() || 'Online Bridal Self-Booking',
         };
@@ -235,7 +235,7 @@ export default function PublicBookingPage() {
         // Update Local Store & Supabase Cloud
         updateData((prev) => ({
           ...prev,
-          bridalBookings: [newBridalBooking, ...(prev.bridalBookings || [])],
+          bridal: [newBridalBooking, ...(prev.bridal || [])],
           appointments: [bridalAppt, ...(prev.appointments || [])],
           customers: prev.customers.some((c) => c.mobile === cleanMobile)
             ? prev.customers
@@ -422,8 +422,7 @@ export default function PublicBookingPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
                   <span style={{ color: '#64748b' }}>Selected Package / Service:</span>
                   <span style={{ fontWeight: 800, color: '#05424a', textAlign: 'right', maxWidth: '60%' }}>
-                    {confirmedAppt?.service ||
-                      confirmedBridal?.packages.map((p) => p.name).join(', ')}
+                    {confirmedAppt?.service || confirmedBridal?.packageName || 'Bridal Glam'}
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
@@ -604,7 +603,7 @@ export default function PublicBookingPage() {
                                   {s.name}
                                 </div>
                                 <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
-                                  ⏱ {s.durationMin || 30} mins • {s.category || 'General'}
+                                  ⏱ {s.duration || 30} mins • {s.category || 'General'}
                                 </div>
                               </div>
                               <div style={{ textAlign: 'right' }}>

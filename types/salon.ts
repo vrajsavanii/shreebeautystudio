@@ -346,6 +346,7 @@ export interface BridalBooking {
   advanceAccount?: string;
   advanceMode?: string;
   balance: number;
+  status?: string;
   notes?: string;
 }
 

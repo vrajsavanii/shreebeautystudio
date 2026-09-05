@@ -10,7 +10,8 @@ import { fmtDate, money } from './utils';
  */
 export async function sendDirectWhatsAppMessage(
   mobile: string,
-  message: string
+  message: string,
+  settings?: any
 ): Promise<{ success: boolean; method: string; message: string }> {
   const num = mobile.replace(/\D/g, '').slice(-10);
   if (!num) {
@@ -110,12 +111,37 @@ Thank you for visiting ${salon}!
 📄 Invoice No: ${inv.no}
 📅 Date: ${fmtDate(inv.date)}
 💵 Total Amount: ${money(inv.total)}
-💳 Payment Mode: ${inv.paymentMode}
+💳 Payment Mode: ${inv.mode}
 
 Attached is your official digital PDF receipt. Have a wonderful day! ✨`;
 }
 
-export function bridalMessage(salon: string): string {
+export function bridalMessage(
+  nameOrSalon: string,
+  event?: string,
+  date?: string,
+  venue?: string,
+  salonName?: string
+): string {
+  if (event || date || venue || salonName) {
+    const salon = salonName || 'Shree Beauty Studio';
+    const clientName = nameOrSalon || 'Bride';
+    const eventText = event || 'Bridal & Events';
+    const dateText = date ? fmtDate(date) : '';
+    const venueText = venue ? `📍 Venue: ${venue}\n` : '';
+    return `👑 *BRIDAL BOOKING CONFIRMATION — ${salon}* 👑
+────────────────────────────
+Dear ${clientName},
+Thank you for booking your Bridal & Event makeup package with us!
+
+👑 Package / Event: ${eventText}
+${dateText ? `📅 Date: ${dateText}\n` : ''}${venueText}
+✨ Our team will ensure a flawless, royalty glam look for your special day!
+
+For details or changes, reply to this message. 💖`;
+  }
+
+  const salon = nameOrSalon || 'Shree Beauty Studio';
   return `👑 *THE GLAMOUR LOUNGE — BRIDAL & SIDERS PACKAGES* 👑
 ────────────────────────────
 Dear Client,
@@ -127,16 +153,17 @@ Attached is our official 2-Page Bridal & Siders Rate Card PDF from ${salon}.
 For consultation & date bookings, feel free to reply to this message! 💖`;
 }
 
-export function sendWhatsAppDirectMessage(mobile: string, message: string) {
-  return sendDirectWhatsAppMessage(mobile, message);
+export function sendWhatsAppDirectMessage(mobile: string, message: string, settings?: any) {
+  return sendDirectWhatsAppMessage(mobile, message, settings);
 }
 
 export function customerReminderMessage(name: string, salon: string, address: string): string {
   return `✨ *HELLLO ${name.toUpperCase()} — ${salon}* ✨\nWe look forward to pampering you at ${salon}! Address: ${address || 'Surat'}. Have a wonderful day! 💖`;
 }
 
-export function birthdayMessage(name: string, salon: string): string {
-  return `🎉 *HAPPY BIRTHDAY ${name.toUpperCase()}!* 🎂\nFrom all of us at ${salon}, we wish you a fantastic year ahead! Visit us today for your special birthday treat discount! 🎁✨`;
+export function birthdayMessage(name: string, salon: string, discount?: number): string {
+  const discText = discount ? ` Visit us today for your special ${discount}% birthday treat discount! 🎁✨` : ' Visit us today for your special birthday treat discount! 🎁✨';
+  return `🎉 *HAPPY BIRTHDAY ${name.toUpperCase()}!* 🎂\nFrom all of us at ${salon}, we wish you a fantastic year ahead!${discText}`;
 }
 
 export function anniversaryMessage(name: string, salon: string): string {
@@ -151,12 +178,22 @@ export function reviewRequestMessage(name: string, salon: string, link?: string)
   return `⭐ *HOW WAS YOUR EXPERIENCE AT ${salon.toUpperCase()}?* ⭐\nDear ${name}, thank you for visiting us! Please share your valuable feedback: ${link || 'Google Review'}. 💖`;
 }
 
-export function paymentReminderMessage(name: string, amount: number, salon: string): string {
-  return `🔔 *PAYMENT DUE REMINDER — ${salon}* 🔔\nDear ${name}, you have a pending balance of ${money(amount)} at ${salon}. Kindly settle your dues at your convenience. Thank you! 🙏`;
+export function paymentReminderMessage(name: string, amount: number, salon: string, upiId?: string): string {
+  const upiText = upiId ? `\n💳 UPI / GPay ID: ${upiId}` : '';
+  return `🔔 *PAYMENT DUE REMINDER — ${salon}* 🔔\nDear ${name}, you have a pending balance of ${money(amount)} at ${salon}.${upiText}\nKindly settle your dues at your convenience. Thank you! 🙏`;
 }
 
-export function loyaltyBalanceMessage(name: string, points: number, salon: string): string {
-  return `⭐ *LOYALTY REWARDS BALANCE — ${salon}* ⭐\nDear ${name}, you currently have ${points} VIP Loyalty Points! Redeem them on your next salon service. ✨`;
+export function loyaltyBalanceMessage(name: string, points: number, walletOrSalon?: number | string, salonName?: string): string {
+  let wallet = 0;
+  let salon = 'Shree Beauty Studio';
+  if (typeof walletOrSalon === 'number') {
+    wallet = walletOrSalon;
+    salon = salonName || 'Shree Beauty Studio';
+  } else if (typeof walletOrSalon === 'string') {
+    salon = walletOrSalon;
+  }
+  const walletText = wallet > 0 ? `\n💳 Wallet Balance: ${money(wallet)}` : '';
+  return `⭐ *LOYALTY REWARDS & WALLET BALANCE — ${salon}* ⭐\nDear ${name}, you currently have ${points} VIP Loyalty Points!${walletText}\nRedeem them on your next salon service. ✨`;
 }
 
 export function festivalPromoMessage(name: string, promo: string, salon: string): string {
