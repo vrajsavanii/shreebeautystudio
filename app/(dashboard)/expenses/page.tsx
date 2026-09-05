@@ -15,7 +15,6 @@ import {
   PieChart as PieIcon,
   Trash2,
   CheckCircle2,
-  Sparkles,
   Pencil,
   ArrowDownLeft,
   ArrowUpRight,
@@ -689,81 +688,6 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            {/* ---- ROW 3: Quick Action Buttons (Vyapar style) ---- */}
-            <div className="card" style={{ padding: '18px 20px', marginTop: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={15} style={{ color: 'var(--teal)' }} />
-                Quick Actions (ઝડપી કામ)
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                gap: 10,
-              }}>
-                {[
-                  { label: 'Add Sale', icon: '🧾', color: '#059669', href: '/billing' },
-                  { label: 'Add Purchase', icon: '🛒', color: '#dc2626', href: '/purchases' },
-                  { label: 'Add Expense', icon: '💸', color: '#d97706', action: openNew },
-                  { label: 'Bridal Booking', icon: '💍', color: '#ec4899', href: '/bridal' },
-                  { label: 'View Stock', icon: '📦', color: '#2563eb', href: '/inventory' },
-                  { label: 'View Reports', icon: '📊', color: '#7c3aed', href: '/reports' },
-                ].map((btn) => (
-                  btn.href ? (
-                    <Link key={btn.label} href={btn.href} style={{ textDecoration: 'none' }}>
-                      <div style={{
-                        border: '1.5px solid var(--border)',
-                        borderRadius: 12,
-                        padding: '14px 10px',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        background: '#fafbfc',
-                      }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.borderColor = btn.color;
-                          (e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px ${btn.color}22`;
-                          (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)';
-                          (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
-                          (e.currentTarget as HTMLDivElement).style.transform = 'none';
-                        }}
-                      >
-                        <div style={{ fontSize: 28, marginBottom: 6 }}>{btn.icon}</div>
-                        <div style={{ fontSize: 11.5, fontWeight: 700, color: btn.color }}>{btn.label}</div>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div key={btn.label}
-                      onClick={btn.action}
-                      style={{
-                        border: '1.5px solid var(--border)',
-                        borderRadius: 12,
-                        padding: '14px 10px',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        background: '#fafbfc',
-                      }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.borderColor = btn.color;
-                        (e.currentTarget as HTMLDivElement).style.boxShadow = `0 4px 16px ${btn.color}22`;
-                        (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)';
-                        (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
-                        (e.currentTarget as HTMLDivElement).style.transform = 'none';
-                      }}
-                    >
-                      <div style={{ fontSize: 28, marginBottom: 6 }}>{btn.icon}</div>
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: btn.color }}>{btn.label}</div>
-                    </div>
-                  )
-                ))}
-              </div>
-            </div>
 
             {/* ---- ROW 4: 7-Day Bar Chart + Recent Transactions ---- */}
             <div style={{
