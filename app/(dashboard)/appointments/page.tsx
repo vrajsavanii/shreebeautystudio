@@ -74,9 +74,11 @@ export default function AppointmentsPage() {
 
   const openNew = () => {
     setEditId(null);
+    const firstSvc = data?.services?.[0];
     reset({
       id: '', date: today, time: '10:00', customer: '', mobile: '',
-      service: data?.services?.[0]?.name || '',
+      service: firstSvc?.name || '',
+      price: firstSvc?.price || 0,
       staff: data?.staff?.[0]?.name || '',
       advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: ''
     });
@@ -85,8 +87,10 @@ export default function AppointmentsPage() {
 
   const openEdit = (a: Appointment) => {
     setEditId(a.id);
+    const foundSvc = (data?.services || []).find((s) => s.name.toLowerCase() === a.service?.toLowerCase());
     reset({
       ...a,
+      price: a.price ?? (foundSvc ? foundSvc.price : 0),
       advanceMode: a.advanceMode || data?.settings?.payments?.[0] || 'Cash',
     });
     setModalOpen(true);
@@ -126,6 +130,14 @@ export default function AppointmentsPage() {
     if (c) {
       setValue('customer', c.name);
       setValue('mobile', c.mobile);
+    }
+  };
+
+  const handleServiceSelect = (val: string) => {
+    setValue('service', val);
+    const found = (data?.services || []).find((s) => s.name.toLowerCase() === val.trim().toLowerCase());
+    if (found) {
+      setValue('price', found.price);
     }
   };
 
@@ -330,7 +342,9 @@ export default function AppointmentsPage() {
                               <div style={{ fontSize: 11, color: 'var(--muted)' }}>{a.mobile}</div>
                             </td>
                             <td>
-                              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{a.service}</div>
+                              <div style={{ fontWeight: 600, color: 'var(--text)' }}>
+                                {a.service} {a.price ? `— ${money(a.price)}` : ''}
+                              </div>
                               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
                                 Beautician: {a.staff || 'Any'} {a.advance ? `· Adv: ${money(a.advance)} (${a.advanceMode || 'Cash'})` : ''}
                               </div>
@@ -538,23 +552,44 @@ export default function AppointmentsPage() {
 
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Service</label>
-            <select className="input" {...register('service', { required: true })}>
-              <option value="">Select service</option>
+            <label className="label">Service Name (Type custom or pick from menu)</label>
+            <input
+              type="text"
+              className="input"
+              list="appt-service-list"
+              placeholder="e.g. Layer Cut, O3+ Facial, Custom Treatment"
+              {...register('service', { required: 'Service is required' })}
+              onChange={(e) => handleServiceSelect(e.target.value)}
+            />
+            <datalist id="appt-service-list">
               {(data?.services || []).map((s) => (
-                <option key={s.id} value={s.name}>{s.name} — {money(s.price)}</option>
+                <option key={s.id} value={s.name}>
+                  {s.name} — {money(s.price)}
+                </option>
               ))}
-            </select>
+            </datalist>
+            {errors.service && <span className="error-msg">{errors.service.message}</span>}
           </div>
           <div className="form-group">
-            <label className="label">Staff</label>
-            <select className="input" {...register('staff')}>
-              <option value="">Any staff</option>
-              {(data?.staff || []).map((s) => (
-                <option key={s.id} value={s.name}>{s.name} ({s.role})</option>
-              ))}
-            </select>
+            <label className="label">Service Price / Rate (₹)</label>
+            <input
+              type="number"
+              className="input"
+              min="0"
+              placeholder="₹ 0 (Custom or catalog rate)"
+              {...register('price', { valueAsNumber: true })}
+            />
           </div>
+        </div>
+
+        <div className="form-group">
+          <label className="label">Beautician / Staff</label>
+          <select className="input" {...register('staff')}>
+            <option value="">Any staff</option>
+            {(data?.staff || []).map((s) => (
+              <option key={s.id} value={s.name}>{s.name} ({s.role})</option>
+            ))}
+          </select>
         </div>
 
         <div className="form-grid">

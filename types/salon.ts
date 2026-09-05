@@ -93,6 +93,7 @@ export interface Appointment {
   customer: string;
   mobile: string;
   service: string;
+  price?: number;
   staff: string;
   advance: number;
   advanceMode?: string;
