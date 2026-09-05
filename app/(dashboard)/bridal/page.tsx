@@ -961,16 +961,16 @@ const OTHER_EVENT_OPTIONS = [
                 <input
                   type="text"
                   className="input"
-                  list="bridal-customer-datalist"
+                  list="bridal-cust-name-list"
                   value={form.name || ''}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
                   placeholder="Type or select existing customer..."
                   autoFocus
                 />
-                <datalist id="bridal-customer-datalist">
+                <datalist id="bridal-cust-name-list">
                   {(data?.customers || []).map((c) => (
                     <option key={c.id} value={c.name}>
-                      {c.name} • {c.mobile} {c.sagaiDate ? `(Sagai: ${fmtDate(c.sagaiDate)})` : ''} {c.anniversary ? `(Wedding: ${fmtDate(c.anniversary)})` : ''}
+                      {c.name} — 📞 {c.mobile} {c.sagaiDate ? `(Sagai: ${fmtDate(c.sagaiDate)})` : ''} {c.anniversary ? `(Wedding: ${fmtDate(c.anniversary)})` : ''}
                     </option>
                   ))}
                 </datalist>
@@ -980,10 +980,18 @@ const OTHER_EVENT_OPTIONS = [
                 <input
                   type="tel"
                   className="input"
+                  list="bridal-cust-mob-list"
                   value={form.mobile || ''}
-                  onChange={(e) => set('mobile', e.target.value)}
+                  onChange={(e) => handleCustomerSelect(e.target.value)}
                   placeholder="10-digit mobile (e.g. 9876543210)"
                 />
+                <datalist id="bridal-cust-mob-list">
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={c.mobile}>
+                      {c.mobile} — 👤 {c.name}
+                    </option>
+                  ))}
+                </datalist>
               </div>
             </div>
             <div className="form-grid">

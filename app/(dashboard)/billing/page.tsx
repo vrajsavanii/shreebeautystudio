@@ -444,8 +444,12 @@ function BillingContent() {
 
   const handleCustomerSelect = (name: string) => {
     setCustomer(name);
-    const c = (data?.customers || []).find((c) => c.name === name);
+    const trimmed = name.trim();
+    const c = (data?.customers || []).find(
+      (x) => x.name.toLowerCase() === trimmed.toLowerCase() || x.mobile === trimmed
+    );
     if (c) {
+      setCustomer(c.name);
       setMobile(c.mobile);
       setSelectedCustomerObj(c);
     } else {
@@ -453,6 +457,20 @@ function BillingContent() {
     }
     setRedeemPoints(0);
     setUseWallet(0);
+  };
+
+  const handleMobileSelect = (inputMobile: string) => {
+    setMobile(inputMobile);
+    const trimmed = inputMobile.trim();
+    const cleanNum = trimmed.replace(/\D/g, '');
+    const c = (data?.customers || []).find(
+      (x) => x.mobile === cleanNum || x.mobile === trimmed || x.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (c) {
+      setCustomer(c.name);
+      setMobile(c.mobile);
+      setSelectedCustomerObj(c);
+    }
   };
 
   // Barcode scanning handler (USB or Camera)
@@ -1113,13 +1131,17 @@ function BillingContent() {
                 <input
                   type="text"
                   className="input"
-                  list="billing-cust-list"
+                  list="billing-cust-name-list"
                   placeholder="e.g. Priya Sharma / Anjali Patel"
                   value={customer}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
                 />
-                <datalist id="billing-cust-list">
-                  {(data?.customers || []).map((c) => <option key={c.id} value={c.name} />)}
+                <datalist id="billing-cust-name-list">
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name} — 📞 {c.mobile}
+                    </option>
+                  ))}
                 </datalist>
               </div>
               <div className="form-group">
@@ -1127,10 +1149,18 @@ function BillingContent() {
                 <input
                   type="tel"
                   className="input"
+                  list="billing-cust-mob-list"
                   placeholder="10-digit mobile (e.g. 9876543210)"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
+                  onChange={(e) => handleMobileSelect(e.target.value)}
                 />
+                <datalist id="billing-cust-mob-list">
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={c.mobile}>
+                      {c.mobile} — 👤 {c.name}
+                    </option>
+                  ))}
+                </datalist>
               </div>
             </div>
 

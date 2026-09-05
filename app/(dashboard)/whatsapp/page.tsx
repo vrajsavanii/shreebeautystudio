@@ -235,9 +235,25 @@ export default function WhatsAppHubPage() {
   ]);
 
   const handleSelectCustomer = (mob: string) => {
-    setTargetPhone(mob);
-    const c = customers.find((x) => x.mobile === mob);
+    const trimmed = mob.trim();
+    setTargetPhone(trimmed);
+    const c = customers.find(
+      (x) => x.mobile === trimmed || x.name.toLowerCase() === trimmed.toLowerCase()
+    );
     if (c) {
+      setTargetPhone(c.mobile);
+      setTargetName(c.name);
+    }
+  };
+
+  const handleSelectCustomerName = (name: string) => {
+    const trimmed = name.trim();
+    setTargetName(trimmed);
+    const c = customers.find(
+      (x) => x.name.toLowerCase() === trimmed.toLowerCase() || x.mobile === trimmed
+    );
+    if (c) {
+      setTargetPhone(c.mobile);
       setTargetName(c.name);
     }
   };
@@ -533,10 +549,18 @@ export default function WhatsAppHubPage() {
                 <input
                   type="text"
                   className="input"
+                  list="wa-cust-names"
                   placeholder="e.g. Priya Patel"
                   value={targetName}
-                  onChange={(e) => setTargetName(e.target.value)}
+                  onChange={(e) => handleSelectCustomerName(e.target.value)}
                 />
+                <datalist id="wa-cust-names">
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name} — 📞 {c.mobile}
+                    </option>
+                  ))}
+                </datalist>
               </div>
               <div className="form-group">
                 <label className="label">Mobile Number (10 digits) *</label>
@@ -552,7 +576,7 @@ export default function WhatsAppHubPage() {
                   <datalist id="wa-cust-mobiles">
                     {customers.map((c) => (
                       <option key={c.id} value={c.mobile}>
-                        {c.name} ({c.mobile})
+                        {c.mobile} — 👤 {c.name}
                       </option>
                     ))}
                   </datalist>

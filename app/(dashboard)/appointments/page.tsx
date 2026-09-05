@@ -89,6 +89,33 @@ export default function AppointmentsPage() {
     setModalOpen(true);
   };
 
+  const handleCustomerSelect = (val: string) => {
+    setValue('customer', val);
+    const trimmed = val.trim();
+    if (!trimmed) return;
+    const c = (data?.customers || []).find(
+      (x) => x.name.toLowerCase() === trimmed.toLowerCase() || x.mobile === trimmed
+    );
+    if (c) {
+      setValue('customer', c.name);
+      setValue('mobile', c.mobile);
+    }
+  };
+
+  const handleMobileSelect = (val: string) => {
+    setValue('mobile', val);
+    const trimmed = val.trim();
+    const cleanNum = trimmed.replace(/\D/g, '');
+    if (!trimmed) return;
+    const c = (data?.customers || []).find(
+      (x) => x.mobile === cleanNum || x.mobile === trimmed || x.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (c) {
+      setValue('customer', c.name);
+      setValue('mobile', c.mobile);
+    }
+  };
+
   const onSubmit = (form: Appointment) => {
     const id = editId || uid();
     updateData((d) => {
@@ -126,10 +153,6 @@ export default function AppointmentsPage() {
     setDeleteId(null);
   };
 
-  const handleCustomerSelect = (name: string) => {
-    const c = data.customers.find((c) => c.name === name);
-    if (c) { setValue('customer', c.name); setValue('mobile', c.mobile); }
-  };
 
   const handleStartService = (id: string) => {
     updateData((d) => ({
@@ -466,14 +489,16 @@ export default function AppointmentsPage() {
           <input
             type="text"
             className="input"
-            list="customer-list"
+            list="appt-cust-name-list"
             placeholder="e.g. Neha Patel / Sneha Shah"
             {...register('customer', { required: 'Customer is required' })}
             onChange={(e) => handleCustomerSelect(e.target.value)}
           />
-          <datalist id="customer-list">
+          <datalist id="appt-cust-name-list">
             {(data?.customers || []).map((c) => (
-              <option key={c.id} value={c.name}>{c.name} — {c.mobile}</option>
+              <option key={c.id} value={c.name}>
+                {c.name} — 📞 {c.mobile}
+              </option>
             ))}
           </datalist>
           {errors.customer && <span className="error-msg">{errors.customer.message}</span>}
@@ -481,7 +506,21 @@ export default function AppointmentsPage() {
 
         <div className="form-group">
           <label className="label">Mobile</label>
-          <input type="tel" className="input" placeholder="10-digit mobile (e.g. 9825012345)" {...register('mobile')} />
+          <input
+            type="tel"
+            className="input"
+            list="appt-cust-mob-list"
+            placeholder="10-digit mobile (e.g. 9825012345)"
+            {...register('mobile')}
+            onChange={(e) => handleMobileSelect(e.target.value)}
+          />
+          <datalist id="appt-cust-mob-list">
+            {(data?.customers || []).map((c) => (
+              <option key={c.id} value={c.mobile}>
+                {c.mobile} — 👤 {c.name}
+              </option>
+            ))}
+          </datalist>
         </div>
 
         <div className="form-grid">
