@@ -155,52 +155,61 @@ export default function ExpensesPage() {
     // ---- BANK BALANCE (All non-cash transactions) ----
     const isBankMode = (mode: string) => mode !== 'Cash';
 
-    // Bank IN: non-cash sales
-    const bankInSales = invoices.reduce((s, i) => {
-      if (i.splitPayment?.upi) s += Number(i.splitPayment.upi);
-      else if (i.splitPayment?.card) s += Number(i.splitPayment.card);
-      else if (isBankMode(i.mode)) s += Number(i.paid || 0) + Number(i.advance || 0);
-      return s;
-    }, 0);
-    const bankInVouchers = vouchers
-      .filter((v) => v.type === 'Payment-In' && isBankMode(v.mode))
-      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    // Build per-mode totals in a single pass for accuracy
+    const bankIn: Record<string, number> = {};
+    const bankOut: Record<string, number> = {};
 
-    // Bank OUT: non-cash expenses + purchases + vouchers
-    const bankOutExpenses = expenses
-      .filter((e) => isBankMode(e.mode))
-      .reduce((s, e) => s + Number(e.amount || 0), 0);
-    const bankOutPurchases = purchases
-      .filter((p) => isBankMode(p.mode))
-      .reduce((s, p) => s + Number(p.paid || 0), 0);
-    const bankOutVouchers = vouchers
-      .filter((v) => v.type === 'Payment-Out' && isBankMode(v.mode))
-      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    // Invoice IN: handle split payments properly
+    invoices.forEach((i) => {
+      if (i.splitPayment) {
+        // Split payment: add each non-cash portion to its mode
+        if (i.splitPayment.upi) {
+          const upiMode = i.mode.includes('UPI') || i.mode.includes('GPay') || i.mode.includes('PhonePe') ? i.mode : 'GPay UPI';
+          bankIn[upiMode] = (bankIn[upiMode] || 0) + Number(i.splitPayment.upi);
+        }
+        if (i.splitPayment.card) {
+          bankIn['Card'] = (bankIn['Card'] || 0) + Number(i.splitPayment.card);
+        }
+        if (i.splitPayment.wallet) {
+          bankIn['Wallet'] = (bankIn['Wallet'] || 0) + Number(i.splitPayment.wallet);
+        }
+      } else if (isBankMode(i.mode)) {
+        // No split: entire paid+advance goes to the mode
+        bankIn[i.mode] = (bankIn[i.mode] || 0) + Number(i.paid || 0) + Number(i.advance || 0);
+      }
+    });
 
-    const bankBalance = bankInSales + bankInVouchers - bankOutExpenses - bankOutPurchases - bankOutVouchers;
+    // Voucher IN (non-cash)
+    vouchers.filter((v) => v.type === 'Payment-In' && isBankMode(v.mode)).forEach((v) => {
+      bankIn[v.mode] = (bankIn[v.mode] || 0) + Number(v.amount || 0);
+    });
 
-    // Per-mode breakdown for bank details
-    const allModes = new Set<string>();
-    invoices.forEach((i) => { if (isBankMode(i.mode)) allModes.add(i.mode); });
-    expenses.forEach((e) => { if (isBankMode(e.mode)) allModes.add(e.mode); });
-    purchases.forEach((p) => { if (isBankMode(p.mode)) allModes.add(p.mode); });
-    vouchers.forEach((v) => { if (isBankMode(v.mode)) allModes.add(v.mode); });
+    // Expense OUT (non-cash)
+    expenses.filter((e) => isBankMode(e.mode)).forEach((e) => {
+      bankOut[e.mode] = (bankOut[e.mode] || 0) + Number(e.amount || 0);
+    });
 
-    const bankModeBreakdown = Array.from(allModes).map((mode) => {
-      const modeIn = invoices.reduce((s, i) => {
-        if (i.mode === mode) return s + Number(i.paid || 0) + Number(i.advance || 0);
-        return s;
-      }, 0) + vouchers
-        .filter((v) => v.type === 'Payment-In' && v.mode === mode)
-        .reduce((s, v) => s + Number(v.amount || 0), 0);
+    // Purchase OUT (non-cash)
+    purchases.filter((p) => isBankMode(p.mode)).forEach((p) => {
+      bankOut[p.mode] = (bankOut[p.mode] || 0) + Number(p.paid || 0);
+    });
 
-      const modeOut = expenses
-        .filter((e) => e.mode === mode)
-        .reduce((s, e) => s + Number(e.amount || 0), 0)
-        + purchases.filter((p) => p.mode === mode).reduce((s, p) => s + Number(p.paid || 0), 0)
-        + vouchers.filter((v) => v.type === 'Payment-Out' && v.mode === mode).reduce((s, v) => s + Number(v.amount || 0), 0);
+    // Voucher OUT (non-cash)
+    vouchers.filter((v) => v.type === 'Payment-Out' && isBankMode(v.mode)).forEach((v) => {
+      bankOut[v.mode] = (bankOut[v.mode] || 0) + Number(v.amount || 0);
+    });
 
-      return { mode, inflow: modeIn, outflow: modeOut, balance: modeIn - modeOut };
+    // Total bank balance
+    const totalBankIn = Object.values(bankIn).reduce((s, v) => s + v, 0);
+    const totalBankOut = Object.values(bankOut).reduce((s, v) => s + v, 0);
+    const bankBalance = totalBankIn - totalBankOut;
+
+    // Per-mode breakdown
+    const allBankModes = new Set([...Object.keys(bankIn), ...Object.keys(bankOut)]);
+    const bankModeBreakdown = Array.from(allBankModes).map((mode) => {
+      const inflow = bankIn[mode] || 0;
+      const outflow = bankOut[mode] || 0;
+      return { mode, inflow, outflow, balance: inflow - outflow };
     }).sort((a, b) => b.balance - a.balance);
 
     // ---- PROFIT/LOSS (Month) ----
