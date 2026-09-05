@@ -1,6 +1,6 @@
 // lib/sync.ts
 import { supabase } from './supabase';
-import { useSalonStore } from './store';
+import { useSalonStore, DEFAULT_DATA } from './store';
 import { SalonData, InventoryItem } from '@/types/salon';
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
@@ -17,17 +17,27 @@ export function scheduleSave() {
 export function mergeSalonData(cloud: SalonData, local: SalonData): SalonData {
   const invMap = new Map<string, InventoryItem>();
   
-  // 1. Add all cloud items
-  (cloud.inventory || []).forEach((i) => {
-    const key = i.id || i.barcode || i.name.toLowerCase();
-    invMap.set(key, i);
+  // 0. Include all 56 default product catalog items first
+  (DEFAULT_DATA.inventory || []).forEach((i) => {
+    const key = (i.barcode || i.name || i.id).toLowerCase().trim();
+    if (key) invMap.set(key, i);
   });
 
-  // 2. Add local items if not already present
+  // 1. Add all cloud items (override defaults with saved cloud state)
+  (cloud.inventory || []).forEach((i) => {
+    const key = (i.barcode || i.name || i.id).toLowerCase().trim();
+    if (key) {
+      const existing = invMap.get(key);
+      invMap.set(key, { ...(existing || {}), ...i });
+    }
+  });
+
+  // 2. Add local items (override with local modifications)
   (local.inventory || []).forEach((i) => {
-    const key = i.id || i.barcode || i.name.toLowerCase();
-    if (!invMap.has(key)) {
-      invMap.set(key, i);
+    const key = (i.barcode || i.name || i.id).toLowerCase().trim();
+    if (key) {
+      const existing = invMap.get(key);
+      invMap.set(key, { ...(existing || {}), ...i });
     }
   });
 

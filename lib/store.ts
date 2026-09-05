@@ -773,13 +773,26 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     invoices: Array.isArray(incoming.invoices) ? incoming.invoices : DEFAULT_DATA.invoices,
     inventory: (() => {
       const incomingList = Array.isArray(incoming.inventory) ? incoming.inventory : [];
-      if (incomingList.length === 0) return DEFAULT_DATA.inventory;
-      const existingKeys = new Set(incomingList.map((item: any) => (item.barcode || item.name || '').toLowerCase().trim()));
-      const missingDefaults = DEFAULT_DATA.inventory.filter((item: any) => {
+      const itemMap = new Map<string, any>();
+      
+      // 1. Put all default products (all 56 items) first
+      DEFAULT_DATA.inventory.forEach((item) => {
         const key = (item.barcode || item.name || '').toLowerCase().trim();
-        return key && !existingKeys.has(key);
+        if (key) itemMap.set(key, item);
       });
-      return [...incomingList, ...missingDefaults];
+
+      // 2. Overlay incoming list (user stock modifications or custom added products)
+      incomingList.forEach((item: any) => {
+        const key = (item.barcode || item.name || '').toLowerCase().trim();
+        if (key) {
+          const defaultItem = itemMap.get(key);
+          itemMap.set(key, { ...(defaultItem || {}), ...item });
+        } else if (item.id) {
+          itemMap.set(item.id, item);
+        }
+      });
+
+      return Array.from(itemMap.values());
     })(),
     inventoryTx: Array.isArray(incoming.inventoryTx) ? incoming.inventoryTx : DEFAULT_DATA.inventoryTx,
     adjustments: Array.isArray(incoming.adjustments) ? incoming.adjustments : DEFAULT_DATA.adjustments,
