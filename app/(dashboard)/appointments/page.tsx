@@ -505,14 +505,11 @@ export default function AppointmentsPage() {
             onChange={(e) => handleCustomerSelect(e.target.value)}
           />
           <datalist id="appt-cust-name-list">
-            {(data?.customers || []).flatMap((c) => [
-              <option key={`${c.id}-name`} value={c.name}>
-                {c.name} — 📞 {c.mobile}
-              </option>,
-              <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+            {(data?.customers || []).map((c) => (
+              <option key={c.id} value={formatCustomerContactName(c.name)}>
                 {formatCustomerContactName(c.name)} — 📞 {c.mobile}
               </option>
-            ])}
+            ))}
           </datalist>
           {errors.customer && <span className="error-msg">{errors.customer.message}</span>}
         </div>
@@ -528,14 +525,11 @@ export default function AppointmentsPage() {
             onChange={(e) => handleMobileSelect(e.target.value)}
           />
           <datalist id="appt-cust-mob-list">
-            {(data?.customers || []).flatMap((c) => [
-              <option key={`${c.id}-mob`} value={c.mobile}>
-                {c.mobile} — 👤 {c.name}
-              </option>,
-              <option key={`${c.id}-mob-name`} value={c.name}>
-                👤 {c.name} — 📞 {c.mobile}
+            {(data?.customers || []).map((c) => (
+              <option key={c.id} value={c.mobile}>
+                {c.mobile} — 👤 {formatCustomerContactName(c.name)}
               </option>
-            ])}
+            ))}
           </datalist>
         </div>
 

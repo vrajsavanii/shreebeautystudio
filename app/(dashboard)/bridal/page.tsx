@@ -973,14 +973,11 @@ const OTHER_EVENT_OPTIONS = [
                   autoFocus
                 />
                 <datalist id="bridal-cust-name-list">
-                  {(data?.customers || []).flatMap((c) => [
-                    <option key={`${c.id}-name`} value={c.name}>
-                      {c.name} — 📞 {c.mobile}
-                    </option>,
-                    <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={formatCustomerContactName(c.name)}>
                       {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                     </option>
-                  ])}
+                  ))}
                 </datalist>
               </div>
               <div className="form-group">
@@ -994,14 +991,11 @@ const OTHER_EVENT_OPTIONS = [
                   placeholder="10-digit mobile number"
                 />
                 <datalist id="bridal-cust-mob-list">
-                  {(data?.customers || []).flatMap((c) => [
-                    <option key={`${c.id}-mob`} value={c.mobile}>
-                      {c.mobile} — 👤 {c.name}
-                    </option>,
-                    <option key={`${c.id}-mob-name`} value={c.name}>
-                      👤 {c.name} — 📞 {c.mobile}
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={c.mobile}>
+                      {c.mobile} — 👤 {formatCustomerContactName(c.name)}
                     </option>
-                  ])}
+                  ))}
                 </datalist>
               </div>
             </div>

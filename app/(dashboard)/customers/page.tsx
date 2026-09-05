@@ -368,7 +368,7 @@ export default function CustomersPage() {
             title="Download all customer contacts as VCF for Phone Contacts app"
             style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            <Download size={14} /> Export VCF (Z26 Format)
+            <Download size={14} /> Export Contacts VCF
           </button>
           <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
             <Plus size={15} /> Add Customer
@@ -501,20 +501,12 @@ export default function CustomersPage() {
               autoFocus
             />
             <datalist id="add-cust-name-list">
-              {(data?.customers || []).flatMap((c) => [
-                <option key={`${c.id}-name`} value={c.name}>
-                  {c.name} — 📞 {c.mobile}
-                </option>,
-                <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+              {(data?.customers || []).map((c) => (
+                <option key={c.id} value={formatCustomerContactName(c.name)}>
                   {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                 </option>
-              ])}
+              ))}
             </datalist>
-            {watchName && (
-              <div style={{ fontSize: 11.5, color: '#05424a', marginTop: 4, fontWeight: 700 }}>
-                📱 Contact Name Code: <span style={{ background: '#f0fdf4', padding: '2px 6px', borderRadius: 4, border: '1px solid #bbf7d0' }}>{formatCustomerContactName(watchName)}</span>
-              </div>
-            )}
             {errors.name && <span className="error-msg">{errors.name.message}</span>}
           </div>
           <div className="form-group">
@@ -528,14 +520,11 @@ export default function CustomersPage() {
               onChange={(e) => handleMobileSelect(e.target.value)}
             />
             <datalist id="add-cust-mob-list">
-              {(data?.customers || []).flatMap((c) => [
-                <option key={`${c.id}-mob`} value={c.mobile}>
-                  {c.mobile} — 👤 {c.name}
-                </option>,
-                <option key={`${c.id}-mob-name`} value={c.name}>
-                  👤 {c.name} — 📞 {c.mobile}
+              {(data?.customers || []).map((c) => (
+                <option key={c.id} value={c.mobile}>
+                  {c.mobile} — 👤 {formatCustomerContactName(c.name)}
                 </option>
-              ])}
+              ))}
             </datalist>
             {errors.mobile && <span className="error-msg">{errors.mobile.message}</span>}
           </div>

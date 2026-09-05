@@ -1152,14 +1152,11 @@ function BillingContent() {
                   onChange={(e) => handleCustomerSelect(e.target.value)}
                 />
                 <datalist id="billing-cust-name-list">
-                  {(data?.customers || []).flatMap((c) => [
-                    <option key={`${c.id}-name`} value={c.name}>
-                      {c.name} — 📞 {c.mobile}
-                    </option>,
-                    <option key={`${c.id}-fmt`} value={formatCustomerContactName(c.name)}>
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={formatCustomerContactName(c.name)}>
                       {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                     </option>
-                  ])}
+                  ))}
                 </datalist>
               </div>
               <div className="form-group">
@@ -1173,14 +1170,11 @@ function BillingContent() {
                   onChange={(e) => handleMobileSelect(e.target.value)}
                 />
                 <datalist id="billing-cust-mob-list">
-                  {(data?.customers || []).flatMap((c) => [
-                    <option key={`${c.id}-mob`} value={c.mobile}>
-                      {c.mobile} — 👤 {c.name}
-                    </option>,
-                    <option key={`${c.id}-mob-name`} value={c.name}>
-                      👤 {c.name} — 📞 {c.mobile}
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={c.mobile}>
+                      {c.mobile} — 👤 {formatCustomerContactName(c.name)}
                     </option>
-                  ])}
+                  ))}
                 </datalist>
               </div>
             </div>
