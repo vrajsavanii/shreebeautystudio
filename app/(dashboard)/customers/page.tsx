@@ -15,6 +15,8 @@ import { useForm } from 'react-hook-form';
 import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
 import { isSameDayAndMonth } from '@/lib/auto-wish';
 
+import ContactPickerButton from '@/components/ui/ContactPickerButton';
+
 type CustomerTab = 'all' | 'todayWishes' | 'birthdays' | 'anniversaries' | 'vip';
 
 export default function CustomersPage() {
@@ -478,18 +480,22 @@ export default function CustomersPage() {
           </>
         }
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>
             Type name or phone number to load contact details
           </span>
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            onClick={handlePickDeviceContact}
-            style={{ fontSize: 11.5, padding: '3px 8px', color: 'var(--teal)', fontWeight: 700 }}
-          >
-            📇 Pick Phone Contact
-          </button>
+          <ContactPickerButton
+            onSelectContact={({ name, mobile }) => {
+              if (name) {
+                setValue('name', name);
+                handleCustomerSelect(name);
+              }
+              if (mobile) {
+                setValue('mobile', mobile);
+                handleMobileSelect(mobile);
+              }
+            }}
+          />
         </div>
 
         <div className="form-grid">

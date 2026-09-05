@@ -15,6 +15,8 @@ import { openWA, appointmentStaffMessage } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 
+import ContactPickerButton from '@/components/ui/ContactPickerButton';
+
 type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'cancelled';
 const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed'];
 
@@ -482,6 +484,24 @@ export default function AppointmentsPage() {
             <label className="label">Time</label>
             <input type="time" className="input" {...register('time', { required: true })} />
           </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+            Select existing customer or pick from phone contacts
+          </span>
+          <ContactPickerButton
+            onSelectContact={({ name, mobile }) => {
+              if (name) {
+                setValue('customer', name);
+                handleCustomerSelect(name);
+              }
+              if (mobile) {
+                setValue('mobile', mobile);
+                handleMobileSelect(mobile);
+              }
+            }}
+          />
         </div>
 
         <div className="form-group">

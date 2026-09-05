@@ -37,6 +37,7 @@ import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
+import ContactPickerButton from '@/components/ui/ContactPickerButton';
 
 const EMPTY_LINE = (): InvoiceLine => ({
   type: 'S',
@@ -1124,6 +1125,24 @@ function BillingContent() {
                 </select>
               </div>
             )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+                Customer Information &amp; Contact Auto-fill
+              </span>
+              <ContactPickerButton
+                onSelectContact={({ name, mobile: m }) => {
+                  if (name) {
+                    setCustomer(name);
+                    handleCustomerSelect(name);
+                  }
+                  if (m) {
+                    setMobile(m);
+                    handleMobileSelect(m);
+                  }
+                }}
+              />
+            </div>
 
             <div className="form-grid">
               <div className="form-group">

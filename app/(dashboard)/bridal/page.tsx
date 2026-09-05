@@ -20,6 +20,8 @@ import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { subDays, format, parseISO } from 'date-fns';
 
+import ContactPickerButton from '@/components/ui/ContactPickerButton';
+
 type MainTab = 'bookings' | 'packages';
 
 export default function BridalPage() {
@@ -955,6 +957,24 @@ const OTHER_EVENT_OPTIONS = [
         {/* Step 0: Bride Details */}
         {tab === 0 && (
           <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                Select existing bride or pick from phone contacts
+              </span>
+              <ContactPickerButton
+                onSelectContact={({ name, mobile }) => {
+                  if (name) {
+                    setForm((prev) => ({ ...prev, name }));
+                    handleCustomerSelect(name);
+                  }
+                  if (mobile) {
+                    setForm((prev) => ({ ...prev, mobile }));
+                    handleCustomerSelect(mobile);
+                  }
+                }}
+              />
+            </div>
+
             <div className="form-grid">
               <div className="form-group">
                 <label className="label">Bride / Customer Name * (Select or Type)</label>
