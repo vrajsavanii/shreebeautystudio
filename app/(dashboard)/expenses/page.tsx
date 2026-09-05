@@ -27,6 +27,8 @@ import {
   CircleDollarSign,
   Activity,
   Eye,
+  ChevronDown,
+  Landmark,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -62,6 +64,7 @@ export default function ExpensesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [bankExpanded, setBankExpanded] = useState(false);
 
   // Day Book Selected Date
   const [daybookDate, setDaybookDate] = useState(todayISO());
@@ -149,6 +152,57 @@ export default function ExpensesPage() {
     const cashInHand =
       cashInAll + cashInVouchers - cashOutExpenses - cashOutPurchases - cashOutVouchers;
 
+    // ---- BANK BALANCE (All non-cash transactions) ----
+    const isBankMode = (mode: string) => mode !== 'Cash';
+
+    // Bank IN: non-cash sales
+    const bankInSales = invoices.reduce((s, i) => {
+      if (i.splitPayment?.upi) s += Number(i.splitPayment.upi);
+      else if (i.splitPayment?.card) s += Number(i.splitPayment.card);
+      else if (isBankMode(i.mode)) s += Number(i.paid || 0) + Number(i.advance || 0);
+      return s;
+    }, 0);
+    const bankInVouchers = vouchers
+      .filter((v) => v.type === 'Payment-In' && isBankMode(v.mode))
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+
+    // Bank OUT: non-cash expenses + purchases + vouchers
+    const bankOutExpenses = expenses
+      .filter((e) => isBankMode(e.mode))
+      .reduce((s, e) => s + Number(e.amount || 0), 0);
+    const bankOutPurchases = purchases
+      .filter((p) => isBankMode(p.mode))
+      .reduce((s, p) => s + Number(p.paid || 0), 0);
+    const bankOutVouchers = vouchers
+      .filter((v) => v.type === 'Payment-Out' && isBankMode(v.mode))
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+
+    const bankBalance = bankInSales + bankInVouchers - bankOutExpenses - bankOutPurchases - bankOutVouchers;
+
+    // Per-mode breakdown for bank details
+    const allModes = new Set<string>();
+    invoices.forEach((i) => { if (isBankMode(i.mode)) allModes.add(i.mode); });
+    expenses.forEach((e) => { if (isBankMode(e.mode)) allModes.add(e.mode); });
+    purchases.forEach((p) => { if (isBankMode(p.mode)) allModes.add(p.mode); });
+    vouchers.forEach((v) => { if (isBankMode(v.mode)) allModes.add(v.mode); });
+
+    const bankModeBreakdown = Array.from(allModes).map((mode) => {
+      const modeIn = invoices.reduce((s, i) => {
+        if (i.mode === mode) return s + Number(i.paid || 0) + Number(i.advance || 0);
+        return s;
+      }, 0) + vouchers
+        .filter((v) => v.type === 'Payment-In' && v.mode === mode)
+        .reduce((s, v) => s + Number(v.amount || 0), 0);
+
+      const modeOut = expenses
+        .filter((e) => e.mode === mode)
+        .reduce((s, e) => s + Number(e.amount || 0), 0)
+        + purchases.filter((p) => p.mode === mode).reduce((s, p) => s + Number(p.paid || 0), 0)
+        + vouchers.filter((v) => v.type === 'Payment-Out' && v.mode === mode).reduce((s, v) => s + Number(v.amount || 0), 0);
+
+      return { mode, inflow: modeIn, outflow: modeOut, balance: modeIn - modeOut };
+    }).sort((a, b) => b.balance - a.balance);
+
     // ---- PROFIT/LOSS (Month) ----
     const monthProfit = monthSale - monthPurchase - monthExpenses;
 
@@ -218,6 +272,8 @@ export default function ExpensesPage() {
       toPay,
       cashInHand,
       monthProfit,
+      bankBalance,
+      bankModeBreakdown,
       last7Days,
       maxBar,
       allTxns,
@@ -632,32 +688,83 @@ export default function ExpensesPage() {
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>All-time Cash Received − Cash Paid</div>
               </div>
 
-              {/* Month Profit / Loss */}
+              {/* Bank Balance */}
               <div className="card" style={{
                 padding: '18px 20px',
-                borderLeft: `4px solid ${vyaparStats.monthProfit >= 0 ? '#059669' : '#dc2626'}`,
-              }}>
+                borderLeft: `4px solid ${vyaparStats.bankBalance >= 0 ? '#2563eb' : '#dc2626'}`,
+                cursor: 'pointer',
+                transition: 'box-shadow 0.2s',
+              }}
+                onClick={() => setBankExpanded(!bankExpanded)}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <div style={{
                     width: 40, height: 40, borderRadius: 10,
-                    background: vyaparStats.monthProfit >= 0 ? '#dcfce7' : '#fee2e2',
+                    background: '#dbeafe',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: vyaparStats.monthProfit >= 0 ? '#059669' : '#dc2626',
+                    color: '#2563eb',
                   }}>
-                    <Activity size={20} />
+                    <Landmark size={20} />
                   </div>
-                  <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {vyaparStats.monthProfit >= 0 ? 'Month Profit (નફો)' : 'Month Loss (ખોટ)'}
-                    </div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: vyaparStats.monthProfit >= 0 ? '#059669' : '#dc2626' }}>
-                      {money(Math.abs(vyaparStats.monthProfit))}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Bank Balance (બેંક બેલેન્સ)</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: vyaparStats.bankBalance >= 0 ? '#2563eb' : '#dc2626' }}>
+                      {money(vyaparStats.bankBalance)}
                     </div>
                   </div>
+                  <ChevronDown size={18} style={{
+                    color: 'var(--muted)',
+                    transition: 'transform 0.3s',
+                    transform: bankExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  }} />
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  Sale ({money(vyaparStats.monthSale)}) − Purchase ({money(vyaparStats.monthPurchase)}) − Expense ({money(vyaparStats.monthExpenses)})
-                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>UPI + Card + Bank (Cash સિવાય) — click to expand</div>
+
+                {/* Expandable Bank Mode Breakdown */}
+                {bankExpanded && (
+                  <div style={{
+                    marginTop: 14,
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: 12,
+                  }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', marginBottom: 10 }}>
+                      🏦 Mode-wise Breakdown
+                    </div>
+                    {vyaparStats.bankModeBreakdown.length === 0 ? (
+                      <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', padding: 10 }}>
+                        No non-cash transactions yet
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {vyaparStats.bankModeBreakdown.map((mb) => (
+                          <div key={mb.mode} style={{
+                            background: '#f8fafc',
+                            border: '1px solid var(--border)',
+                            borderRadius: 10,
+                            padding: '10px 14px',
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>
+                                {mb.mode === 'GPay UPI' ? '📱 ' : mb.mode === 'PhonePe UPI' ? '📲 ' : mb.mode === 'Card' ? '💳 ' : '🏦 '}
+                                {mb.mode}
+                              </span>
+                              <span style={{
+                                fontSize: 14, fontWeight: 900,
+                                color: mb.balance >= 0 ? '#2563eb' : '#dc2626',
+                              }}>
+                                {money(mb.balance)}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--muted)' }}>
+                              <span>↓ In: <span style={{ color: '#059669', fontWeight: 700 }}>{money(mb.inflow)}</span></span>
+                              <span>↑ Out: <span style={{ color: '#dc2626', fontWeight: 700 }}>{money(mb.outflow)}</span></span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Today's Collection */}
