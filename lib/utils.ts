@@ -45,3 +45,25 @@ export const formatPhone = (mobile: string): string => {
   if (d.length === 10) return `${d.slice(0, 5)} ${d.slice(5)}`;
   return mobile;
 };
+
+/**
+ * Format customer name with running year code prefix for contact list
+ * Example for year 2026: "Amita" -> "Z26 AMITA"
+ */
+export const formatCustomerContactName = (name: string, dateStr?: string): string => {
+  if (!name) return '';
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+
+  // If already starts with Z prefix (e.g. Z26 AMITA or Z25 PUJA), format prefix + uppercase name
+  if (/^Z\d{2}\s/i.test(trimmed)) {
+    const parts = trimmed.split(/\s+/);
+    const prefix = parts[0].toUpperCase();
+    const rest = parts.slice(1).join(' ').toUpperCase();
+    return `${prefix} ${rest}`;
+  }
+
+  const year = dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear();
+  const yy = String(year).slice(-2);
+  return `Z${yy} ${trimmed.toUpperCase()}`;
+};

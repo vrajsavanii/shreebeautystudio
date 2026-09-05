@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, fmtDate, money } from '@/lib/utils';
+import { uid, todayISO, fmtDate, money, formatCustomerContactName } from '@/lib/utils';
 import { Appointment, AppointmentStatus, WorkStatus } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -125,7 +125,7 @@ export default function AppointmentsPage() {
         d = {
           ...d,
           customers: [...d.customers, {
-            id: uid(), name: form.customer, mobile: form.mobile,
+            id: uid(), name: formatCustomerContactName(form.customer), mobile: form.mobile,
             birthday: '', anniversary: '', notes: '',
           }],
         };

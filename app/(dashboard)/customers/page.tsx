@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, MessageCircle, Search, Users, Wallet, Star, Gift, X, PlusCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageCircle, Search, Users, Wallet, Star, Gift, X, PlusCircle, Download } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, fmtDate, money, todayISO } from '@/lib/utils';
+import { uid, fmtDate, money, todayISO, formatCustomerContactName } from '@/lib/utils';
 import { Customer, WalletTransaction } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -38,7 +38,8 @@ export default function CustomersPage() {
   const [adjustPoints, setAdjustPoints] = useState<number | ''>('');
   const [adjustType, setAdjustType] = useState<'add' | 'deduct'>('add');
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<Customer>();
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<Customer>();
+  const watchName = watch('name');
 
   const currentMonth = new Date().getMonth() + 1;
   const today = todayISO();
@@ -183,15 +184,48 @@ export default function CustomersPage() {
       toast(`Mobile already registered to ${dup.name}`, 'error');
       return;
     }
+
+    const formattedName = formatCustomerContactName(form.name);
+    const updatedForm = { ...form, name: formattedName };
+
     updateData((d) => {
       if (editId) {
-        return { ...d, customers: d.customers.map((c) => c.id === editId ? { ...form, id: editId } : c) };
+        return { ...d, customers: d.customers.map((c) => c.id === editId ? { ...updatedForm, id: editId } : c) };
       }
-      return { ...d, customers: [...d.customers, { ...form, id, loyaltyPoints: 0, walletBalance: 0 }] };
+      return { ...d, customers: [...d.customers, { ...updatedForm, id, loyaltyPoints: 0, walletBalance: 0 }] };
     });
     scheduleSave();
-    toast(editId ? 'Customer updated!' : 'Customer added!');
+    toast(editId ? `Customer updated (${formattedName})` : `Customer saved as ${formattedName}`);
     setModalOpen(false);
+  };
+
+  const exportVCFContacts = () => {
+    const custs = data?.customers || [];
+    if (custs.length === 0) {
+      toast('No customer contacts to export.', 'error');
+      return;
+    }
+
+    let vcfData = '';
+    const yy = String(new Date().getFullYear()).slice(-2);
+
+    custs.forEach((c) => {
+      const formattedName = formatCustomerContactName(c.name);
+      const num = c.mobile.replace(/\D/g, '').slice(-10);
+      if (num) {
+        vcfData += `BEGIN:VCARD\nVERSION:3.0\nFN:${formattedName}\nTEL;TYPE=CELL:+91${num}\nEND:VCARD\n`;
+      }
+    });
+
+    const blob = new Blob([vcfData], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Shree_Salon_Contacts_Z${yy}.vcf`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast(`📥 Exported ${custs.length} contacts as VCF (Z${yy} format) for Phone!`);
   };
 
   const handleDelete = (id: string) => {
@@ -316,9 +350,20 @@ export default function CustomersPage() {
             value={search} onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
-          <Plus size={15} /> Add Customer
-        </motion.button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={exportVCFContacts}
+            title="Download all customer contacts as VCF for Phone Contacts app"
+            style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Download size={14} /> Export VCF (Z26 Format)
+          </button>
+          <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
+            <Plus size={15} /> Add Customer
+          </motion.button>
+        </div>
       </div>
 
       {/* Sub Tabs */}
@@ -465,6 +510,11 @@ export default function CustomersPage() {
                 </option>
               ))}
             </datalist>
+            {watchName && (
+              <div style={{ fontSize: 11.5, color: '#05424a', marginTop: 4, fontWeight: 700 }}>
+                📱 Contact Name Code: <span style={{ background: '#f0fdf4', padding: '2px 6px', borderRadius: 4, border: '1px solid #bbf7d0' }}>{formatCustomerContactName(watchName)}</span>
+              </div>
+            )}
             {errors.name && <span className="error-msg">{errors.name.message}</span>}
           </div>
           <div className="form-group">
