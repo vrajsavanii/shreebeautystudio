@@ -126,13 +126,23 @@ export default function ExpensesPage() {
       .filter((e) => e.date === today)
       .reduce((s, e) => s + Number(e.amount || 0), 0);
 
-    // ---- TO COLLECT (Pending from Customers) ----
+    // ---- TO COLLECT (Pending from Customers / Sales + Bridal) ----
     const toCollect =
-      invoices.reduce((s, i) => s + Number(i.balance || 0), 0) +
-      bridals.reduce((s, b) => s + Number(b.balance || 0), 0);
+      invoices.reduce((s, i) => {
+        const paidAmt = Number(i.paid || 0) + Number(i.advance || 0);
+        const bal = Math.max(Number(i.balance || 0), Number(i.total || 0) - paidAmt);
+        return s + Math.max(0, bal);
+      }, 0) +
+      bridals.reduce((s, b) => {
+        const bal = Math.max(Number(b.balance || 0), Number(b.package || 0) - Number(b.advance || 0));
+        return s + Math.max(0, bal);
+      }, 0);
 
-    // ---- TO PAY (Pending to Suppliers) ----
-    const toPay = purchases.reduce((s, p) => s + Number(p.balance || 0), 0);
+    // ---- TO PAY (Pending to Suppliers / Purchases) ----
+    const toPay = purchases.reduce((s, p) => {
+      const bal = Math.max(Number(p.balance || 0), Number(p.total || 0) - Number(p.paid || 0));
+      return s + Math.max(0, bal);
+    }, 0);
 
     // ---- CASH IN HAND ----
     const cashInAll = invoices
@@ -312,7 +322,9 @@ export default function ExpensesPage() {
     }> = [];
 
     invoices.forEach((inv) => {
-      if (Number(inv.balance || 0) > 0) {
+      const paidAmt = Number(inv.paid || 0) + Number(inv.advance || 0);
+      const bal = Math.max(Number(inv.balance || 0), Number(inv.total || 0) - paidAmt);
+      if (bal > 0) {
         list.push({
           id: inv.id,
           type: 'Invoice',
@@ -321,14 +333,15 @@ export default function ExpensesPage() {
           mobile: inv.mobile || '-',
           date: inv.date,
           total: Number(inv.total || 0),
-          paid: Number(inv.paid || 0) + Number(inv.advance || 0),
-          balance: Number(inv.balance || 0),
+          paid: paidAmt,
+          balance: bal,
         });
       }
     });
 
     bridals.forEach((b) => {
-      if (Number(b.balance || 0) > 0) {
+      const bal = Math.max(Number(b.balance || 0), Number(b.package || 0) - Number(b.advance || 0));
+      if (bal > 0) {
         list.push({
           id: b.id,
           type: 'Bridal',
@@ -338,7 +351,7 @@ export default function ExpensesPage() {
           date: b.date || b.weddingDate || '-',
           total: Number(b.package || 0),
           paid: Number(b.advance || 0),
-          balance: Number(b.balance || 0),
+          balance: bal,
         });
       }
     });
@@ -349,16 +362,19 @@ export default function ExpensesPage() {
   // Pending Supplier Payments List
   const pendingPayments = useMemo(() => {
     return purchases
-      .filter((p) => Number(p.balance || 0) > 0)
-      .map((p) => ({
-        id: p.id,
-        no: p.no || 'PUR',
-        supplier: p.supplier || 'Supplier',
-        date: p.date,
-        total: Number(p.total || 0),
-        paid: Number(p.paid || 0),
-        balance: Number(p.balance || 0),
-      }))
+      .map((p) => {
+        const bal = Math.max(Number(p.balance || 0), Number(p.total || 0) - Number(p.paid || 0));
+        return {
+          id: p.id,
+          no: p.no || 'PUR',
+          supplier: p.supplier || 'Supplier',
+          date: p.date,
+          total: Number(p.total || 0),
+          paid: Number(p.paid || 0),
+          balance: bal,
+        };
+      })
+      .filter((p) => p.balance > 0)
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }, [purchases]);
 
