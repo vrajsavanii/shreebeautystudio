@@ -3,17 +3,18 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, fmtDate, money, formatCustomerContactName } from '@/lib/utils';
-import { Appointment, AppointmentStatus, WorkStatus } from '@/types/salon';
+import { Appointment, AppointmentStatus, WorkStatus, Invoice } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { openWA, appointmentStaffMessage } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
+import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 
 type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'cancelled';
 const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed'];
@@ -27,6 +28,7 @@ export default function AppointmentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
   const [isSplitAdvance, setIsSplitAdvance] = useState(false);
   const [splitAdvanceAmounts, setSplitAdvanceAmounts] = useState<Record<string, number | ''>>({});
   const today = todayISO();
@@ -210,6 +212,47 @@ export default function AppointmentsPage() {
 
   const handleConvertToBill = (appt: Appointment) => {
     router.push(`/billing?convertApptId=${appt.id}`);
+  };
+
+  const handleOpenReceipt = (appt: Appointment) => {
+    const existingInv = appt.invoiceId
+      ? (data?.invoices || []).find((i) => i.id === appt.invoiceId || i.no === appt.invoiceId)
+      : null;
+
+    if (existingInv) {
+      setReceiptModalInv(existingInv);
+      return;
+    }
+
+    const apptPrice = Number(appt.price) || 0;
+    const apptAdvance = Number(appt.advance) || 0;
+
+    const tempInv: Invoice = {
+      id: `INV-${appt.id}`,
+      no: appt.invoiceId || `APP-${appt.id.slice(-6).toUpperCase()}`,
+      date: appt.date,
+      customer: appt.customer,
+      mobile: appt.mobile,
+      appointmentId: appt.id,
+      lines: [
+        {
+          type: 'S',
+          name: appt.service || 'Salon Service',
+          qty: 1,
+          price: apptPrice,
+          staff: appt.staff || 'Staff',
+        },
+      ],
+      subtotal: apptPrice,
+      discount: 0,
+      total: apptPrice,
+      advance: apptAdvance,
+      paid: apptAdvance,
+      balance: Math.max(0, apptPrice - apptAdvance),
+      mode: appt.advanceMode || 'Cash',
+    };
+
+    setReceiptModalInv(tempInv);
   };
 
   return (
@@ -451,7 +494,7 @@ export default function AppointmentsPage() {
                                     onClick={() => handleConvertToBill(a)}
                                     title="Convert to Bill POS"
                                   >
-                                    <ReceiptText size={10} /> Bill
+                                    <ReceiptText size={10} /> Bill POS
                                   </button>
                                 )}
                                 {ws === 'Billed' && (
@@ -464,6 +507,15 @@ export default function AppointmentsPage() {
                                     <Eye size={10} /> View Bill
                                   </button>
                                 )}
+
+                                <button
+                                  className="btn btn-sm btn-ghost"
+                                  style={{ color: 'var(--teal)', fontSize: 10.5, padding: '3px 6px', fontWeight: 600 }}
+                                  onClick={() => handleOpenReceipt(a)}
+                                  title="View / Print / Download PDF Invoice Receipt"
+                                >
+                                  <FileText size={11} /> Bill PDF
+                                </button>
 
                                 <button className="btn-icon edit" onClick={() => openEdit(a)} title="Edit">
                                   <Pencil size={12} />
@@ -777,6 +829,14 @@ export default function AppointmentsPage() {
           Are you sure you want to delete this appointment? This action cannot be undone.
         </p>
       </Modal>
+
+      {/* Direct Appointment Invoice PDF / Thermal Print Modal */}
+      <InvoiceReceiptModal
+        isOpen={!!receiptModalInv}
+        onClose={() => setReceiptModalInv(null)}
+        invoice={receiptModalInv}
+        salonData={data}
+      />
     </div>
   );
 }
