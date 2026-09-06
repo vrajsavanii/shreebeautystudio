@@ -101,6 +101,7 @@ function BillingContent() {
   const [splitCash, setSplitCash] = useState<number | ''>('');
   const [splitUpi, setSplitUpi] = useState<number | ''>('');
   const [splitCard, setSplitCard] = useState<number | ''>('');
+  const [splitUpiMode, setSplitUpiMode] = useState('GPay UPI');
 
   // Camera Barcode Scanner State
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
@@ -141,11 +142,13 @@ function BillingContent() {
       setSplitCash(inv.splitPayment.cash || '');
       setSplitUpi(inv.splitPayment.upi || '');
       setSplitCard(inv.splitPayment.card || '');
+      setSplitUpiMode(inv.splitPayment.upiMode || 'GPay UPI');
     } else {
       setIsSplitPayment(false);
       setSplitCash('');
       setSplitUpi('');
       setSplitCard('');
+      setSplitUpiMode('GPay UPI');
     }
     setActiveTab('builder');
     toast(`Loaded invoice ${inv.no} for editing`);
@@ -695,6 +698,7 @@ function BillingContent() {
             cash: Number(splitCash || 0),
             upi: Number(splitUpi || 0),
             card: Number(splitCard || 0),
+            upiMode: splitUpiMode,
           }
         : undefined,
       roundOff: roundOffDiff,
@@ -1569,7 +1573,17 @@ function BillingContent() {
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: 10.5, color: 'var(--muted)' }}>UPI / GPay (₹)</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                        <label style={{ fontSize: 10.5, color: 'var(--muted)' }}>UPI (₹)</label>
+                        <select
+                          value={splitUpiMode}
+                          onChange={(e) => setSplitUpiMode(e.target.value)}
+                          style={{ fontSize: 10, padding: '1px 4px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card)' }}
+                        >
+                          <option value="GPay UPI">GPay</option>
+                          <option value="PhonePe UPI">PhonePe</option>
+                        </select>
+                      </div>
                       <input
                         type="number"
                         min={0}

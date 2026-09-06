@@ -144,13 +144,27 @@ export default function ExpensesPage() {
       return s + Math.max(0, bal);
     }, 0);
 
+    // Helper to check if invoice actually has non-zero split payment amounts
+    const hasSplitAmounts = (i: (typeof invoices)[0]) => {
+      if (!i.splitPayment) return false;
+      return (
+        Number(i.splitPayment.cash || 0) > 0 ||
+        Number(i.splitPayment.upi || 0) > 0 ||
+        Number(i.splitPayment.card || 0) > 0 ||
+        Number(i.splitPayment.wallet || 0) > 0
+      );
+    };
+
     // ---- CASH IN HAND ----
-    const cashInAll = invoices
-      .filter((i) => i.mode === 'Cash' || i.splitPayment?.cash)
-      .reduce((s, i) => {
-        if (i.splitPayment?.cash) return s + Number(i.splitPayment.cash);
+    const cashInAll = invoices.reduce((s, i) => {
+      if (hasSplitAmounts(i)) {
+        return s + Number(i.splitPayment?.cash || 0);
+      }
+      if (i.mode === 'Cash') {
         return s + Number(i.paid || 0) + Number(i.advance || 0);
-      }, 0);
+      }
+      return s;
+    }, 0);
     const cashInVouchers = vouchers
       .filter((v) => v.type === 'Payment-In' && v.mode === 'Cash')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
@@ -167,7 +181,7 @@ export default function ExpensesPage() {
       cashInAll + cashInVouchers - cashOutExpenses - cashOutPurchases - cashOutVouchers;
 
     // ---- BANK BALANCE (All non-cash transactions) ----
-    const isBankMode = (mode: string) => mode !== 'Cash';
+    const isBankMode = (mode: string) => mode !== 'Cash' && mode !== 'Split Payment';
 
     // Build per-mode totals in a single pass for accuracy
     const bankIn: Record<string, number> = {};
@@ -175,17 +189,21 @@ export default function ExpensesPage() {
 
     // Invoice IN: handle split payments properly
     invoices.forEach((i) => {
-      if (i.splitPayment) {
+      if (hasSplitAmounts(i)) {
         // Split payment: add each non-cash portion to its mode
-        if (i.splitPayment.upi) {
-          const upiMode = i.mode.includes('UPI') || i.mode.includes('GPay') || i.mode.includes('PhonePe') ? i.mode : 'GPay UPI';
-          bankIn[upiMode] = (bankIn[upiMode] || 0) + Number(i.splitPayment.upi);
+        if (Number(i.splitPayment?.upi || 0) > 0) {
+          const upiMode =
+            i.splitPayment?.upiMode ||
+            (i.mode.includes('UPI') || i.mode.includes('GPay') || i.mode.includes('PhonePe')
+              ? i.mode
+              : 'GPay UPI');
+          bankIn[upiMode] = (bankIn[upiMode] || 0) + Number(i.splitPayment?.upi || 0);
         }
-        if (i.splitPayment.card) {
-          bankIn['Card'] = (bankIn['Card'] || 0) + Number(i.splitPayment.card);
+        if (Number(i.splitPayment?.card || 0) > 0) {
+          bankIn['Card'] = (bankIn['Card'] || 0) + Number(i.splitPayment?.card || 0);
         }
-        if (i.splitPayment.wallet) {
-          bankIn['Wallet'] = (bankIn['Wallet'] || 0) + Number(i.splitPayment.wallet);
+        if (Number(i.splitPayment?.wallet || 0) > 0) {
+          bankIn['Wallet'] = (bankIn['Wallet'] || 0) + Number(i.splitPayment?.wallet || 0);
         }
       } else if (isBankMode(i.mode)) {
         // No split: entire paid+advance goes to the mode

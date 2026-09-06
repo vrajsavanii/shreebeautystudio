@@ -146,6 +146,7 @@ export interface Invoice {
     upi?: number;
     card?: number;
     wallet?: number;
+    upiMode?: string;
   };
   roundOff?: number;
   loyaltyPointsEarned?: number;
