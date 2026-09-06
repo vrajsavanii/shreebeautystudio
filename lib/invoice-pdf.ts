@@ -128,37 +128,33 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
       </tbody>
     </table>
 
-    <!-- Services Table -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1.5px solid #222;">
+    <!-- Single Unified Services & Totals Table -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1.5px solid #000;">
       <thead>
         <tr style="background: #fdfefe;">
-          <th style="border: 1.5px solid #222; padding: 6px 8px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.05em;">
+          <th style="border: 1.5px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.04em;">
             SERVICE
           </th>
-          <th style="border: 1.5px solid #222; padding: 6px 4px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 40px;">
+          <th style="border: 1.5px solid #000; padding: 5px 3px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; width: 35px;">
             QTY
           </th>
-          <th style="border: 1.5px solid #222; padding: 6px 6px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 60px;">
+          <th style="border: 1.5px solid #000; padding: 5px 4px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; width: 55px;">
             PRICE
           </th>
-          <th style="border: 1.5px solid #222; padding: 6px 8px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 70px;">
+          <th style="border: 1.5px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; width: 65px;">
             TOTAL
           </th>
         </tr>
       </thead>
       <tbody>
         ${linesHtml}
-      </tbody>
-    </table>
 
-    <!-- Summary / Totals Table -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px; border: 1.5px solid #222; border-top: none;">
-      <tbody>
+        <!-- Total Rows aligned seamlessly with table columns -->
         <tr>
-          <td style="border: 1.5px solid #222; border-top: none; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
             Total
           </td>
-          <td style="border: 1.5px solid #222; border-top: none; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right; width: 130px;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
             ₹${totalAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -166,10 +162,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           advanceAmt > 0
             ? `
         <tr>
-          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
             Advance
           </td>
-          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
             ₹${advanceAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -177,10 +173,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
             : ''
         }
         <tr>
-          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
             ${balanceDue > 0 ? 'Received / Paid' : 'Payment'}
           </td>
-          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
             ₹${(paymentPaid > 0 ? paymentPaid : totalAmt - advanceAmt).toLocaleString('en-IN')}
           </td>
         </tr>
@@ -188,10 +184,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           balanceDue > 0
             ? `
         <tr style="background: #fff1f2;">
-          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left; color: #dc2626;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #dc2626;">
             Balance Due
           </td>
-          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right; color: #dc2626;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #dc2626;">
             ₹${balanceDue.toLocaleString('en-IN')}
           </td>
         </tr>

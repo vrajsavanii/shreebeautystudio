@@ -575,42 +575,30 @@ export default function InvoiceReceiptModal({
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
 
-            {/* Totals Summary Table */}
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                border: '1.5px solid #222',
-                borderTop: 'none',
-                marginBottom: 20,
-              }}
-            >
-              <tbody>
+                {/* Unified Totals Rows with ColSpan 3 */}
                 <tr>
                   <td
+                    colSpan={3}
                     style={{
-                      border: '1.5px solid #222',
-                      borderTop: 'none',
-                      padding: '6px 10px',
-                      fontSize: 13,
+                      border: '1.5px solid #000',
+                      padding: '6px 8px',
+                      fontSize: 12.5,
                       fontWeight: 800,
                       textAlign: 'left',
+                      color: '#000',
                     }}
                   >
                     Total
                   </td>
                   <td
                     style={{
-                      border: '1.5px solid #222',
-                      borderTop: 'none',
-                      padding: '6px 10px',
-                      fontSize: 14,
+                      border: '1.5px solid #000',
+                      padding: '6px 6px',
+                      fontSize: 13,
                       fontWeight: 800,
                       textAlign: 'right',
-                      width: 140,
+                      color: '#000',
                     }}
                   >
                     ₹{totalAmt.toLocaleString('en-IN')}
@@ -619,23 +607,26 @@ export default function InvoiceReceiptModal({
                 {advanceAmt > 0 && (
                   <tr>
                     <td
+                      colSpan={3}
                       style={{
-                        border: '1.5px solid #222',
-                        padding: '6px 10px',
-                        fontSize: 13,
+                        border: '1.5px solid #000',
+                        padding: '6px 8px',
+                        fontSize: 12.5,
                         fontWeight: 800,
                         textAlign: 'left',
+                        color: '#000',
                       }}
                     >
                       Advance
                     </td>
                     <td
                       style={{
-                        border: '1.5px solid #222',
-                        padding: '6px 10px',
-                        fontSize: 14,
+                        border: '1.5px solid #000',
+                        padding: '6px 6px',
+                        fontSize: 13,
                         fontWeight: 800,
                         textAlign: 'right',
+                        color: '#000',
                       }}
                     >
                       ₹{advanceAmt.toLocaleString('en-IN')}
@@ -644,23 +635,26 @@ export default function InvoiceReceiptModal({
                 )}
                 <tr>
                   <td
+                    colSpan={3}
                     style={{
-                      border: '1.5px solid #222',
-                      padding: '6px 10px',
-                      fontSize: 13,
+                      border: '1.5px solid #000',
+                      padding: '6px 8px',
+                      fontSize: 12.5,
                       fontWeight: 800,
                       textAlign: 'left',
+                      color: '#000',
                     }}
                   >
                     {balanceDue > 0 ? 'Received / Paid' : 'Payment'}
                   </td>
                   <td
                     style={{
-                      border: '1.5px solid #222',
-                      padding: '6px 10px',
-                      fontSize: 14,
+                      border: '1.5px solid #000',
+                      padding: '6px 6px',
+                      fontSize: 13,
                       fontWeight: 800,
                       textAlign: 'right',
+                      color: '#000',
                     }}
                   >
                     ₹{(paymentPaid > 0 ? paymentPaid : totalAmt - advanceAmt).toLocaleString('en-IN')}
@@ -669,10 +663,11 @@ export default function InvoiceReceiptModal({
                 {balanceDue > 0 && (
                   <tr style={{ background: '#fff1f2' }}>
                     <td
+                      colSpan={3}
                       style={{
-                        border: '1.5px solid #222',
-                        padding: '6px 10px',
-                        fontSize: 13,
+                        border: '1.5px solid #000',
+                        padding: '6px 8px',
+                        fontSize: 12.5,
                         fontWeight: 800,
                         textAlign: 'left',
                         color: '#dc2626',
@@ -682,9 +677,9 @@ export default function InvoiceReceiptModal({
                     </td>
                     <td
                       style={{
-                        border: '1.5px solid #222',
-                        padding: '6px 10px',
-                        fontSize: 14,
+                        border: '1.5px solid #000',
+                        padding: '6px 6px',
+                        fontSize: 13,
                         fontWeight: 800,
                         textAlign: 'right',
                         color: '#dc2626',
