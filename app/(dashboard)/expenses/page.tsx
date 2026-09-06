@@ -79,6 +79,7 @@ export default function ExpensesPage() {
   const purchases = data?.purchases || [];
   const vouchers = data?.vouchers || [];
   const bridals = data?.bridal || [];
+  const appointments = data?.appointments || [];
 
   const {
     register,
@@ -168,6 +169,12 @@ export default function ExpensesPage() {
     const cashInVouchers = vouchers
       .filter((v) => v.type === 'Payment-In' && v.mode === 'Cash')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const apptCashAdv = appointments
+      .filter((a) => !a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0 && (a.advanceMode === 'Cash' || !a.advanceMode))
+      .reduce((s, a) => s + Number(a.advance || 0), 0);
+    const bridalCashAdv = bridals
+      .filter((b) => Number(b.advance || 0) > 0 && (b.advanceMode === 'Cash' || !b.advanceMode))
+      .reduce((s, b) => s + Number(b.advance || 0), 0);
     const cashOutExpenses = expenses
       .filter((e) => e.mode === 'Cash')
       .reduce((s, e) => s + Number(e.amount || 0), 0);
@@ -178,7 +185,7 @@ export default function ExpensesPage() {
       .filter((v) => v.type === 'Payment-Out' && v.mode === 'Cash')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
     const cashInHand =
-      cashInAll + cashInVouchers - cashOutExpenses - cashOutPurchases - cashOutVouchers;
+      cashInAll + cashInVouchers + apptCashAdv + bridalCashAdv - cashOutExpenses - cashOutPurchases - cashOutVouchers;
 
     // ---- BANK BALANCE (All non-cash transactions) ----
     const isBankMode = (mode: string) => mode !== 'Cash' && mode !== 'Split Payment';
@@ -215,6 +222,22 @@ export default function ExpensesPage() {
     vouchers.filter((v) => v.type === 'Payment-In' && isBankMode(v.mode)).forEach((v) => {
       bankIn[v.mode] = (bankIn[v.mode] || 0) + Number(v.amount || 0);
     });
+
+    // Appointment Advances IN (non-cash)
+    appointments
+      .filter((a) => !a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0 && isBankMode(a.advanceMode || ''))
+      .forEach((a) => {
+        const mode = a.advanceMode || 'GPay UPI';
+        bankIn[mode] = (bankIn[mode] || 0) + Number(a.advance || 0);
+      });
+
+    // Bridal Advances IN (non-cash)
+    bridals
+      .filter((b) => Number(b.advance || 0) > 0 && isBankMode(b.advanceMode || ''))
+      .forEach((b) => {
+        const mode = b.advanceMode || 'GPay UPI';
+        bankIn[mode] = (bankIn[mode] || 0) + Number(b.advance || 0);
+      });
 
     // Expense OUT (non-cash)
     expenses.filter((e) => isBankMode(e.mode)).forEach((e) => {
@@ -254,14 +277,20 @@ export default function ExpensesPage() {
       const dayTotal = invoices
         .filter((inv) => inv.date === dateStr)
         .reduce((s, inv) => s + Number(inv.total || 0), 0);
+      const dayApptAdv = appointments
+        .filter((a) => a.date === dateStr && Number(a.advance || 0) > 0)
+        .reduce((s, a) => s + Number(a.advance || 0), 0);
+      const dayBridalAdv = bridals
+        .filter((b) => (b.date === dateStr || b.weddingDate === dateStr) && Number(b.advance || 0) > 0)
+        .reduce((s, b) => s + Number(b.advance || 0), 0);
       const dayExp = expenses
         .filter((e) => e.date === dateStr)
         .reduce((s, e) => s + Number(e.amount || 0), 0);
-      return { date: format(d, 'EEE'), dateStr, sale: dayTotal, expense: dayExp };
+      return { date: format(d, 'EEE'), dateStr, sale: dayTotal + dayApptAdv + dayBridalAdv, expense: dayExp };
     });
     const maxBar = Math.max(...last7Days.map((d) => Math.max(d.sale, d.expense)), 1);
 
-    // ---- RECENT TRANSACTIONS (last 10 mixed) ----
+    // ---- RECENT TRANSACTIONS (last 12 mixed) ----
     const allTxns = [
       ...invoices.map((i) => ({
         id: i.id,
@@ -271,11 +300,31 @@ export default function ExpensesPage() {
         amount: Number(i.total || 0),
         mode: i.mode,
       })),
+      ...appointments
+        .filter((a) => Number(a.advance || 0) > 0)
+        .map((a) => ({
+          id: `appt-adv-${a.id}`,
+          date: a.date,
+          type: 'Sale' as const,
+          label: `📅 Appt Advance — ${a.customer || 'Customer'}`,
+          amount: Number(a.advance || 0),
+          mode: a.advanceMode || 'Cash',
+        })),
+      ...bridals
+        .filter((b) => Number(b.advance || 0) > 0)
+        .map((b) => ({
+          id: `bridal-adv-${b.id}`,
+          date: b.date || b.weddingDate || today,
+          type: 'Sale' as const,
+          label: `👑 Bridal Advance — ${b.name || 'Bride'}`,
+          amount: Number(b.advance || 0),
+          mode: b.advanceMode || 'Cash',
+        })),
       ...purchases.map((p) => ({
         id: p.id,
         date: p.date,
         type: 'Purchase' as const,
-        label: `${(p as any).purchaseNo || 'PO'} — ${p.supplier || 'Supplier'}`,
+        label: `${p.no || 'PO'} — ${p.supplier || 'Supplier'}`,
         amount: Number(p.total || 0),
         mode: p.mode,
       })),
@@ -292,9 +341,23 @@ export default function ExpensesPage() {
       .slice(0, 12);
 
     // ---- TODAY'S COLLECTION ----
-    const todayCollection = invoices
-      .filter((i) => i.date === today)
-      .reduce((s, i) => s + Number(i.paid || 0) + Number(i.advance || 0), 0);
+    const todayVouchersIn = vouchers
+      .filter((v) => v.date === today && v.type === 'Payment-In')
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const todayApptAdv = appointments
+      .filter((a) => a.date === today && Number(a.advance || 0) > 0)
+      .reduce((s, a) => s + Number(a.advance || 0), 0);
+    const todayBridalAdv = bridals
+      .filter((b) => (b.date === today || b.weddingDate === today) && Number(b.advance || 0) > 0)
+      .reduce((s, b) => s + Number(b.advance || 0), 0);
+
+    const todayCollection =
+      invoices
+        .filter((i) => i.date === today)
+        .reduce((s, i) => s + Number(i.paid || 0) + Number(i.advance || 0), 0) +
+      todayVouchersIn +
+      todayApptAdv +
+      todayBridalAdv;
 
     // ---- TOTAL INVOICES COUNT ----
     const totalInvoices = invoices.length;
@@ -323,7 +386,7 @@ export default function ExpensesPage() {
       monthInvoices,
       expenseCount: expenses.length,
     };
-  }, [invoices, purchases, expenses, vouchers, bridals, today]);
+  }, [invoices, purchases, expenses, vouchers, bridals, appointments, today]);
 
   // Pending Collections List (Customer Bills & Bridal Bookings with pending balance)
   const pendingCollections = useMemo(() => {
@@ -465,14 +528,29 @@ export default function ExpensesPage() {
       .filter((v) => v.mode === 'Cash')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
 
-    const bridalAdvanceIn = bridals
-      .filter((b) => b.date === d && b.advanceMode === 'Cash')
+    const apptCashIn = appointments
+      .filter((a) => a.date === d && !a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0 && (a.advanceMode === 'Cash' || !a.advanceMode))
+      .reduce((s, a) => s + Number(a.advance || 0), 0);
+
+    const bridalCashIn = bridals
+      .filter((b) => (b.date === d || b.weddingDate === d) && Number(b.advance || 0) > 0 && (b.advanceMode === 'Cash' || !b.advanceMode))
       .reduce((s, b) => s + Number(b.advance || 0), 0);
 
-    const totalCashIn = posCashIn + voucherCashIn + bridalAdvanceIn;
+    const totalCashIn = posCashIn + voucherCashIn + apptCashIn + bridalCashIn;
+
+    const apptAllIn = appointments
+      .filter((a) => a.date === d && Number(a.advance || 0) > 0)
+      .reduce((s, a) => s + Number(a.advance || 0), 0);
+
+    const bridalAllIn = bridals
+      .filter((b) => (b.date === d || b.weddingDate === d) && Number(b.advance || 0) > 0)
+      .reduce((s, b) => s + Number(b.advance || 0), 0);
+
     const totalAllIn =
       dayInvoices.reduce((s, i) => s + Number(i.paid || 0) + Number(i.advance || 0), 0) +
-      dayPaymentInVouchers.reduce((s, v) => s + Number(v.amount || 0), 0);
+      dayPaymentInVouchers.reduce((s, v) => s + Number(v.amount || 0), 0) +
+      apptAllIn +
+      bridalAllIn;
 
     // Cash OUT
     const dayExpenses = expenses.filter((e) => e.date === d);
@@ -509,7 +587,7 @@ export default function ExpensesPage() {
       dayPaymentInVouchers,
       dayPaymentOutVouchers,
     };
-  }, [daybookDate, invoices, expenses, purchases, vouchers, bridals]);
+  }, [daybookDate, invoices, expenses, purchases, vouchers, bridals, appointments]);
 
   const openNew = () => {
     setEditId(null);
