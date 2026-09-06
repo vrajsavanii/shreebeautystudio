@@ -32,7 +32,7 @@ export default function AppointmentsPage() {
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<Appointment>({
     defaultValues: {
       id: '', date: today, time: '10:00', customer: '', mobile: '',
-      service: '', staff: '', advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: '',
+      service: '', price: '' as any, staff: '', advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: '',
     },
   });
 
@@ -74,12 +74,11 @@ export default function AppointmentsPage() {
 
   const openNew = () => {
     setEditId(null);
-    const firstSvc = data?.services?.[0];
     reset({
       id: '', date: today, time: '10:00', customer: '', mobile: '',
-      service: firstSvc?.name || '',
-      price: firstSvc?.price || 0,
-      staff: data?.staff?.[0]?.name || '',
+      service: '',
+      price: '' as any,
+      staff: '',
       advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: ''
     });
     setModalOpen(true);
