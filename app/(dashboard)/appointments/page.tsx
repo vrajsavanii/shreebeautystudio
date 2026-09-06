@@ -712,8 +712,8 @@ export default function AppointmentsPage() {
                       placeholder="₹ 0"
                       value={splitAdvanceAmounts[p] ?? ''}
                       onChange={(e) => {
-                        const val = Number(e.target.value) || '';
-                        const updated = { ...splitAdvanceAmounts, [p]: val };
+                        const val: number | '' = e.target.value === '' ? '' : (Number(e.target.value) || 0);
+                        const updated: Record<string, number | ''> = { ...splitAdvanceAmounts, [p]: val };
                         setSplitAdvanceAmounts(updated);
 
                         let total = 0;
