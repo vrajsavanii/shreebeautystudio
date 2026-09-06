@@ -83,7 +83,11 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   const totalAmt = Number(inv.total || 0);
   const advanceAmt = Number(inv.advance || 0);
   const paymentPaid = Number(inv.paid || 0);
-  const balanceDue = Number(inv.balance || 0);
+  const balanceDue = Number(
+    inv.balance !== undefined
+      ? inv.balance
+      : Math.max(0, totalAmt - advanceAmt - paymentPaid)
+  );
 
   container.innerHTML = `
     <div style="width: 100%; text-align: center; margin-bottom: 8px;">
@@ -176,10 +180,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
             ? `
         <tr>
           <td colspan="3" style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 600; text-align: left; color: #000;">
-            ${balanceDue > 0 ? 'Received / Paid' : 'Payment'}
+            Received / Paid
           </td>
           <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 600; text-align: right; color: #000;">
-            ₹${(paymentPaid > 0 ? paymentPaid : totalAmt).toLocaleString('en-IN')}
+            ₹${paymentPaid.toLocaleString('en-IN')}
           </td>
         </tr>
         `
@@ -199,10 +203,8 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
         `
             : ''
         }
-        ${
-          balanceDue > 0
-            ? `
-        <tr style="background: #fff1f2;">
+        <!-- Balance Due row - Always displayed on POS receipts -->
+        <tr style="${balanceDue > 0 ? 'background: #fff1f2;' : ''}">
           <td colspan="3" style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 600; text-align: left; color: #000;">
             Balance Due
           </td>
@@ -210,9 +212,6 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
             ₹${balanceDue.toLocaleString('en-IN')}
           </td>
         </tr>
-        `
-            : ''
-        }
       </tbody>
     </table>
 

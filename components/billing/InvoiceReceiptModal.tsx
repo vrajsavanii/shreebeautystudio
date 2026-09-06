@@ -58,7 +58,11 @@ export default function InvoiceReceiptModal({
   const totalAmt = Number(invoice.total || 0);
   const advanceAmt = Number(invoice.advance || 0);
   const paymentPaid = Number(invoice.paid || 0);
-  const balanceDue = Number(invoice.balance || 0);
+  const balanceDue = Number(
+    invoice.balance !== undefined
+      ? invoice.balance
+      : Math.max(0, totalAmt - advanceAmt - paymentPaid)
+  );
 
   const handleDownloadPDF = async () => {
     try {
@@ -684,7 +688,7 @@ export default function InvoiceReceiptModal({
                         color: '#000000',
                       }}
                     >
-                      {balanceDue > 0 ? 'Received / Paid' : 'Payment'}
+                      Received / Paid
                     </td>
                     <td
                       style={{
@@ -696,7 +700,7 @@ export default function InvoiceReceiptModal({
                         color: '#000000',
                       }}
                     >
-                      ₹{(paymentPaid > 0 ? paymentPaid : totalAmt).toLocaleString('en-IN')}
+                      ₹{paymentPaid.toLocaleString('en-IN')}
                     </td>
                   </tr>
                 )}
@@ -731,35 +735,34 @@ export default function InvoiceReceiptModal({
                   </tr>
                 )}
 
-                {balanceDue > 0 && (
-                  <tr style={{ background: '#fff1f2' }}>
-                    <td
-                      colSpan={3}
-                      style={{
-                        border: '1px solid #000000',
-                        padding: '4px 5px',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        textAlign: 'left',
-                        color: '#000000',
-                      }}
-                    >
-                      Balance Due
-                    </td>
-                    <td
-                      style={{
-                        border: '1px solid #000000',
-                        padding: '4px 4px',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        textAlign: 'right',
-                        color: '#000000',
-                      }}
-                    >
-                      ₹{balanceDue.toLocaleString('en-IN')}
-                    </td>
-                  </tr>
-                )}
+                {/* Balance Due row - Always displayed on POS receipts */}
+                <tr style={balanceDue > 0 ? { background: '#fff1f2' } : undefined}>
+                  <td
+                    colSpan={3}
+                    style={{
+                      border: '1px solid #000000',
+                      padding: '4px 5px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      textAlign: 'left',
+                      color: '#000000',
+                    }}
+                  >
+                    Balance Due
+                  </td>
+                  <td
+                    style={{
+                      border: '1px solid #000000',
+                      padding: '4px 4px',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      textAlign: 'right',
+                      color: '#000000',
+                    }}
+                  >
+                    ₹{balanceDue.toLocaleString('en-IN')}
+                  </td>
+                </tr>
               </tbody>
             </table>
 
