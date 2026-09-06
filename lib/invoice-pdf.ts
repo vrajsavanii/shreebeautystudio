@@ -32,12 +32,11 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   container.style.position = 'fixed';
   container.style.top = '-9999px';
   container.style.left = '-9999px';
-  container.style.width = printer === '58' ? '320px' : printer === '80' ? '380px' : '420px';
+  container.style.width = printer === '58' ? '300px' : printer === '80' ? '360px' : '400px';
   container.style.background = '#ffffff';
   container.style.fontFamily = "'Segoe UI', Arial, Helvetica, sans-serif";
   container.style.color = '#000000';
-  container.style.fontWeight = '400';
-  container.style.padding = printer === '58' ? '14px 10px' : printer === '80' ? '18px 14px' : '22px 18px';
+  container.style.padding = printer === '58' ? '12px 8px' : printer === '80' ? '16px 12px' : '20px 16px';
   container.style.boxSizing = 'border-box';
 
   const salonAddress =
@@ -63,17 +62,17 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
       return `
         <tr>
-          <td style="border: 1px solid #000; padding: 6px 6px; font-size: 11.5px; font-weight: 400; text-align: left; color: #000;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 700; text-align: left;">
             <div>${displayName}</div>
-            ${discAmt > 0 ? `<div style="font-size: 10px; color: #16a34a;">(Disc: -₹${discAmt})</div>` : ''}
+            ${discAmt > 0 ? `<div style="font-size: 9.5px; color: #16a34a;">(Disc: -₹${discAmt})</div>` : ''}
           </td>
-          <td style="border: 1px solid #000; padding: 6px 4px; font-size: 11.5px; font-weight: 400; text-align: center; color: #000;">
+          <td style="border: 1.5px solid #000; padding: 5px 3px; font-size: 11px; font-weight: 700; text-align: center;">
             ${qty}
           </td>
-          <td style="border: 1px solid #000; padding: 6px 6px; font-size: 11.5px; font-weight: 400; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000; padding: 5px 4px; font-size: 11px; font-weight: 700; text-align: right;">
             ${price.toLocaleString('en-IN')}
           </td>
-          <td style="border: 1px solid #000; padding: 6px 6px; font-size: 12px; font-weight: 500; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 11.5px; font-weight: 800; text-align: right;">
             ${lineTotal.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -87,61 +86,61 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   const balanceDue = Number(inv.balance || 0);
 
   container.innerHTML = `
-    <div style="width: 100%; text-align: center; margin-bottom: 12px;">
+    <div style="width: 100%; text-align: center; margin-bottom: 10px;">
       <!-- Official Logo -->
-      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: ${printer === '58' ? '180px' : printer === '80' ? '230px' : '260px'}; width: 100%; height: auto; object-fit: contain; margin: 0 auto 6px; display: block;" />
+      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: ${printer === '58' ? '175px' : printer === '80' ? '220px' : '250px'}; width: 100%; height: auto; object-fit: contain; margin: 0 auto 4px; display: block;" />
       
       <!-- Studio Header Details -->
-      <div style="font-size: 11px; color: #000; line-height: 1.45; margin-bottom: 3px; max-width: 340px; margin-left: auto; margin-right: auto; font-weight: 400;">
+      <div style="font-size: 11px; color: #374151; line-height: 1.35; margin-bottom: 2px; max-width: 290px; margin-left: auto; margin-right: auto;">
         ${salonAddress}
       </div>
-      <div style="font-size: 11px; color: #000; line-height: 1.4; font-weight: 400;">
+      <div style="font-size: 10.5px; color: #4b5563; line-height: 1.35;">
         Email: ${salonEmail}
       </div>
-      <div style="font-size: 11px; color: #000; line-height: 1.4; font-weight: 400;">
+      <div style="font-size: 11px; color: #111827; line-height: 1.35; font-weight: 700;">
         Phone / WhatsApp: ${salonPhone}
       </div>
     </div>
 
     <!-- Dashed Line Divider -->
-    <div style="border-top: 1px dashed #000; margin: 12px 0 16px;"></div>
+    <div style="border-top: 1.5px dashed #000; margin: 10px 0 14px;"></div>
 
     <!-- Key-Value Info Grid -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px;">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px;">
       <tbody>
         <tr>
-          <td style="width: 90px; padding: 4px 0; font-weight: 500; color: #000;">Inv. No :</td>
-          <td style="padding: 4px 0; font-weight: 400; color: #000;">${invNo}</td>
+          <td style="width: 80px; padding: 3px 0; font-weight: 800; color: #111;">Inv. No :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111;">${invNo}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; font-weight: 500; color: #000;">Date :</td>
-          <td style="padding: 4px 0; font-weight: 400; color: #000;">${invDate}</td>
+          <td style="padding: 3px 0; font-weight: 800; color: #111;">Date :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111;">${invDate}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; font-weight: 500; color: #000;">Name :</td>
-          <td style="padding: 4px 0; font-weight: 400; color: #000; text-transform: capitalize;">${inv.customer || 'Customer'}</td>
+          <td style="padding: 3px 0; font-weight: 800; color: #111;">Name :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111; text-transform: capitalize;">${inv.customer || 'Customer'}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; font-weight: 500; color: #000;">Phone :</td>
-          <td style="padding: 4px 0; font-weight: 400; color: #000;">${inv.mobile || '—'}</td>
+          <td style="padding: 3px 0; font-weight: 800; color: #111;">Phone :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111;">${inv.mobile || '—'}</td>
         </tr>
       </tbody>
     </table>
 
     <!-- Single Unified Services & Totals Table -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #000;">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1.5px solid #000;">
       <thead>
         <tr style="background: #fdfefe;">
-          <th style="border: 1px solid #000; padding: 6px 6px; font-size: 11.5px; font-weight: 500; text-align: center; text-transform: uppercase; letter-spacing: 0.04em; color: #000;">
+          <th style="border: 1.5px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.04em;">
             SERVICE
           </th>
-          <th style="border: 1px solid #000; padding: 6px 4px; font-size: 11.5px; font-weight: 500; text-align: center; text-transform: uppercase; width: 45px; color: #000;">
+          <th style="border: 1.5px solid #000; padding: 5px 3px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; width: 35px;">
             QTY
           </th>
-          <th style="border: 1px solid #000; padding: 6px 6px; font-size: 11.5px; font-weight: 500; text-align: center; text-transform: uppercase; width: 65px; color: #000;">
+          <th style="border: 1.5px solid #000; padding: 5px 4px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; width: 55px;">
             PRICE
           </th>
-          <th style="border: 1px solid #000; padding: 6px 6px; font-size: 11.5px; font-weight: 500; text-align: center; text-transform: uppercase; width: 75px; color: #000;">
+          <th style="border: 1.5px solid #000; padding: 5px 6px; font-size: 11px; font-weight: 800; text-align: center; text-transform: uppercase; width: 65px;">
             TOTAL
           </th>
         </tr>
@@ -151,10 +150,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
         <!-- Total Rows aligned seamlessly with table columns -->
         <tr>
-          <td colspan="3" style="border: 1px solid #000; padding: 5px 6px; font-size: 12px; font-weight: 500; text-align: left; color: #000;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
             Total
           </td>
-          <td style="border: 1px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 500; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
             ₹${totalAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -162,10 +161,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           advanceAmt > 0
             ? `
         <tr>
-          <td colspan="3" style="border: 1px solid #000; padding: 5px 6px; font-size: 12px; font-weight: 500; text-align: left; color: #000;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
             Advance
           </td>
-          <td style="border: 1px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 500; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
             ₹${advanceAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -173,10 +172,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
             : ''
         }
         <tr>
-          <td colspan="3" style="border: 1px solid #000; padding: 5px 6px; font-size: 12px; font-weight: 500; text-align: left; color: #000;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
             ${balanceDue > 0 ? 'Received / Paid' : 'Payment'}
           </td>
-          <td style="border: 1px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 500; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
             ₹${(paymentPaid > 0 ? paymentPaid : totalAmt - advanceAmt).toLocaleString('en-IN')}
           </td>
         </tr>
@@ -184,10 +183,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           balanceDue > 0
             ? `
         <tr style="background: #fff1f2;">
-          <td colspan="3" style="border: 1px solid #000; padding: 5px 6px; font-size: 12px; font-weight: 500; text-align: left; color: #dc2626;">
+          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #dc2626;">
             Balance Due
           </td>
-          <td style="border: 1px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 500; text-align: right; color: #dc2626;">
+          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #dc2626;">
             ₹${balanceDue.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -198,11 +197,11 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
     </table>
 
     <!-- Heartfelt Footer -->
-    <div style="text-align: center; margin-top: 14px;">
-      <div style="font-size: 12px; font-weight: 500; color: #000; margin-bottom: 3px;">
+    <div style="text-align: center; margin-top: 10px;">
+      <div style="font-size: 12px; font-weight: 700; color: #111; margin-bottom: 3px;">
         Thank you for choosing us! 🙏
       </div>
-      <div style="font-size: 10.5px; color: #000; line-height: 1.4; max-width: 320px; margin: 0 auto; font-weight: 400;">
+      <div style="font-size: 10px; color: #4b5563; line-height: 1.35; max-width: 290px; margin: 0 auto;">
         We truly value your trust and hope your experience was everything you imagined !!
       </div>
     </div>

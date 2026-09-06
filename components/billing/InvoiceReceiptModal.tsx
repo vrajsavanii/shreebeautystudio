@@ -123,7 +123,7 @@ export default function InvoiceReceiptModal({
     const printContent = document.getElementById('shree-invoice-sample-template');
     if (!printContent) return;
 
-    // Create a hidden iframe for instant direct printing (no about:blank popup window)
+    // Direct print via hidden iframe (instant without popup)
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -143,17 +143,12 @@ export default function InvoiceReceiptModal({
         <head>
           <title>Thermal Receipt - ${invoice.no} - ${invoice.customer}</title>
           <style>
-            @page {
-              size: 58mm auto;
-              margin: 0mm !important;
-            }
             * {
               color: #000000 !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               box-shadow: none !important;
               text-shadow: none !important;
-              box-sizing: border-box !important;
             }
             html, body {
               width: 58mm;
@@ -162,8 +157,8 @@ export default function InvoiceReceiptModal({
               background: #ffffff;
               color: #000000;
               font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-              font-size: 11px;
-              font-weight: 400;
+              font-size: 11.5px;
+              font-weight: 700;
             }
             .thermal-container {
               width: 54mm;
@@ -180,33 +175,22 @@ export default function InvoiceReceiptModal({
             .thermal-container p {
               color: #000000 !important;
               border-color: #000000 !important;
-              font-weight: 400 !important;
-              font-size: 11px !important;
+              font-weight: 700 !important;
+              font-size: 11.5px !important;
               line-height: 1.35 !important;
             }
             .thermal-container table {
               width: 100% !important;
               border-collapse: collapse !important;
             }
-            .thermal-container th {
-              border: 1px solid #000000 !important;
-              padding: 3px 4px !important;
-              font-size: 11px !important;
-              font-weight: 500 !important;
-            }
-            .thermal-container td {
-              border: 1px solid #000000 !important;
-              padding: 3px 4px !important;
-              font-size: 11px !important;
-              font-weight: 400 !important;
-            }
             .thermal-container img {
-              max-width: 180px !important;
+              max-width: 175px !important;
               width: 100% !important;
               height: auto !important;
               object-fit: contain !important;
               margin: 0 auto 4px !important;
               display: block !important;
+              filter: contrast(180%) brightness(85%) !important;
             }
             .cut-feed-space {
               height: 35mm;
@@ -226,13 +210,11 @@ export default function InvoiceReceiptModal({
                 padding: 0 !important;
                 background: #ffffff !important;
                 color: #000000 !important;
-                font-size: 11px !important;
-                font-weight: 400 !important;
               }
               * {
                 color: #000000 !important;
                 border-color: #000000 !important;
-                font-weight: 400 !important;
+                font-weight: 700 !important;
               }
             }
           </style>
@@ -383,20 +365,19 @@ export default function InvoiceReceiptModal({
               />
               <div
                 style={{
-                  fontSize: 11,
-                  color: '#000000',
-                  lineHeight: 1.45,
-                  maxWidth: 340,
-                  margin: '0 auto 3px',
-                  fontWeight: 400,
+                  fontSize: 12,
+                  color: '#374151',
+                  lineHeight: 1.4,
+                  maxWidth: 300,
+                  margin: '0 auto 2px',
                 }}
               >
                 {salonAddress}
               </div>
-              <div style={{ fontSize: 11, color: '#000000', lineHeight: 1.4, fontWeight: 400 }}>
+              <div style={{ fontSize: 11.5, color: '#4b5563', lineHeight: 1.4 }}>
                 Email: {salonEmail}
               </div>
-              <div style={{ fontSize: 11, color: '#000000', lineHeight: 1.4, fontWeight: 400 }}>
+              <div style={{ fontSize: 12, color: '#111827', lineHeight: 1.4, fontWeight: 700 }}>
                 Phone / WhatsApp: {salonPhone}
               </div>
             </div>
@@ -404,8 +385,8 @@ export default function InvoiceReceiptModal({
             {/* Dashed Line Divider */}
             <div
               style={{
-                borderTop: '1px dashed #000000',
-                margin: '12px 0 16px',
+                borderTop: '1.5px dashed #000',
+                margin: '10px 0 14px',
               }}
             />
 
@@ -414,7 +395,7 @@ export default function InvoiceReceiptModal({
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                marginBottom: 16,
+                marginBottom: 12,
                 fontSize: 13,
               }}
             >
@@ -424,33 +405,33 @@ export default function InvoiceReceiptModal({
                     style={{
                       width: 90,
                       padding: '3px 0',
-                      fontWeight: 500,
-                      color: '#000000',
+                      fontWeight: 800,
+                      color: '#111',
                     }}
                   >
                     Inv. No :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 400, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invNo}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 500, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Date :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 400, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invDate}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 500, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Name :
                   </td>
                   <td
                     style={{
                       padding: '3px 0',
-                      fontWeight: 400,
-                      color: '#000000',
+                      fontWeight: 600,
+                      color: '#111',
                       textTransform: 'capitalize',
                     }}
                   >
@@ -458,26 +439,26 @@ export default function InvoiceReceiptModal({
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 500, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Phone :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 400, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invoice.mobile || '—'}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 500, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Event :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 400, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invDate}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 500, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Venue :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 400, color: '#000000' }}>
+                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     Katargam Studio
                   </td>
                 </tr>
@@ -489,60 +470,56 @@ export default function InvoiceReceiptModal({
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                border: '1px solid #000',
-                marginBottom: 16,
+                border: '1.5px solid #222',
+                marginBottom: 14,
               }}
             >
               <thead>
-                <tr style={{ background: '#fafafa' }}>
+                <tr style={{ background: '#fdfefe' }}>
                   <th
                     style={{
-                      border: '1px solid #000',
-                      padding: '6px 6px',
-                      fontSize: 11.5,
-                      fontWeight: 500,
+                      border: '1.5px solid #222',
+                      padding: '7px 8px',
+                      fontSize: 12.5,
+                      fontWeight: 800,
                       textAlign: 'center',
                       letterSpacing: '0.04em',
-                      color: '#000',
                     }}
                   >
                     SERVICE
                   </th>
                   <th
                     style={{
-                      border: '1px solid #000',
-                      padding: '6px 4px',
-                      fontSize: 11.5,
-                      fontWeight: 500,
+                      border: '1.5px solid #222',
+                      padding: '7px 4px',
+                      fontSize: 12.5,
+                      fontWeight: 800,
                       textAlign: 'center',
                       width: 45,
-                      color: '#000',
                     }}
                   >
                     QTY
                   </th>
                   <th
                     style={{
-                      border: '1px solid #000',
-                      padding: '6px 6px',
-                      fontSize: 11.5,
-                      fontWeight: 500,
+                      border: '1.5px solid #222',
+                      padding: '7px 6px',
+                      fontSize: 12.5,
+                      fontWeight: 800,
                       textAlign: 'center',
                       width: 65,
-                      color: '#000',
                     }}
                   >
                     PRICE
                   </th>
                   <th
                     style={{
-                      border: '1px solid #000',
-                      padding: '6px 6px',
-                      fontSize: 11.5,
-                      fontWeight: 500,
+                      border: '1.5px solid #222',
+                      padding: '7px 8px',
+                      fontSize: 12.5,
+                      fontWeight: 800,
                       textAlign: 'center',
                       width: 75,
-                      color: '#000',
                     }}
                   >
                     TOTAL
@@ -567,53 +544,49 @@ export default function InvoiceReceiptModal({
                     <tr key={idx}>
                       <td
                         style={{
-                          border: '1px solid #000',
-                          padding: '6px 6px',
-                          fontSize: 11.5,
-                          fontWeight: 400,
+                          border: '1.5px solid #222',
+                          padding: '7px 8px',
+                          fontSize: 12.5,
+                          fontWeight: 700,
                           textAlign: 'left',
-                          color: '#000',
                         }}
                       >
                         <div>{cleanServiceNameForBill(l.name)}</div>
                         {discAmt > 0 && (
                           <div style={{ fontSize: 10, color: '#16a34a' }}>
-                            (Disc: -₹${discAmt})
+                            (Disc: -₹{discAmt})
                           </div>
                         )}
                       </td>
                       <td
                         style={{
-                          border: '1px solid #000',
-                          padding: '6px 4px',
-                          fontSize: 11.5,
-                          fontWeight: 400,
+                          border: '1.5px solid #222',
+                          padding: '7px 4px',
+                          fontSize: 12.5,
+                          fontWeight: 600,
                           textAlign: 'center',
-                          color: '#000',
                         }}
                       >
                         {qty}
                       </td>
                       <td
                         style={{
-                          border: '1px solid #000',
-                          padding: '6px 6px',
-                          fontSize: 11.5,
-                          fontWeight: 400,
+                          border: '1.5px solid #222',
+                          padding: '7px 6px',
+                          fontSize: 12.5,
+                          fontWeight: 600,
                           textAlign: 'right',
-                          color: '#000',
                         }}
                       >
                         {price.toLocaleString('en-IN')}
                       </td>
                       <td
                         style={{
-                          border: '1px solid #000',
-                          padding: '6px 6px',
-                          fontSize: 12,
-                          fontWeight: 500,
+                          border: '1.5px solid #222',
+                          padding: '7px 8px',
+                          fontSize: 13,
+                          fontWeight: 800,
                           textAlign: 'right',
-                          color: '#000',
                         }}
                       >
                         {lineTotal.toLocaleString('en-IN')}
@@ -627,10 +600,10 @@ export default function InvoiceReceiptModal({
                   <td
                     colSpan={3}
                     style={{
-                      border: '1px solid #000',
-                      padding: '5px 6px',
-                      fontSize: 12,
-                      fontWeight: 500,
+                      border: '1.5px solid #000',
+                      padding: '6px 8px',
+                      fontSize: 12.5,
+                      fontWeight: 800,
                       textAlign: 'left',
                       color: '#000',
                     }}
@@ -639,10 +612,10 @@ export default function InvoiceReceiptModal({
                   </td>
                   <td
                     style={{
-                      border: '1px solid #000',
-                      padding: '5px 6px',
-                      fontSize: 12.5,
-                      fontWeight: 500,
+                      border: '1.5px solid #000',
+                      padding: '6px 6px',
+                      fontSize: 13,
+                      fontWeight: 800,
                       textAlign: 'right',
                       color: '#000',
                     }}
@@ -655,10 +628,10 @@ export default function InvoiceReceiptModal({
                     <td
                       colSpan={3}
                       style={{
-                        border: '1px solid #000',
-                        padding: '5px 6px',
-                        fontSize: 12,
-                        fontWeight: 500,
+                        border: '1.5px solid #000',
+                        padding: '6px 8px',
+                        fontSize: 12.5,
+                        fontWeight: 800,
                         textAlign: 'left',
                         color: '#000',
                       }}
@@ -667,10 +640,10 @@ export default function InvoiceReceiptModal({
                     </td>
                     <td
                       style={{
-                        border: '1px solid #000',
-                        padding: '5px 6px',
-                        fontSize: 12.5,
-                        fontWeight: 500,
+                        border: '1.5px solid #000',
+                        padding: '6px 6px',
+                        fontSize: 13,
+                        fontWeight: 800,
                         textAlign: 'right',
                         color: '#000',
                       }}
@@ -683,10 +656,10 @@ export default function InvoiceReceiptModal({
                   <td
                     colSpan={3}
                     style={{
-                      border: '1px solid #000',
-                      padding: '5px 6px',
-                      fontSize: 12,
-                      fontWeight: 500,
+                      border: '1.5px solid #000',
+                      padding: '6px 8px',
+                      fontSize: 12.5,
+                      fontWeight: 800,
                       textAlign: 'left',
                       color: '#000',
                     }}
@@ -695,10 +668,10 @@ export default function InvoiceReceiptModal({
                   </td>
                   <td
                     style={{
-                      border: '1px solid #000',
-                      padding: '5px 6px',
-                      fontSize: 12.5,
-                      fontWeight: 500,
+                      border: '1.5px solid #000',
+                      padding: '6px 6px',
+                      fontSize: 13,
+                      fontWeight: 800,
                       textAlign: 'right',
                       color: '#000',
                     }}
@@ -711,10 +684,10 @@ export default function InvoiceReceiptModal({
                     <td
                       colSpan={3}
                       style={{
-                        border: '1px solid #000',
-                        padding: '5px 6px',
-                        fontSize: 12,
-                        fontWeight: 500,
+                        border: '1.5px solid #000',
+                        padding: '6px 8px',
+                        fontSize: 12.5,
+                        fontWeight: 800,
                         textAlign: 'left',
                         color: '#dc2626',
                       }}
@@ -723,10 +696,10 @@ export default function InvoiceReceiptModal({
                     </td>
                     <td
                       style={{
-                        border: '1px solid #000',
-                        padding: '5px 6px',
-                        fontSize: 12.5,
-                        fontWeight: 500,
+                        border: '1.5px solid #000',
+                        padding: '6px 6px',
+                        fontSize: 13,
+                        fontWeight: 800,
                         textAlign: 'right',
                         color: '#dc2626',
                       }}
@@ -739,12 +712,12 @@ export default function InvoiceReceiptModal({
             </table>
 
             {/* Heartfelt Footer */}
-            <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <div style={{ textAlign: 'center', marginTop: 10 }}>
               <div
                 style={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: '#000',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#111',
                   marginBottom: 3,
                 }}
               >
@@ -753,14 +726,14 @@ export default function InvoiceReceiptModal({
               <div
                 style={{
                   fontSize: 10.5,
-                  color: '#000',
+                  color: '#4b5563',
                   lineHeight: 1.4,
                   maxWidth: 320,
                   margin: '0 auto',
-                  fontWeight: 400,
                 }}
               >
-                We truly value your trust and hope your experience was everything you imagined !!
+                We truly value your trust and hope your experience was
+                everything you imagined !!
               </div>
             </div>
           </div>
