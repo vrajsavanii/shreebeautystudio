@@ -343,28 +343,34 @@ export default function WhatsAppHubPage() {
       toast('Template text cannot be empty.', 'error');
       return;
     }
-    const currentTemplates = data?.settings?.whatsappTemplates || {};
-    updateData({
-      settings: {
-        ...data?.settings,
-        whatsappTemplates: {
-          ...currentTemplates,
-          [selectedTemplate]: manualText,
+    updateData((prev) => {
+      const currentTemplates = prev.settings?.whatsappTemplates || {};
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          whatsappTemplates: {
+            ...currentTemplates,
+            [selectedTemplate]: manualText,
+          },
         },
-      },
+      };
     });
     setIsManualEdited(false);
     toast(`💾 '${selectedTemplate.toUpperCase()}' ટેમ્પલેટ કાયમી સેવ થઇ ગયું! (Saved permanently)`);
   };
 
   const handleResetCustomTemplate = () => {
-    const currentTemplates = { ...(data?.settings?.whatsappTemplates || {}) };
-    delete currentTemplates[selectedTemplate];
-    updateData({
-      settings: {
-        ...data?.settings,
-        whatsappTemplates: currentTemplates,
-      },
+    updateData((prev) => {
+      const currentTemplates = { ...(prev.settings?.whatsappTemplates || {}) };
+      delete currentTemplates[selectedTemplate];
+      return {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          whatsappTemplates: currentTemplates,
+        },
+      };
     });
     setIsManualEdited(false);
     toast(`🔄 '${selectedTemplate.toUpperCase()}' ટેમ્પલેટ રીસેટ થઈને મૂળ ડિફોલ્ટ સેટ થયુ!`);
