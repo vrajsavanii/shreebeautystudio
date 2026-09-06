@@ -150,10 +150,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
         <!-- Total Rows aligned seamlessly with table columns -->
         <tr>
-          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
+          <td colspan="3" style="border: 1px solid #333; padding: 5px 6px; font-size: 11.5px; font-weight: 600; text-align: left; color: #000;">
             Total
           </td>
-          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
+          <td style="border: 1px solid #333; padding: 5px 6px; font-size: 12px; font-weight: 600; text-align: right; color: #000;">
             ₹${totalAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -161,32 +161,52 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           advanceAmt > 0
             ? `
         <tr>
-          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
+          <td colspan="3" style="border: 1px solid #333; padding: 5px 6px; font-size: 11.5px; font-weight: 600; text-align: left; color: #000;">
             Advance
           </td>
-          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
+          <td style="border: 1px solid #333; padding: 5px 6px; font-size: 12px; font-weight: 600; text-align: right; color: #000;">
             ₹${advanceAmt.toLocaleString('en-IN')}
           </td>
         </tr>
         `
             : ''
         }
+        ${
+          advanceAmt === 0
+            ? `
         <tr>
-          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #000;">
+          <td colspan="3" style="border: 1px solid #333; padding: 5px 6px; font-size: 11.5px; font-weight: 600; text-align: left; color: #000;">
             ${balanceDue > 0 ? 'Received / Paid' : 'Payment'}
           </td>
-          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #000;">
-            ₹${(paymentPaid > 0 ? paymentPaid : totalAmt - advanceAmt).toLocaleString('en-IN')}
+          <td style="border: 1px solid #333; padding: 5px 6px; font-size: 12px; font-weight: 600; text-align: right; color: #000;">
+            ₹${(paymentPaid > 0 ? paymentPaid : totalAmt).toLocaleString('en-IN')}
           </td>
         </tr>
+        `
+            : ''
+        }
+        ${
+          advanceAmt > 0 && Math.max(0, paymentPaid - advanceAmt) > 0
+            ? `
+        <tr>
+          <td colspan="3" style="border: 1px solid #333; padding: 5px 6px; font-size: 11.5px; font-weight: 600; text-align: left; color: #000;">
+            Paid Today
+          </td>
+          <td style="border: 1px solid #333; padding: 5px 6px; font-size: 12px; font-weight: 600; text-align: right; color: #000;">
+            ₹${Math.max(0, paymentPaid - advanceAmt).toLocaleString('en-IN')}
+          </td>
+        </tr>
+        `
+            : ''
+        }
         ${
           balanceDue > 0
             ? `
         <tr style="background: #fff1f2;">
-          <td colspan="3" style="border: 1.5px solid #000; padding: 5px 8px; font-size: 12px; font-weight: 800; text-align: left; color: #dc2626;">
+          <td colspan="3" style="border: 1px solid #333; padding: 5px 6px; font-size: 11.5px; font-weight: 600; text-align: left; color: #dc2626;">
             Balance Due
           </td>
-          <td style="border: 1.5px solid #000; padding: 5px 6px; font-size: 12.5px; font-weight: 800; text-align: right; color: #dc2626;">
+          <td style="border: 1px solid #333; padding: 5px 6px; font-size: 12px; font-weight: 600; text-align: right; color: #dc2626;">
             ₹${balanceDue.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -198,10 +218,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
     <!-- Heartfelt Footer -->
     <div style="text-align: center; margin-top: 10px;">
-      <div style="font-size: 12px; font-weight: 700; color: #111; margin-bottom: 3px;">
+      <div style="font-size: 12px; font-weight: 600; color: #000000; margin-bottom: 3px;">
         Thank you for choosing us! 🙏
       </div>
-      <div style="font-size: 10px; color: #4b5563; line-height: 1.35; max-width: 290px; margin: 0 auto;">
+      <div style="font-size: 11px; color: #000000; line-height: 1.45; max-width: 320px; margin: 0 auto; font-weight: 500;">
         We truly value your trust and hope your experience was everything you imagined !!
       </div>
     </div>

@@ -625,6 +625,8 @@ export default function InvoiceReceiptModal({
                     ₹{totalAmt.toLocaleString('en-IN')}
                   </td>
                 </tr>
+
+                {/* Advance row - only if advance was recorded */}
                 {advanceAmt > 0 && (
                   <tr>
                     <td
@@ -654,33 +656,68 @@ export default function InvoiceReceiptModal({
                     </td>
                   </tr>
                 )}
-                <tr>
-                  <td
-                    colSpan={3}
-                    style={{
-                      border: '1px solid #333',
-                      padding: '5px 6px',
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      textAlign: 'left',
-                      color: '#000',
-                    }}
-                  >
-                    {balanceDue > 0 ? 'Received / Paid' : 'Payment'}
-                  </td>
-                  <td
-                    style={{
-                      border: '1px solid #333',
-                      padding: '5px 6px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      textAlign: 'right',
-                      color: '#000',
-                    }}
-                  >
-                    ₹{(paymentPaid > 0 ? paymentPaid : totalAmt - advanceAmt).toLocaleString('en-IN')}
-                  </td>
-                </tr>
+
+                {/* Received / Paid row - if no advance, show payment. If advance existed, only show if additional payment made today */}
+                {advanceAmt === 0 && (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      style={{
+                        border: '1px solid #333',
+                        padding: '5px 6px',
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        textAlign: 'left',
+                        color: '#000',
+                      }}
+                    >
+                      {balanceDue > 0 ? 'Received / Paid' : 'Payment'}
+                    </td>
+                    <td
+                      style={{
+                        border: '1px solid #333',
+                        padding: '5px 6px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textAlign: 'right',
+                        color: '#000',
+                      }}
+                    >
+                      ₹{(paymentPaid > 0 ? paymentPaid : totalAmt).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                )}
+
+                {advanceAmt > 0 && Math.max(0, paymentPaid - advanceAmt) > 0 && (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      style={{
+                        border: '1px solid #333',
+                        padding: '5px 6px',
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        textAlign: 'left',
+                        color: '#000',
+                      }}
+                    >
+                      Paid Today
+                    </td>
+                    <td
+                      style={{
+                        border: '1px solid #333',
+                        padding: '5px 6px',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textAlign: 'right',
+                        color: '#000',
+                      }}
+                    >
+                      ₹{Math.max(0, paymentPaid - advanceAmt).toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                )}
+
                 {balanceDue > 0 && (
                   <tr style={{ background: '#fff1f2' }}>
                     <td
@@ -716,25 +753,27 @@ export default function InvoiceReceiptModal({
             </table>
 
             {/* Heartfelt Footer */}
-            <div style={{ textAlign: 'center', marginTop: 8 }}>
+            <div style={{ textAlign: 'center', marginTop: 10 }}>
               <div
                 style={{
-                  fontSize: 11.5,
-                  fontWeight: 500,
-                  color: '#111',
-                  marginBottom: 2,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#000000',
+                  marginBottom: 3,
+                  letterSpacing: '0.01em',
                 }}
               >
                 Thank you for choosing us! 🙏
               </div>
               <div
                 style={{
-                  fontSize: 9.5,
-                  color: '#4b5563',
-                  lineHeight: 1.35,
-                  maxWidth: 300,
+                  fontSize: 11,
+                  color: '#000000',
+                  lineHeight: 1.45,
+                  maxWidth: 320,
                   margin: '0 auto',
-                  fontWeight: 400,
+                  fontWeight: 500,
+                  letterSpacing: '0.01em',
                 }}
               >
                 We truly value your trust and hope your experience was
