@@ -156,7 +156,11 @@ export default function InvoiceReceiptModal({
             }
             .thermal-container img {
               max-width: 170px !important;
+              width: 100% !important;
               height: auto !important;
+              object-fit: contain !important;
+              margin: 0 auto 4px !important;
+              display: block !important;
             }
             .cut-feed-space {
               height: 35mm;
@@ -308,8 +312,10 @@ export default function InvoiceReceiptModal({
                 src={SHREE_LOGO_BASE64}
                 alt="Shree Beauty Studio"
                 style={{
-                  maxWidth: 240,
+                  maxWidth: 220,
+                  width: '100%',
                   height: 'auto',
+                  objectFit: 'contain',
                   margin: '0 auto 6px',
                   display: 'block',
                 }}

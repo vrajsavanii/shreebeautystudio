@@ -88,7 +88,7 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   container.innerHTML = `
     <div style="width: 100%; text-align: center; margin-bottom: 10px;">
       <!-- Official Logo -->
-      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: ${printer === '58' ? '200px' : '250px'}; height: auto; margin: 0 auto 6px; display: block;" />
+      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: ${printer === '58' ? '180px' : printer === '80' ? '230px' : '260px'}; width: 100%; height: auto; object-fit: contain; margin: 0 auto 6px; display: block;" />
       
       <!-- Studio Header Details -->
       <div style="font-size: 11px; color: #374151; line-height: 1.4; margin-bottom: 2px; max-width: 300px; margin-left: auto; margin-right: auto;">
