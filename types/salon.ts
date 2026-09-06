@@ -9,7 +9,7 @@ export interface SalonSettings {
   custR1: number;
   custR2: number;
   staffR: number;
-  printer: 'both' | '80' | 'a4';
+  printer: 'both' | '80' | '58' | 'a4';
   payments: string[];
   // Loyalty
   loyaltyEnabled?: boolean;

@@ -55,7 +55,7 @@ export const DEFAULT_DATA: SalonData = {
     custR1: 24,
     custR2: 4,
     staffR: 1,
-    printer: 'both',
+    printer: '58',
     payments: ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank'],
     // Loyalty defaults
     loyaltyEnabled: true,

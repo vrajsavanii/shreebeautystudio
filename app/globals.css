@@ -963,57 +963,59 @@ tbody tr.today-row {
 .toast.error   { background: #b91c1c; }
 .toast.info    { background: var(--teal); }
 
-/* ─── Print Styles ───────────────────────────────────────────────── */
+/* ─── Thermal Print 2 Inch (58mm) & Auto-Cutting Styles ─────────── */
 @media print {
+  @page {
+    size: 58mm auto;
+    margin: 0mm !important;
+  }
+
+  html, body {
+    width: 58mm !important;
+    max-width: 58mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
   .no-print,
   .sidebar,
   .topbar,
   .mobile-bottom-nav,
-  .toast-container {
+  .toast-container,
+  .modal-backdrop,
+  .tabs,
+  .toolbar {
     display: none !important;
   }
 
-  .main-area {
-    margin-left: 0 !important;
-  }
-
+  .main-area,
   .page-content {
+    margin-left: 0 !important;
     padding: 0 !important;
   }
 
-  body {
-    background: #ffffff !important;
-  }
-
+  #printable-receipt,
+  .thermal-receipt-58mm,
   .invoice-print {
-    width: 100%;
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 16px;
-    font-size: 12.5px;
-    font-family: inherit;
+    display: block !important;
+    width: 52mm !important;
+    max-width: 52mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 1mm 0mm 1mm !important;
+    font-size: 11px !important;
+    color: #000000 !important;
+    font-family: 'Segoe UI', Arial, sans-serif !important;
   }
 
-  .invoice-print table {
-    width: 100%;
-    border-collapse: collapse;
+  .thermal-cut-feed {
+    display: block !important;
+    height: 35mm !important;
+    min-height: 35mm !important;
+    clear: both !important;
+    page-break-after: always !important;
   }
-
-  .invoice-print th,
-  .invoice-print td {
-    border: 1px solid #e2e8f0;
-    padding: 6px 8px;
-    text-align: left;
-  }
-
-  body.print80 .invoice-print {
-    width: 74mm;
-    padding: 2mm;
-    font-size: 10.5px;
-    max-width: 74mm;
-  }
-
-  @page { margin: 6mm; }
 }
 
 /* ─── Mobile Responsive ──────────────────────────────────────────── */

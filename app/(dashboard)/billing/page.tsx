@@ -1073,6 +1073,9 @@ function BillingContent() {
               We truly value your trust and hope your experience was everything you imagined !!
             </div>
           </div>
+
+          {/* 35mm Trailing Feed Spacer for Thermal Auto-Cutting */}
+          <div className="thermal-cut-feed" style={{ height: '35mm', minHeight: '35mm', width: '100%', clear: 'both' }}></div>
         </div>
       )}
 

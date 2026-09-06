@@ -290,12 +290,13 @@ export default function SettingsPage() {
                 <label className="label">Receipt Printer Format</label>
                 <select
                   className="input"
-                  value={s.printer}
-                  onChange={(e) => update('printer', e.target.value as 'both' | '80' | 'a4')}
+                  value={s.printer || '58'}
+                  onChange={(e) => update('printer', e.target.value as 'both' | '80' | '58' | 'a4')}
                 >
-                  <option value="both">Both (A4 Full Sheet + 80mm Thermal)</option>
+                  <option value="58">2 Inch (58mm) Thermal Receipt Printer (Default Auto-Cut)</option>
+                  <option value="80">3 Inch (80mm) Thermal Receipt Printer</option>
+                  <option value="both">Both (A4 Full Sheet + Thermal)</option>
                   <option value="a4">A4 Full Page Only</option>
-                  <option value="80">80mm Thermal Receipt Only</option>
                 </select>
               </div>
             </div>

@@ -123,34 +123,70 @@ export default function InvoiceReceiptModal({
     const printContent = document.getElementById('shree-invoice-sample-template');
     if (!printContent) return;
 
-    const printWin = window.open('', '', 'width=800,height=900');
+    const printWin = window.open('', '', 'width=420,height=700');
     if (!printWin) return;
 
     printWin.document.write(`
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Invoice - ${invoice.no} - ${invoice.customer}</title>
+          <title>Thermal Receipt - ${invoice.no} - ${invoice.customer}</title>
           <style>
-            body {
-              font-family: 'Segoe UI', Arial, sans-serif;
-              color: #111;
-              background: #fff;
+            @page {
+              size: 58mm auto;
+              margin: 0mm !important;
+            }
+            html, body {
+              width: 58mm;
               margin: 0;
-              padding: 20px;
+              padding: 0;
+              background: #ffffff;
+              color: #000000;
+              font-family: 'Segoe UI', Arial, sans-serif;
+              font-size: 11px;
+            }
+            .thermal-container {
+              width: 52mm;
+              margin: 0 auto;
+              padding: 2mm 1mm 0mm 1mm;
+            }
+            .thermal-container table {
+              width: 100% !important;
+              font-size: 11px !important;
+            }
+            .thermal-container img {
+              max-width: 170px !important;
+              height: auto !important;
+            }
+            .cut-feed-space {
+              height: 35mm;
+              min-height: 35mm;
+              clear: both;
+              display: block;
+              page-break-after: always;
             }
             @media print {
-              body { padding: 0; }
+              @page {
+                size: 58mm auto;
+                margin: 0mm !important;
+              }
+              body {
+                width: 58mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
             }
           </style>
         </head>
         <body>
-          <div style="max-width: 440px; margin: 0 auto;">
+          <div class="thermal-container">
             ${printContent.innerHTML}
+            <div class="cut-feed-space"></div>
           </div>
           <script>
             window.onload = function() {
               window.print();
-              setTimeout(function() { window.close(); }, 500);
+              setTimeout(function() { window.close(); }, 600);
             };
           </script>
         </body>
