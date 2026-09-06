@@ -34,8 +34,9 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   container.style.left = '-9999px';
   container.style.width = printer === '58' ? '320px' : printer === '80' ? '380px' : '420px';
   container.style.background = '#ffffff';
-  container.style.fontFamily = "'Montserrat', 'Segoe UI', Arial, sans-serif";
-  container.style.color = '#1f2937';
+  container.style.fontFamily = "'Segoe UI', Arial, Helvetica, sans-serif";
+  container.style.color = '#000000';
+  container.style.fontWeight = '700';
   container.style.padding = printer === '58' ? '14px 10px' : printer === '80' ? '18px 14px' : '22px 18px';
   container.style.boxSizing = 'border-box';
 

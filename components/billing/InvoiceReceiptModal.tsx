@@ -132,9 +132,12 @@ export default function InvoiceReceiptModal({
         <head>
           <title>Thermal Receipt - ${invoice.no} - ${invoice.customer}</title>
           <style>
-            @page {
-              size: 58mm auto;
-              margin: 0mm !important;
+            * {
+              color: #000000 !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-shadow: none !important;
+              text-shadow: none !important;
             }
             html, body {
               width: 58mm;
@@ -142,25 +145,41 @@ export default function InvoiceReceiptModal({
               padding: 0;
               background: #ffffff;
               color: #000000;
-              font-family: 'Segoe UI', Arial, sans-serif;
-              font-size: 11px;
+              font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+              font-size: 11.5px;
+              font-weight: 700;
             }
             .thermal-container {
-              width: 52mm;
+              width: 54mm;
               margin: 0 auto;
-              padding: 2mm 1mm 0mm 1mm;
+              padding: 1mm 1mm 0mm 1mm;
+              color: #000000 !important;
+            }
+            .thermal-container table,
+            .thermal-container th,
+            .thermal-container td,
+            .thermal-container div,
+            .thermal-container span,
+            .thermal-container tr,
+            .thermal-container p {
+              color: #000000 !important;
+              border-color: #000000 !important;
+              font-weight: 700 !important;
+              font-size: 11.5px !important;
+              line-height: 1.35 !important;
             }
             .thermal-container table {
               width: 100% !important;
-              font-size: 11px !important;
+              border-collapse: collapse !important;
             }
             .thermal-container img {
-              max-width: 170px !important;
+              max-width: 175px !important;
               width: 100% !important;
               height: auto !important;
               object-fit: contain !important;
               margin: 0 auto 4px !important;
               display: block !important;
+              filter: contrast(180%) brightness(85%) !important;
             }
             .cut-feed-space {
               height: 35mm;
@@ -178,9 +197,15 @@ export default function InvoiceReceiptModal({
                 width: 58mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              * {
+                color: #000000 !important;
+                border-color: #000000 !important;
+                font-weight: 700 !important;
               }
             }
-          </style>
         </head>
         <body>
           <div class="thermal-container">
