@@ -139,6 +139,7 @@ export interface Invoice {
   productDiscountTotal?: number;
   total: number;
   advance: number;
+  advanceMode?: string;
   paid: number;
   balance: number;
   mode: string;
@@ -431,6 +432,32 @@ export interface UserAccount {
   createdAt?: string;
 }
 
+// ── Bank Accounts ─────────────────────────────────────────────────────────────
+export interface BankAccount {
+  id: string;
+  name: string;           // e.g. "HDFC Bank", "SBI Savings"
+  accountNo?: string;
+  ifsc?: string;
+  bankName?: string;
+  branch?: string;
+  upiId?: string;
+  openingBalance?: number;
+  isActive?: boolean;
+}
+
+// ── Account Transfers (Cash ↔ Bank) ──────────────────────────────────────────
+export interface AccountTransfer {
+  id: string;
+  transferNo: string;     // e.g. "TRF-1001"
+  date: string;
+  from: string;           // "cash" or bank account id
+  fromName: string;       // "Cash" or "HDFC Bank"
+  to: string;             // "cash" or bank account id
+  toName: string;         // "SBI Savings"
+  amount: number;
+  notes?: string;
+}
+
 // ── Main SalonData ────────────────────────────────────────────────────────────
 export interface SalonData {
   settings: SalonSettings;
@@ -459,4 +486,8 @@ export interface SalonData {
   customerMemberships?: CustomerMembership[];
   attendance?: AttendanceLog[];
   users?: UserAccount[];
+  // Bank & Transfers
+  bankAccounts?: BankAccount[];
+  accountTransfers?: AccountTransfer[];
+  transferSeq?: number;
 }

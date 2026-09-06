@@ -700,6 +700,7 @@ export default function WhatsAppHubPage() {
                   type="text"
                   className="input"
                   list="wa-cust-names"
+                  autoComplete="off"
                   placeholder="e.g. Priya Patel"
                   value={targetName}
                   onChange={(e) => handleSelectCustomerName(e.target.value)}
@@ -720,6 +721,7 @@ export default function WhatsAppHubPage() {
                     className="input"
                     placeholder="e.g. 9898012345"
                     list="wa-cust-mobiles"
+                    autoComplete="off"
                     value={targetPhone}
                     onChange={(e) => handleSelectCustomer(e.target.value)}
                   />

@@ -31,11 +31,13 @@ import {
   Landmark,
   Phone,
   User,
+  ArrowRightLeft,
+  Building2,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, money, fmtDate } from '@/lib/utils';
-import { Expense } from '@/types/salon';
+import { Expense, BankAccount, AccountTransfer } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { staggerContainer, fadeSlideUp } from '@/variants';
@@ -43,7 +45,7 @@ import { useForm } from 'react-hook-form';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import Link from 'next/link';
 
-type RojmelTab = 'dashboard' | 'all' | 'today' | 'categories' | 'daybook';
+type RojmelTab = 'dashboard' | 'all' | 'today' | 'categories' | 'daybook' | 'banks';
 
 const EXPENSE_CATEGORIES = [
   'Rent',
@@ -70,6 +72,17 @@ export default function ExpensesPage() {
   const [toCollectExpanded, setToCollectExpanded] = useState(false);
   const [toPayExpanded, setToPayExpanded] = useState(false);
 
+  // Bank Account Modal State
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [editBankId, setEditBankId] = useState<string | null>(null);
+  const [bankForm, setBankForm] = useState<Partial<BankAccount>>({ name: '', accountNo: '', ifsc: '', branch: '', upiId: '', openingBalance: 0 });
+  const [deleteBankId, setDeleteBankId] = useState<string | null>(null);
+
+  // Transfer Modal State
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferForm, setTransferForm] = useState<{ from: string; to: string; amount: number | ''; date: string; notes: string }>({ from: 'cash', to: '', amount: '', date: todayISO(), notes: '' });
+  const [deleteTransferId, setDeleteTransferId] = useState<string | null>(null);
+
   // Day Book Selected Date
   const [daybookDate, setDaybookDate] = useState(todayISO());
 
@@ -80,6 +93,8 @@ export default function ExpensesPage() {
   const vouchers = data?.vouchers || [];
   const bridals = data?.bridal || [];
   const appointments = data?.appointments || [];
+  const bankAccounts = data?.bankAccounts || [];
+  const accountTransfers = data?.accountTransfers || [];
 
   const {
     register,
@@ -156,15 +171,50 @@ export default function ExpensesPage() {
       );
     };
 
+    // Mapped Payment-In vouchers per invoice to prevent double-counting
+    const invoiceVouchersTotal: Record<string, number> = {};
+    vouchers
+      .filter((v) => v.type === 'Payment-In')
+      .forEach((v) => {
+        if (v.partyId) {
+          invoiceVouchersTotal[v.partyId] = (invoiceVouchersTotal[v.partyId] || 0) + Number(v.amount || 0);
+        }
+      });
+
+    // Helper to determine the advance payment mode for an invoice
+    const getInvoiceAdvanceMode = (i: (typeof invoices)[0]) => {
+      if (i.advanceMode) return i.advanceMode;
+      if (i.appointmentId) {
+        const appt = appointments.find((a) => a.id === i.appointmentId);
+        if (appt?.advanceMode) return appt.advanceMode;
+      }
+      if (i.bridalBookingId) {
+        const b = bridals.find((x) => x.id === i.bridalBookingId);
+        if ((b as any)?.advanceAccount || b?.advanceMode) return (b as any)?.advanceAccount || b?.advanceMode;
+      }
+      return 'Cash'; // default advance mode in salon
+    };
+
     // ---- CASH IN HAND ----
     const cashInAll = invoices.reduce((s, i) => {
+      let cashTotal = 0;
+
+      // 1. Advance portion (if advance was received in Cash)
+      const advMode = getInvoiceAdvanceMode(i);
+      if (Number(i.advance || 0) > 0 && (advMode === 'Cash' || !advMode)) {
+        cashTotal += Number(i.advance || 0);
+      }
+
+      // 2. Direct bill payment portion (paid during invoicing)
       if (hasSplitAmounts(i)) {
-        return s + Number(i.splitPayment?.cash || 0);
+        cashTotal += Number(i.splitPayment?.cash || 0);
+      } else if (i.mode === 'Cash') {
+        const vPaid = invoiceVouchersTotal[i.id] || 0;
+        const directPaid = Math.max(0, Number(i.paid || 0) - vPaid);
+        cashTotal += directPaid;
       }
-      if (i.mode === 'Cash') {
-        return s + Number(i.paid || 0) + Number(i.advance || 0);
-      }
-      return s;
+
+      return s + cashTotal;
     }, 0);
     const cashInVouchers = vouchers
       .filter((v) => v.type === 'Payment-In' && v.mode === 'Cash')
@@ -175,6 +225,12 @@ export default function ExpensesPage() {
     const bridalCashAdv = bridals
       .filter((b) => Number(b.advance || 0) > 0 && (b.advanceMode === 'Cash' || !b.advanceMode))
       .reduce((s, b) => s + Number(b.advance || 0), 0);
+
+    // Cash Transfers In (e.g. Bank to Cash withdrawal)
+    const cashTransfersIn = accountTransfers
+      .filter((t) => t.to?.toLowerCase() === 'cash' || t.toName?.toLowerCase() === 'cash')
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+
     const cashOutExpenses = expenses
       .filter((e) => e.mode === 'Cash')
       .reduce((s, e) => s + Number(e.amount || 0), 0);
@@ -184,8 +240,22 @@ export default function ExpensesPage() {
     const cashOutVouchers = vouchers
       .filter((v) => v.type === 'Payment-Out' && v.mode === 'Cash')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
+
+    // Cash Transfers Out (e.g. Cash to Bank deposit)
+    const cashTransfersOut = accountTransfers
+      .filter((t) => t.from?.toLowerCase() === 'cash' || t.fromName?.toLowerCase() === 'cash')
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+
     const cashInHand =
-      cashInAll + cashInVouchers + apptCashAdv + bridalCashAdv - cashOutExpenses - cashOutPurchases - cashOutVouchers;
+      cashInAll +
+      cashInVouchers +
+      apptCashAdv +
+      bridalCashAdv +
+      cashTransfersIn -
+      cashOutExpenses -
+      cashOutPurchases -
+      cashOutVouchers -
+      cashTransfersOut;
 
     // ---- BANK BALANCE (All non-cash transactions) ----
     const isBankMode = (mode: string) => mode !== 'Cash' && mode !== 'Split Payment';
@@ -194,10 +264,24 @@ export default function ExpensesPage() {
     const bankIn: Record<string, number> = {};
     const bankOut: Record<string, number> = {};
 
-    // Invoice IN: handle split payments properly
+    // 0. Bank Opening Balances
+    bankAccounts.forEach((b) => {
+      const openBal = Number(b.openingBalance || 0);
+      if (openBal > 0) {
+        bankIn[b.name] = (bankIn[b.name] || 0) + openBal;
+      }
+    });
+
+    // 1. Invoice IN: handle non-cash advances, split payments, and non-cash direct bill payments
     invoices.forEach((i) => {
+      // A. Advance received via Bank / UPI
+      const advMode = getInvoiceAdvanceMode(i);
+      if (Number(i.advance || 0) > 0 && isBankMode(advMode)) {
+        bankIn[advMode] = (bankIn[advMode] || 0) + Number(i.advance || 0);
+      }
+
+      // B. Direct bill payment made during invoicing
       if (hasSplitAmounts(i)) {
-        // Split payment: add each non-cash portion to its mode
         if (Number(i.splitPayment?.upi || 0) > 0) {
           const upiMode =
             i.splitPayment?.upiMode ||
@@ -213,17 +297,18 @@ export default function ExpensesPage() {
           bankIn['Wallet'] = (bankIn['Wallet'] || 0) + Number(i.splitPayment?.wallet || 0);
         }
       } else if (isBankMode(i.mode)) {
-        // No split: entire paid+advance goes to the mode
-        bankIn[i.mode] = (bankIn[i.mode] || 0) + Number(i.paid || 0) + Number(i.advance || 0);
+        const vPaid = invoiceVouchersTotal[i.id] || 0;
+        const directPaid = Math.max(0, Number(i.paid || 0) - vPaid);
+        bankIn[i.mode] = (bankIn[i.mode] || 0) + directPaid;
       }
     });
 
-    // Voucher IN (non-cash)
+    // 2. Voucher IN (non-cash)
     vouchers.filter((v) => v.type === 'Payment-In' && isBankMode(v.mode)).forEach((v) => {
       bankIn[v.mode] = (bankIn[v.mode] || 0) + Number(v.amount || 0);
     });
 
-    // Appointment Advances IN (non-cash)
+    // 3. Appointment Advances IN (non-cash)
     appointments
       .filter((a) => !a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0 && isBankMode(a.advanceMode || ''))
       .forEach((a) => {
@@ -231,7 +316,7 @@ export default function ExpensesPage() {
         bankIn[mode] = (bankIn[mode] || 0) + Number(a.advance || 0);
       });
 
-    // Bridal Advances IN (non-cash)
+    // 4. Bridal Advances IN (non-cash)
     bridals
       .filter((b) => Number(b.advance || 0) > 0 && isBankMode(b.advanceMode || ''))
       .forEach((b) => {
@@ -239,19 +324,35 @@ export default function ExpensesPage() {
         bankIn[mode] = (bankIn[mode] || 0) + Number(b.advance || 0);
       });
 
-    // Expense OUT (non-cash)
+    // 5. Expense OUT (non-cash)
     expenses.filter((e) => isBankMode(e.mode)).forEach((e) => {
       bankOut[e.mode] = (bankOut[e.mode] || 0) + Number(e.amount || 0);
     });
 
-    // Purchase OUT (non-cash)
+    // 6. Purchase OUT (non-cash)
     purchases.filter((p) => isBankMode(p.mode)).forEach((p) => {
       bankOut[p.mode] = (bankOut[p.mode] || 0) + Number(p.paid || 0);
     });
 
-    // Voucher OUT (non-cash)
+    // 7. Voucher OUT (non-cash)
     vouchers.filter((v) => v.type === 'Payment-Out' && isBankMode(v.mode)).forEach((v) => {
       bankOut[v.mode] = (bankOut[v.mode] || 0) + Number(v.amount || 0);
+    });
+
+    // 8. Account Transfers (Cash ↔ Bank / Bank ↔ Bank)
+    accountTransfers.forEach((t) => {
+      const amt = Number(t.amount || 0);
+      if (amt <= 0) return;
+      // Transfer TO a bank account
+      if (t.to?.toLowerCase() !== 'cash' && t.toName?.toLowerCase() !== 'cash') {
+        const toKey = t.toName || t.to;
+        bankIn[toKey] = (bankIn[toKey] || 0) + amt;
+      }
+      // Transfer FROM a bank account
+      if (t.from?.toLowerCase() !== 'cash' && t.fromName?.toLowerCase() !== 'cash') {
+        const fromKey = t.fromName || t.from;
+        bankOut[fromKey] = (bankOut[fromKey] || 0) + amt;
+      }
     });
 
     // Total bank balance
@@ -259,16 +360,25 @@ export default function ExpensesPage() {
     const totalBankOut = Object.values(bankOut).reduce((s, v) => s + v, 0);
     const bankBalance = totalBankIn - totalBankOut;
 
-    // Per-mode breakdown
-    const allBankModes = new Set([...Object.keys(bankIn), ...Object.keys(bankOut)]);
-    const bankModeBreakdown = Array.from(allBankModes).map((mode) => {
-      const inflow = bankIn[mode] || 0;
-      const outflow = bankOut[mode] || 0;
-      return { mode, inflow, outflow, balance: inflow - outflow };
-    }).sort((a, b) => b.balance - a.balance);
+    // Per-mode breakdown (include all configured bank accounts)
+    const allBankModes = new Set([
+      ...Object.keys(bankIn),
+      ...Object.keys(bankOut),
+      ...bankAccounts.map((b) => b.name),
+    ]);
+    const bankModeBreakdown = Array.from(allBankModes)
+      .map((mode) => {
+        const inflow = bankIn[mode] || 0;
+        const outflow = bankOut[mode] || 0;
+        return { mode, inflow, outflow, balance: inflow - outflow };
+      })
+      .sort((a, b) => b.balance - a.balance);
 
     // ---- PROFIT/LOSS (Month) ----
     const monthProfit = monthSale - monthPurchase - monthExpenses;
+
+    // Set of bridal booking IDs already converted to invoices
+    const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
 
     // ---- 7-Day Sales Trend ----
     const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -278,10 +388,10 @@ export default function ExpensesPage() {
         .filter((inv) => inv.date === dateStr)
         .reduce((s, inv) => s + Number(inv.total || 0), 0);
       const dayApptAdv = appointments
-        .filter((a) => a.date === dateStr && Number(a.advance || 0) > 0)
+        .filter((a) => a.date === dateStr && !a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0)
         .reduce((s, a) => s + Number(a.advance || 0), 0);
       const dayBridalAdv = bridals
-        .filter((b) => (b.date === dateStr || b.weddingDate === dateStr) && Number(b.advance || 0) > 0)
+        .filter((b) => (b.date === dateStr || b.weddingDate === dateStr) && !billedBridalIds.has(b.id) && Number(b.advance || 0) > 0)
         .reduce((s, b) => s + Number(b.advance || 0), 0);
       const dayExp = expenses
         .filter((e) => e.date === dateStr)
@@ -301,7 +411,7 @@ export default function ExpensesPage() {
         mode: i.mode,
       })),
       ...appointments
-        .filter((a) => Number(a.advance || 0) > 0)
+        .filter((a) => !a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0)
         .map((a) => ({
           id: `appt-adv-${a.id}`,
           date: a.date,
@@ -311,7 +421,7 @@ export default function ExpensesPage() {
           mode: a.advanceMode || 'Cash',
         })),
       ...bridals
-        .filter((b) => Number(b.advance || 0) > 0)
+        .filter((b) => !billedBridalIds.has(b.id) && Number(b.advance || 0) > 0)
         .map((b) => ({
           id: `bridal-adv-${b.id}`,
           date: b.date || b.weddingDate || today,
@@ -345,16 +455,20 @@ export default function ExpensesPage() {
       .filter((v) => v.date === today && v.type === 'Payment-In')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
     const todayApptAdv = appointments
-      .filter((a) => a.date === today && Number(a.advance || 0) > 0)
+      .filter((a) => a.date === today && !a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0)
       .reduce((s, a) => s + Number(a.advance || 0), 0);
     const todayBridalAdv = bridals
-      .filter((b) => (b.date === today || b.weddingDate === today) && Number(b.advance || 0) > 0)
+      .filter((b) => (b.date === today || b.weddingDate === today) && !billedBridalIds.has(b.id) && Number(b.advance || 0) > 0)
       .reduce((s, b) => s + Number(b.advance || 0), 0);
 
     const todayCollection =
       invoices
         .filter((i) => i.date === today)
-        .reduce((s, i) => s + Number(i.paid || 0) + Number(i.advance || 0), 0) +
+        .reduce((s, i) => {
+          const vPaid = invoiceVouchersTotal[i.id] || 0;
+          const directPaid = Math.max(0, Number(i.paid || 0) - vPaid);
+          return s + directPaid + Number(i.advance || 0);
+        }, 0) +
       todayVouchersIn +
       todayApptAdv +
       todayBridalAdv;
@@ -386,7 +500,7 @@ export default function ExpensesPage() {
       monthInvoices,
       expenseCount: expenses.length,
     };
-  }, [invoices, purchases, expenses, vouchers, bridals, appointments, today]);
+  }, [invoices, purchases, expenses, vouchers, bridals, appointments, bankAccounts, accountTransfers, today]);
 
   // Pending Collections List (Customer Bills & Bridal Bookings with pending balance)
   const pendingCollections = useMemo(() => {
@@ -508,19 +622,49 @@ export default function ExpensesPage() {
   const daybook = useMemo(() => {
     const d = daybookDate;
 
-    // Cash IN
+    // Helper for daybook advance mode
+    const getInvoiceAdvanceMode = (i: (typeof invoices)[0]) => {
+      if (i.advanceMode) return i.advanceMode;
+      if (i.appointmentId) {
+        const appt = appointments.find((a) => a.id === i.appointmentId);
+        if (appt?.advanceMode) return appt.advanceMode;
+      }
+      if (i.bridalBookingId) {
+        const b = bridals.find((x) => x.id === i.bridalBookingId);
+        if ((b as any)?.advanceAccount || b?.advanceMode) return (b as any)?.advanceAccount || b?.advanceMode;
+      }
+      return 'Cash';
+    };
+
+    const isBankMode = (mode: string) => mode !== 'Cash' && mode !== 'Split Payment';
     const dayInvoices = invoices.filter((i) => i.date === d);
+
     const posCashIn = dayInvoices.reduce((s, i) => {
-      if (i.splitPayment?.cash) return s + Number(i.splitPayment.cash);
-      if (i.mode === 'Cash') return s + Number(i.paid || 0) + Number(i.advance || 0);
-      return s;
+      let cash = 0;
+      const advMode = getInvoiceAdvanceMode(i);
+      if (Number(i.advance || 0) > 0 && (advMode === 'Cash' || !advMode)) {
+        cash += Number(i.advance || 0);
+      }
+      if (i.splitPayment?.cash) {
+        cash += Number(i.splitPayment.cash);
+      } else if (i.mode === 'Cash') {
+        cash += Number(i.paid || 0);
+      }
+      return s + cash;
     }, 0);
 
     const posUpiIn = dayInvoices.reduce((s, i) => {
-      if (i.splitPayment?.upi) return s + Number(i.splitPayment.upi);
-      if (i.mode.includes('UPI') || i.mode.includes('GPay') || i.mode.includes('PhonePe'))
-        return s + Number(i.paid || 0) + Number(i.advance || 0);
-      return s;
+      let upi = 0;
+      const advMode = getInvoiceAdvanceMode(i);
+      if (Number(i.advance || 0) > 0 && isBankMode(advMode) && (advMode.includes('UPI') || advMode.includes('GPay') || advMode.includes('PhonePe'))) {
+        upi += Number(i.advance || 0);
+      }
+      if (i.splitPayment?.upi) {
+        upi += Number(i.splitPayment.upi);
+      } else if (i.mode.includes('UPI') || i.mode.includes('GPay') || i.mode.includes('PhonePe')) {
+        upi += Number(i.paid || 0);
+      }
+      return s + upi;
     }, 0);
 
     const dayPaymentInVouchers = vouchers.filter((v) => v.date === d && v.type === 'Payment-In');
@@ -536,7 +680,16 @@ export default function ExpensesPage() {
       .filter((b) => (b.date === d || b.weddingDate === d) && Number(b.advance || 0) > 0 && (b.advanceMode === 'Cash' || !b.advanceMode))
       .reduce((s, b) => s + Number(b.advance || 0), 0);
 
-    const totalCashIn = posCashIn + voucherCashIn + apptCashIn + bridalCashIn;
+    // Daily Cash Transfers In / Out
+    const dayCashTransfersIn = accountTransfers
+      .filter((t) => t.date === d && (t.to?.toLowerCase() === 'cash' || t.toName?.toLowerCase() === 'cash'))
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+
+    const dayCashTransfersOut = accountTransfers
+      .filter((t) => t.date === d && (t.from?.toLowerCase() === 'cash' || t.fromName?.toLowerCase() === 'cash'))
+      .reduce((s, t) => s + Number(t.amount || 0), 0);
+
+    const totalCashIn = posCashIn + voucherCashIn + apptCashIn + bridalCashIn + dayCashTransfersIn;
 
     const apptAllIn = appointments
       .filter((a) => a.date === d && Number(a.advance || 0) > 0)
@@ -550,7 +703,8 @@ export default function ExpensesPage() {
       dayInvoices.reduce((s, i) => s + Number(i.paid || 0) + Number(i.advance || 0), 0) +
       dayPaymentInVouchers.reduce((s, v) => s + Number(v.amount || 0), 0) +
       apptAllIn +
-      bridalAllIn;
+      bridalAllIn +
+      dayCashTransfersIn;
 
     // Cash OUT
     const dayExpenses = expenses.filter((e) => e.date === d);
@@ -568,7 +722,7 @@ export default function ExpensesPage() {
       .filter((v) => v.mode === 'Cash')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
 
-    const totalCashOut = expenseCashOut + purchaseCashOut + voucherCashOut;
+    const totalCashOut = expenseCashOut + purchaseCashOut + voucherCashOut + dayCashTransfersOut;
     const netCashInHand = totalCashIn - totalCashOut;
 
     return {
@@ -586,8 +740,10 @@ export default function ExpensesPage() {
       dayPurchases,
       dayPaymentInVouchers,
       dayPaymentOutVouchers,
+      dayCashTransfersIn,
+      dayCashTransfersOut,
     };
-  }, [daybookDate, invoices, expenses, purchases, vouchers, bridals, appointments]);
+  }, [daybookDate, invoices, expenses, purchases, vouchers, bridals, appointments, accountTransfers]);
 
   const openNew = () => {
     setEditId(null);
@@ -674,6 +830,187 @@ export default function ExpensesPage() {
     setDeleteId(null);
   };
 
+  // --- Bank Account Handlers ---
+  const openNewBank = () => {
+    setEditBankId(null);
+    setBankForm({
+      name: '',
+      accountNo: '',
+      ifsc: '',
+      branch: '',
+      upiId: '',
+      openingBalance: 0,
+    });
+    setBankModalOpen(true);
+  };
+
+  const openEditBank = (b: BankAccount) => {
+    setEditBankId(b.id);
+    setBankForm({
+      name: b.name,
+      accountNo: b.accountNo || '',
+      ifsc: b.ifsc || '',
+      branch: b.branch || '',
+      upiId: b.upiId || '',
+      openingBalance: b.openingBalance || 0,
+    });
+    setBankModalOpen(true);
+  };
+
+  const handleSaveBank = () => {
+    if (!bankForm.name?.trim()) {
+      toast('Please enter bank account name (e.g. HDFC Bank, SBI)', 'error');
+      return;
+    }
+    const nameTrim = bankForm.name.trim();
+    const openBal = Number(bankForm.openingBalance || 0);
+
+    if (editBankId) {
+      updateData((d) => ({
+        ...d,
+        bankAccounts: (d.bankAccounts || []).map((b) =>
+          b.id === editBankId
+            ? {
+                ...b,
+                name: nameTrim,
+                accountNo: bankForm.accountNo?.trim() || '',
+                ifsc: bankForm.ifsc?.trim() || '',
+                branch: bankForm.branch?.trim() || '',
+                upiId: bankForm.upiId?.trim() || '',
+                openingBalance: openBal,
+              }
+            : b
+        ),
+      }));
+      scheduleSave();
+      toast(`Bank account "${nameTrim}" updated!`);
+      setBankModalOpen(false);
+      setEditBankId(null);
+      return;
+    }
+
+    const newBank: BankAccount = {
+      id: uid(),
+      name: nameTrim,
+      accountNo: bankForm.accountNo?.trim() || '',
+      ifsc: bankForm.ifsc?.trim() || '',
+      branch: bankForm.branch?.trim() || '',
+      upiId: bankForm.upiId?.trim() || '',
+      openingBalance: openBal,
+      isActive: true,
+    };
+
+    updateData((d) => ({
+      ...d,
+      bankAccounts: [...(d.bankAccounts || []), newBank],
+    }));
+    scheduleSave();
+    toast(`✅ Bank account "${nameTrim}" added successfully!`);
+    setBankModalOpen(false);
+  };
+
+  const handleDeleteBank = (id: string) => {
+    updateData((d) => ({
+      ...d,
+      bankAccounts: (d.bankAccounts || []).filter((b) => b.id !== id),
+    }));
+    scheduleSave();
+    toast('Bank account deleted.');
+    setDeleteBankId(null);
+  };
+
+  // --- Fund Transfer Handlers ---
+  const availableTransferAccounts = useMemo(() => {
+    const list = ['Cash'];
+    if (bankAccounts.length > 0) {
+      bankAccounts.forEach((b) => {
+        if (!list.includes(b.name)) list.push(b.name);
+      });
+    } else {
+      const defaults = ['GPay UPI', 'PhonePe UPI', 'HDFC Bank', 'Bank Account'];
+      defaults.forEach((m) => {
+        if (!list.includes(m)) list.push(m);
+      });
+    }
+    return list;
+  }, [bankAccounts]);
+
+  const openNewTransfer = (presetFrom?: string, presetTo?: string) => {
+    const firstBank = bankAccounts[0]?.name || 'GPay UPI';
+    const fromAcc = presetFrom || 'Cash';
+    const toAcc = presetTo || (fromAcc === 'Cash' ? firstBank : 'Cash');
+    setTransferForm({
+      from: fromAcc,
+      to: toAcc,
+      amount: '',
+      date: todayISO(),
+      notes: '',
+    });
+    setTransferModalOpen(true);
+  };
+
+  const handleSaveTransfer = () => {
+    const amt = Number(transferForm.amount || 0);
+    if (amt <= 0) {
+      toast('Please enter a valid transfer amount.', 'error');
+      return;
+    }
+    if (!transferForm.from || !transferForm.to) {
+      toast('Please select both From and To accounts.', 'error');
+      return;
+    }
+    if (transferForm.from.trim().toLowerCase() === transferForm.to.trim().toLowerCase()) {
+      toast('From and To accounts cannot be the same.', 'error');
+      return;
+    }
+
+    const transferSeq = data?.transferSeq || 1001;
+    const trfNo = `TRF-${transferSeq}`;
+
+    const newTransfer: AccountTransfer = {
+      id: uid(),
+      transferNo: trfNo,
+      date: transferForm.date || todayISO(),
+      from: transferForm.from.trim(),
+      fromName: transferForm.from.trim(),
+      to: transferForm.to.trim(),
+      toName: transferForm.to.trim(),
+      amount: amt,
+      notes: transferForm.notes?.trim() || '',
+    };
+
+    updateData((d) => ({
+      ...d,
+      accountTransfers: [newTransfer, ...(d.accountTransfers || [])],
+      transferSeq: transferSeq + 1,
+    }));
+
+    scheduleSave();
+    toast(`✅ Transfer ${trfNo} of ₹${amt} completed (${transferForm.from} ➔ ${transferForm.to})!`);
+    setTransferModalOpen(false);
+  };
+
+  const handleDeleteTransfer = (id: string) => {
+    updateData((d) => ({
+      ...d,
+      accountTransfers: (d.accountTransfers || []).filter((t) => t.id !== id),
+    }));
+    scheduleSave();
+    toast('Transfer record deleted.');
+    setDeleteTransferId(null);
+  };
+
+  const getBankStats = (bankName: string) => {
+    const match = vyaparStats.bankModeBreakdown.find(
+      (m) => m.mode.toLowerCase() === bankName.toLowerCase()
+    );
+    return {
+      inflow: match?.inflow || 0,
+      outflow: match?.outflow || 0,
+      balance: match?.balance || 0,
+    };
+  };
+
   return (
     <div>
       {/* Sub Tabs */}
@@ -723,6 +1060,16 @@ export default function ExpensesPage() {
         >
           <BookOpen size={14} />
           <span>📖 Daily Rojmel</span>
+        </button>
+
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === 'banks' ? 'active' : ''}`}
+          onClick={() => setActiveTab('banks')}
+        >
+          <Landmark size={14} />
+          <span>🏦 Banks & Transfers</span>
+          <span className="tab-badge">{bankAccounts.length}</span>
         </button>
       </div>
 
@@ -1026,7 +1373,30 @@ export default function ExpensesPage() {
                     transform: bankExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                   }} />
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>UPI + Card + Bank (Cash સિવાય) — click to expand</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>UPI + Card + Bank (Cash સિવાય)</span>
+                  <span style={{ fontWeight: 700, color: '#2563eb' }}>{bankExpanded ? 'Close ▲' : 'Breakdown ▼'}</span>
+                </div>
+
+                {/* Quick Action buttons */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }} onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    style={{ fontSize: 11.5, padding: '4px 10px', height: 30, flex: 1, gap: 4 }}
+                    onClick={() => openNewTransfer()}
+                  >
+                    <ArrowRightLeft size={13} /> 💸 Transfer Funds
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    style={{ fontSize: 11.5, padding: '4px 10px', height: 30, flex: 1, gap: 4 }}
+                    onClick={() => setActiveTab('banks')}
+                  >
+                    <Building2 size={13} /> 🏦 Manage Banks
+                  </button>
+                </div>
 
                 {/* Expandable Bank Mode Breakdown */}
                 {bankExpanded && (
@@ -1652,6 +2022,491 @@ export default function ExpensesPage() {
             </div>
           </motion.div>
         )}
+        {/* Tab 5: Bank Accounts & Fund Transfers */}
+        {activeTab === 'banks' && (
+          <motion.div key="banks" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit">
+            {/* Header Action Bar */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 16,
+              marginBottom: 16,
+              flexWrap: 'wrap',
+              gap: 12,
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>🏦 Bank Accounts & Fund Transfers</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: 20 }}>
+                    {bankAccounts.length} Accounts
+                  </span>
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: 12.5, color: 'var(--muted)' }}>
+                  Manage salon bank accounts, view live balances, and transfer funds between Cash & Banks.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ gap: 6, fontWeight: 800 }}
+                  onClick={() => openNewTransfer()}
+                >
+                  <ArrowRightLeft size={16} />
+                  <span>💸 Transfer Money (Cash ↔ Bank)</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ gap: 6, fontWeight: 700 }}
+                  onClick={openNewBank}
+                >
+                  <Plus size={16} />
+                  <span>➕ Add Bank Account</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Top Summary KPI Cards */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 14,
+              marginBottom: 20,
+            }}>
+              {/* Total Bank Balance */}
+              <div style={{
+                background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                borderRadius: 14,
+                padding: '18px 20px',
+                color: '#fff',
+                boxShadow: '0 4px 20px rgba(37,99,235,0.25)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>
+                    Total Bank & UPI Balance
+                  </span>
+                  <Landmark size={18} style={{ opacity: 0.8 }} />
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900 }}>{money(vyaparStats.bankBalance)}</div>
+                <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>All non-cash bank & UPI funds</div>
+              </div>
+
+              {/* Cash in Hand */}
+              <div style={{
+                background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)',
+                borderRadius: 14,
+                padding: '18px 20px',
+                color: '#fff',
+                boxShadow: '0 4px 20px rgba(16,185,129,0.25)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>
+                    Cash in Hand (રોકડ)
+                  </span>
+                  <Banknote size={18} style={{ opacity: 0.8 }} />
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900 }}>{money(vyaparStats.cashInHand)}</div>
+                <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Physical cash in salon drawer</div>
+              </div>
+
+              {/* Registered Accounts */}
+              <div className="card" style={{ padding: '18px 20px', borderLeft: '4px solid #7c3aed' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    Active Bank Accounts
+                  </span>
+                  <Building2 size={18} style={{ color: '#7c3aed' }} />
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#7c3aed' }}>{bankAccounts.length}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Configured bank accounts</div>
+              </div>
+
+              {/* Total Transfers */}
+              <div className="card" style={{ padding: '18px 20px', borderLeft: '4px solid #f59e0b' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                    Transfers Done
+                  </span>
+                  <ArrowRightLeft size={18} style={{ color: '#f59e0b' }} />
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#d97706' }}>{accountTransfers.length}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>Cash ↔ Bank transaction logs</div>
+              </div>
+            </div>
+
+            {/* SECTION 1: BANK ACCOUNTS GRID */}
+            <div className="card" style={{ padding: 22, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>
+                    🏦 Salon Bank Accounts List
+                  </h4>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>
+                    All accounts where online payments, UPI, and cheques are deposited.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={openNewBank}
+                  style={{ gap: 4, fontSize: 12 }}
+                >
+                  <Plus size={14} /> Add Bank Account
+                </button>
+              </div>
+
+              {bankAccounts.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  background: '#f8fafc',
+                  borderRadius: 14,
+                  border: '1.5px dashed var(--border)',
+                }}>
+                  <div style={{ fontSize: 42, marginBottom: 10 }}>🏦</div>
+                  <h4 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800 }}>No Bank Accounts Added Yet</h4>
+                  <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)', maxWidth: 460, marginInline: 'auto' }}>
+                    Add your salon bank accounts (like HDFC Bank, SBI Current, ICICI) to accurately track bank balances and make Cash ↔ Bank transfers.
+                  </p>
+                  <button type="button" className="btn btn-primary" onClick={openNewBank} style={{ gap: 6 }}>
+                    <Plus size={16} /> Add Your First Bank Account
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                  gap: 16,
+                }}>
+                  {bankAccounts.map((b) => {
+                    const stats = getBankStats(b.name);
+                    const isPositive = stats.balance >= 0;
+                    return (
+                      <div
+                        key={b.id}
+                        style={{
+                          background: '#ffffff',
+                          border: '1.5px solid var(--border)',
+                          borderRadius: 14,
+                          padding: '18px 20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        {/* Card Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{
+                              width: 42,
+                              height: 42,
+                              borderRadius: 12,
+                              background: '#eff6ff',
+                              color: '#2563eb',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 900,
+                              fontSize: 18,
+                            }}>
+                              <Building2 size={22} />
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)' }}>{b.name}</div>
+                              {b.bankName && b.bankName !== b.name && (
+                                <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{b.bankName}</div>
+                              )}
+                            </div>
+                          </div>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: 20,
+                            background: '#dcfce7',
+                            color: '#15803d',
+                          }}>
+                            Active
+                          </span>
+                        </div>
+
+                        {/* Account Details */}
+                        <div style={{
+                          background: '#f8fafc',
+                          borderRadius: 10,
+                          padding: '10px 12px',
+                          fontSize: 12,
+                          display: 'grid',
+                          gridTemplateColumns: '1fr 1fr',
+                          gap: '6px 12px',
+                        }}>
+                          {b.accountNo && (
+                            <div>
+                              <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>A/C NUMBER</div>
+                              <div style={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                                •••• {b.accountNo.slice(-4) || b.accountNo}
+                              </div>
+                            </div>
+                          )}
+                          {b.ifsc && (
+                            <div>
+                              <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>IFSC CODE</div>
+                              <div style={{ fontWeight: 700, fontFamily: 'monospace' }}>{b.ifsc}</div>
+                            </div>
+                          )}
+                          {b.branch && (
+                            <div>
+                              <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>BRANCH</div>
+                              <div style={{ fontWeight: 600 }}>{b.branch}</div>
+                            </div>
+                          )}
+                          {b.upiId && (
+                            <div>
+                              <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>UPI ID</div>
+                              <div style={{ fontWeight: 700, color: '#2563eb' }}>{b.upiId}</div>
+                            </div>
+                          )}
+                          {Number(b.openingBalance || 0) > 0 && (
+                            <div style={{ gridColumn: '1 / -1' }}>
+                              <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>OPENING BALANCE</div>
+                              <div style={{ fontWeight: 700 }}>{money(b.openingBalance || 0)}</div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Flow stats */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, padding: '0 4px' }}>
+                          <span style={{ color: 'var(--muted)' }}>
+                            ↓ Total In: <b style={{ color: '#059669' }}>{money(stats.inflow)}</b>
+                          </span>
+                          <span style={{ color: 'var(--muted)' }}>
+                            ↑ Total Out: <b style={{ color: '#dc2626' }}>{money(stats.outflow)}</b>
+                          </span>
+                        </div>
+
+                        {/* Current Balance Bar */}
+                        <div style={{
+                          background: isPositive ? '#f0fdf4' : '#fef2f2',
+                          border: `1px solid ${isPositive ? '#bbf7d0' : '#fecaca'}`,
+                          borderRadius: 10,
+                          padding: '10px 14px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>
+                              Current Live Balance
+                            </div>
+                            <div style={{
+                              fontSize: 20,
+                              fontWeight: 900,
+                              color: isPositive ? '#15803d' : '#b91c1c',
+                            }}>
+                              {money(stats.balance)}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline"
+                              style={{ fontSize: 11, padding: '4px 8px', height: 28 }}
+                              onClick={() => openNewTransfer('Cash', b.name)}
+                              title="Deposit Cash into this Bank"
+                            >
+                              <ArrowDownLeft size={13} /> Deposit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline"
+                              style={{ fontSize: 11, padding: '4px 8px', height: 28 }}
+                              onClick={() => openNewTransfer(b.name, 'Cash')}
+                              title="Withdraw Cash from this Bank"
+                            >
+                              <ArrowUpRight size={13} /> Withdraw
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Actions Footer */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          gap: 6,
+                          borderTop: '1px solid var(--border)',
+                          paddingTop: 10,
+                        }}>
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            onClick={() => openEditBank(b)}
+                            title="Edit Bank Account Details"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-icon danger"
+                            onClick={() => setDeleteBankId(b.id)}
+                            title="Delete Bank Account"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* SECTION 2: FUND TRANSFERS HISTORY (CASH ↔ BANK) */}
+            <div className="card" style={{ padding: 22 }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 16,
+                flexWrap: 'wrap',
+                gap: 10,
+              }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>
+                    💸 Cash ↔ Bank Fund Transfers History ({accountTransfers.length})
+                  </h4>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>
+                    Log of all money moved between Cash Drawer and Bank Accounts.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => openNewTransfer()}
+                  style={{ gap: 6, fontSize: 12 }}
+                >
+                  <ArrowRightLeft size={14} /> New Transfer
+                </button>
+              </div>
+
+              {accountTransfers.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '30px 20px',
+                  background: '#f8fafc',
+                  borderRadius: 12,
+                  border: '1px dashed var(--border)',
+                  color: 'var(--muted)',
+                  fontSize: 13,
+                }}>
+                  💸 No fund transfers recorded yet. Use <b>"New Transfer"</b> to deposit Cash in Bank or withdraw Bank funds to Cash.
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{
+                        borderBottom: '2px solid var(--border)',
+                        textAlign: 'left',
+                        color: 'var(--muted)',
+                        fontSize: 11,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}>
+                        <th style={{ padding: '10px 12px' }}>Transfer #</th>
+                        <th style={{ padding: '10px 12px' }}>Date</th>
+                        <th style={{ padding: '10px 12px' }}>From (ક્યાંથી)</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>➔</th>
+                        <th style={{ padding: '10px 12px' }}>To (ક્યાં)</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'right' }}>Amount (₹)</th>
+                        <th style={{ padding: '10px 12px' }}>Notes / Purpose</th>
+                        <th style={{ padding: '10px 12px', textAlign: 'center' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {accountTransfers.map((t) => {
+                        const isFromCash = t.from.toLowerCase() === 'cash';
+                        const isToCash = t.to.toLowerCase() === 'cash';
+                        return (
+                          <tr key={t.id} style={{ borderBottom: '1px dashed var(--border)' }}>
+                            <td style={{ padding: '12px 12px', fontWeight: 800 }}>
+                              <span style={{
+                                background: '#f1f5f9',
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                fontSize: 11.5,
+                                fontFamily: 'monospace',
+                              }}>
+                                {t.transferNo}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 12px', color: 'var(--muted)', fontSize: 12 }}>
+                              {fmtDate(t.date)}
+                            </td>
+                            <td style={{ padding: '12px 12px' }}>
+                              <span style={{
+                                padding: '3px 10px',
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: isFromCash ? '#fee2e2' : '#e0f2fe',
+                                color: isFromCash ? '#991b1b' : '#0369a1',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                              }}>
+                                {isFromCash ? '💵 Cash Drawer' : `🏦 ${t.fromName || t.from}`}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 12px', textAlign: 'center', color: 'var(--muted)', fontWeight: 800 }}>
+                              ➔
+                            </td>
+                            <td style={{ padding: '12px 12px' }}>
+                              <span style={{
+                                padding: '3px 10px',
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                background: isToCash ? '#dcfce7' : '#e0e7ff',
+                                color: isToCash ? '#166534' : '#3730a3',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                              }}>
+                                {isToCash ? '💵 Cash Drawer' : `🏦 ${t.toName || t.to}`}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 900, fontSize: 14, color: 'var(--text)' }}>
+                              {money(t.amount)}
+                            </td>
+                            <td style={{ padding: '12px 12px', color: 'var(--muted)', fontSize: 12 }}>
+                              {t.notes || '—'}
+                            </td>
+                            <td style={{ padding: '12px 12px', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                className="btn-icon danger"
+                                onClick={() => setDeleteTransferId(t.id)}
+                                title="Delete Transfer Record"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Record Expense Modal */}
@@ -1756,6 +2611,297 @@ export default function ExpensesPage() {
           }
         >
           <p>Are you sure you want to delete this expense record?</p>
+        </Modal>
+      )}
+
+      {/* Add / Edit Bank Account Modal */}
+      <Modal
+        isOpen={bankModalOpen}
+        onClose={() => {
+          setBankModalOpen(false);
+          setEditBankId(null);
+        }}
+        title={editBankId ? `✎ Edit Bank Account` : `🏦 Add New Bank Account`}
+        footer={
+          <>
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                setBankModalOpen(false);
+                setEditBankId(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleSaveBank}>
+              {editBankId ? 'Update Bank Account' : 'Save Bank Account'}
+            </button>
+          </>
+        }
+      >
+        <div className="form-grid">
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Account / Bank Name *</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. HDFC Current Account, SBI Savings, Kotak Bank"
+              value={bankForm.name || ''}
+              onChange={(e) => setBankForm({ ...bankForm, name: e.target.value })}
+              autoFocus
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="label">Account Number</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. 50200012345678"
+              value={bankForm.accountNo || ''}
+              onChange={(e) => setBankForm({ ...bankForm, accountNo: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="label">IFSC Code</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. HDFC0001234"
+              value={bankForm.ifsc || ''}
+              onChange={(e) => setBankForm({ ...bankForm, ifsc: e.target.value.toUpperCase() })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="label">Branch Name / City</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. Palanpur Branch, Surat"
+              value={bankForm.branch || ''}
+              onChange={(e) => setBankForm({ ...bankForm, branch: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="label">UPI ID / QR Account</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. shreebeauty@okhdfcbank"
+              value={bankForm.upiId || ''}
+              onChange={(e) => setBankForm({ ...bankForm, upiId: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Opening Balance (₹)</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              className="input"
+              placeholder="₹ Existing bank balance to start with (e.g. 15000)"
+              value={bankForm.openingBalance ?? 0}
+              onChange={(e) => setBankForm({ ...bankForm, openingBalance: Number(e.target.value) || 0 })}
+            />
+            <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+              💡 Enter starting balance of this bank account before transactions.
+            </span>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Bank Account Modal */}
+      {deleteBankId && (
+        <Modal
+          isOpen={!!deleteBankId}
+          onClose={() => setDeleteBankId(null)}
+          title="Delete Bank Account?"
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeleteBankId(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => handleDeleteBank(deleteBankId)}>Delete Bank</button>
+            </>
+          }
+        >
+          <p>
+            Are you sure you want to delete <b>{bankAccounts.find((b) => b.id === deleteBankId)?.name}</b>?
+          </p>
+        </Modal>
+      )}
+
+      {/* Fund Transfer Modal (Cash ↔ Bank / Bank ↔ Bank) */}
+      <Modal
+        isOpen={transferModalOpen}
+        onClose={() => setTransferModalOpen(false)}
+        title="💸 Transfer Funds (Cash ↔ Bank / Bank ↔ Bank)"
+        footer={
+          <>
+            <button className="btn btn-ghost" onClick={() => setTransferModalOpen(false)}>
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleSaveTransfer} style={{ gap: 6 }}>
+              <CheckCircle2 size={16} /> Complete Transfer
+            </button>
+          </>
+        }
+      >
+        <div className="form-grid">
+          {/* Quick Direction Presets */}
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Quick Transfer Presets</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{
+                  background: transferForm.from === 'Cash' && transferForm.to !== 'Cash' ? '#dbeafe' : '#f8fafc',
+                  borderColor: transferForm.from === 'Cash' && transferForm.to !== 'Cash' ? '#2563eb' : 'var(--border)',
+                  color: transferForm.from === 'Cash' && transferForm.to !== 'Cash' ? '#1d4ed8' : 'var(--text)',
+                  fontWeight: 700,
+                  fontSize: 11.5,
+                  padding: '8px 10px',
+                }}
+                onClick={() => {
+                  const firstBank = bankAccounts[0]?.name || 'GPay UPI';
+                  setTransferForm({ ...transferForm, from: 'Cash', to: firstBank });
+                }}
+              >
+                💵 Cash ➔ 🏦 Bank<br /><span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8 }}>(Cash Deposit)</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-sm"
+                style={{
+                  background: transferForm.from !== 'Cash' && transferForm.to === 'Cash' ? '#dcfce7' : '#f8fafc',
+                  borderColor: transferForm.from !== 'Cash' && transferForm.to === 'Cash' ? '#16a34a' : 'var(--border)',
+                  color: transferForm.from !== 'Cash' && transferForm.to === 'Cash' ? '#15803d' : 'var(--text)',
+                  fontWeight: 700,
+                  fontSize: 11.5,
+                  padding: '8px 10px',
+                }}
+                onClick={() => {
+                  const firstBank = bankAccounts[0]?.name || 'GPay UPI';
+                  setTransferForm({ ...transferForm, from: firstBank, to: 'Cash' });
+                }}
+              >
+                🏦 Bank ➔ 💵 Cash<br /><span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8 }}>(Cash Withdrawal)</span>
+              </button>
+
+              {bankAccounts.length >= 2 && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  style={{
+                    background: transferForm.from !== 'Cash' && transferForm.to !== 'Cash' ? '#f3e8ff' : '#f8fafc',
+                    borderColor: transferForm.from !== 'Cash' && transferForm.to !== 'Cash' ? '#9333ea' : 'var(--border)',
+                    color: transferForm.from !== 'Cash' && transferForm.to !== 'Cash' ? '#7e22ce' : 'var(--text)',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    padding: '8px 10px',
+                  }}
+                  onClick={() => {
+                    setTransferForm({ ...transferForm, from: bankAccounts[0]?.name || '', to: bankAccounts[1]?.name || '' });
+                  }}
+                >
+                  🏦 Bank ➔ 🏦 Bank<br /><span style={{ fontSize: 10, fontWeight: 500, opacity: 0.8 }}>(Inter-Bank)</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="label">From Account (ક્યાંથી) *</label>
+            <select
+              className="input"
+              value={transferForm.from}
+              onChange={(e) => {
+                const newFrom = e.target.value;
+                const newTo = transferForm.to === newFrom ? (newFrom === 'Cash' ? (bankAccounts[0]?.name || 'Bank') : 'Cash') : transferForm.to;
+                setTransferForm({ ...transferForm, from: newFrom, to: newTo });
+              }}
+            >
+              {availableTransferAccounts.map((acc) => (
+                <option key={acc} value={acc}>
+                  {acc === 'Cash' ? '💵 Cash Drawer' : `🏦 ${acc}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="label">To Account (ક્યાં) *</label>
+            <select
+              className="input"
+              value={transferForm.to}
+              onChange={(e) => setTransferForm({ ...transferForm, to: e.target.value })}
+            >
+              <option value="" disabled>Select destination</option>
+              {availableTransferAccounts
+                .filter((acc) => acc !== transferForm.from)
+                .map((acc) => (
+                  <option key={acc} value={acc}>
+                    {acc === 'Cash' ? '💵 Cash Drawer' : `🏦 ${acc}`}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="label">Transfer Amount (₹) *</label>
+            <input
+              type="number"
+              min={1}
+              step="0.01"
+              className="input"
+              placeholder="₹ Amount to transfer"
+              value={transferForm.amount}
+              onChange={(e) => setTransferForm({ ...transferForm, amount: Number(e.target.value) || '' })}
+              autoFocus
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="label">Transfer Date *</label>
+            <input
+              type="date"
+              className="input"
+              value={transferForm.date}
+              onChange={(e) => setTransferForm({ ...transferForm, date: e.target.value })}
+            />
+          </div>
+
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label">Notes / Purpose</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. Daily cash collection deposited in bank / ATM cash withdrawal"
+              value={transferForm.notes}
+              onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Transfer Modal */}
+      {deleteTransferId && (
+        <Modal
+          isOpen={!!deleteTransferId}
+          onClose={() => setDeleteTransferId(null)}
+          title="Delete Transfer Record?"
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeleteTransferId(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => handleDeleteTransfer(deleteTransferId)}>Delete Transfer</button>
+            </>
+          }
+        >
+          <p>Are you sure you want to delete this fund transfer record?</p>
         </Modal>
       )}
     </div>

@@ -85,6 +85,7 @@ function BillingContent() {
   const [lines, setLines] = useState<InvoiceLine[]>([EMPTY_LINE()]);
   const [discount, setDiscount] = useState(0);
   const [advance, setAdvance] = useState(0);
+  const [advanceMode, setAdvanceMode] = useState('Cash');
   const [paid, setPaid] = useState<number | ''>('');
   const [mode, setMode] = useState(data?.settings?.payments?.[0] || 'Cash');
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -135,6 +136,7 @@ function BillingContent() {
     );
     setDiscount(inv.discount || 0);
     setAdvance(inv.advance || 0);
+    setAdvanceMode(inv.advanceMode || 'Cash');
     setPaid(inv.paid);
     setMode(inv.mode || 'Cash');
     if (inv.splitPayment) {
@@ -161,6 +163,7 @@ function BillingContent() {
     setLines([EMPTY_LINE()]);
     setDiscount(0);
     setAdvance(0);
+    setAdvanceMode('Cash');
     setPaid('');
     setIsSplitPayment(false);
     setSplitCash('');
@@ -245,6 +248,7 @@ function BillingContent() {
         setCustomer(a.customer);
         setMobile(a.mobile);
         setAdvance(Number(a.advance || 0));
+        setAdvanceMode(a.advanceMode || 'Cash');
 
         // Find service price if available
         const s = (data?.services || []).find((x) => x.name.toLowerCase() === a.service.toLowerCase());
@@ -265,6 +269,7 @@ function BillingContent() {
     setMobile(b.mobile || '');
     if (Number(b.advance) > 0) {
       setAdvance(Number(b.advance));
+      setAdvanceMode(b.advanceMode || 'Cash');
     }
     setAppointmentRef(`Bridal Booking: ${b.packageName || 'Luxury Package'}`);
 
@@ -445,49 +450,83 @@ function BillingContent() {
     });
   };
 
-  const handleCustomerSelect = (name: string) => {
-    setCustomer(name);
-    const trimmed = name.trim().toLowerCase();
+  const handleCustomerSelect = (val: string) => {
+    const trimmed = val.trim();
     if (!trimmed) {
+      setCustomer('');
       setSelectedCustomerObj(null);
       return;
     }
-    const cleanNum = name.replace(/\D/g, '');
-    const c = (data?.customers || []).find(
-      (x) =>
-        x.name.toLowerCase() === trimmed ||
-        formatCustomerContactName(x.name).toLowerCase() === trimmed ||
-        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
-        x.mobile === name.trim()
-    );
-    if (c) {
-      setCustomer(c.name);
-      setMobile(c.mobile);
+
+    // 1. Check if chosen from datalist format "Name (Mobile)"
+    const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(\d{10})\)?$/);
+    if (match) {
+      const extractedName = match[1].trim();
+      const extractedMob = match[2].trim();
+      const c = (data?.customers || []).find((x) => x.mobile === extractedMob) || null;
+      setCustomer(extractedName);
+      setMobile(extractedMob);
       setSelectedCustomerObj(c);
-    } else {
-      setSelectedCustomerObj(null);
+      setRedeemPoints(0);
+      setUseWallet(0);
+      return;
     }
-    setRedeemPoints(0);
-    setUseWallet(0);
+
+    const foundByCombined = (data?.customers || []).find(
+      (c) =>
+        `${formatCustomerContactName(c.name)} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+        `${c.name} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+        `${formatCustomerContactName(c.name)} — 📞 ${c.mobile}`.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (foundByCombined) {
+      setCustomer(foundByCombined.name);
+      setMobile(foundByCombined.mobile);
+      setSelectedCustomerObj(foundByCombined);
+      setRedeemPoints(0);
+      setUseWallet(0);
+      return;
+    }
+
+    // 2. User is just typing name -> update customer name only
+    setCustomer(val);
+    setSelectedCustomerObj(null);
   };
 
-  const handleMobileSelect = (inputMobile: string) => {
-    setMobile(inputMobile);
-    const trimmed = inputMobile.trim();
-    const cleanNum = trimmed.replace(/\D/g, '');
-    if (!trimmed) return;
-    const c = (data?.customers || []).find(
-      (x) =>
-        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
-        x.mobile === cleanNum ||
-        x.mobile === trimmed ||
-        x.name.toLowerCase() === trimmed.toLowerCase() ||
-        formatCustomerContactName(x.name).toLowerCase() === trimmed.toLowerCase()
-    );
-    if (c) {
-      setCustomer(c.name);
-      setMobile(c.mobile);
+  const handleMobileSelect = (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setMobile('');
+      setSelectedCustomerObj(null);
+      return;
+    }
+
+    // 1. Check if chosen from datalist format "Mobile (Name)"
+    const match = trimmed.match(/^(\d{10})\s*[\(—\-]\s*(.*?)\)?$/);
+    if (match) {
+      const extractedMob = match[1].trim();
+      const extractedName = match[2].trim();
+      const c = (data?.customers || []).find((x) => x.mobile === extractedMob) || null;
+      setMobile(extractedMob);
+      setCustomer(extractedName);
       setSelectedCustomerObj(c);
+      return;
+    }
+
+    const cleanNum = trimmed.replace(/\D/g, '').slice(0, 10);
+    setMobile(cleanNum);
+
+    if (cleanNum.length === 10) {
+      const c = (data?.customers || []).find((x) => x.mobile === cleanNum);
+      if (c) {
+        setSelectedCustomerObj(c);
+        if (!customer) {
+          setCustomer(c.name);
+        }
+      } else {
+        setSelectedCustomerObj(null);
+      }
+    } else {
+      setSelectedCustomerObj(null);
     }
   };
 
@@ -574,6 +613,7 @@ function BillingContent() {
         productDiscountTotal,
         total: roundedTotal,
         advance: Number(advance || 0),
+        advanceMode: Number(advance || 0) > 0 ? advanceMode : undefined,
         paid: effectivePaid,
         balance,
         mode: isSplitPayment ? 'Split Payment' : mode,
@@ -690,6 +730,7 @@ function BillingContent() {
       productDiscountTotal,
       total: roundedTotal,
       advance: Number(advance || 0),
+      advanceMode: Number(advance || 0) > 0 ? advanceMode : undefined,
       paid: effectivePaid,
       balance,
       mode: isSplitPayment ? 'Split Payment' : mode,
@@ -1148,13 +1189,14 @@ function BillingContent() {
                   type="text"
                   className="input"
                   list="billing-cust-name-list"
+                  autoComplete="off"
                   placeholder="Start typing customer name or contact..."
                   value={customer}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
                 />
                 <datalist id="billing-cust-name-list">
                   {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={formatCustomerContactName(c.name)}>
+                    <option key={c.id} value={`${formatCustomerContactName(c.name)} (${c.mobile})`}>
                       {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                     </option>
                   ))}
@@ -1166,13 +1208,14 @@ function BillingContent() {
                   type="tel"
                   className="input"
                   list="billing-cust-mob-list"
+                  autoComplete="off"
                   placeholder="10-digit mobile number"
                   value={mobile}
                   onChange={(e) => handleMobileSelect(e.target.value)}
                 />
                 <datalist id="billing-cust-mob-list">
                   {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={c.mobile}>
+                    <option key={c.id} value={`${c.mobile} (${formatCustomerContactName(c.name)})`}>
                       {c.mobile} — 👤 {formatCustomerContactName(c.name)}
                     </option>
                   ))}
@@ -1517,9 +1560,22 @@ function BillingContent() {
 
 
               {advance > 0 && (
-                <div className="total-row">
-                  <span>Advance Deducted</span>
-                  <span style={{ color: 'var(--teal)' }}>−{money(advance)}</span>
+                <div className="total-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>Advance Deducted:</span>
+                    <select
+                      value={advanceMode}
+                      onChange={(e) => setAdvanceMode(e.target.value)}
+                      style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--card)' }}
+                    >
+                      <option value="Cash">💵 Cash</option>
+                      <option value="GPay UPI">📱 GPay</option>
+                      <option value="PhonePe UPI">📲 PhonePe</option>
+                      <option value="Card">💳 Card</option>
+                      <option value="Bank Transfer">🏦 Bank</option>
+                    </select>
+                  </div>
+                  <span style={{ color: 'var(--teal)', fontWeight: 700 }}>−{money(advance)}</span>
                 </div>
               )}
 

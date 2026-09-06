@@ -776,6 +776,10 @@ export const DEFAULT_DATA: SalonData = {
   customerMemberships: [],
   attendance: [],
   users: DEFAULT_USERS,
+  // Bank & Transfers
+  bankAccounts: [],
+  accountTransfers: [],
+  transferSeq: 1001,
 };
 
 export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonData {
@@ -833,6 +837,10 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     customerMemberships: Array.isArray(incoming.customerMemberships) ? incoming.customerMemberships : DEFAULT_DATA.customerMemberships,
     attendance: Array.isArray(incoming.attendance) ? incoming.attendance : DEFAULT_DATA.attendance,
     users: Array.isArray(incoming.users) && incoming.users.length ? incoming.users : DEFAULT_USERS,
+    // Bank & Transfers
+    bankAccounts: Array.isArray(incoming.bankAccounts) ? incoming.bankAccounts : DEFAULT_DATA.bankAccounts,
+    accountTransfers: Array.isArray(incoming.accountTransfers) ? incoming.accountTransfers : DEFAULT_DATA.accountTransfers,
+    transferSeq: typeof incoming.transferSeq === 'number' ? incoming.transferSeq : DEFAULT_DATA.transferSeq,
   };
 }
 

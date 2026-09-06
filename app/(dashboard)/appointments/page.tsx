@@ -40,6 +40,8 @@ export default function AppointmentsPage() {
     },
   });
 
+  const watchCustomer = watch('customer') || '';
+  const watchMobile = watch('mobile') || '';
   const watchAdvanceMode = watch('advanceMode') || '';
   const watchAdvance = watch('advance') || 0;
   const paymentModes = useMemo(() => data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank'], [data?.settings?.payments]);
@@ -106,39 +108,66 @@ export default function AppointmentsPage() {
   };
 
   const handleCustomerSelect = (val: string) => {
-    setValue('customer', val);
-    const trimmed = val.trim().toLowerCase();
-    if (!trimmed) return;
-    const cleanNum = val.replace(/\D/g, '');
-    const c = (data?.customers || []).find(
-      (x) =>
-        x.name.toLowerCase() === trimmed ||
-        formatCustomerContactName(x.name).toLowerCase() === trimmed ||
-        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
-        x.mobile === val.trim()
-    );
-    if (c) {
-      setValue('customer', c.name);
-      setValue('mobile', c.mobile);
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setValue('customer', '', { shouldValidate: true });
+      return;
     }
+
+    // 1. Check if chosen from datalist format "Name (Mobile)" or "Name — Mobile"
+    const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(\d{10})\)?$/);
+    if (match) {
+      const extractedName = match[1].trim();
+      const extractedMob = match[2].trim();
+      setValue('customer', extractedName, { shouldValidate: true });
+      setValue('mobile', extractedMob, { shouldValidate: true });
+      return;
+    }
+
+    // 2. Check if exact string matches full option in customers list
+    const foundByCombined = (data?.customers || []).find(
+      (c) =>
+        `${formatCustomerContactName(c.name)} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+        `${c.name} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+        `${formatCustomerContactName(c.name)} — 📞 ${c.mobile}`.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (foundByCombined) {
+      setValue('customer', foundByCombined.name, { shouldValidate: true });
+      setValue('mobile', foundByCombined.mobile, { shouldValidate: true });
+      return;
+    }
+
+    // 3. User is simply typing a name -> update name only, NEVER overwrite mobile number!
+    setValue('customer', val, { shouldValidate: true });
   };
 
   const handleMobileSelect = (val: string) => {
-    setValue('mobile', val);
     const trimmed = val.trim();
-    const cleanNum = trimmed.replace(/\D/g, '');
-    if (!trimmed) return;
-    const c = (data?.customers || []).find(
-      (x) =>
-        (cleanNum.length >= 4 && x.mobile.includes(cleanNum)) ||
-        x.mobile === cleanNum ||
-        x.mobile === trimmed ||
-        x.name.toLowerCase() === trimmed.toLowerCase() ||
-        formatCustomerContactName(x.name).toLowerCase() === trimmed.toLowerCase()
-    );
-    if (c) {
-      setValue('customer', c.name);
-      setValue('mobile', c.mobile);
+    if (!trimmed) {
+      setValue('mobile', '', { shouldValidate: true });
+      return;
+    }
+
+    // 1. Check if chosen from datalist format "Mobile (Name)"
+    const match = trimmed.match(/^(\d{10})\s*[\(—\-]\s*(.*?)\)?$/);
+    if (match) {
+      const extractedMob = match[1].trim();
+      const extractedName = match[2].trim();
+      setValue('mobile', extractedMob, { shouldValidate: true });
+      setValue('customer', extractedName, { shouldValidate: true });
+      return;
+    }
+
+    // 2. User is typing digits -> clean numbers only
+    const cleanNum = trimmed.replace(/\D/g, '').slice(0, 10);
+    setValue('mobile', cleanNum, { shouldValidate: true });
+
+    // 3. If full 10 digits entered and customer name is currently empty, fill existing customer name
+    if (cleanNum.length === 10) {
+      const c = (data?.customers || []).find((x) => x.mobile === cleanNum);
+      if (c && !watch('customer')) {
+        setValue('customer', c.name, { shouldValidate: true });
+      }
     }
   };
 
@@ -247,6 +276,7 @@ export default function AppointmentsPage() {
       discount: 0,
       total: apptPrice,
       advance: apptAdvance,
+      advanceMode: appt.advanceMode || 'Cash',
       paid: apptAdvance,
       balance: Math.max(0, apptPrice - apptAdvance),
       mode: appt.advanceMode || 'Cash',
@@ -576,13 +606,14 @@ export default function AppointmentsPage() {
             type="text"
             className="input"
             list="appt-cust-name-list"
+            autoComplete="off"
             placeholder="Start typing customer name or contact..."
-            {...register('customer', { required: 'Customer is required' })}
+            value={watchCustomer}
             onChange={(e) => handleCustomerSelect(e.target.value)}
           />
           <datalist id="appt-cust-name-list">
             {(data?.customers || []).map((c) => (
-              <option key={c.id} value={formatCustomerContactName(c.name)}>
+              <option key={c.id} value={`${formatCustomerContactName(c.name)} (${c.mobile})`}>
                 {formatCustomerContactName(c.name)} — 📞 {c.mobile}
               </option>
             ))}
@@ -596,13 +627,14 @@ export default function AppointmentsPage() {
             type="tel"
             className="input"
             list="appt-cust-mob-list"
+            autoComplete="off"
             placeholder="10-digit mobile number"
-            {...register('mobile')}
+            value={watchMobile}
             onChange={(e) => handleMobileSelect(e.target.value)}
           />
           <datalist id="appt-cust-mob-list">
             {(data?.customers || []).map((c) => (
-              <option key={c.id} value={c.mobile}>
+              <option key={c.id} value={`${c.mobile} (${formatCustomerContactName(c.name)})`}>
                 {c.mobile} — 👤 {formatCustomerContactName(c.name)}
               </option>
             ))}

@@ -187,19 +187,28 @@ const OTHER_EVENT_OPTIONS = [
 
   // Customer Autocomplete: auto-fills Birthday, Sagai Date, and Wedding Date
   const handleSelectCustomerName = (query: string) => {
-    set('name', query);
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) return;
-    const cleanNum = query.replace(/\D/g, '');
+    const trimmed = query.trim();
+    if (!trimmed) {
+      set('name', '');
+      return;
+    }
 
-    const found = (data?.customers || []).find(
-      (c) =>
-        c.name.toLowerCase() === trimmed ||
-        formatCustomerContactName(c.name).toLowerCase() === trimmed ||
-        (cleanNum.length >= 7 && c.mobile === query.trim())
-    );
+    const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(\d{10})\)?$/);
+    let targetCustomer = null;
+    if (match) {
+      const extractedMob = match[2].trim();
+      targetCustomer = (data?.customers || []).find((c) => c.mobile === extractedMob);
+    } else {
+      targetCustomer = (data?.customers || []).find(
+        (c) =>
+          `${formatCustomerContactName(c.name)} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+          `${c.name} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+          `${formatCustomerContactName(c.name)} — 📞 ${c.mobile}`.toLowerCase() === trimmed.toLowerCase()
+      );
+    }
 
-    if (found) {
+    if (targetCustomer) {
+      const found = targetCustomer;
       setForm((prev) => {
         const today = todayISO();
         const wDate = found.anniversary || prev.weddingDate || today;
@@ -226,47 +235,56 @@ const OTHER_EVENT_OPTIONS = [
         };
       });
       toast(`✨ Bride details auto-filled for ${found.name}`);
+      return;
     }
+
+    set('name', query);
   };
 
   const handleSelectCustomerMobile = (mob: string) => {
-    set('mobile', mob);
     const trimmed = mob.trim();
-    if (!trimmed) return;
-    const cleanNum = mob.replace(/\D/g, '');
-
-    const found = (data?.customers || []).find(
-      (c) => c.mobile === trimmed || (cleanNum.length >= 7 && c.mobile.includes(cleanNum))
-    );
-
-    if (found) {
-      setForm((prev) => {
-        const today = todayISO();
-        const wDate = found.anniversary || prev.weddingDate || today;
-        let prevDay = wDate;
-        try {
-          prevDay = format(subDays(parseISO(wDate), 1), 'yyyy-MM-dd');
-        } catch {
-          prevDay = today;
-        }
-
-        const sagai = found.sagaiDate || found.engagementDate || prev.sagaiDate || '';
-
-        return {
-          ...prev,
-          name: found.name,
-          mobile: found.mobile,
-          birthday: found.birthday || prev.birthday || '',
-          weddingDate: wDate,
-          includeWedding: true,
-          sagaiDate: sagai,
-          includeSagai: !!sagai,
-          mandapDate: prev.mandapDate || prevDay,
-          musicDate: prev.musicDate || prevDay,
-        };
-      });
-      toast(`✨ Bride details auto-filled for ${found.name}`);
+    if (!trimmed) {
+      set('mobile', '');
+      return;
     }
+
+    const match = trimmed.match(/^(\d{10})\s*[\(—\-]\s*(.*?)\)?$/);
+    if (match) {
+      const extractedMob = match[1].trim();
+      const found = (data?.customers || []).find((c) => c.mobile === extractedMob);
+      if (found) {
+        setForm((prev) => {
+          const today = todayISO();
+          const wDate = found.anniversary || prev.weddingDate || today;
+          let prevDay = wDate;
+          try {
+            prevDay = format(subDays(parseISO(wDate), 1), 'yyyy-MM-dd');
+          } catch {
+            prevDay = today;
+          }
+
+          const sagai = found.sagaiDate || found.engagementDate || prev.sagaiDate || '';
+
+          return {
+            ...prev,
+            name: found.name,
+            mobile: found.mobile,
+            birthday: found.birthday || prev.birthday || '',
+            weddingDate: wDate,
+            includeWedding: true,
+            sagaiDate: sagai,
+            includeSagai: !!sagai,
+            mandapDate: prev.mandapDate || prevDay,
+            musicDate: prev.musicDate || prevDay,
+          };
+        });
+        toast(`✨ Bride details auto-filled for ${found.name}`);
+        return;
+      }
+    }
+
+    const cleanNum = trimmed.replace(/\D/g, '').slice(0, 10);
+    set('mobile', cleanNum);
   };
 
   // Gujarati Auto-Date calculation: sets other events to weddingDate - 1 day without bugs
@@ -575,9 +593,10 @@ const OTHER_EVENT_OPTIONS = [
       discount: 0,
       total: totalPkg,
       advance: advPaid,
+      advanceMode: (b as any).advanceAccount || b.advanceMode || 'Cash',
       paid: advPaid,
       balance: bal,
-      mode: b.advanceAccount || data?.settings?.payments?.[0] || 'Cash',
+      mode: (b as any).advanceAccount || b.advanceMode || data?.settings?.payments?.[0] || 'Cash',
     };
 
     updateData((d) => {
@@ -1006,6 +1025,7 @@ const OTHER_EVENT_OPTIONS = [
                   type="text"
                   className="input"
                   list="bridal-cust-name-list"
+                  autoComplete="off"
                   value={form.name || ''}
                   onChange={(e) => handleSelectCustomerName(e.target.value)}
                   placeholder="Start typing name or contact..."
@@ -1013,7 +1033,7 @@ const OTHER_EVENT_OPTIONS = [
                 />
                 <datalist id="bridal-cust-name-list">
                   {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={formatCustomerContactName(c.name)}>
+                    <option key={c.id} value={`${formatCustomerContactName(c.name)} (${c.mobile})`}>
                       {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                     </option>
                   ))}
@@ -1025,13 +1045,14 @@ const OTHER_EVENT_OPTIONS = [
                   type="tel"
                   className="input"
                   list="bridal-cust-mob-list"
+                  autoComplete="off"
                   value={form.mobile || ''}
                   onChange={(e) => handleSelectCustomerMobile(e.target.value)}
                   placeholder="10-digit mobile number"
                 />
                 <datalist id="bridal-cust-mob-list">
                   {(data?.customers || []).map((c) => (
-                    <option key={c.id} value={c.mobile}>
+                    <option key={c.id} value={`${c.mobile} (${formatCustomerContactName(c.name)})`}>
                       {c.mobile} — 👤 {formatCustomerContactName(c.name)}
                     </option>
                   ))}

@@ -115,17 +115,26 @@ export default function CustomersPage() {
   };
 
   const handleCustomerSelect = (val: string) => {
-    setValue('name', val);
-    const trimmed = val.trim().toLowerCase();
-    if (!trimmed) return;
-    const cleanNum = val.replace(/\D/g, '');
-    const found = (data?.customers || []).find(
-      (c) =>
-        c.name.toLowerCase() === trimmed ||
-        formatCustomerContactName(c.name).toLowerCase() === trimmed ||
-        (cleanNum.length >= 4 && c.mobile.includes(cleanNum)) ||
-        c.mobile === val.trim()
-    );
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setValue('name', '');
+      return;
+    }
+
+    const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(\d{10})\)?$/);
+    let found = null;
+    if (match) {
+      const extractedMob = match[2].trim();
+      found = (data?.customers || []).find((c) => c.mobile === extractedMob);
+    } else {
+      found = (data?.customers || []).find(
+        (c) =>
+          `${formatCustomerContactName(c.name)} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+          `${c.name} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
+          `${formatCustomerContactName(c.name)} — 📞 ${c.mobile}`.toLowerCase() === trimmed.toLowerCase()
+      );
+    }
+
     if (found) {
       setEditId(found.id);
       setValue('name', found.name);
@@ -135,32 +144,38 @@ export default function CustomersPage() {
       setValue('anniversary', found.anniversary || '');
       setValue('notes', found.notes || '');
       toast(`✨ Existing Customer "${found.name}" loaded!`);
+      return;
     }
+
+    setValue('name', val);
   };
 
   const handleMobileSelect = (val: string) => {
-    setValue('mobile', val);
     const trimmed = val.trim();
-    const cleanNum = trimmed.replace(/\D/g, '');
-    if (!trimmed) return;
-    const found = (data?.customers || []).find(
-      (c) =>
-        (cleanNum.length >= 4 && c.mobile.includes(cleanNum)) ||
-        c.mobile === cleanNum ||
-        c.mobile === trimmed ||
-        c.name.toLowerCase() === trimmed.toLowerCase() ||
-        formatCustomerContactName(c.name).toLowerCase() === trimmed.toLowerCase()
-    );
-    if (found) {
-      setEditId(found.id);
-      setValue('name', found.name);
-      setValue('mobile', found.mobile);
-      setValue('birthday', found.birthday || '');
-      setValue('sagaiDate', found.sagaiDate || found.engagementDate || '');
-      setValue('anniversary', found.anniversary || '');
-      setValue('notes', found.notes || '');
-      toast(`✨ Existing Customer "${found.name}" loaded!`);
+    if (!trimmed) {
+      setValue('mobile', '');
+      return;
     }
+
+    const match = trimmed.match(/^(\d{10})\s*[\(—\-]\s*(.*?)\)?$/);
+    if (match) {
+      const extractedMob = match[1].trim();
+      const found = (data?.customers || []).find((c) => c.mobile === extractedMob);
+      if (found) {
+        setEditId(found.id);
+        setValue('name', found.name);
+        setValue('mobile', found.mobile);
+        setValue('birthday', found.birthday || '');
+        setValue('sagaiDate', found.sagaiDate || found.engagementDate || '');
+        setValue('anniversary', found.anniversary || '');
+        setValue('notes', found.notes || '');
+        toast(`✨ Existing Customer "${found.name}" loaded!`);
+        return;
+      }
+    }
+
+    const cleanNum = trimmed.replace(/\D/g, '').slice(0, 10);
+    setValue('mobile', cleanNum);
   };
 
   const handlePickDeviceContact = async () => {
@@ -496,6 +511,7 @@ export default function CustomersPage() {
               type="text"
               className="input"
               list="add-cust-name-list"
+              autoComplete="off"
               placeholder="Start typing name or contact..."
               {...register('name', { required: 'Name is required' })}
               onChange={(e) => handleCustomerSelect(e.target.value)}
@@ -503,7 +519,7 @@ export default function CustomersPage() {
             />
             <datalist id="add-cust-name-list">
               {(data?.customers || []).map((c) => (
-                <option key={c.id} value={formatCustomerContactName(c.name)}>
+                <option key={c.id} value={`${formatCustomerContactName(c.name)} (${c.mobile})`}>
                   {formatCustomerContactName(c.name)} — 📞 {c.mobile}
                 </option>
               ))}
@@ -516,13 +532,14 @@ export default function CustomersPage() {
               type="tel"
               className="input"
               list="add-cust-mob-list"
+              autoComplete="off"
               placeholder="10-digit mobile"
               {...register('mobile', { required: 'Mobile is required' })}
               onChange={(e) => handleMobileSelect(e.target.value)}
             />
             <datalist id="add-cust-mob-list">
               {(data?.customers || []).map((c) => (
-                <option key={c.id} value={c.mobile}>
+                <option key={c.id} value={`${c.mobile} (${formatCustomerContactName(c.name)})`}>
                   {c.mobile} — 👤 {formatCustomerContactName(c.name)}
                 </option>
               ))}

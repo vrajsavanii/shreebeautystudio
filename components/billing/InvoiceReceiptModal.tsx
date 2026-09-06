@@ -21,7 +21,6 @@ import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, cleanS
 import { money } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 
-export const PRAYING_HANDS_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="%23000000"><path d="M12 2.5c-.3 0-.6.2-.8.5L8.5 7.8c-.4.8-.6 1.7-.6 2.6v5.6c0 1.4 1.1 2.5 2.5 2.5h3.2c1.4 0 2.5-1.1 2.5-2.5v-5.6c0-.9-.2-1.8-.6-2.6L12.8 3c-.2-.3-.5-.5-.8-.5z"/><path d="M7.5 9.2c-.4.7-.6 1.5-.6 2.3v4.5c0 1.1.9 2 2 2s2-.9 2-2V11c0-.6-.4-1-1-1-.3 0-.6.1-.8.3L7.5 9.2z"/><path d="M16.5 9.2l-1.6 1.1c-.2-.2-.5-.3-.8-.3-.6 0-1 .4-1 1v5c0 1.1.9 2 2 2s2-.9 2-2v-4.5c0-.8-.2-1.6-.6-2.3z"/><path d="M5.5 12.8c-.3.6-.4 1.2-.4 1.8v2.4c0 1.1.9 2 2 2s2-.9 2-2v-1.8c0-.6-.4-1-1-1-.2 0-.5.1-.6.3l-2-1.7z"/><path d="M18.5 12.8l-2 1.7c-.1-.2-.4-.3-.6-.3-.6 0-1 .4-1 1v1.8c0 1.1.9 2 2 2s2-.9 2-2v-2.4c0-.6-.1-1.2-.4-1.8z"/><path d="M9.5 20v2c0 .6.4 1 1 1h3c.6 0 1-.4 1-1v-2h-5z"/></svg>`;
 
 type WAStatus = 'idle' | 'sending' | 'sent' | 'failed' | 'not_configured';
 type WAResult = { status: WAStatus; message: string };
@@ -773,50 +772,35 @@ export default function InvoiceReceiptModal({
               </tbody>
             </table>
 
-            {/* Heartfelt Footer */}
-            <div style={{ textAlign: 'center', marginTop: 8 }}>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 300,
-                  color: '#000000',
-                  marginBottom: 2,
-                  letterSpacing: '0.01em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                }}
-              >
-                <span>Thank you for choosing us!</span>
-                <img
-                  src={PRAYING_HANDS_SVG}
-                  alt="🙏"
-                  style={{
-                    width: 13,
-                    height: 13,
-                    display: 'inline-block',
-                    verticalAlign: 'middle',
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  fontSize: 10,
-                  color: '#000000',
-                  lineHeight: 1.45,
-                  maxWidth: 320,
-                  margin: '0 auto',
-                  fontWeight: 300,
-                  letterSpacing: '0.01em',
-                }}
-              >
-                We truly value your trust and hope your experience was
-                everything you imagined !!
+                {/* Heartfelt Footer */}
+                <div style={{ textAlign: 'center', marginTop: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 500,
+                      color: '#000000',
+                      marginBottom: 2,
+                      letterSpacing: '0.01em',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Thank you for choosing us! 🙏
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      color: '#000000',
+                      lineHeight: 1.45,
+                      maxWidth: 320,
+                      margin: '0 auto',
+                      fontWeight: 300,
+                    }}
+                  >
+                    We truly value your trust and hope your experience was everything you imagined !!
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
         {/* Footer Action Buttons */}
         <div

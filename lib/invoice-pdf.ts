@@ -14,7 +14,6 @@ export function formatIndianDate(dateStr: string): string {
   }
 }
 
-export const PRAYING_HANDS_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="%23000000"><path d="M12 2.5c-.3 0-.6.2-.8.5L8.5 7.8c-.4.8-.6 1.7-.6 2.6v5.6c0 1.4 1.1 2.5 2.5 2.5h3.2c1.4 0 2.5-1.1 2.5-2.5v-5.6c0-.9-.2-1.8-.6-2.6L12.8 3c-.2-.3-.5-.5-.8-.5z"/><path d="M7.5 9.2c-.4.7-.6 1.5-.6 2.3v4.5c0 1.1.9 2 2 2s2-.9 2-2V11c0-.6-.4-1-1-1-.3 0-.6.1-.8.3L7.5 9.2z"/><path d="M16.5 9.2l-1.6 1.1c-.2-.2-.5-.3-.8-.3-.6 0-1 .4-1 1v5c0 1.1.9 2 2 2s2-.9 2-2v-4.5c0-.8-.2-1.6-.6-2.3z"/><path d="M5.5 12.8c-.3.6-.4 1.2-.4 1.8v2.4c0 1.1.9 2 2 2s2-.9 2-2v-1.8c0-.6-.4-1-1-1-.2 0-.5.1-.6.3l-2-1.7z"/><path d="M18.5 12.8l-2 1.7c-.1-.2-.4-.3-.6-.3-.6 0-1 .4-1 1v1.8c0 1.1.9 2 2 2s2-.9 2-2v-2.4c0-.6-.1-1.2-.4-1.8z"/><path d="M9.5 20v2c0 .6.4 1 1 1h3c.6 0 1-.4 1-1v-2h-5z"/></svg>`;
 
 export function cleanServiceNameForBill(name: string): string {
   if (!name) return '';
@@ -220,9 +219,8 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
     <!-- Heartfelt Footer -->
     <div style="text-align: center; margin-top: 8px;">
-      <div style="font-size: 10px; font-weight: 300; color: #000000; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px;">
-        <span>Thank you for choosing us!</span>
-        <img src="${PRAYING_HANDS_SVG}" alt="🙏" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle;" />
+      <div style="font-size: 10px; font-weight: 500; color: #000000; margin-bottom: 2px; text-align: center;">
+        Thank you for choosing us! 🙏
       </div>
       <div style="font-size: 10px; color: #000000; line-height: 1.45; max-width: 320px; margin: 0 auto; font-weight: 300;">
         We truly value your trust and hope your experience was everything you imagined !!
