@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
           error:
             'WhatsApp API not configured yet. Please add your Phone Number ID and Access Token in Settings → WhatsApp.',
         },
-        { status: 503 }
+        { status: 200 }
       );
     }
 
@@ -132,15 +132,18 @@ export async function POST(req: NextRequest) {
         } else {
           console.error('[WhatsApp] Media upload failed:', JSON.stringify(uploadJson));
           let errMsg = uploadJson?.error?.message || 'Could not upload the PDF to WhatsApp servers.';
-          if (uploadJson?.error?.code === 190 || errMsg.toLowerCase().includes('oauth access token')) {
-            errMsg = '❌ Invalid Meta Access Token: Token must start with EAAG... Copy the Access Token from Meta Developer Portal (WhatsApp -> API Setup).';
+          const isTokenErr = uploadJson?.error?.code === 190 || errMsg.toLowerCase().includes('access token') || errMsg.toLowerCase().includes('oauth');
+          if (isTokenErr) {
+            errMsg = 'WhatsApp API access token is invalid or expired. Add valid access token in Settings → WhatsApp.';
           }
           return NextResponse.json(
             {
               success: false,
+              notConfigured: true,
+              invalidToken: true,
               error: errMsg,
             },
-            { status: 502 }
+            { status: 200 }
           );
         }
       } catch (uploadErr: any) {

@@ -336,13 +336,13 @@ export async function sendInvoicePDFViaWhatsApp(
 
     const json = await res.json();
 
-    if (json.notConfigured) {
+    if (json.notConfigured || json.invalidToken) {
       return {
         success: false,
         notConfigured: true,
         method: 'not_configured',
         message:
-          'WhatsApp API not configured. Please add your Phone Number ID and Access Token in Settings → WhatsApp.',
+          json.error || 'WhatsApp API not configured. Please add your Phone Number ID and Access Token in Settings → WhatsApp.',
       };
     }
 

@@ -90,12 +90,22 @@ export default function InvoiceReceiptModal({
         // Auto-reset after 5 seconds
         setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
       } else if (res.notConfigured) {
-        setWaResult({
-          status: 'not_configured',
-          message: 'WhatsApp API not configured. Add credentials in Settings → WhatsApp.',
-        });
-        toast('WhatsApp API not set up. Go to Settings → WhatsApp to configure.', 'error');
-        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 6000);
+        const cleanDigits = (invoice.mobile || '').replace(/\D/g, '').slice(-10);
+        if (cleanDigits.length === 10) {
+          const salonName = salonData?.settings?.salon || 'Shree Beauty Studio';
+          const text = `✨ *${salonName.toUpperCase()} — Invoice Receipt #${invoice.no}* ✨\nDear ${invoice.customer || 'Customer'}, thank you for choosing us! 💖\nTotal Bill: ${money(invoice.total)}\nPaid: ${money(invoice.paid + (invoice.advance || 0))}\nBalance Due: ${money(invoice.balance)}\nHave a wonderful day! 🙏`;
+          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(text)}`, '_blank');
+          setWaResult({ status: 'sent', message: '📱 Opening WhatsApp Web to send bill receipt...' });
+          toast('📱 Opening WhatsApp Web to send bill receipt...', 'info');
+          setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+        } else {
+          setWaResult({
+            status: 'not_configured',
+            message: 'WhatsApp API not configured. Add credentials in Settings → WhatsApp.',
+          });
+          toast('WhatsApp API not set up. Go to Settings → WhatsApp to configure.', 'info');
+          setTimeout(() => setWaResult({ status: 'idle', message: '' }), 6000);
+        }
       } else {
         setWaResult({ status: 'failed', message: res.message });
         toast(res.message, 'error');
