@@ -27,14 +27,19 @@ export default function AppointmentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const today = todayISO();
+  const [isSplitAdvance, setIsSplitAdvance] = useState(false);
+  const [splitAdvanceAmounts, setSplitAdvanceAmounts] = useState<Record<string, number | ''>>({});
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<Appointment>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<Appointment>({
     defaultValues: {
       id: '', date: today, time: '10:00', customer: '', mobile: '',
       service: '', price: '' as any, staff: '', advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: '',
     },
   });
+
+  const watchAdvanceMode = watch('advanceMode') || '';
+  const watchAdvance = watch('advance') || 0;
+  const paymentModes = useMemo(() => data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank'], [data?.settings?.payments]);
 
   const appointments = data?.appointments || [];
 
@@ -74,6 +79,8 @@ export default function AppointmentsPage() {
 
   const openNew = () => {
     setEditId(null);
+    setIsSplitAdvance(false);
+    setSplitAdvanceAmounts({});
     reset({
       id: '', date: today, time: '10:00', customer: '', mobile: '',
       service: '',
@@ -591,19 +598,147 @@ export default function AppointmentsPage() {
           </select>
         </div>
 
-        <div className="form-grid">
-          <div className="form-group">
-            <label className="label">Advance Deposit (₹)</label>
-            <input type="number" className="input" min="0" placeholder="₹ 0 (Advance deposit)" {...register('advance', { valueAsNumber: true })} />
+        {/* Payment & Advance Deposit Entry Section (No restrictive dropdown) */}
+        <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <label className="label" style={{ fontWeight: 800, color: 'var(--teal)', margin: 0 }}>
+              💳 Payment &amp; Advance Deposit Entry
+            </label>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                const nextSplit = !isSplitAdvance;
+                setIsSplitAdvance(nextSplit);
+                if (!nextSplit) {
+                  setSplitAdvanceAmounts({});
+                }
+              }}
+              style={{ fontSize: 11, padding: '3px 8px', color: 'var(--teal)', fontWeight: 700 }}
+            >
+              {isSplitAdvance ? '← Single Payment Mode' : '⇄ Split / Multi-Payment Entry'}
+            </button>
           </div>
-          <div className="form-group">
-            <label className="label">Payment Mode / Received In Account *</label>
-            <select className="input" {...register('advanceMode')}>
-              {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank']).map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
+
+          {!isSplitAdvance ? (
+            <div>
+              <div className="form-grid" style={{ marginBottom: 10 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="label">Advance Deposit (₹)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    min="0"
+                    placeholder="₹ 0 (Advance deposit)"
+                    {...register('advance', { valueAsNumber: true })}
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="label">Payment Account / Received In *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    list="appt-payment-modes"
+                    placeholder="Type or pick payment account…"
+                    {...register('advanceMode')}
+                  />
+                  <datalist id="appt-payment-modes">
+                    {paymentModes.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              {/* Quick Pick Payment Mode Pills */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginBottom: 5 }}>
+                  ⚡ All Available Payment Accounts (Click to Pick):
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {paymentModes.map((p) => {
+                    const isSelected = watchAdvanceMode === p;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setValue('advanceMode', p)}
+                        style={{
+                          padding: '5px 11px',
+                          borderRadius: 8,
+                          border: isSelected ? '1.5px solid var(--teal)' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--teal)' : '#ffffff',
+                          color: isSelected ? '#ffffff' : 'var(--text)',
+                          fontWeight: isSelected ? 800 : 500,
+                          fontSize: 11.5,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        {p === 'Cash' && '💵'}
+                        {p.includes('GPay') && '📱'}
+                        {p.includes('PhonePe') && '🟣'}
+                        {p.includes('Card') && '💳'}
+                        {(p.includes('Bank') || p.includes('HDFC')) && '🏦'}
+                        <span>{p}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Split Payment Breakdown Grid */
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted)', marginBottom: 8 }}>
+                Enter split amounts per account (e.g. Cash: ₹500, PhonePe: ₹1000):
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 10 }}>
+                {paymentModes.map((p) => (
+                  <div key={p}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 2 }}>
+                      {p} (₹)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      className="input"
+                      placeholder="₹ 0"
+                      value={splitAdvanceAmounts[p] ?? ''}
+                      onChange={(e) => {
+                        const val = Number(e.target.value) || '';
+                        const updated = { ...splitAdvanceAmounts, [p]: val };
+                        setSplitAdvanceAmounts(updated);
+
+                        let total = 0;
+                        const modes: string[] = [];
+                        Object.entries(updated).forEach(([mKey, mVal]) => {
+                          if (typeof mVal === 'number' && mVal > 0) {
+                            total += mVal;
+                            modes.push(`${mKey}: ₹${mVal}`);
+                          }
+                        });
+                        setValue('advance', total);
+                        setValue('advanceMode', modes.join(', ') || 'Split Payment');
+                      }}
+                      style={{ padding: '5px 8px', fontSize: 12 }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Total Advance Deposit:</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--teal)' }}>
+                  ₹{Number(watchAdvance || 0).toLocaleString('en-IN')} ({watchAdvanceMode || 'None'})
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="form-group">

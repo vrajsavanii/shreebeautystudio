@@ -1611,24 +1611,60 @@ function BillingContent() {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <div style={{ flex: 1 }}>
-                      <select className="input" value={mode} onChange={(e) => setMode(e.target.value)}>
-                        {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Card', 'Bank']).map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
+                  <div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                      <div style={{ flex: 1 }}>
+                        <input
+                          type="text"
+                          className="input"
+                          list="pos-payment-accounts"
+                          placeholder="Type or pick payment account…"
+                          value={mode}
+                          onChange={(e) => setMode(e.target.value)}
+                        />
+                        <datalist id="pos-payment-accounts">
+                          {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Card', 'Bank Transfer', 'HDFC Bank']).map((p) => (
+                            <option key={p} value={p}>{p}</option>
+                          ))}
+                        </datalist>
+                      </div>
+                      <div style={{ width: 120 }}>
+                        <input
+                          type="number"
+                          min={0}
+                          className="input"
+                          placeholder="Paid ₹"
+                          value={paid}
+                          onChange={(e) => setPaid(Number(e.target.value) || '')}
+                          style={{ textAlign: 'right' }}
+                        />
+                      </div>
                     </div>
-                    <div style={{ width: 120 }}>
-                      <input
-                        type="number"
-                        min={0}
-                        className="input"
-                        placeholder="Paid ₹"
-                        value={paid}
-                        onChange={(e) => setPaid(Number(e.target.value) || '')}
-                        style={{ textAlign: 'right' }}
-                      />
+
+                    {/* Quick Pick Pills */}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Card', 'Bank Transfer', 'HDFC Bank']).map((p) => {
+                        const isSelected = mode === p;
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setMode(p)}
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              border: isSelected ? '1.5px solid var(--teal)' : '1px solid var(--border)',
+                              background: isSelected ? 'var(--teal)' : '#ffffff',
+                              color: isSelected ? '#ffffff' : 'var(--text)',
+                              fontWeight: isSelected ? 700 : 500,
+                              fontSize: 11,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

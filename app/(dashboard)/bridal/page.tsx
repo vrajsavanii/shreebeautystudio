@@ -1422,16 +1422,41 @@ const OTHER_EVENT_OPTIONS = [
                 />
               </div>
               <div className="form-group">
-                <label className="label">Payment Account</label>
-                <select
+                <label className="label">Payment Account / Received In</label>
+                <input
+                  type="text"
                   className="input"
-                  value={form.advanceAccount || data?.settings?.payments?.[0] || 'Cash'}
+                  list="bridal-payment-modes"
+                  placeholder="Type or pick payment account…"
+                  value={form.advanceAccount || ''}
                   onChange={(e) => set('advanceAccount', e.target.value)}
-                >
-                  {(data?.settings?.payments || ['Cash', 'GPay UPI']).map((p) => (
+                />
+                <datalist id="bridal-payment-modes">
+                  {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank']).map((p) => (
                     <option key={p} value={p}>{p}</option>
                   ))}
-                </select>
+                </datalist>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                  {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank']).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => set('advanceAccount', p)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: form.advanceAccount === p ? '1.5px solid var(--teal)' : '1px solid var(--border)',
+                        background: form.advanceAccount === p ? 'var(--teal)' : '#ffffff',
+                        color: form.advanceAccount === p ? '#ffffff' : 'var(--text)',
+                        fontWeight: form.advanceAccount === p ? 700 : 500,
+                        fontSize: 11,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="form-group">
                 <label className="label">Remaining Balance Due</label>
