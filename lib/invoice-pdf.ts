@@ -26,16 +26,17 @@ export function cleanServiceNameForBill(name: string): string {
 }
 
 function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
+  const printer = salonData?.settings?.printer || '58';
   const container = document.createElement('div');
   container.id = 'temp-pdf-render-container';
   container.style.position = 'fixed';
   container.style.top = '-9999px';
   container.style.left = '-9999px';
-  container.style.width = '420px';
+  container.style.width = printer === '58' ? '320px' : printer === '80' ? '380px' : '420px';
   container.style.background = '#ffffff';
   container.style.fontFamily = "'Montserrat', 'Segoe UI', Arial, sans-serif";
   container.style.color = '#1f2937';
-  container.style.padding = '24px 20px';
+  container.style.padding = printer === '58' ? '14px 10px' : printer === '80' ? '18px 14px' : '22px 18px';
   container.style.boxSizing = 'border-box';
 
   const salonAddress =
@@ -61,17 +62,17 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
       return `
         <tr>
-          <td style="border: 1.5px solid #222; padding: 8px 10px; font-size: 13px; font-weight: 600; text-align: left;">
+          <td style="border: 1.5px solid #222; padding: 6px 8px; font-size: 12px; font-weight: 600; text-align: left;">
             <div>${displayName}</div>
-            ${discAmt > 0 ? `<div style="font-size: 10.5px; color: #16a34a;">(Disc: -₹${discAmt})</div>` : ''}
+            ${discAmt > 0 ? `<div style="font-size: 10px; color: #16a34a;">(Disc: -₹${discAmt})</div>` : ''}
           </td>
-          <td style="border: 1.5px solid #222; padding: 8px 6px; font-size: 13px; font-weight: 600; text-align: center;">
+          <td style="border: 1.5px solid #222; padding: 6px 4px; font-size: 12px; font-weight: 600; text-align: center;">
             ${qty}
           </td>
-          <td style="border: 1.5px solid #222; padding: 8px 8px; font-size: 13px; font-weight: 600; text-align: right;">
+          <td style="border: 1.5px solid #222; padding: 6px 6px; font-size: 12px; font-weight: 600; text-align: right;">
             ${price.toLocaleString('en-IN')}
           </td>
-          <td style="border: 1.5px solid #222; padding: 8px 10px; font-size: 14px; font-weight: 800; text-align: right;">
+          <td style="border: 1.5px solid #222; padding: 6px 8px; font-size: 13px; font-weight: 800; text-align: right;">
             ${lineTotal.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -85,51 +86,43 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   const balanceDue = Number(inv.balance || 0);
 
   container.innerHTML = `
-    <div style="width: 100%; text-align: center; margin-bottom: 12px;">
+    <div style="width: 100%; text-align: center; margin-bottom: 10px;">
       <!-- Official Logo -->
-      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: 260px; height: auto; margin: 0 auto 8px; display: block;" />
+      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: ${printer === '58' ? '200px' : '250px'}; height: auto; margin: 0 auto 6px; display: block;" />
       
       <!-- Studio Header Details -->
-      <div style="font-size: 11.5px; color: #374151; line-height: 1.45; margin-bottom: 3px; max-width: 320px; margin-left: auto; margin-right: auto;">
+      <div style="font-size: 11px; color: #374151; line-height: 1.4; margin-bottom: 2px; max-width: 300px; margin-left: auto; margin-right: auto;">
         ${salonAddress}
       </div>
-      <div style="font-size: 11.5px; color: #374151; line-height: 1.4;">
+      <div style="font-size: 11px; color: #374151; line-height: 1.35;">
         Email: ${salonEmail}
       </div>
-      <div style="font-size: 11.5px; color: #374151; line-height: 1.4;">
+      <div style="font-size: 11px; color: #374151; line-height: 1.35;">
         Phone / WhatsApp: ${salonPhone}
       </div>
     </div>
 
     <!-- Dashed Line Divider -->
-    <div style="border-top: 1.5px dashed #9ca3af; margin: 12px 0 16px;"></div>
+    <div style="border-top: 1.5px dashed #9ca3af; margin: 10px 0 12px;"></div>
 
     <!-- Key-Value Info Grid -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px;">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px;">
       <tbody>
         <tr>
-          <td style="width: 90px; padding: 4px 0; font-weight: 800; color: #111;">Inv. No :</td>
-          <td style="padding: 4px 0; font-weight: 600; color: #111;">${invNo}</td>
+          <td style="width: 80px; padding: 3px 0; font-weight: 800; color: #111;">Inv. No :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111;">${invNo}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; font-weight: 800; color: #111;">Date :</td>
-          <td style="padding: 4px 0; font-weight: 600; color: #111;">${invDate}</td>
+          <td style="padding: 3px 0; font-weight: 800; color: #111;">Date :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111;">${invDate}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; font-weight: 800; color: #111;">Name :</td>
-          <td style="padding: 4px 0; font-weight: 600; color: #111; text-transform: capitalize;">${inv.customer || 'Customer'}</td>
+          <td style="padding: 3px 0; font-weight: 800; color: #111;">Name :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111; text-transform: capitalize;">${inv.customer || 'Customer'}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; font-weight: 800; color: #111;">Phone :</td>
-          <td style="padding: 4px 0; font-weight: 600; color: #111;">${inv.mobile || '—'}</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; font-weight: 800; color: #111;">Event :</td>
-          <td style="padding: 4px 0; font-weight: 600; color: #111;">${invDate}</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; font-weight: 800; color: #111;">Venue :</td>
-          <td style="padding: 4px 0; font-weight: 600; color: #111;">Katargam Studio</td>
+          <td style="padding: 3px 0; font-weight: 800; color: #111;">Phone :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #111;">${inv.mobile || '—'}</td>
         </tr>
       </tbody>
     </table>
@@ -138,16 +131,16 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 0; border: 1.5px solid #222;">
       <thead>
         <tr style="background: #fdfefe;">
-          <th style="border: 1.5px solid #222; padding: 7px 10px; font-size: 12.5px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.05em;">
+          <th style="border: 1.5px solid #222; padding: 6px 8px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.05em;">
             SERVICE
           </th>
-          <th style="border: 1.5px solid #222; padding: 7px 6px; font-size: 12.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 45px;">
+          <th style="border: 1.5px solid #222; padding: 6px 4px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 40px;">
             QTY
           </th>
-          <th style="border: 1.5px solid #222; padding: 7px 8px; font-size: 12.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 65px;">
+          <th style="border: 1.5px solid #222; padding: 6px 6px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 60px;">
             PRICE
           </th>
-          <th style="border: 1.5px solid #222; padding: 7px 10px; font-size: 12.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 75px;">
+          <th style="border: 1.5px solid #222; padding: 6px 8px; font-size: 11.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 70px;">
             TOTAL
           </th>
         </tr>
@@ -158,13 +151,13 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
     </table>
 
     <!-- Summary / Totals Table -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1.5px solid #222; border-top: none;">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px; border: 1.5px solid #222; border-top: none;">
       <tbody>
         <tr>
-          <td style="border: 1.5px solid #222; border-top: none; padding: 7px 12px; font-size: 13.5px; font-weight: 800; text-align: left;">
+          <td style="border: 1.5px solid #222; border-top: none; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left;">
             Total
           </td>
-          <td style="border: 1.5px solid #222; border-top: none; padding: 7px 12px; font-size: 14.5px; font-weight: 800; text-align: right; width: 140px;">
+          <td style="border: 1.5px solid #222; border-top: none; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right; width: 130px;">
             ₹${totalAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -172,10 +165,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           advanceAmt > 0
             ? `
         <tr>
-          <td style="border: 1.5px solid #222; padding: 7px 12px; font-size: 13.5px; font-weight: 800; text-align: left;">
+          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left;">
             Advance
           </td>
-          <td style="border: 1.5px solid #222; padding: 7px 12px; font-size: 14.5px; font-weight: 800; text-align: right;">
+          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right;">
             ₹${advanceAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -183,10 +176,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
             : ''
         }
         <tr>
-          <td style="border: 1.5px solid #222; padding: 7px 12px; font-size: 13.5px; font-weight: 800; text-align: left;">
+          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left;">
             ${balanceDue > 0 ? 'Received / Paid' : 'Payment'}
           </td>
-          <td style="border: 1.5px solid #222; padding: 7px 12px; font-size: 14.5px; font-weight: 800; text-align: right;">
+          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right;">
             ₹${(paymentPaid > 0 ? paymentPaid : totalAmt - advanceAmt).toLocaleString('en-IN')}
           </td>
         </tr>
@@ -194,10 +187,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           balanceDue > 0
             ? `
         <tr style="background: #fff1f2;">
-          <td style="border: 1.5px solid #222; padding: 7px 12px; font-size: 13.5px; font-weight: 800; text-align: left; color: #dc2626;">
+          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 12.5px; font-weight: 800; text-align: left; color: #dc2626;">
             Balance Due
           </td>
-          <td style="border: 1.5px solid #222; padding: 7px 12px; font-size: 14.5px; font-weight: 800; text-align: right; color: #dc2626;">
+          <td style="border: 1.5px solid #222; padding: 6px 10px; font-size: 13.5px; font-weight: 800; text-align: right; color: #dc2626;">
             ₹${balanceDue.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -208,11 +201,11 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
     </table>
 
     <!-- Heartfelt Footer -->
-    <div style="text-align: center; margin-top: 14px;">
-      <div style="font-size: 13px; font-weight: 700; color: #111; margin-bottom: 4px;">
+    <div style="text-align: center; margin-top: 10px;">
+      <div style="font-size: 12px; font-weight: 700; color: #111; margin-bottom: 3px;">
         Thank you for choosing us! 🙏
       </div>
-      <div style="font-size: 10.5px; color: #4b5563; line-height: 1.4; max-width: 320px; margin: 0 auto;">
+      <div style="font-size: 10px; color: #4b5563; line-height: 1.35; max-width: 290px; margin: 0 auto;">
         We truly value your trust and hope your experience was everything you imagined !!
       </div>
     </div>
@@ -222,7 +215,7 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 }
 
 /**
- * Generate PDF instance for download or dataUrl.
+ * Generate PDF instance for download or dataUrl. Auto-cropped to bill height.
  */
 export async function generateInvoicePDFBlob(
   inv: Invoice,
@@ -240,19 +233,21 @@ export async function generateInvoicePDFBlob(
     });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+    const printer = salonData?.settings?.printer || '58';
+    const pdfWidth = printer === '58' ? 58 : printer === '80' ? 80 : 100;
+    const margin = printer === '58' ? 2 : printer === '80' ? 3 : 5;
+    const contentWidth = pdfWidth - margin * 2;
+    const contentHeight = (canvas.height * contentWidth) / canvas.width;
+    const pdfHeight = contentHeight + margin * 2;
+
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4',
+      format: [pdfWidth, pdfHeight],
     });
 
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const margin = 20;
-    const contentWidth = pdfWidth - margin * 2;
-    const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
-
-    pdf.addImage(imgData, 'JPEG', margin, 15, contentWidth, contentHeight);
+    pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, contentHeight);
 
     const safeCustomer = (inv.customer || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
     const filename = `Invoice_${inv.no}_${safeCustomer}.pdf`;
