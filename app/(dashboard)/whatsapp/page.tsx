@@ -29,6 +29,7 @@ import {
   Settings,
   Pencil,
   RotateCcw,
+  Save,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { useToast } from '@/components/ui/Toast';
@@ -154,9 +155,98 @@ export default function WhatsAppHubPage() {
     });
   }, [enrichedCustomers, broadcastFilter, broadcastSearch, currentMonth]);
 
+  // Check if a saved custom template pattern exists for selected template
+  const rawSavedTemplate = useMemo(() => {
+    return data?.settings?.whatsappTemplates?.[selectedTemplate] || '';
+  }, [data?.settings?.whatsappTemplates, selectedTemplate]);
+
+  const hasCustomSavedTemplate = Boolean(rawSavedTemplate);
+
+  // Template variables mapping for dynamic variable substitution ({name}, {salon}, {date}, etc.)
+  const templateContext = useMemo(() => {
+    const clientName = targetName.trim() || 'Valued Client';
+    const appt = appointments.find((a) => a.id === selectedApptId) || {
+      customer: clientName,
+      date: todayISO(),
+      time: '04:00 PM',
+      service: 'Hydra Deep Cleanse Facial & Hair Spa',
+      staff: 'Pooja',
+    };
+    const inv = invoices.find((i) => i.id === selectedInvoiceId) ||
+      invoices[0] || {
+        no: 'INV-1001',
+        date: todayISO(),
+        customer: clientName,
+        subtotal: 2500,
+        total: 2500,
+        paid: 2500,
+        balance: 0,
+      };
+    const custObj = enrichedCustomers.find((c) => c.mobile === targetPhone);
+    const due = custObj ? custObj.balanceDue : 1200;
+    const pts = custObj?.loyaltyPoints || 150;
+    const wallet = custObj?.walletBalance || 500;
+    const reviewUrl = data?.settings?.googleReviewLink || 'https://g.page/r/shree-beauty/review';
+
+    return {
+      name: clientName,
+      customer: clientName,
+      salon: salon,
+      address: address,
+      date: (appt as any).date ? fmtDate((appt as any).date) : fmtDate(todayISO()),
+      time: (appt as any).time || '04:00 PM',
+      service: (appt as any).service || 'Hair Spa & Facial',
+      amount: money(inv.total || due),
+      paid: money(inv.paid || 0),
+      balance: money(inv.balance || due),
+      due: money(due),
+      points: String(pts),
+      wallet: money(wallet),
+      link: reviewUrl,
+      offer: promoOffer,
+    };
+  }, [
+    targetName,
+    appointments,
+    selectedApptId,
+    invoices,
+    selectedInvoiceId,
+    enrichedCustomers,
+    targetPhone,
+    data?.settings?.googleReviewLink,
+    salon,
+    address,
+    promoOffer,
+  ]);
+
+  // Helper to expand variable tags in template strings
+  const expandTemplateVariables = (rawTpl: string, ctx: Record<string, string>) => {
+    if (!rawTpl) return '';
+    let text = rawTpl;
+    text = text.replace(/\{name\}|\{customer\}/gi, ctx.name);
+    text = text.replace(/\{salon\}/gi, ctx.salon);
+    text = text.replace(/\{address\}/gi, ctx.address);
+    text = text.replace(/\{date\}/gi, ctx.date);
+    text = text.replace(/\{time\}/gi, ctx.time);
+    text = text.replace(/\{service\}/gi, ctx.service);
+    text = text.replace(/\{amount\}/gi, ctx.amount);
+    text = text.replace(/\{paid\}/gi, ctx.paid);
+    text = text.replace(/\{balance\}|\{due\}/gi, ctx.balance);
+    text = text.replace(/\{points\}/gi, ctx.points);
+    text = text.replace(/\{wallet\}/gi, ctx.wallet);
+    text = text.replace(/\{link\}/gi, ctx.link);
+    text = text.replace(/\{offer\}/gi, ctx.offer);
+    return text;
+  };
+
   // Generate live message preview text based on selected template
   const generatedMessage = useMemo(() => {
-    const clientName = targetName.trim() || 'Valued Client';
+    // If a custom saved template exists, expand its variable tags
+    if (rawSavedTemplate) {
+      return expandTemplateVariables(rawSavedTemplate, templateContext);
+    }
+
+    const clientName = templateContext.name;
 
     if (selectedTemplate === 'appointment') {
       const appt = appointments.find((a) => a.id === selectedApptId) || {
@@ -193,20 +283,17 @@ export default function WhatsAppHubPage() {
     }
 
     if (selectedTemplate === 'review') {
-      const reviewUrl = data?.settings?.googleReviewLink || 'https://g.page/r/shree-beauty/review';
-      return reviewRequestMessage(clientName, salon, reviewUrl);
+      return reviewRequestMessage(clientName, salon, templateContext.link);
     }
 
     if (selectedTemplate === 'payment') {
-      const custObj = enrichedCustomers.find((c) => c.mobile === targetPhone);
-      const due = custObj ? custObj.balanceDue : 1200;
+      const due = Number(templateContext.due.replace(/[^0-9]/g, '')) || 1200;
       return paymentReminderMessage(clientName, due, salon, '9824183769@okaxis');
     }
 
     if (selectedTemplate === 'loyalty') {
-      const custObj = customers.find((c) => c.mobile === targetPhone);
-      const pts = custObj?.loyaltyPoints || 150;
-      const wallet = custObj?.walletBalance || 500;
+      const pts = Number(templateContext.points) || 150;
+      const wallet = Number(templateContext.wallet.replace(/[^0-9]/g, '')) || 500;
       return loyaltyBalanceMessage(clientName, pts, wallet, salon);
     }
 
@@ -220,20 +307,17 @@ export default function WhatsAppHubPage() {
 
     return customText || `Hello ${clientName}!\nGreetings from ${salon}. How may we assist you today? 🌸`;
   }, [
+    rawSavedTemplate,
+    templateContext,
     selectedTemplate,
-    targetName,
-    targetPhone,
     selectedApptId,
     selectedInvoiceId,
     promoOffer,
     customText,
     appointments,
     invoices,
-    customers,
-    enrichedCustomers,
     salon,
     address,
-    data?.settings?.googleReviewLink,
   ]);
 
   const [manualText, setManualText] = useState('');
@@ -241,19 +325,54 @@ export default function WhatsAppHubPage() {
 
   useEffect(() => {
     if (!isManualEdited) {
-      setManualText(generatedMessage);
+      setManualText(rawSavedTemplate || generatedMessage);
     }
-  }, [generatedMessage, isManualEdited]);
+  }, [selectedTemplate, rawSavedTemplate, generatedMessage, isManualEdited]);
 
   const handleTemplateSelect = (tplId: TemplateId) => {
     setSelectedTemplate(tplId);
     setIsManualEdited(false);
+    const saved = data?.settings?.whatsappTemplates?.[tplId];
+    if (saved) {
+      setManualText(saved);
+    }
   };
 
-  const handleResetTemplateText = () => {
-    setManualText(generatedMessage);
+  const handleSaveCustomTemplate = () => {
+    if (!manualText.trim()) {
+      toast('Template text cannot be empty.', 'error');
+      return;
+    }
+    const currentTemplates = data?.settings?.whatsappTemplates || {};
+    updateData({
+      settings: {
+        ...data?.settings,
+        whatsappTemplates: {
+          ...currentTemplates,
+          [selectedTemplate]: manualText,
+        },
+      },
+    });
     setIsManualEdited(false);
-    toast('🔄 Reset message text to default template!');
+    toast(`💾 '${selectedTemplate.toUpperCase()}' ટેમ્પલેટ કાયમી સેવ થઇ ગયું! (Saved permanently)`);
+  };
+
+  const handleResetCustomTemplate = () => {
+    const currentTemplates = { ...(data?.settings?.whatsappTemplates || {}) };
+    delete currentTemplates[selectedTemplate];
+    updateData({
+      settings: {
+        ...data?.settings,
+        whatsappTemplates: currentTemplates,
+      },
+    });
+    setIsManualEdited(false);
+    toast(`🔄 '${selectedTemplate.toUpperCase()}' ટેમ્પલેટ રીસેટ થઈને મૂળ ડિફોલ્ટ સેટ થયુ!`);
+  };
+
+  const insertVariableTag = (tag: string) => {
+    setManualText((prev) => prev + tag);
+    setIsManualEdited(true);
   };
 
   const handleSelectCustomer = (mob: string) => {
@@ -358,7 +477,7 @@ export default function WhatsAppHubPage() {
       return;
     }
 
-    const messageToSend = manualText || generatedMessage;
+    const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
     toast(`⏳ Sending WhatsApp message to ${targetName || targetPhone} via Meta Cloud API…`);
     const res = await sendDirectWhatsAppMessage(targetPhone, messageToSend);
     if (res.success) {
@@ -370,13 +489,13 @@ export default function WhatsAppHubPage() {
   };
 
   const handleDirectWebLaunch = () => {
-    const messageToSend = manualText || generatedMessage;
+    const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
     openWAWeb(targetPhone, messageToSend);
     toast('Opening WhatsApp Web with your message in a new tab…');
   };
 
   const handleCopyMessage = () => {
-    const messageToCopy = manualText || generatedMessage;
+    const messageToCopy = expandTemplateVariables(manualText || generatedMessage, templateContext);
     navigator.clipboard.writeText(messageToCopy);
     toast('Message copied to clipboard! Ready to paste into WhatsApp.');
   };
@@ -843,33 +962,109 @@ export default function WhatsAppHubPage() {
               </div>
             )}
 
-            {/* Interactive Manual Template Editor */}
-            <div className="form-group" style={{ marginBottom: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <label className="label" style={{ fontWeight: 800, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
-                  <Pencil size={14} color="var(--teal)" /> 2. Edit &amp; Customise Message Text (Manual Edit)
-                </label>
-                {isManualEdited && (
+            {/* Interactive Manual Template Editor & Permanent Save System */}
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label className="label" style={{ fontWeight: 800, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
+                    <Pencil size={15} color="var(--teal)" /> 2. WhatsApp Template Editor (ટેમ્પલેટ સેવ ઓપ્શન)
+                  </label>
+                  {hasCustomSavedTemplate ? (
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        background: '#dcfce7',
+                        color: '#15803d',
+                        padding: '2px 8px',
+                        borderRadius: 99,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        border: '1px solid #86efac',
+                      }}
+                    >
+                      💾 કાયમી સેવ કરેલું ટેમ્પલેટ
+                    </span>
+                  ) : isManualEdited ? (
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        padding: '2px 8px',
+                        borderRadius: 99,
+                        border: '1px solid #93c5fd',
+                      }}
+                    >
+                      ✏️ unsaved changes
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        background: '#f1f5f9',
+                        color: '#64748b',
+                        padding: '2px 8px',
+                        borderRadius: 99,
+                      }}
+                    >
+                      ⚡ Default Template
+                    </span>
+                  )}
+                </div>
+
+                {/* Template Action Buttons: Save & Reset */}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button
                     type="button"
-                    onClick={handleResetTemplateText}
+                    onClick={handleSaveCustomTemplate}
                     style={{
-                      background: 'none',
+                      background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                      color: '#ffffff',
                       border: 'none',
-                      color: '#0284c7',
-                      fontSize: 11,
-                      fontWeight: 700,
+                      padding: '5px 12px',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      fontWeight: 800,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
-                      padding: 0,
+                      boxShadow: '0 2px 6px rgba(22,163,74,0.3)',
                     }}
+                    title="કાયમી સેવ કરો: Future messages will use this custom text"
                   >
-                    <RotateCcw size={12} /> Reset to Default Template
+                    <Save size={13} /> 💾 Save Template (કાયમી સેવ કરો)
                   </button>
-                )}
+
+                  {(hasCustomSavedTemplate || isManualEdited) && (
+                    <button
+                      type="button"
+                      onClick={handleResetCustomTemplate}
+                      style={{
+                        background: '#f8fafc',
+                        border: '1px solid #cbd5e1',
+                        color: '#475569',
+                        padding: '5px 10px',
+                        borderRadius: 6,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                      title="મૂળ ડિફોલ્ટ સેટ કરો: Reset to system default"
+                    >
+                      <RotateCcw size={12} /> Reset (ડિફોલ્ટ કરો)
+                    </button>
+                  )}
+                </div>
               </div>
+
               <textarea
                 className="input"
                 rows={6}
@@ -878,24 +1073,66 @@ export default function WhatsAppHubPage() {
                   setManualText(e.target.value);
                   setIsManualEdited(true);
                 }}
-                placeholder="Type or edit your custom WhatsApp message here..."
+                placeholder="Type or edit your custom WhatsApp message here... Use tags like {name}, {salon}, {date}, {time}, {amount}, {balance}"
                 style={{
                   width: '100%',
                   fontFamily: 'inherit',
                   fontSize: 12.5,
                   lineHeight: 1.5,
                   padding: 10,
-                  borderColor: isManualEdited ? '#3b82f6' : 'var(--border)',
-                  background: isManualEdited ? '#eff6ff' : '#ffffff',
+                  borderColor: hasCustomSavedTemplate ? '#16a34a' : isManualEdited ? '#3b82f6' : 'var(--border)',
+                  background: hasCustomSavedTemplate ? '#f0fdf4' : isManualEdited ? '#eff6ff' : '#ffffff',
                 }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+
+              {/* Clickable Variable Tags */}
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', marginBottom: 4 }}>
+                  📌 Click tag to insert dynamic variable placeholder:
+                </div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {[
+                    { tag: '{name}', label: '👤 {name}' },
+                    { tag: '{salon}', label: '🌸 {salon}' },
+                    { tag: '{date}', label: '📅 {date}' },
+                    { tag: '{time}', label: '⏰ {time}' },
+                    { tag: '{service}', label: '💇 {service}' },
+                    { tag: '{amount}', label: '💰 {amount}' },
+                    { tag: '{balance}', label: '⚠️ {balance}' },
+                    { tag: '{points}', label: '⭐ {points}' },
+                    { tag: '{offer}', label: '🎁 {offer}' },
+                    { tag: '{link}', label: '🔗 {link}' },
+                  ].map((v) => (
+                    <button
+                      key={v.tag}
+                      type="button"
+                      onClick={() => insertVariableTag(v.tag)}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 6,
+                        padding: '2px 8px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#0f172a',
+                        cursor: 'pointer',
+                        transition: 'all 0.1s ease',
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
                 <span style={{ fontSize: 10.5, color: '#64748b' }}>
-                  ✏️ Live editable message box! Updates live in WhatsApp preview on the right.
+                  💡 ટેમ્પલેટ એડિટ કર્યા પછી <b>💾 Save Template</b> બટન દબાવો જેથી e જ સેવ રહેશે!
                 </span>
-                {isManualEdited && (
-                  <span style={{ fontSize: 10.5, color: '#2563eb', fontWeight: 700 }}>
-                    ● Manually Customized
+                {hasCustomSavedTemplate && (
+                  <span style={{ fontSize: 10.5, color: '#16a34a', fontWeight: 800 }}>
+                    ✓ Saved Permanently in Store
                   </span>
                 )}
               </div>
@@ -1113,7 +1350,7 @@ export default function WhatsAppHubPage() {
                     </div>
                   )}
 
-                  {manualText || generatedMessage}
+                  {expandTemplateVariables(manualText || generatedMessage, templateContext)}
                   <div
                     style={{
                       display: 'flex',

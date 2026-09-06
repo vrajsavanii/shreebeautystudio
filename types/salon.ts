@@ -35,6 +35,7 @@ export interface SalonSettings {
   anniversaryWishTemplate?: string;
   sagaiWishTemplate?: string;
   lastAutoWishDate?: string; // YYYY-MM-DD
+  whatsappTemplates?: Record<string, string>;
 }
 
 export interface Service {
