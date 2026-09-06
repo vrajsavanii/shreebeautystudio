@@ -166,9 +166,9 @@ export default function InvoiceReceiptModal({
               padding: 0 !important;
               background: #ffffff !important;
               color: #000000 !important;
-              font-family: 'Segoe UI', Arial, Helvetica, sans-serif !important;
+              font-family: 'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
               font-size: 10px !important;
-              font-weight: 400 !important;
+              font-weight: 300 !important;
               -webkit-font-smoothing: antialiased !important;
             }
             .thermal-container {
@@ -177,12 +177,14 @@ export default function InvoiceReceiptModal({
               margin: 0 auto !important;
               padding: 2mm 3mm 0mm 3mm !important;
               box-sizing: border-box !important;
+              font-family: 'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
               font-size: 10px !important;
-              font-weight: 400 !important;
+              font-weight: 300 !important;
             }
             .thermal-container * {
               box-sizing: border-box !important;
               color: #000000 !important;
+              font-family: 'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
             }
             .thermal-container table {
               width: 100% !important;
@@ -225,18 +227,20 @@ export default function InvoiceReceiptModal({
                 padding: 0 !important;
                 background: #ffffff !important;
                 color: #000000 !important;
+                font-family: 'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
                 font-size: 10px !important;
-                font-weight: 400 !important;
+                font-weight: 300 !important;
               }
               .thermal-container {
                 width: 100% !important;
                 max-width: 100% !important;
                 margin: 0 auto !important;
                 font-size: 10px !important;
-                font-weight: 400 !important;
+                font-weight: 300 !important;
               }
               .thermal-container * {
                 color: #000000 !important;
+                font-family: 'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
               }
             }
           </style>
@@ -365,7 +369,8 @@ export default function InvoiceReceiptModal({
               padding: '26px 22px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
               border: '1px solid #e2e8f0',
-              fontFamily: "'Segoe UI', Arial, Helvetica, sans-serif",
+              fontFamily:
+                "'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif",
               color: '#000000',
               maxWidth: 420,
               margin: '0 auto',
@@ -392,12 +397,12 @@ export default function InvoiceReceiptModal({
                   lineHeight: 1.35,
                   maxWidth: 300,
                   margin: '0 auto 2px',
-                  fontWeight: 400,
+                  fontWeight: 300,
                 }}
               >
                 {salonAddress}
               </div>
-              <div style={{ fontSize: 10, color: '#000000', lineHeight: 1.35, fontWeight: 400 }}>
+              <div style={{ fontSize: 10, color: '#000000', lineHeight: 1.35, fontWeight: 300 }}>
                 Email: {salonEmail}
               </div>
               <div style={{ fontSize: 10, color: '#000000', lineHeight: 1.35, fontWeight: 500 }}>
@@ -435,7 +440,7 @@ export default function InvoiceReceiptModal({
                   >
                     Inv. No :
                   </td>
-                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 400, color: '#000000', fontSize: 10 }}>
+                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 300, color: '#000000', fontSize: 10 }}>
                     {invNo}
                   </td>
                 </tr>
@@ -443,7 +448,7 @@ export default function InvoiceReceiptModal({
                   <td style={{ width: '28%', padding: '2px 0', fontWeight: 600, color: '#000000', fontSize: 10 }}>
                     Date :
                   </td>
-                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 400, color: '#000000', fontSize: 10 }}>
+                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 300, color: '#000000', fontSize: 10 }}>
                     {invDate}
                   </td>
                 </tr>
@@ -455,7 +460,7 @@ export default function InvoiceReceiptModal({
                     style={{
                       width: '72%',
                       padding: '2px 0',
-                      fontWeight: 400,
+                      fontWeight: 300,
                       color: '#000000',
                       textTransform: 'uppercase',
                       fontSize: 10,
@@ -468,7 +473,7 @@ export default function InvoiceReceiptModal({
                   <td style={{ width: '28%', padding: '2px 0', fontWeight: 600, color: '#000000', fontSize: 10 }}>
                     Phone :
                   </td>
-                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 400, color: '#000000', fontSize: 10 }}>
+                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 300, color: '#000000', fontSize: 10 }}>
                     {invoice.mobile || '—'}
                   </td>
                 </tr>
@@ -564,14 +569,14 @@ export default function InvoiceReceiptModal({
                           border: '1px solid #000000',
                           padding: '4px 5px',
                           fontSize: 10,
-                          fontWeight: 400,
+                          fontWeight: 300,
                           textAlign: 'left',
                           color: '#000000',
                         }}
                       >
                         <div>{cleanServiceNameForBill(l.name)}</div>
                         {discAmt > 0 && (
-                          <div style={{ fontSize: 10, color: '#000000', fontWeight: 400 }}>
+                          <div style={{ fontSize: 10, color: '#000000', fontWeight: 300 }}>
                             (Disc: -₹{discAmt})
                           </div>
                         )}
@@ -581,7 +586,7 @@ export default function InvoiceReceiptModal({
                           border: '1px solid #000000',
                           padding: '4px 2px',
                           fontSize: 10,
-                          fontWeight: 400,
+                          fontWeight: 300,
                           textAlign: 'center',
                           color: '#000000',
                         }}
@@ -593,7 +598,7 @@ export default function InvoiceReceiptModal({
                           border: '1px solid #000000',
                           padding: '4px 3px',
                           fontSize: 10,
-                          fontWeight: 400,
+                          fontWeight: 300,
                           textAlign: 'right',
                           color: '#000000',
                         }}
@@ -773,7 +778,7 @@ export default function InvoiceReceiptModal({
               <div
                 style={{
                   fontSize: 10,
-                  fontWeight: 400,
+                  fontWeight: 300,
                   color: '#000000',
                   marginBottom: 2,
                   letterSpacing: '0.01em',
@@ -802,7 +807,7 @@ export default function InvoiceReceiptModal({
                   lineHeight: 1.45,
                   maxWidth: 320,
                   margin: '0 auto',
-                  fontWeight: 400,
+                  fontWeight: 300,
                   letterSpacing: '0.01em',
                 }}
               >

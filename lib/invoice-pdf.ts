@@ -36,7 +36,8 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   container.style.left = '-9999px';
   container.style.width = printer === '58' ? '300px' : printer === '80' ? '360px' : '400px';
   container.style.background = '#ffffff';
-  container.style.fontFamily = "'Segoe UI', Arial, Helvetica, sans-serif";
+  container.style.fontFamily =
+    "'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif";
   container.style.color = '#000000';
   container.style.padding = printer === '58' ? '12px 8px' : printer === '80' ? '16px 12px' : '20px 16px';
   container.style.boxSizing = 'border-box';
@@ -64,14 +65,14 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
       return `
         <tr>
-          <td style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 400; text-align: left; color: #000;">
+          <td style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 300; text-align: left; color: #000;">
             <div>${displayName}</div>
-            ${discAmt > 0 ? `<div style="font-size: 10px; color: #000; font-weight: 400;">(Disc: -₹${discAmt})</div>` : ''}
+            ${discAmt > 0 ? `<div style="font-size: 10px; color: #000; font-weight: 300;">(Disc: -₹${discAmt})</div>` : ''}
           </td>
-          <td style="border: 1px solid #000; padding: 4px 2px; font-size: 10px; font-weight: 400; text-align: center; color: #000;">
+          <td style="border: 1px solid #000; padding: 4px 2px; font-size: 10px; font-weight: 300; text-align: center; color: #000;">
             ${qty}
           </td>
-          <td style="border: 1px solid #000; padding: 4px 3px; font-size: 10px; font-weight: 400; text-align: right; color: #000;">
+          <td style="border: 1px solid #000; padding: 4px 3px; font-size: 10px; font-weight: 300; text-align: right; color: #000;">
             ${price.toLocaleString('en-IN')}
           </td>
           <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 500; text-align: right; color: #000;">
@@ -97,10 +98,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
       <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: ${printer === '58' ? '175px' : printer === '80' ? '200px' : '220px'}; width: 100%; height: auto; object-fit: contain; margin: 0 auto 4px; display: block;" />
       
       <!-- Studio Header Details -->
-      <div style="font-size: 10px; color: #000; line-height: 1.35; margin-bottom: 2px; max-width: 290px; margin-left: auto; margin-right: auto; font-weight: 400;">
+      <div style="font-size: 10px; color: #000; line-height: 1.35; margin-bottom: 2px; max-width: 290px; margin-left: auto; margin-right: auto; font-weight: 300;">
         ${salonAddress}
       </div>
-      <div style="font-size: 10px; color: #000; line-height: 1.35; font-weight: 400;">
+      <div style="font-size: 10px; color: #000; line-height: 1.35; font-weight: 300;">
         Email: ${salonEmail}
       </div>
       <div style="font-size: 10px; color: #000; line-height: 1.35; font-weight: 500;">
@@ -116,19 +117,19 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
       <tbody>
         <tr>
           <td style="width: 80px; padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Inv. No :</td>
-          <td style="padding: 2px 0; font-weight: 400; color: #000; font-size: 10px;">${invNo}</td>
+          <td style="padding: 2px 0; font-weight: 300; color: #000; font-size: 10px;">${invNo}</td>
         </tr>
         <tr>
           <td style="padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Date :</td>
-          <td style="padding: 2px 0; font-weight: 400; color: #000; font-size: 10px;">${invDate}</td>
+          <td style="padding: 2px 0; font-weight: 300; color: #000; font-size: 10px;">${invDate}</td>
         </tr>
         <tr>
           <td style="padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Name :</td>
-          <td style="padding: 2px 0; font-weight: 400; color: #000; text-transform: uppercase; font-size: 10px;">${inv.customer || 'Customer'}</td>
+          <td style="padding: 2px 0; font-weight: 300; color: #000; text-transform: uppercase; font-size: 10px;">${inv.customer || 'Customer'}</td>
         </tr>
         <tr>
           <td style="padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Phone :</td>
-          <td style="padding: 2px 0; font-weight: 400; color: #000; font-size: 10px;">${inv.mobile || '—'}</td>
+          <td style="padding: 2px 0; font-weight: 300; color: #000; font-size: 10px;">${inv.mobile || '—'}</td>
         </tr>
       </tbody>
     </table>
@@ -219,11 +220,11 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
     <!-- Heartfelt Footer -->
     <div style="text-align: center; margin-top: 8px;">
-      <div style="font-size: 10px; font-weight: 400; color: #000000; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+      <div style="font-size: 10px; font-weight: 300; color: #000000; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; gap: 4px;">
         <span>Thank you for choosing us!</span>
         <img src="${PRAYING_HANDS_SVG}" alt="🙏" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle;" />
       </div>
-      <div style="font-size: 10px; color: #000000; line-height: 1.45; max-width: 320px; margin: 0 auto; font-weight: 400;">
+      <div style="font-size: 10px; color: #000000; line-height: 1.45; max-width: 320px; margin: 0 auto; font-weight: 300;">
         We truly value your trust and hope your experience was everything you imagined !!
       </div>
     </div>
