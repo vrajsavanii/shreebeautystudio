@@ -143,7 +143,12 @@ export default function InvoiceReceiptModal({
         <head>
           <title>Thermal Receipt - ${invoice.no} - ${invoice.customer}</title>
           <style>
+            @page {
+              size: 58mm auto;
+              margin: 0 !important;
+            }
             * {
+              box-sizing: border-box !important;
               color: #000000 !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
@@ -151,20 +156,26 @@ export default function InvoiceReceiptModal({
               text-shadow: none !important;
             }
             html, body {
-              width: 58mm;
-              margin: 0;
-              padding: 0;
-              background: #ffffff;
-              color: #000000;
-              font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-              font-size: 11.5px;
-              font-weight: 700;
+              width: 100% !important;
+              max-width: 58mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              color: #000000 !important;
+              font-family: 'Segoe UI', Arial, Helvetica, sans-serif !important;
+              font-size: 11.5px !important;
+              font-weight: 700 !important;
             }
             .thermal-container {
-              width: 54mm;
-              margin: 0 auto;
-              padding: 1mm 1mm 0mm 1mm;
-              color: #000000 !important;
+              width: 100% !important;
+              max-width: 54mm !important;
+              margin: 0 auto !important;
+              padding: 1mm 1mm 0mm 1mm !important;
+              box-sizing: border-box !important;
+            }
+            .thermal-container * {
+              max-width: 100% !important;
+              box-sizing: border-box !important;
             }
             .thermal-container table,
             .thermal-container th,
@@ -181,11 +192,19 @@ export default function InvoiceReceiptModal({
             }
             .thermal-container table {
               width: 100% !important;
+              max-width: 100% !important;
               border-collapse: collapse !important;
+              table-layout: fixed !important;
+            }
+            .thermal-container th,
+            .thermal-container td {
+              word-break: break-word !important;
+              overflow-wrap: break-word !important;
+              padding: 4px 3px !important;
             }
             .thermal-container img {
               max-width: 175px !important;
-              width: 100% !important;
+              width: 85% !important;
               height: auto !important;
               object-fit: contain !important;
               margin: 0 auto 4px !important;
@@ -202,14 +221,20 @@ export default function InvoiceReceiptModal({
             @media print {
               @page {
                 size: 58mm auto;
-                margin: 0mm !important;
+                margin: 0 !important;
               }
               body {
-                width: 58mm !important;
+                width: 100% !important;
+                max-width: 58mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
                 color: #000000 !important;
+              }
+              .thermal-container {
+                width: 100% !important;
+                max-width: 54mm !important;
+                margin: 0 auto !important;
               }
               * {
                 color: #000000 !important;
@@ -403,7 +428,7 @@ export default function InvoiceReceiptModal({
                 <tr>
                   <td
                     style={{
-                      width: 90,
+                      width: '28%',
                       padding: '3px 0',
                       fontWeight: 800,
                       color: '#111',
@@ -411,24 +436,25 @@ export default function InvoiceReceiptModal({
                   >
                     Inv. No :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
+                  <td style={{ width: '72%', padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invNo}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
+                  <td style={{ width: '28%', padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Date :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
+                  <td style={{ width: '72%', padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invDate}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
+                  <td style={{ width: '28%', padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Name :
                   </td>
                   <td
                     style={{
+                      width: '72%',
                       padding: '3px 0',
                       fontWeight: 600,
                       color: '#111',
@@ -439,26 +465,26 @@ export default function InvoiceReceiptModal({
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
+                  <td style={{ width: '28%', padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Phone :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
+                  <td style={{ width: '72%', padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invoice.mobile || '—'}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
+                  <td style={{ width: '28%', padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Event :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
+                  <td style={{ width: '72%', padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     {invDate}
                   </td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 0', fontWeight: 800, color: '#111' }}>
+                  <td style={{ width: '28%', padding: '3px 0', fontWeight: 800, color: '#111' }}>
                     Venue :
                   </td>
-                  <td style={{ padding: '3px 0', fontWeight: 600, color: '#111' }}>
+                  <td style={{ width: '72%', padding: '3px 0', fontWeight: 600, color: '#111' }}>
                     Katargam Studio
                   </td>
                 </tr>
@@ -472,6 +498,7 @@ export default function InvoiceReceiptModal({
                 borderCollapse: 'collapse',
                 border: '1.5px solid #222',
                 marginBottom: 14,
+                tableLayout: 'fixed',
               }}
             >
               <thead>
@@ -479,11 +506,12 @@ export default function InvoiceReceiptModal({
                   <th
                     style={{
                       border: '1.5px solid #222',
-                      padding: '7px 8px',
-                      fontSize: 12.5,
+                      padding: '6px 5px',
+                      fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
                       letterSpacing: '0.04em',
+                      width: '46%',
                     }}
                   >
                     SERVICE
@@ -491,11 +519,11 @@ export default function InvoiceReceiptModal({
                   <th
                     style={{
                       border: '1.5px solid #222',
-                      padding: '7px 4px',
-                      fontSize: 12.5,
+                      padding: '6px 3px',
+                      fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
-                      width: 45,
+                      width: '14%',
                     }}
                   >
                     QTY
@@ -503,11 +531,11 @@ export default function InvoiceReceiptModal({
                   <th
                     style={{
                       border: '1.5px solid #222',
-                      padding: '7px 6px',
-                      fontSize: 12.5,
+                      padding: '6px 4px',
+                      fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
-                      width: 65,
+                      width: '18%',
                     }}
                   >
                     PRICE
@@ -515,11 +543,11 @@ export default function InvoiceReceiptModal({
                   <th
                     style={{
                       border: '1.5px solid #222',
-                      padding: '7px 8px',
-                      fontSize: 12.5,
+                      padding: '6px 5px',
+                      fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
-                      width: 75,
+                      width: '22%',
                     }}
                   >
                     TOTAL
