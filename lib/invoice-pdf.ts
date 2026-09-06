@@ -41,11 +41,11 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
   const salonAddress =
     salonData?.settings?.address ||
-    '22, Radhika Society, Near Cancer Hospital, Katargam, Surat - 395004';
+    '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const salonEmail = 'shreebeauty.studio22@gmail.com';
   const salonPhone = salonData?.settings?.whatsapp
     ? `${salonData.settings.whatsapp}, 9825339924`
-    : '9824183769, 9825339924';
+    : '919824183769, 9825339924';
 
   const invNo = inv.no.replace(/^INV-/, '');
   const invDate = formatIndianDate(inv.date);

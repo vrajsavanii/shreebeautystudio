@@ -845,13 +845,7 @@ function BillingContent() {
   };
 
   const handlePrint = (inv: Invoice) => {
-    setPrintInv(inv);
-    setTimeout(() => {
-      if (data?.settings?.printer === '80') document.body.classList.add('print80');
-      window.print();
-      document.body.classList.remove('print80');
-      setPrintInv(null);
-    }, 150);
+    setReceiptModalInv(inv);
   };
 
   // Record Payment-In for historic invoice dues

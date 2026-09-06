@@ -46,10 +46,10 @@ export default function InvoiceReceiptModal({
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
   const salonAddress =
     salonData?.settings?.address ||
-    '22, Radhika Society, Near Cancer Hospital, Katargam, Surat - 395004';
+    '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const salonPhone = salonData?.settings?.whatsapp
     ? `${salonData.settings.whatsapp}, 9825339924`
-    : '9824183769, 9825339924';
+    : '919824183769, 9825339924';
   const salonEmail = 'shreebeauty.studio22@gmail.com';
 
   const invNo = invoice.no.replace(/^INV-/, '');
@@ -141,15 +141,14 @@ export default function InvoiceReceiptModal({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Thermal Receipt - ${invoice.no} - ${invoice.customer}</title>
+          <title>Receipt - ${invoice.no} - ${invoice.customer}</title>
           <style>
             @page {
-              size: 58mm auto;
-              margin: 0 !important;
+              size: auto;
+              margin: 0mm !important;
             }
             * {
               box-sizing: border-box !important;
-              color: #000000 !important;
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
               box-shadow: none !important;
@@ -157,42 +156,25 @@ export default function InvoiceReceiptModal({
             }
             html, body {
               width: 100% !important;
-              max-width: 58mm !important;
               margin: 0 !important;
               padding: 0 !important;
               background: #ffffff !important;
               color: #000000 !important;
               font-family: 'Segoe UI', Arial, Helvetica, sans-serif !important;
-              font-size: 11.5px !important;
-              font-weight: 700 !important;
+              font-size: 12px !important;
             }
             .thermal-container {
               width: 100% !important;
-              max-width: 54mm !important;
+              max-width: 80mm !important;
               margin: 0 auto !important;
-              padding: 1mm 1mm 0mm 1mm !important;
+              padding: 2mm 3mm 0mm 3mm !important;
               box-sizing: border-box !important;
             }
             .thermal-container * {
-              max-width: 100% !important;
               box-sizing: border-box !important;
-            }
-            .thermal-container table,
-            .thermal-container th,
-            .thermal-container td,
-            .thermal-container div,
-            .thermal-container span,
-            .thermal-container tr,
-            .thermal-container p {
-              color: #000000 !important;
-              border-color: #000000 !important;
-              font-weight: 700 !important;
-              font-size: 11.5px !important;
-              line-height: 1.35 !important;
             }
             .thermal-container table {
               width: 100% !important;
-              max-width: 100% !important;
               border-collapse: collapse !important;
               table-layout: fixed !important;
             }
@@ -200,32 +182,33 @@ export default function InvoiceReceiptModal({
             .thermal-container td {
               word-break: break-word !important;
               overflow-wrap: break-word !important;
-              padding: 4px 3px !important;
             }
             .thermal-container img {
-              max-width: 175px !important;
-              width: 85% !important;
+              max-width: 190px !important;
+              width: 80% !important;
               height: auto !important;
               object-fit: contain !important;
               margin: 0 auto 4px !important;
               display: block !important;
-              filter: contrast(180%) brightness(85%) !important;
+            }
+            .balance-red {
+              color: #dc2626 !important;
+              -webkit-text-fill-color: #dc2626 !important;
             }
             .cut-feed-space {
-              height: 35mm;
-              min-height: 35mm;
+              height: 25mm;
+              min-height: 25mm;
               clear: both;
               display: block;
               page-break-after: always;
             }
             @media print {
               @page {
-                size: 58mm auto;
-                margin: 0 !important;
+                size: auto;
+                margin: 0mm !important;
               }
               body {
                 width: 100% !important;
-                max-width: 58mm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background: #ffffff !important;
@@ -233,13 +216,12 @@ export default function InvoiceReceiptModal({
               }
               .thermal-container {
                 width: 100% !important;
-                max-width: 54mm !important;
+                max-width: 100% !important;
                 margin: 0 auto !important;
               }
-              * {
-                color: #000000 !important;
-                border-color: #000000 !important;
-                font-weight: 700 !important;
+              .balance-red {
+                color: #dc2626 !important;
+                -webkit-text-fill-color: #dc2626 !important;
               }
             }
           </style>
@@ -472,22 +454,6 @@ export default function InvoiceReceiptModal({
                     {invoice.mobile || '—'}
                   </td>
                 </tr>
-                <tr>
-                  <td style={{ width: '28%', padding: '3px 0', fontWeight: 800, color: '#111' }}>
-                    Event :
-                  </td>
-                  <td style={{ width: '72%', padding: '3px 0', fontWeight: 600, color: '#111' }}>
-                    {invDate}
-                  </td>
-                </tr>
-                <tr>
-                  <td style={{ width: '28%', padding: '3px 0', fontWeight: 800, color: '#111' }}>
-                    Venue :
-                  </td>
-                  <td style={{ width: '72%', padding: '3px 0', fontWeight: 600, color: '#111' }}>
-                    Katargam Studio
-                  </td>
-                </tr>
               </tbody>
             </table>
 
@@ -711,6 +677,7 @@ export default function InvoiceReceiptModal({
                   <tr style={{ background: '#fff1f2' }}>
                     <td
                       colSpan={3}
+                      className="balance-red"
                       style={{
                         border: '1.5px solid #000',
                         padding: '6px 8px',
@@ -723,6 +690,7 @@ export default function InvoiceReceiptModal({
                       Balance Due
                     </td>
                     <td
+                      className="balance-red"
                       style={{
                         border: '1.5px solid #000',
                         padding: '6px 6px',
