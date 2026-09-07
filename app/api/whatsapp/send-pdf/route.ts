@@ -8,6 +8,7 @@
 // ✅ Returns structured, user-friendly error messages.
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@/lib/supabase-server';
 
 // ─── Utility: Classify Meta API error into a user-friendly message ──────────
 function classifyMetaError(metaJson: any, statusCode: number): string {
@@ -85,11 +86,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── 2. Read credentials from server env only — NEVER from request body ────
-    const phoneId = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '';
-    const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+    // ── 2. Read credentials from server env, request body, or database fallback ────
+    let phoneId = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '';
+    let accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
 
-    if (!phoneId || !accessToken || phoneId.startsWith('PASTE_') || accessToken.startsWith('PASTE_')) {
+    // Check request body
+    const bodyAny = body as any;
+    if (bodyAny.whatsappPhoneId) phoneId = bodyAny.whatsappPhoneId;
+    if (bodyAny.whatsappAccessToken) accessToken = bodyAny.whatsappAccessToken;
+
+    // Fallback: Check salon_state in database if credentials are not in env or are placeholders
+    if (!accessToken || accessToken.startsWith('LLM_') || !phoneId) {
+      try {
+        const supabase = getSupabaseAdmin();
+        if (supabase) {
+          const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
+          if (row?.data?.settings?.whatsappAccessToken) {
+            accessToken = row.data.settings.whatsappAccessToken;
+          }
+          if (row?.data?.settings?.whatsappPhoneId) {
+            phoneId = row.data.settings.whatsappPhoneId;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not read whatsapp credentials from salon_state in send-pdf:', err);
+      }
+    }
+
+    if (!phoneId || !accessToken || phoneId.startsWith('PASTE_') || accessToken.startsWith('PASTE_') || accessToken.startsWith('LLM_')) {
       return NextResponse.json(
         {
           success: false,

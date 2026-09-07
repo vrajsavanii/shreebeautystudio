@@ -1,5 +1,5 @@
-// app/api/whatsapp/send-message/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@/lib/supabase-server';
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,17 +28,35 @@ export async function POST(req: NextRequest) {
     const cleanNumber = to.replace(/\D/g, '').slice(-10);
     const recipient = `91${cleanNumber}`;
 
-    const phoneId =
+    let phoneId =
       whatsappPhoneId ||
       process.env.META_WHATSAPP_PHONE_NUMBER_ID ||
       process.env.WHATSAPP_PHONE_NUMBER_ID ||
       '';
 
-    const accessToken =
+    let accessToken =
       whatsappAccessToken ||
       process.env.META_WHATSAPP_ACCESS_TOKEN ||
       process.env.WHATSAPP_ACCESS_TOKEN ||
       '';
+
+    // Fallback: Check salon_state in database if credentials are not in env or are placeholders
+    if (!accessToken || accessToken.startsWith('LLM_') || !phoneId) {
+      try {
+        const supabase = getSupabaseAdmin();
+        if (supabase) {
+          const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
+          if (row?.data?.settings?.whatsappAccessToken) {
+            accessToken = row.data.settings.whatsappAccessToken;
+          }
+          if (row?.data?.settings?.whatsappPhoneId) {
+            phoneId = row.data.settings.whatsappPhoneId;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not read whatsapp credentials from salon_state:', err);
+      }
+    }
 
     // If Meta Cloud API credentials are provided, send message directly via WhatsApp Business API
     if (phoneId && accessToken) {
