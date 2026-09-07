@@ -37,8 +37,8 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
   const [checking, setChecking] = useState<boolean>(true);
 
   // Form state
-  const [username, setUsername] = useState<string>('shree@admin.com');
-  const [password, setPassword] = useState<string>('shree1234');
+  const [username, setUsername] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -91,11 +91,12 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
       const normalizedUser = username.trim().toLowerCase();
       const usersList = data?.users && data.users.length > 0 ? data.users : DEFAULT_USERS;
 
-      // 1. Try matching store users list
+      // 1. Try matching store users list with exact password check
       const matched = usersList.find(
         (u) =>
           u.email.toLowerCase() === normalizedUser &&
-          (u.password ? u.password === password.trim() : true)
+          u.password &&
+          u.password === password.trim()
       );
 
       if (matched) {
@@ -127,7 +128,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
         return;
       }
 
-      setError('Incorrect username or password. Default: shree@admin.com / shree1234');
+      setError('Incorrect username or password. Please try again.');
     } catch {
       setError('An error occurred during authentication. Please retry.');
     } finally {
@@ -274,8 +275,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
             <button
               type="button"
               onClick={() => {
-                setUsername('shree@admin.com');
-                setPassword('shree1234');
+                setRole('Admin');
                 setError('');
               }}
               style={{
@@ -283,12 +283,12 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
                 padding: '8px 12px',
                 borderRadius: 9,
                 border: 'none',
-                background: username.includes('admin') ? '#ffffff' : 'transparent',
-                color: username.includes('admin') ? '#05424A' : '#64748b',
-                fontWeight: username.includes('admin') ? 700 : 500,
+                background: role === 'Admin' ? '#ffffff' : 'transparent',
+                color: role === 'Admin' ? '#05424A' : '#64748b',
+                fontWeight: role === 'Admin' ? 700 : 500,
                 fontSize: 12.5,
                 cursor: 'pointer',
-                boxShadow: username.includes('admin') ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                boxShadow: role === 'Admin' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
@@ -297,8 +297,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
             <button
               type="button"
               onClick={() => {
-                setUsername('sales@shree.com');
-                setPassword('sales1234');
+                setRole('Salesperson');
                 setError('');
               }}
               style={{
@@ -306,12 +305,12 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
                 padding: '8px 12px',
                 borderRadius: 9,
                 border: 'none',
-                background: username.includes('sales') ? '#ffffff' : 'transparent',
-                color: username.includes('sales') ? '#05424A' : '#64748b',
-                fontWeight: username.includes('sales') ? 700 : 500,
+                background: role === 'Salesperson' ? '#ffffff' : 'transparent',
+                color: role === 'Salesperson' ? '#05424A' : '#64748b',
+                fontWeight: role === 'Salesperson' ? 700 : 500,
                 fontSize: 12.5,
                 cursor: 'pointer',
-                boxShadow: username.includes('sales') ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                boxShadow: role === 'Salesperson' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s ease',
               }}
             >
@@ -365,7 +364,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
                 className="input"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="shree@admin.com"
+                placeholder="e.g. name@shreebeauty.com"
                 required
                 autoComplete="username"
                 style={{
