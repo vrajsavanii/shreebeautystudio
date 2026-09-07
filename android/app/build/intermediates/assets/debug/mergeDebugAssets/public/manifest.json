@@ -1,0 +1,24 @@
+{
+  "name": "Shree Beauty Studio",
+  "short_name": "Shree Beauty Studio",
+  "description": "Cloud-first salon management platform for Shree Beauty Studio, Surat",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05424A",
+  "theme_color": "#05424A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,17 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2, LogIn, ShieldCheck, UserCheck } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, EyeOff, Loader2, LogIn, ShieldCheck, UserCheck, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { scaleIn } from '@/variants';
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 import { useSalonStore, DEFAULT_USERS } from '@/lib/store';
 import { UserAccount } from '@/types/salon';
+import { setAdminSession } from '@/lib/admin-auth';
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams.get('redirect');
+
   const { data, setCurrentUser } = useSalonStore();
   const usersList = data?.users && data.users.length > 0 ? data.users : DEFAULT_USERS;
 
@@ -21,6 +26,28 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const [selectedRole, setSelectedRole] = useState<'Admin' | 'Salesperson'>('Admin');
+
+  const getTargetRoute = (role: 'Admin' | 'Salesperson') => {
+    if (redirectTarget && redirectTarget.startsWith('/admin')) {
+      if (role === 'Salesperson') {
+        const allowed = [
+          '/admin/billing',
+          '/admin/appointments',
+          '/admin/bridal',
+          '/admin/purchases',
+          '/admin/inventory',
+          '/admin/customers',
+        ];
+        const isAllowed = allowed.some(
+          (r) => redirectTarget === r || redirectTarget.startsWith(r + '/')
+        );
+        if (isAllowed) return redirectTarget;
+        return '/admin/billing';
+      }
+      return redirectTarget;
+    }
+    return role === 'Salesperson' ? '/admin/billing' : '/admin';
+  };
 
   const handleRoleSelect = (role: 'Admin' | 'Salesperson') => {
     setSelectedRole(role);
@@ -44,11 +71,8 @@ export default function LoginPage() {
 
       if (matchedUser) {
         setCurrentUser(matchedUser);
-        if (matchedUser.role === 'Salesperson') {
-          router.replace('/billing');
-        } else {
-          router.replace('/');
-        }
+        setAdminSession(matchedUser.email, matchedUser.role);
+        router.replace(getTargetRoute(matchedUser.role));
         return;
       }
 
@@ -63,7 +87,8 @@ export default function LoginPage() {
             role: 'Admin',
           };
           setCurrentUser(adminUser);
-          router.replace('/');
+          setAdminSession(adminUser.email, adminUser.role);
+          router.replace(getTargetRoute(adminUser.role));
           return;
         }
       } catch {
@@ -116,7 +141,7 @@ export default function LoginPage() {
             Shree Beauty Studio
           </h1>
           <p style={{ fontSize: 13, color: '#6b7880', fontWeight: 500 }}>
-            Management System · Account Sign In
+            Management Console · Account Sign In
           </p>
         </div>
 
@@ -250,17 +275,52 @@ export default function LoginPage() {
 
         <div style={{
           fontSize: 11, color: '#64748b',
-          textAlign: 'center', marginTop: 20, lineHeight: 1.5,
+          textAlign: 'center', marginTop: 18, lineHeight: 1.5,
           background: '#f8fafc', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0'
         }}>
-          <b>Demo Accounts Quick Info:</b><br />
+          <b>Staff Accounts:</b><br />
           👑 <b>Admin:</b> shree@admin.com (shree1234)<br />
           👤 <b>Salesperson:</b> sales@shree.com (sales1234)
+        </div>
+
+        {/* Back to Public Website Link */}
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <Link
+            href="/"
+            style={{
+              color: '#05424A',
+              fontSize: 12.5,
+              fontWeight: 600,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+            }}
+          >
+            <ArrowLeft size={13} /> Return to Public Website
+          </Link>
         </div>
       </motion.div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="auth-bg"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#EABA38' }} />
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }
 

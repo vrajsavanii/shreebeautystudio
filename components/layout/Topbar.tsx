@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Menu,
   Calendar as CalendarIcon,
@@ -15,30 +15,30 @@ import {
   ShieldCheck,
   UserCheck,
   LogOut,
+  ExternalLink,
 } from 'lucide-react';
 import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { format } from 'date-fns';
 import { useSalonStore } from '@/lib/store';
 import { todayISO } from '@/lib/utils';
-import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { clearAdminSession } from '@/lib/admin-auth';
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  '/':             { title: 'Dashboard Overview', subtitle: 'Real-time studio KPIs & analytics' },
-  '/appointments': { title: 'Appointments & Flow', subtitle: 'Daily bookings & beautician tracking' },
-  '/customers':    { title: 'Customer Directory', subtitle: 'Client records, birthdays & spend history' },
-  '/services':     { title: 'Services & Rate Card', subtitle: 'Salon menu, treatment rates & duration' },
-  '/billing':      { title: 'Billing POS Checkout', subtitle: 'Invoices, barcode billing & receipts' },
-  '/inventory':    { title: 'Inventory & Products', subtitle: 'Retail stock, audit logs & batch expiry' },
-  '/purchases':    { title: 'Product Purchases', subtitle: 'Vendor invoices & inward stock orders' },
-  '/suppliers':    { title: 'Supplier Management', subtitle: 'Vendor ledgers, GSTIN & payments' },
-  '/expenses':     { title: 'Expenses & Rojmel (Day Book)', subtitle: 'Daily studio cash flow, rojmel ledger & expense vouchers' },
-  '/bridal':       { title: 'Bridal & Event Studio', subtitle: '13 Luxury packages, siders & multi-events' },
-  '/staff':        { title: 'Staff & Team Management', subtitle: 'Beauticians, roles, commissions & user accounts' },
-  '/whatsapp':     { title: 'WhatsApp Web & Client Messenger', subtitle: 'Chat with customers, send invoices & automated promos' },
-  '/reminders':    { title: 'Smart Reminders', subtitle: 'Birthdays, anniversaries & follow-ups' },
-  '/reports':      { title: 'Financial & Reports', subtitle: 'Sales analysis, GST summary & profit' },
-  '/settings':     { title: 'Studio Settings', subtitle: 'Salon profile, printer & payments setup' },
+  '/admin':             { title: 'Dashboard Overview', subtitle: 'Real-time studio KPIs & analytics' },
+  '/admin/appointments': { title: 'Appointments & Flow', subtitle: 'Daily bookings & beautician tracking' },
+  '/admin/customers':    { title: 'Customer Directory', subtitle: 'Client records, birthdays & spend history' },
+  '/admin/services':     { title: 'Services & Rate Card', subtitle: 'Salon menu, treatment rates & duration' },
+  '/admin/billing':      { title: 'Billing POS Checkout', subtitle: 'Invoices, barcode billing & receipts' },
+  '/admin/inventory':    { title: 'Inventory & Products', subtitle: 'Retail stock, audit logs & batch expiry' },
+  '/admin/purchases':    { title: 'Product Purchases', subtitle: 'Vendor invoices & inward stock orders' },
+  '/admin/suppliers':    { title: 'Supplier Management', subtitle: 'Vendor ledgers, GSTIN & payments' },
+  '/admin/expenses':     { title: 'Expenses & Rojmel', subtitle: 'Daily studio cash flow, rojmel ledger & bank transfers' },
+  '/admin/bridal':       { title: 'Bridal & Event Studio', subtitle: '13 Luxury packages, siders & multi-events' },
+  '/admin/staff':        { title: 'Staff & Team Management', subtitle: 'Beauticians, roles, commissions & user accounts' },
+  '/admin/whatsapp':     { title: 'WhatsApp Meta Hub', subtitle: 'Chat with customers, send invoices & automated promos' },
+  '/admin/reminders':    { title: 'Smart Reminders', subtitle: 'Birthdays, anniversaries & follow-ups' },
+  '/admin/reports':      { title: 'Financial & Reports', subtitle: 'Sales analysis, GST summary & profit' },
+  '/admin/settings':     { title: 'Studio Settings', subtitle: 'Salon profile, printer & payments setup' },
 };
 
 interface TopbarProps {
@@ -62,7 +62,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   }, []);
 
   const pageInfo = PAGE_TITLES[pathname] ?? {
-    title: 'Shree Beauty Studio',
+    title: 'Management Console',
     subtitle: 'Salon & Studio Management',
   };
 
@@ -71,6 +71,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   // Quick stats
   const todayAppts = (data?.appointments || []).filter((a) => a.date === today && a.status !== 'Cancelled').length;
   const lowStockCount = (data?.inventory || []).filter((i) => i.stock <= i.low).length;
+
+  const handleLogout = () => {
+    clearAdminSession();
+    logoutUser();
+    router.push('/');
+  };
 
   return (
     <header className="topbar no-print">
@@ -124,9 +130,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </div>
           {timeStr && (
             <>
-              <span style={{ color: '#cbd5e1' }}>|</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--muted)' }}>
-                <Clock size={11} />
+              <span style={{ color: 'var(--border)' }}>|</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Clock size={12} color="var(--teal)" />
                 <span>{timeStr}</span>
               </div>
             </>
@@ -136,7 +142,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {/* Today's Bookings Indicator */}
         {todayAppts > 0 && (
           <Link
-            href="/appointments"
+            href="/admin/appointments"
             className="badge badge-teal"
             style={{
               textDecoration: 'none',
@@ -156,7 +162,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {/* Low Stock Warning Indicator */}
         {lowStockCount > 0 && (
           <Link
-            href="/inventory"
+            href="/admin/inventory"
             className="badge badge-red"
             style={{
               textDecoration: 'none',
@@ -177,7 +183,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} className="topbar-actions">
           {!isSalesperson && (
             <Link
-              href="/whatsapp"
+              href="/admin/whatsapp"
               className="btn btn-sm"
               style={{
                 fontSize: 11.5,
@@ -197,7 +203,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             </Link>
           )}
           <Link
-            href="/billing"
+            href="/admin/billing"
             className="btn btn-primary btn-sm"
             style={{
               fontSize: 11.5,
@@ -211,7 +217,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <Zap size={12} /> POS Bill
           </Link>
           <Link
-            href="/appointments"
+            href="/admin/appointments"
             className="btn btn-ghost btn-sm"
             style={{
               fontSize: 11.5,
@@ -223,6 +229,24 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             }}
           >
             <Plus size={12} /> Book
+          </Link>
+          <Link
+            href="/"
+            target="_blank"
+            className="btn btn-ghost btn-sm"
+            style={{
+              fontSize: 11.5,
+              padding: '5.5px 10px',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              color: '#05424A',
+              fontWeight: 600,
+            }}
+            title="Open Public Customer Website"
+          >
+            <ExternalLink size={12} /> Public Site
           </Link>
         </div>
 
@@ -246,6 +270,22 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: isSalesperson ? '#dcfce7' : '#fef9c3', color: isSalesperson ? '#166534' : '#713f12', fontWeight: 800 }}>
             {isSalesperson ? 'Sales' : 'Admin'}
           </span>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sign Out / Lock Admin"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              padding: '0 0 0 4px',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+          >
+            <LogOut size={12} />
+          </button>
         </div>
 
         {/* Cloud Sync Status */}

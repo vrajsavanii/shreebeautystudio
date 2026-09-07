@@ -5,29 +5,30 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Calendar, Users, Receipt, Package,
-  ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings, Sparkles, Wallet, MessageCircle, LogOut, ShieldCheck, UserCheck
+  ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings, Sparkles, Wallet, MessageCircle, LogOut, ShieldCheck, UserCheck, ExternalLink
 } from 'lucide-react';
 import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { useSalonStore } from '@/lib/store';
+import { clearAdminSession } from '@/lib/admin-auth';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 
 const NAV = [
-  { href: '/',             label: 'Dashboard',          icon: LayoutDashboard, role: 'all' },
-  { href: '/appointments', label: 'Appointments',       icon: Calendar,        role: 'all' },
-  { href: '/customers',    label: 'Customers',          icon: Users,           role: 'all' },
-  { href: '/services',     label: 'Services & Menu',    icon: Sparkles,        role: 'admin' },
-  { href: '/billing',      label: 'Billing (POS)',      icon: Receipt,         role: 'all' },
-  { href: '/inventory',    label: 'Inventory',          icon: Package,         role: 'all' },
-  { href: '/purchases',    label: 'Product Purchase',   icon: ShoppingBag,     role: 'all' },
-  { href: '/suppliers',    label: 'Suppliers',          icon: Building2,       role: 'admin' },
-  { href: '/expenses',     label: 'Expenses & Rojmel',  icon: Wallet,          role: 'admin' },
-  { href: '/bridal',       label: 'Bridal Bookings',    icon: Heart,           role: 'all' },
-  { href: '/staff',        label: 'Staff & Users',      icon: UserCog,         role: 'admin' },
-  { href: '/whatsapp',     label: 'WhatsApp Meta Hub',  icon: MessageCircle,   role: 'admin' },
-  { href: '/reminders',    label: 'Reminders',          icon: Bell,            role: 'admin' },
-  { href: '/reports',      label: 'Reports & GST',      icon: BarChart3,       role: 'admin' },
-  { href: '/settings',     label: 'Settings',           icon: Settings,        role: 'admin' },
+  { href: '/admin',             label: 'Dashboard',          icon: LayoutDashboard, role: 'all' },
+  { href: '/admin/appointments', label: 'Appointments',       icon: Calendar,        role: 'all' },
+  { href: '/admin/customers',    label: 'Customers',          icon: Users,           role: 'all' },
+  { href: '/admin/services',     label: 'Services & Menu',    icon: Sparkles,        role: 'admin' },
+  { href: '/admin/billing',      label: 'Billing (POS)',      icon: Receipt,         role: 'all' },
+  { href: '/admin/inventory',    label: 'Inventory',          icon: Package,         role: 'all' },
+  { href: '/admin/purchases',    label: 'Product Purchase',   icon: ShoppingBag,     role: 'all' },
+  { href: '/admin/suppliers',    label: 'Suppliers',          icon: Building2,       role: 'admin' },
+  { href: '/admin/expenses',     label: 'Expenses & Rojmel',  icon: Wallet,          role: 'admin' },
+  { href: '/admin/bridal',       label: 'Bridal Bookings',    icon: Heart,           role: 'all' },
+  { href: '/admin/staff',        label: 'Staff & Users',      icon: UserCog,         role: 'admin' },
+  { href: '/admin/whatsapp',     label: 'WhatsApp Meta Hub',  icon: MessageCircle,   role: 'admin' },
+  { href: '/admin/reminders',    label: 'Reminders',          icon: Bell,            role: 'admin' },
+  { href: '/admin/reports',      label: 'Reports & GST',      icon: BarChart3,       role: 'admin' },
+  { href: '/admin/settings',     label: 'Settings',           icon: Settings,        role: 'admin' },
 ];
 
 export default function Sidebar() {
@@ -45,8 +46,9 @@ export default function Sidebar() {
   });
 
   const handleLogout = () => {
+    clearAdminSession();
     logoutUser();
-    router.push('/login');
+    router.push('/');
   };
 
   return (
@@ -68,7 +70,7 @@ export default function Sidebar() {
         <div>
           <div className="sidebar-logo-title">{salonName}</div>
           <div className="sidebar-logo-sub">
-            {isSalesperson ? 'Salesperson Mode' : 'Management System'}
+            {isSalesperson ? 'Salesperson Mode' : 'Management Console'}
           </div>
         </div>
       </div>
@@ -105,7 +107,7 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          title="Sign Out Account"
+          title="Sign Out / Lock Admin"
           style={{
             background: 'none',
             border: 'none',
@@ -128,7 +130,7 @@ export default function Sidebar() {
         animate="visible"
       >
         {visibleNav.map(({ href, label, icon: Icon }) => {
-          const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
+          const isActive = href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
           return (
             <motion.div key={href} variants={fadeSlideUp}>
               <Link
@@ -141,6 +143,19 @@ export default function Sidebar() {
             </motion.div>
           );
         })}
+
+        {/* Public Website Preview Link */}
+        <motion.div variants={fadeSlideUp} style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <Link
+            href="/"
+            target="_blank"
+            className="sidebar-link"
+            style={{ color: '#EABA38', fontWeight: 600 }}
+          >
+            <ExternalLink size={16} className="icon" color="#EABA38" />
+            Public Website ↗
+          </Link>
+        </motion.div>
       </motion.div>
 
       {/* Cloud Status */}
@@ -150,4 +165,3 @@ export default function Sidebar() {
     </nav>
   );
 }
-

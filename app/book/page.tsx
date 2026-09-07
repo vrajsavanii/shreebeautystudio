@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -152,7 +153,7 @@ export default function PublicBookingPage() {
           notes: notes.trim() || 'Online Self-Booking',
         };
 
-        // Update Local Store & Supabase Cloud
+        // Update Local Store for instant client UX
         updateData((prev) => ({
           ...prev,
           appointments: [newAppt, ...(prev.appointments || [])],
@@ -172,6 +173,17 @@ export default function PublicBookingPage() {
         }));
 
         scheduleSave();
+
+        // Sync directly to Supabase cloud via server API
+        fetch('/api/public-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'regular',
+            appointment: newAppt,
+            customer: { name: newAppt.customer, mobile: newAppt.mobile },
+          }),
+        }).catch((err) => console.warn('Cloud booking API warning:', err));
 
         // Send WhatsApp Confirmation
         const msg = appointmentCustomerMessage(newAppt, salon, address);
@@ -209,7 +221,7 @@ export default function PublicBookingPage() {
           sagaiDate: sagaiDate || undefined,
           includeWedding: true,
           includeSagai: !!sagaiDate,
-          packageName: selectedPkgsList.join(', '),
+          packageName: selectedPkgsList.map((p) => p.name).join(', '),
           package: bridalTotal,
           advance: 0,
           balance: bridalTotal,
@@ -232,7 +244,7 @@ export default function PublicBookingPage() {
           notes: `Venue: ${venue || 'Surat'} | Event: ${eventTitle}`,
         };
 
-        // Update Local Store & Supabase Cloud
+        // Update Local Store for instant client UX
         updateData((prev) => ({
           ...prev,
           bridal: [newBridalBooking, ...(prev.bridal || [])],
@@ -255,6 +267,18 @@ export default function PublicBookingPage() {
         }));
 
         scheduleSave();
+
+        // Sync directly to Supabase cloud via server API
+        fetch('/api/public-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'bridal',
+            bridal: newBridalBooking,
+            appointment: bridalAppt,
+            customer: { name: newBridalBooking.name, mobile: newBridalBooking.mobile },
+          }),
+        }).catch((err) => console.warn('Cloud bridal booking API warning:', err));
 
         // Dispatch Bridal Confirmation & Rate Card PDF via Meta WhatsApp API
         sendBridalRateCardPDFViaWhatsApp(bridalPackages, cleanMobile, customerName.trim(), data).catch(
@@ -330,27 +354,48 @@ export default function PublicBookingPage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleCopyBookingLink}
-            style={{
-              background: copiedLink ? '#22c55e' : 'rgba(255,255,255,0.15)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              color: '#fff',
-              padding: '8px 12px',
-              borderRadius: 10,
-              fontSize: 11.5,
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {copiedLink ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-            {copiedLink ? 'Link Copied!' : 'Share Link'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Link
+              href="/"
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: 10,
+                fontSize: 11.5,
+                fontWeight: 700,
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <ArrowLeft size={13} />
+              Home
+            </Link>
+            <button
+              type="button"
+              onClick={handleCopyBookingLink}
+              style={{
+                background: copiedLink ? '#22c55e' : 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: 10,
+                fontSize: 11.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {copiedLink ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+              {copiedLink ? 'Link Copied!' : 'Share Link'}
+            </button>
+          </div>
         </motion.div>
 
         {/* Confirmation Screen */}

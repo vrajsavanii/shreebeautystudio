@@ -588,7 +588,8 @@ body {
 .table-wrap {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius);
   background: #ffffff;
 }
@@ -1038,16 +1039,306 @@ tbody tr.today-row {
 }
 
 @media (max-width: 767px) {
-  .sidebar { display: none; }
-  .main-area { margin-left: 0; }
-  .mobile-bottom-nav { display: flex; }
-  .page-content { padding: 16px 14px 90px; }
+  .sidebar { display: none !important; }
+  .main-area {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  .mobile-bottom-nav { display: flex !important; }
+  .page-content { padding: 16px 14px 96px; }
   .topbar { padding: 0 16px; }
   .form-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
+  .copilot-floating-btn {
+    bottom: 76px !important;
+    right: 16px !important;
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+  }
+  .copilot-drawer-window {
+    bottom: 76px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    height: calc(100vh - 160px) !important;
+    max-height: 520px !important;
+  }
 }
 
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
   .inv-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PUBLIC CUSTOMER WEBSITE STYLES (SHREE BEAUTY STUDIO)
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --cust-teal: #05424A;
+  --cust-teal-dark: #032B30;
+  --cust-teal-light: #0d5b66;
+  --cust-gold: #EABA38;
+  --cust-gold-dark: #c49821;
+  --cust-gold-light: #fef08a;
+  --cust-bg: #f8fafc;
+  --cust-card: #ffffff;
+  --cust-text: #0f172a;
+  --cust-text-muted: #64748b;
+  --cust-border: #e2e8f0;
+  --cust-radius: 16px;
+  --cust-radius-lg: 24px;
+}
+
+/* Navbar */
+@media (max-width: 868px) {
+  .cust-navbar-links {
+    display: none !important;
+  }
+  .cust-navbar-toggle {
+    display: block !important;
+  }
+}
+
+/* Hero Section */
+.cust-hero {
+  position: relative;
+  min-height: 88vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  padding: 80px 20px 60px;
+}
+
+.cust-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(3, 43, 48, 0.94) 0%, rgba(5, 66, 74, 0.88) 50%, rgba(10, 14, 17, 0.92) 100%);
+  z-index: 1;
+}
+
+.cust-hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 860px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.cust-hero h1 {
+  font-size: clamp(32px, 5.5vw, 58px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.8px;
+  margin: 16px 0;
+  color: #ffffff;
+}
+
+.cust-hero p {
+  font-size: clamp(15px, 2.5vw, 18px);
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.88);
+  margin: 0 auto 32px;
+  max-width: 680px;
+}
+
+.cust-hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Public Buttons */
+.cust-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #EABA38 0%, #D49B1F 100%);
+  color: #032B30 !important;
+  font-weight: 700;
+  font-size: 14.5px;
+  padding: 13px 26px;
+  border-radius: 99px;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(234, 186, 56, 0.35);
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.cust-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(234, 186, 56, 0.45);
+}
+
+.cust-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff !important;
+  font-weight: 600;
+  font-size: 14.5px;
+  padding: 13px 24px;
+  border-radius: 99px;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.cust-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+}
+
+/* Sections */
+.cust-section {
+  padding: clamp(48px, 8vw, 84px) 20px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.cust-section-alt {
+  background: #f1f5f9;
+  padding: clamp(48px, 8vw, 84px) 20px;
+}
+
+.cust-section-dark {
+  background: linear-gradient(135deg, #032B30 0%, #05424A 100%);
+  color: #ffffff;
+  padding: clamp(48px, 8vw, 84px) 20px;
+}
+
+.cust-section-header {
+  text-align: center;
+  max-width: 650px;
+  margin: 0 auto 48px;
+}
+
+.cust-section-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(5, 66, 74, 0.08);
+  color: #05424A;
+  padding: 4px 14px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.cust-section-badge-light {
+  background: rgba(234, 186, 56, 0.15);
+  color: #EABA38;
+}
+
+.cust-section-header h2 {
+  font-size: clamp(26px, 4.5vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #0f172a;
+  margin: 0 0 12px;
+  line-height: 1.2;
+}
+
+.cust-section-header h2.light {
+  color: #ffffff;
+}
+
+.cust-section-header p {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.cust-section-header p.light {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Bento Services Grid */
+.cust-bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.cust-bento-card {
+  background: #ffffff;
+  border-radius: var(--cust-radius-lg);
+  border: 1px solid var(--cust-border);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.cust-bento-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(5, 66, 74, 0.12);
+  border-color: rgba(234, 186, 56, 0.4);
+}
+
+.cust-bento-img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.cust-bento-body {
+  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Floating WhatsApp Button */
+.cust-whatsapp-float {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #25d366;
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 12px 20px;
+  border-radius: 99px;
+  text-decoration: none;
+  box-shadow: 0 8px 30px rgba(37, 211, 102, 0.4);
+  transition: all 0.2s ease;
+}
+
+.cust-whatsapp-float:hover {
+  background: #20bc5a;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 38px rgba(37, 211, 102, 0.5);
+}
+
+@media (max-width: 640px) {
+  .cust-whatsapp-float span {
+    display: none;
+  }
+  .cust-whatsapp-float {
+    padding: 15px;
+    border-radius: 50%;
+    bottom: 20px;
+    right: 20px;
+  }
+}
+

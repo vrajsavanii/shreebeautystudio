@@ -34,3 +34,4 @@ yarn-error.log*
 # vercel & build caches
 .vercel
 *.tsbuildinfo
+*.apk

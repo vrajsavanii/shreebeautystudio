@@ -867,7 +867,7 @@ export const useSalonStore = create<SalonStore>()(
       setCloudStatus: (s) => set({ cloudStatus: s }),
       lastSynced: null,
       setLastSynced: (t) => set({ lastSynced: t }),
-      currentUser: DEFAULT_USERS[0], // default Admin user
+      currentUser: null,
       setCurrentUser: (user) => set({ currentUser: user }),
       logoutUser: () => set({ currentUser: null }),
     }),
@@ -877,7 +877,7 @@ export const useSalonStore = create<SalonStore>()(
         ...currentState,
         ...persistedState,
         data: mergeWithDefaults(persistedState?.data),
-        currentUser: persistedState?.currentUser ?? DEFAULT_USERS[0],
+        currentUser: persistedState?.currentUser ?? null,
       }),
     }
   )

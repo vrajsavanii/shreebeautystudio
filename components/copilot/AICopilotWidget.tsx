@@ -264,6 +264,7 @@ Today's Total Revenue: ₹${todayRev}`;
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ duration: 0.2 }}
+            className="copilot-drawer-window"
             style={{
               position: 'fixed',
               bottom: 24,
