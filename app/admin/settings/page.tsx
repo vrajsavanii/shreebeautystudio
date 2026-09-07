@@ -42,38 +42,6 @@ export default function SettingsPage() {
   const [svcForm, setSvcForm] = useState<Service>({ id: '', name: '', price: 0, duration: 30 });
   const [syncing, setSyncing] = useState(false);
 
-  // Simulation state
-  const [simModalOpen, setSimModalOpen] = useState(false);
-  const [simName, setSimName] = useState('Priyanka Sharma');
-  const [simMobile, setSimMobile] = useState('9825123456');
-  const [simMessage, setSimMessage] = useState('Hi, please book Facial and Haircut tomorrow at 4pm');
-  const [simLoading, setSimLoading] = useState(false);
-
-  const handleSimulateBooking = async () => {
-    setSimLoading(true);
-    try {
-      const res = await fetch('/api/whatsapp/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: simName,
-          mobile: simMobile,
-          messageText: simMessage,
-        }),
-      });
-      const json = await res.json();
-      if (res.ok && json.success) {
-        toast(`✅ Simulated WhatsApp booking created! Check Dashboard & Appointments.`, 'success');
-        setSimModalOpen(false);
-      } else {
-        toast(json.error || 'Simulation failed', 'error');
-      }
-    } catch (err: any) {
-      toast(err.message || 'Simulation error', 'error');
-    } finally {
-      setSimLoading(false);
-    }
-  };
 
   const update = (key: string, val: unknown) => {
     updateData((d) => ({ ...d, settings: { ...d.settings, [key]: val } }));
@@ -498,27 +466,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-
-            <div style={{ background: '#f0fbf6', border: '1px solid #cceee0', borderRadius: 10, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#166542', marginBottom: 2 }}>
-                    🧪 Test Real-Time WhatsApp Booking
-                  </div>
-                  <div style={{ fontSize: 12, color: '#2b7853' }}>
-                    Simulate a customer sending an appointment request to see it update the dashboard in real-time.
-                  </div>
-                </div>
-                <motion.button
-                  className="btn btn-primary btn-sm"
-                  onClick={() => setSimModalOpen(true)}
-                  whileTap={{ scale: 0.97 }}
-                  style={{ background: '#1a7b4e', borderColor: '#1a7b4e' }}
-                >
-                  <Play size={13} /> Simulate Booking
-                </motion.button>
-              </div>
-            </div>
           </motion.div>
         )}
 
@@ -609,90 +556,6 @@ export default function SettingsPage() {
               type="number" min="15" step="15" className="input" placeholder="Minutes (e.g. 45)" value={svcForm.duration || ''}
               onChange={(e) => setSvcForm((f) => ({ ...f, duration: Number(e.target.value) }))}
             />
-          </div>
-        </div>
-      </Modal>
-
-      {/* WhatsApp Simulation Modal */}
-      <Modal
-        isOpen={simModalOpen}
-        onClose={() => setSimModalOpen(false)}
-        title="🧪 Simulate Incoming WhatsApp Booking"
-        footer={
-          <>
-            <button className="btn btn-ghost" onClick={() => setSimModalOpen(false)}>Cancel</button>
-            <motion.button
-              className="btn btn-primary"
-              onClick={handleSimulateBooking}
-              disabled={simLoading || !simMessage}
-              whileTap={{ scale: 0.97 }}
-              style={{ background: '#1a7b4e', borderColor: '#1a7b4e' }}
-            >
-              {simLoading ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Play size={15} />}
-              {simLoading ? 'Sending & Broadcasting…' : 'Send Test Booking'}
-            </motion.button>
-          </>
-        }
-      >
-        <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-          Simulates a customer messaging your WhatsApp Business account. This will parse the booking, write to Supabase, and broadcast in real-time to your dashboard!
-        </p>
-
-        <div className="form-grid">
-          <div className="form-group">
-            <label className="label">Customer Name</label>
-            <input
-              type="text"
-              className="input"
-              value={simName}
-              onChange={(e) => setSimName(e.target.value)}
-              placeholder="e.g. Priyanka Sharma"
-            />
-          </div>
-          <div className="form-group">
-            <label className="label">Mobile Number</label>
-            <input
-              type="tel"
-              className="input"
-              value={simMobile}
-              onChange={(e) => setSimMobile(e.target.value)}
-              placeholder="10-digit mobile"
-            />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="label">WhatsApp Message Text</label>
-          <textarea
-            className="input"
-            rows={3}
-            value={simMessage}
-            onChange={(e) => setSimMessage(e.target.value)}
-            placeholder="e.g. Hi, please book Facial and Haircut tomorrow at 4pm"
-          />
-        </div>
-
-        <div style={{ background: '#f8fafc', borderRadius: 8, padding: 12, fontSize: 12, color: 'var(--muted)', border: '1px solid var(--border)' }}>
-          💡 <b>Examples you can try:</b>
-          <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span
-              style={{ cursor: 'pointer', color: 'var(--teal)', textDecoration: 'underline' }}
-              onClick={() => setSimMessage('Hi, I need Bridal Makeup on Saturday at 11am')}
-            >
-              • "Hi, I need Bridal Makeup on Saturday at 11am"
-            </span>
-            <span
-              style={{ cursor: 'pointer', color: 'var(--teal)', textDecoration: 'underline' }}
-              onClick={() => setSimMessage('Book Hair Spa today at 5pm please')}
-            >
-              • "Book Hair Spa today at 5pm please"
-            </span>
-            <span
-              style={{ cursor: 'pointer', color: 'var(--teal)', textDecoration: 'underline' }}
-              onClick={() => setSimMessage('Need Waxing tomorrow morning at 10:30')}
-            >
-              • "Need Waxing tomorrow morning at 10:30"
-            </span>
           </div>
         </div>
       </Modal>

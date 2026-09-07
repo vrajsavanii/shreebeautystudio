@@ -92,11 +92,6 @@ export default function WhatsAppHubPage() {
   >('all');
   const [broadcastSearch, setBroadcastSearch] = useState('');
 
-  // Simulator State
-  const [simText, setSimText] = useState('Kal 4 baje haircut book karvu chhe Pooja Patel');
-  const [simLoading, setSimLoading] = useState(false);
-  const [simResult, setSimResult] = useState<any>(null);
-
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
   const address = data?.settings?.address || 'Surat, Gujarat';
   const salonPhone = data?.settings?.whatsapp || '919824183769';
@@ -506,48 +501,6 @@ export default function WhatsAppHubPage() {
     toast('Message copied to clipboard! Ready to paste into WhatsApp.');
   };
 
-  // Run AI / Natural Language WhatsApp Bot Auto-Responder Simulator
-  const handleRunSimulation = async () => {
-    if (!simText.trim()) {
-      toast('Please enter a sample WhatsApp customer message.', 'error');
-      return;
-    }
-    setSimLoading(true);
-    setSimResult(null);
-    try {
-      const res = await fetch('/api/whatsapp/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messageText: simText,
-          customerName: targetName || 'Priyanka Sharma',
-          mobile: targetPhone || '9825123456',
-        }),
-      });
-      const json = await res.json();
-      setSimResult(json);
-      if (json.success) {
-        if (json.aiResponse?.replyText) {
-          setCustomText(json.aiResponse.replyText);
-        }
-        if (json.aiResponse?.intent === 'BRIDAL_PDF') {
-          setSelectedTemplate('bridal');
-          toast('🤖 WhatsApp AI: Auto-Replied with 2-Page Bridal Rate Card PDF dispatch!');
-        } else if (json.appointment) {
-          toast(`🤖 WhatsApp AI: Appointment booked for ${json.appointment.customer} on ${json.appointment.date} at ${json.appointment.time}!`);
-        } else {
-          toast('🤖 WhatsApp AI: Replied to customer message!');
-        }
-      } else {
-        toast(`Simulation: ${json.error || 'Failed'}`, 'error');
-      }
-    } catch (e: any) {
-      toast(`Simulation failed: ${e.message}`, 'error');
-    } finally {
-      setSimLoading(false);
-    }
-  };
-
   return (
     <div>
       {/* WhatsApp Web Banner & Global Controls */}
@@ -672,7 +625,7 @@ export default function WhatsAppHubPage() {
           onClick={() => setActiveTab('incoming')}
         >
           <Bot size={14} />
-          <span>🤖 AI WhatsApp Booking Webhook</span>
+          <span>🤖 Meta WhatsApp Webhook</span>
         </button>
       </div>
 
@@ -1591,91 +1544,9 @@ export default function WhatsAppHubPage() {
         </motion.div>
       )}
 
-      {/* TAB 3: WhatsApp Webhook & AI Booking Simulator */}
+      {/* TAB 3: WhatsApp Webhook Credentials & Settings */}
       {activeTab === 'incoming' && (
         <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{ display: 'grid', gap: 16 }}>
-          {/* Simulator Box */}
-          <div className="card" style={{ padding: 22 }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bot size={18} color="var(--teal)" /> Test AI Natural Language Booking
-            </h3>
-            <p style={{ margin: '0 0 14px', fontSize: 12.5, color: 'var(--muted)' }}>
-              Type any booking message in English, Hindi, or Gujarati (as a customer would type on WhatsApp) to see how our webhook parses and books it instantly.
-            </p>
-
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <input
-                type="text"
-                className="input"
-                value={simText}
-                onChange={(e) => setSimText(e.target.value)}
-                placeholder="e.g. Kal 4 baje haircut book karvu chhe Pooja Patel"
-                style={{ flex: 1, fontSize: 13 }}
-              />
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleRunSimulation}
-                disabled={simLoading}
-                style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
-              >
-                <Sparkles size={14} /> {simLoading ? 'Parsing…' : 'Simulate Booking'}
-              </button>
-            </div>
-
-            {/* Quick Test Prompt Chips */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Quick samples:</span>
-              {[
-                'Kal 4 baje haircut book karvu chhe Pooja Patel',
-                'Book bridal facial for tomorrow 11 am Ritu Shah',
-                'Hair spa today evening 6pm for Anjali',
-                'Full arms legs waxing on Friday 3:30 pm',
-              ].map((sample) => (
-                <button
-                  key={sample}
-                  type="button"
-                  onClick={() => setSimText(sample)}
-                  style={{
-                    background: '#f1f5f9',
-                    border: '1px solid var(--border)',
-                    borderRadius: 6,
-                    padding: '3px 8px',
-                    fontSize: 11,
-                    cursor: 'pointer',
-                  }}
-                >
-                  &ldquo;{sample}&rdquo;
-                </button>
-              ))}
-            </div>
-
-            {/* Simulation Result */}
-            {simResult && (
-              <div
-                style={{
-                  background: simResult.success ? '#f0fdf4' : '#fef2f2',
-                  border: `1.5px solid ${simResult.success ? '#16a34a' : '#dc2626'}`,
-                  borderRadius: 10,
-                  padding: '12px 16px',
-                  fontSize: 12.5,
-                }}
-              >
-                <div style={{ fontWeight: 800, color: simResult.success ? '#15803d' : '#dc2626', marginBottom: 6 }}>
-                  {simResult.success ? '✅ Booking Parsed Successfully!' : '❌ Parsing Error'}
-                </div>
-                {simResult.parsed && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
-                    <div><b>👤 Customer:</b> {simResult.parsed.customerName}</div>
-                    <div><b>💄 Service:</b> {simResult.parsed.service}</div>
-                    <div><b>📅 Date:</b> {simResult.parsed.date}</div>
-                    <div><b>⏰ Time:</b> {simResult.parsed.time}</div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* Webhook Connection Guide */}
           <div className="card" style={{ padding: 22 }}>
             <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800 }}>
