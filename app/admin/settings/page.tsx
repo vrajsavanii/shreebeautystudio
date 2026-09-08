@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2,
+  Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
   Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
@@ -41,6 +41,44 @@ export default function SettingsPage() {
   const [editSvcId, setEditSvcId] = useState<string | null>(null);
   const [svcForm, setSvcForm] = useState<Service>({ id: '', name: '', price: 0, duration: 30 });
   const [syncing, setSyncing] = useState(false);
+
+  // WhatsApp Testing State
+  const [testWaMobile, setTestWaMobile] = useState('');
+  const [testingWa, setTestingWa] = useState(false);
+  const [testWaResult, setTestWaResult] = useState<{ success: boolean; msg: string } | null>(null);
+
+  const handleTestWhatsApp = async () => {
+    const clean = testWaMobile.replace(/\D/g, '').slice(-10);
+    if (clean.length < 10) {
+      toast('Please enter a valid 10-digit mobile number to test.', 'error');
+      return;
+    }
+    setTestingWa(true);
+    setTestWaResult(null);
+    try {
+      const res = await fetch('/api/whatsapp/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: clean,
+          message: 'Hello! ✨ This is an official live test message from Shree Beauty Studio WhatsApp Cloud API. Welcome!',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast('✅ Live WhatsApp message sent successfully!');
+        setTestWaResult({ success: true, msg: '✅ Message delivered! Message ID: ' + json.messageId });
+      } else {
+        toast(json.error || 'Failed to send message', 'error');
+        setTestWaResult({ success: false, msg: json.error || 'Failed to send message' });
+      }
+    } catch (err: any) {
+      toast('Network error: ' + err.message, 'error');
+      setTestWaResult({ success: false, msg: err.message });
+    } finally {
+      setTestingWa(false);
+    }
+  };
 
 
   const update = (key: string, val: unknown) => {
@@ -355,6 +393,62 @@ export default function SettingsPage() {
                       onChange={(e) => update('whatsappAccessToken', e.target.value)}
                     />
                   </div>
+                </div>
+
+                {/* Live Test WhatsApp Message Dispatcher */}
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #bbf7d0' }}>
+                  <label className="label" style={{ color: '#166534', marginBottom: 4 }}>
+                    📱 Test WhatsApp API Dispatch (Send Live Test Message)
+                  </label>
+                  <p style={{ fontSize: 11.5, color: '#15803d', margin: '0 0 8px' }}>
+                    Send a real test message to your personal WhatsApp number to verify API connectivity.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <input
+                      type="tel"
+                      className="input"
+                      placeholder="Enter 10-digit mobile (e.g. 9824183769)"
+                      value={testWaMobile}
+                      onChange={(e) => setTestWaMobile(e.target.value)}
+                      style={{ maxWidth: 280 }}
+                    />
+                    <motion.button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={handleTestWhatsApp}
+                      disabled={testingWa}
+                      whileTap={{ scale: 0.97 }}
+                      style={{ background: '#16a34a', borderColor: '#16a34a' }}
+                    >
+                      {testingWa ? (
+                        <>
+                          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                          Sending…
+                        </>
+                      ) : (
+                        <>
+                          <Send size={14} /> Send Test WhatsApp Message
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+
+                  {testWaResult && (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        background: testWaResult.success ? '#dcfce7' : '#fef2f2',
+                        color: testWaResult.success ? '#166534' : '#b91c1c',
+                        border: `1px solid ${testWaResult.success ? '#86efac' : '#fecaca'}`,
+                      }}
+                    >
+                      {testWaResult.msg}
+                    </div>
+                  )}
                 </div>
               </div>
 

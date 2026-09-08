@@ -18,12 +18,53 @@ export async function sendDirectWhatsAppMessage(
     return { success: false, method: 'none', message: 'Recipient mobile number is invalid or missing.' };
   }
 
+  const recipient = `91${num}`;
+
   try {
+    // Server-side execution (API routes, Webhooks)
+    if (typeof window === 'undefined') {
+      const phoneId = settings?.whatsappPhoneId || process.env.META_WHATSAPP_PHONE_NUMBER_ID || '1321601881035337';
+      const accessToken = settings?.whatsappAccessToken || process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+
+      if (!accessToken || accessToken.startsWith('LLM_')) {
+        return { success: false, method: 'none', message: 'WhatsApp API access token not configured.' };
+      }
+
+      const metaRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: recipient,
+          type: 'text',
+          text: {
+            preview_url: false,
+            body: message,
+          },
+        }),
+      });
+
+      const metaJson = await metaRes.json();
+      if (metaRes.ok) {
+        return { success: true, method: 'meta_cloud_api', message: 'Message sent via Meta WhatsApp API' };
+      }
+      return {
+        success: false,
+        method: 'none',
+        message: metaJson?.error?.message || 'Failed to send WhatsApp message via Meta Cloud API',
+      };
+    }
+
+    // Client-side execution (Browser UI)
     const res = await fetch('/api/whatsapp/send-message', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        to: `91${num}`,
+        to: recipient,
         message,
       }),
     });

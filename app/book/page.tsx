@@ -174,8 +174,8 @@ export default function PublicBookingPage() {
 
         scheduleSave();
 
-        // Sync directly to Supabase cloud via server API
-        fetch('/api/public-booking', {
+        // Sync directly to Supabase cloud via server API and dispatch WhatsApp confirmation
+        const apiRes = await fetch('/api/public-booking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -183,13 +183,18 @@ export default function PublicBookingPage() {
             appointment: newAppt,
             customer: { name: newAppt.customer, mobile: newAppt.mobile },
           }),
-        }).catch((err) => console.warn('Cloud booking API warning:', err));
+        }).catch((err) => {
+          console.warn('Cloud booking API warning:', err);
+          return null;
+        });
 
-        // Send WhatsApp Confirmation
-        const msg = appointmentCustomerMessage(newAppt, salon, address);
-        sendDirectWhatsAppMessage(newAppt.mobile, msg).catch((err) =>
-          console.error('WhatsApp Error:', err)
-        );
+        // If the server endpoint wasn't reached, fallback to client-side dispatch
+        if (!apiRes || !apiRes.ok) {
+          const msg = appointmentCustomerMessage(newAppt, salon, address);
+          sendDirectWhatsAppMessage(newAppt.mobile, msg).catch((err) =>
+            console.error('WhatsApp Fallback Error:', err)
+          );
+        }
 
         setConfirmedAppt(newAppt);
       } else {

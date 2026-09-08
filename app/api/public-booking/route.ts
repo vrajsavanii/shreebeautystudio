@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
 import { uid } from '@/lib/utils';
-import { sendDirectWhatsAppMessage, appointmentCustomerMessage } from '@/lib/whatsapp';
+import { sendDirectWhatsAppMessage, appointmentCustomerMessage, bridalMessage } from '@/lib/whatsapp';
 
 export const dynamic = 'force-dynamic';
 
@@ -175,19 +175,28 @@ export async function POST(request: Request) {
       }
     }
 
-    // 7. Dispatch customer confirmation via WhatsApp (non-blocking)
+    // 7. Dispatch customer confirmation via WhatsApp (pure Meta API)
     const salon = updatedData.settings?.salon || 'Shree Beauty Studio';
     const address = updatedData.settings?.address || 'Ring Road, Surat, Gujarat';
-    const msg = appointmentCustomerMessage(newAppointment, salon, address);
-    sendDirectWhatsAppMessage(mobile, msg).catch((err) => {
-      console.warn('WhatsApp confirmation dispatch warning:', err?.message);
-    });
+    const msg =
+      type === 'bridal' && newBridal
+        ? bridalMessage(customerName, newBridal.packageName, newBridal.weddingDate, newBridal.venue, salon)
+        : appointmentCustomerMessage(newAppointment, salon, address);
+
+    let waResult: any = null;
+    try {
+      waResult = await sendDirectWhatsAppMessage(mobile, msg, updatedData.settings);
+      console.log(`[Public Booking WhatsApp] Sent confirmation to ${mobile}:`, waResult);
+    } catch (err: any) {
+      console.warn('[Public Booking WhatsApp] Dispatch error:', err?.message);
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Booking successfully confirmed & synced with studio.',
       appointment: newAppointment,
       bridal: newBridal,
+      whatsapp: waResult,
     });
   } catch (err: any) {
     console.error('Error in public-booking API route:', err);

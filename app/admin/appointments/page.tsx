@@ -11,7 +11,7 @@ import { Appointment, AppointmentStatus, WorkStatus, Invoice } from '@/types/sal
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { openWA, appointmentStaffMessage } from '@/lib/whatsapp';
+import { openWA, appointmentStaffMessage, appointmentCustomerMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
@@ -206,6 +206,19 @@ export default function AppointmentsPage() {
     });
     scheduleSave();
     toast(editId ? 'Appointment updated!' : 'Appointment booked!');
+
+    // Auto-send WhatsApp confirmation to customer
+    if (form.mobile && form.status !== 'Cancelled') {
+      const salon = data?.settings?.salon || 'Shree Beauty Studio';
+      const address = data?.settings?.address || 'Surat, Gujarat';
+      const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
+      sendDirectWhatsAppMessage(form.mobile, msg).then((res) => {
+        if (res.success) {
+          toast('✅ WhatsApp confirmation sent to customer!');
+        }
+      });
+    }
+
     setModalOpen(false);
   };
 

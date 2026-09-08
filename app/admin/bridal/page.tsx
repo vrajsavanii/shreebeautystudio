@@ -13,7 +13,7 @@ import { uid, todayISO, money, fmtDate, formatCustomerContactName } from '@/lib/
 import { BridalBooking, BridalPackage, Invoice, InvoiceLine } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { openWA, openWAWeb, bridalMessage } from '@/lib/whatsapp';
+import { openWA, openWAWeb, bridalMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
@@ -504,6 +504,16 @@ const OTHER_EVENT_OPTIONS = [
 
     scheduleSave();
     toast(editId ? 'Bridal booking updated & Receipts History synced!' : 'Bridal booking saved & Receipts History synced!');
+
+    // Auto-send WhatsApp bridal booking confirmation
+    if (booking.mobile) {
+      const salon = data?.settings?.salon || 'Shree Beauty Studio';
+      const msg = bridalMessage(booking.name, booking.packageName || 'Bridal Package', booking.weddingDate || booking.date || todayISO(), booking.venue || 'Surat Venue', salon);
+      sendDirectWhatsAppMessage(booking.mobile, msg).then((res) => {
+        if (res.success) toast('✅ Bridal booking details sent to bride WhatsApp!');
+      });
+    }
+
     setModalOpen(false);
   };
 
