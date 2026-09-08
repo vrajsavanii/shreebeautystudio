@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, MessageCircle, Search, Users, Wallet, Star, Gift, X, PlusCircle, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageCircle, Search, Users, Wallet, Star, Gift, X, PlusCircle, Download, Mail } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, fmtDate, money, todayISO, formatCustomerContactName } from '@/lib/utils';
@@ -14,6 +14,7 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
 import { isSameDayAndMonth } from '@/lib/auto-wish';
+import EmailCampaignModal from '@/components/marketing/EmailCampaignModal';
 
 type CustomerTab = 'all' | 'todayWishes' | 'birthdays' | 'anniversaries' | 'vip';
 
@@ -25,6 +26,8 @@ export default function CustomersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
+  const [campaignRecipientEmail, setCampaignRecipientEmail] = useState('');
 
   // Wallet top-up modal
   const [walletModalOpen, setWalletModalOpen] = useState(false);
@@ -385,6 +388,18 @@ export default function CustomersPage() {
           >
             <Download size={14} /> Export Contacts VCF
           </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              setCampaignRecipientEmail('');
+              setCampaignModalOpen(true);
+            }}
+            title="Launch branded promotional email campaign to clients"
+            style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, background: '#FDF2F8', borderColor: '#FBCFE8', color: '#9D174D' }}
+          >
+            <Mail size={14} /> Email Campaign
+          </button>
           <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
             <Plus size={15} /> Add Customer
           </motion.button>
@@ -562,6 +577,15 @@ export default function CustomersPage() {
           </div>
         </div>
         <div className="form-group">
+          <label className="label">✉️ Email Address (for digital receipts & offers)</label>
+          <input
+            type="email"
+            className="input"
+            placeholder="e.g. client@gmail.com"
+            {...register('email')}
+          />
+        </div>
+        <div className="form-group">
           <label className="label">Notes / Preferences</label>
           <textarea className="input" rows={2} placeholder="e.g. Prefers organic hair spa, sensitive skin…" {...register('notes')} />
         </div>
@@ -663,6 +687,14 @@ export default function CustomersPage() {
       >
         <p style={{ color: 'var(--muted)' }}>Are you sure? This cannot be undone.</p>
       </Modal>
+
+      {/* Email Marketing Campaign Modal */}
+      <EmailCampaignModal
+        isOpen={campaignModalOpen}
+        onClose={() => setCampaignModalOpen(false)}
+        customers={enriched}
+        defaultEmail={campaignRecipientEmail}
+      />
     </div>
   );
 }

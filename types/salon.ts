@@ -36,6 +36,15 @@ export interface SalonSettings {
   sagaiWishTemplate?: string;
   lastAutoWishDate?: string; // YYYY-MM-DD
   whatsappTemplates?: Record<string, string>;
+  // Resend Email Settings
+  resendApiKey?: string;
+  resendFromEmail?: string;
+  emailNotificationsEnabled?: boolean;
+  emailRemindersEnabled?: boolean;
+  emailConfirmationsEnabled?: boolean;
+  emailWishesEnabled?: boolean;
+  // Security & Admin Credentials
+  adminPassword?: string;
 }
 
 export interface Service {
@@ -63,6 +72,7 @@ export interface Customer {
   id: string;
   name: string;
   mobile: string;
+  email?: string;
   birthday?: string;
   anniversary?: string; // Wedding Date
   engagementDate?: string; // Sagai / Engagement Date
@@ -93,6 +103,7 @@ export interface Appointment {
   time: string;
   customer: string;
   mobile: string;
+  email?: string;
   service: string;
   price?: number;
   staff: string;

@@ -14,6 +14,7 @@ import {
   Sparkles,
   Loader2,
   AlertCircle,
+  Mail,
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -24,6 +25,7 @@ import { useToast } from '@/components/ui/Toast';
 
 type WAStatus = 'idle' | 'sending' | 'sent' | 'failed' | 'not_configured';
 type WAResult = { status: WAStatus; message: string };
+type EmailResult = { status: 'idle' | 'sending' | 'sent' | 'failed'; message: string };
 
 interface InvoiceReceiptModalProps {
   isOpen: boolean;
@@ -41,6 +43,7 @@ export default function InvoiceReceiptModal({
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
   const [waResult, setWaResult] = useState<WAResult>({ status: 'idle', message: '' });
+  const [emailResult, setEmailResult] = useState<EmailResult>({ status: 'idle', message: '' });
 
   if (!isOpen || !invoice) return null;
 
@@ -121,6 +124,58 @@ export default function InvoiceReceiptModal({
       setWaResult({ status: 'failed', message: errMsg });
       toast(errMsg, 'error');
       setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    const cust = (salonData?.customers || []).find((c: any) => c.mobile === invoice.mobile);
+    let targetEmail = cust?.email;
+
+    if (!targetEmail) {
+      const inputEmail = window.prompt(`Enter customer email address for ${invoice.customer}:`, '');
+      if (!inputEmail || !inputEmail.includes('@')) {
+        if (inputEmail) toast('Invalid email address entered.', 'error');
+        return;
+      }
+      targetEmail = inputEmail.trim();
+    }
+
+    setEmailResult({ status: 'sending', message: 'Sending invoice email…' });
+    try {
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'invoice',
+          to: targetEmail,
+          data: {
+            customerName: invoice.customer,
+            invoiceNo: invoice.no,
+            date: invoice.date,
+            total: invoice.total,
+            mode: invoice.mode,
+            lines: invoice.lines,
+            salonName: salonData?.settings?.salon,
+          },
+          apiKey: salonData?.settings?.resendApiKey,
+          fromEmail: salonData?.settings?.resendFromEmail,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailResult({ status: 'sent', message: `Sent to ${targetEmail}!` });
+        toast(`✅ Invoice emailed to ${targetEmail}!`);
+        setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
+      } else {
+        setEmailResult({ status: 'failed', message: data.error || 'Failed' });
+        toast(`❌ ${data.error || 'Failed to send email'}`, 'error');
+        setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
+      }
+    } catch {
+      setEmailResult({ status: 'failed', message: 'Failed to send email' });
+      toast('Failed to send invoice email', 'error');
+      setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
     }
   };
 
@@ -873,6 +928,59 @@ export default function InvoiceReceiptModal({
                 </>
               )}
             </button>
+
+            {/* Email Invoice Button */}
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={handleSendEmail}
+              disabled={emailResult.status === 'sending'}
+              style={{
+                background: '#FDF2F8',
+                color: '#9D174D',
+                fontWeight: 700,
+                border: '1px solid #FBCFE8',
+                padding: '8px 14px',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                cursor: 'pointer',
+              }}
+            >
+              {emailResult.status === 'sending' ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  Sending Email…
+                </>
+              ) : emailResult.status === 'sent' ? (
+                <>
+                  <CheckCircle2 size={14} />
+                  Email Sent!
+                </>
+              ) : (
+                <>
+                  <Mail size={15} />
+                  Email Invoice
+                </>
+              )}
+            </button>
+
+            {/* Email status message */}
+            {emailResult.message && emailResult.status !== 'idle' && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: emailResult.status === 'sent' ? '#16a34a' : '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  lineHeight: 1.3,
+                }}
+              >
+                {emailResult.message}
+              </div>
+            )}
 
             {/* Status message below the button */}
             {waResult.message && waResult.status !== 'idle' && (

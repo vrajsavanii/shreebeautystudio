@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
-  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog
+  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSync } from '@/lib/sync';
@@ -16,7 +16,7 @@ import Modal from '@/components/ui/Modal';
 import { supabase } from '@/lib/supabase';
 import { fadeSlideUp, staggerContainer } from '@/variants';
 
-type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'whatsapp' | 'cloud';
+type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'whatsapp' | 'email' | 'cloud';
 
 export default function SettingsPage() {
   const { data, updateData, cloudStatus, lastSynced } = useSalonStore();
@@ -80,6 +80,39 @@ export default function SettingsPage() {
     }
   };
 
+  // Email Testing State
+  const [testEmailTo, setTestEmailTo] = useState('');
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
+
+  const handleTestEmail = async () => {
+    if (!testEmailTo.trim() || !testEmailTo.includes('@')) {
+      toast('Please enter a valid recipient email address', 'error');
+      return;
+    }
+    setTestEmailLoading(true);
+    try {
+      const res = await fetch('/api/email/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: testEmailTo.trim(),
+          apiKey: s.resendApiKey,
+          fromEmail: s.resendFromEmail,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast(`✅ Test email delivered to ${testEmailTo}!`, 'success');
+      } else {
+        toast(`❌ ${data.error || 'Failed to send test email'}`, 'error');
+      }
+    } catch {
+      toast('Network error sending test email', 'error');
+    } finally {
+      setTestEmailLoading(false);
+    }
+  };
+
 
   const update = (key: string, val: unknown) => {
     updateData((d) => ({ ...d, settings: { ...d.settings, [key]: val } }));
@@ -135,6 +168,7 @@ export default function SettingsPage() {
     { id: 'reminders', label: 'Reminder Timing', icon: Bell },
     { id: 'billing', label: 'Billing & Accounts', icon: CreditCard },
     { id: 'whatsapp', label: 'WhatsApp Webhook', icon: MessageCircle },
+    { id: 'email', label: 'Email & Resend', icon: Mail },
     { id: 'cloud', label: 'Cloud Database', icon: CloudCog },
   ];
 
@@ -558,6 +592,145 @@ export default function SettingsPage() {
                     <Copy size={14} /> Copy
                   </button>
                 </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Email & Resend Settings Tab */}
+        {activeTab === 'email' && (
+          <motion.div key="email" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 'clamp(14px, 3vw, 24px)' }}>
+            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
+              <h2>📧 Resend Email Configuration & Automation</h2>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 }}>
+              <div className="form-group">
+                <label className="label">Resend API Key (re_...)</label>
+                <input
+                  type="password"
+                  className="input"
+                  placeholder="re_123456789abcdef..."
+                  value={s.resendApiKey || ''}
+                  onChange={(e) => update('resendApiKey', e.target.value)}
+                />
+                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                  Leave blank to use environment variable <code>RESEND_API_KEY</code> from <code>.env.local</code>. Generate a key at{' '}
+                  <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', fontWeight: 600 }}>
+                    resend.com/api-keys
+                  </a>.
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label className="label">Sender Email Address & Name (From)</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Shree Beauty Studio <onboarding@resend.dev>"
+                  value={s.resendFromEmail || ''}
+                  onChange={(e) => update('resendFromEmail', e.target.value)}
+                />
+                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                  Format: <code>Salon Name &lt;email@domain.com&gt;</code>. Use <code>onboarding@resend.dev</code> for testing, or your custom verified domain in production.
+                </span>
+              </div>
+            </div>
+
+            {/* Email Automation Switches */}
+            <div style={{ background: '#F8FAFC', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 24 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', marginBottom: 14 }}>
+                ⚡ Automated Email Workflows
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.emailConfirmationsEnabled !== false}
+                    onChange={(e) => update('emailConfirmationsEnabled', e.target.checked)}
+                    style={{ width: 17, height: 17, accentColor: 'var(--teal)' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Instant Booking Confirmations</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                      Automatically send branded HTML receipt & appointment details when a booking is created.
+                    </div>
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.emailRemindersEnabled !== false}
+                    onChange={(e) => update('emailRemindersEnabled', e.target.checked)}
+                    style={{ width: 17, height: 17, accentColor: 'var(--teal)' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Automated Appointment Reminders</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                      Send reminder notifications prior to scheduled customer appointments.
+                    </div>
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.emailWishesEnabled !== false}
+                    onChange={(e) => update('emailWishesEnabled', e.target.checked)}
+                    style={{ width: 17, height: 17, accentColor: 'var(--teal)' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>Customer Milestone Greetings</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                      Celebrate birthdays, wedding anniversaries, and sagai with celebratory cards & discount offers.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Test Resend Email Dispatch */}
+            <div style={{ background: '#E6F4F1', border: '1px solid #B2DFDB', borderRadius: 12, padding: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Mail size={18} color="#05424A" />
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#05424A' }}>
+                  🧪 Test Resend Email Dispatch
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: '#2C646B', marginBottom: 10 }}>
+                Send an instantaneous luxury test email to verify your API key and sender configuration.
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="Enter your personal email (e.g. test@gmail.com)"
+                  value={testEmailTo}
+                  onChange={(e) => setTestEmailTo(e.target.value)}
+                  style={{ background: '#FFF' }}
+                />
+                <motion.button
+                  className="btn btn-primary"
+                  onClick={handleTestEmail}
+                  disabled={testEmailLoading}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ flexShrink: 0, background: '#05424A', borderColor: '#05424A' }}
+                >
+                  {testEmailLoading ? (
+                    <>
+                      <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      Sending…
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} />
+                      Send Test Email
+                    </>
+                  )}
+                </motion.button>
               </div>
             </div>
           </motion.div>
