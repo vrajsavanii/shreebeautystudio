@@ -330,6 +330,7 @@ export interface BridalBooking {
   id: string;
   name: string;
   mobile: string;
+  email?: string;
   venue?: string;
   event?: string;
   date: string;

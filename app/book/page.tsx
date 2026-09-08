@@ -70,6 +70,7 @@ export default function PublicBookingPage() {
   // Customer Contact Info
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
   const [notes, setNotes] = useState('');
 
   // UI State
@@ -145,6 +146,7 @@ export default function PublicBookingPage() {
           time: selectedTime,
           customer: customerName.trim(),
           mobile: cleanMobile,
+          email: customerEmail.trim() || undefined,
           service: selectedServices.join(', '),
           staff: selectedStaff || 'Senior Beautician',
           advance: 0,
@@ -158,12 +160,17 @@ export default function PublicBookingPage() {
           ...prev,
           appointments: [newAppt, ...(prev.appointments || [])],
           customers: prev.customers.some((c) => c.mobile === newAppt.mobile)
-            ? prev.customers
+            ? prev.customers.map((c) =>
+                c.mobile === newAppt.mobile
+                  ? { ...c, email: customerEmail.trim() || c.email }
+                  : c
+              )
             : [
                 {
                   id: uid(),
                   name: newAppt.customer,
                   mobile: newAppt.mobile,
+                  email: customerEmail.trim() || undefined,
                   visits: 1,
                   totalSpend: 0,
                   lastVisit: newAppt.date,
@@ -174,14 +181,14 @@ export default function PublicBookingPage() {
 
         scheduleSave();
 
-        // Sync directly to Supabase cloud via server API and dispatch WhatsApp confirmation
+        // Sync directly to Supabase cloud via server API and dispatch WhatsApp & Email confirmation
         const apiRes = await fetch('/api/public-booking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'regular',
             appointment: newAppt,
-            customer: { name: newAppt.customer, mobile: newAppt.mobile },
+            customer: { name: newAppt.customer, mobile: newAppt.mobile, email: customerEmail.trim() || undefined },
           }),
         }).catch((err) => {
           console.warn('Cloud booking API warning:', err);
@@ -219,6 +226,7 @@ export default function PublicBookingPage() {
           id: uid(),
           name: customerName.trim(),
           mobile: cleanMobile,
+          email: customerEmail.trim() || undefined,
           venue: venue.trim() || 'Surat Venue',
           event: eventTitle.trim() || 'Bridal Glam',
           date: weddingDate,
@@ -241,6 +249,7 @@ export default function PublicBookingPage() {
           time: '08:00 AM',
           customer: `👑 ${customerName.trim()} (BRIDAL)`,
           mobile: cleanMobile,
+          email: customerEmail.trim() || undefined,
           service: `👑 Bridal: ${selectedPkgsList.map((p) => p.name).join(', ')}`,
           staff: 'Master Bridal Artist',
           advance: 0,
@@ -255,12 +264,17 @@ export default function PublicBookingPage() {
           bridal: [newBridalBooking, ...(prev.bridal || [])],
           appointments: [bridalAppt, ...(prev.appointments || [])],
           customers: prev.customers.some((c) => c.mobile === cleanMobile)
-            ? prev.customers
+            ? prev.customers.map((c) =>
+                c.mobile === cleanMobile
+                  ? { ...c, email: customerEmail.trim() || c.email }
+                  : c
+              )
             : [
                 {
                   id: uid(),
                   name: customerName.trim(),
                   mobile: cleanMobile,
+                  email: customerEmail.trim() || undefined,
                   anniversary: weddingDate,
                   sagaiDate: sagaiDate || undefined,
                   visits: 1,
@@ -281,7 +295,7 @@ export default function PublicBookingPage() {
             type: 'bridal',
             bridal: newBridalBooking,
             appointment: bridalAppt,
-            customer: { name: newBridalBooking.name, mobile: newBridalBooking.mobile },
+            customer: { name: newBridalBooking.name, mobile: newBridalBooking.mobile, email: customerEmail.trim() || undefined },
           }),
         }).catch((err) => console.warn('Cloud bridal booking API warning:', err));
 
@@ -439,8 +453,12 @@ export default function PublicBookingPage() {
                 {confirmedBridal ? '👑 Bridal Booking Confirmed!' : 'Appointment Confirmed! 💖'}
               </h2>
               <p style={{ margin: '0 0 20px', fontSize: 13.5, color: '#64748b' }}>
-                We have received your booking and dispatched a WhatsApp confirmation &amp; Bridal Rate Card PDF to{' '}
-                <b>+91 {confirmedAppt?.mobile || confirmedBridal?.mobile}</b>.
+                We have received your booking and dispatched a WhatsApp confirmation to{' '}
+                <b>+91 {confirmedAppt?.mobile || confirmedBridal?.mobile}</b>
+                {customerEmail ? (
+                  <span> and an email confirmation to <b>{customerEmail}</b></span>
+                ) : null}
+                .
               </p>
 
               {/* Booking Summary Box */}
@@ -1002,6 +1020,26 @@ export default function PublicBookingPage() {
                         }}
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                      Email Address (Optional — for luxury receipt & calendar invite):
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="e.g. pooja.patel@gmail.com"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: 13,
+                        outline: 'none',
+                      }}
+                    />
                   </div>
 
                   <div>

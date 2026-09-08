@@ -35,7 +35,7 @@ export default function AppointmentsPage() {
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<Appointment>({
     defaultValues: {
-      id: '', date: today, time: '10:00', customer: '', mobile: '',
+      id: '', date: today, time: '10:00', customer: '', mobile: '', email: '',
       service: '', price: '' as any, staff: '', advance: 0, advanceMode: data?.settings?.payments?.[0] || 'Cash', status: 'Confirmed', workStatus: 'Booked', notes: '',
     },
   });
@@ -87,7 +87,7 @@ export default function AppointmentsPage() {
     setIsSplitAdvance(false);
     setSplitAdvanceAmounts({});
     reset({
-      id: '', date: today, time: '10:00', customer: '', mobile: '',
+      id: '', date: today, time: '10:00', customer: '', mobile: '', email: '',
       service: '',
       price: '' as any,
       staff: '',
@@ -101,6 +101,7 @@ export default function AppointmentsPage() {
     const foundSvc = (data?.services || []).find((s) => s.name.toLowerCase() === a.service?.toLowerCase());
     reset({
       ...a,
+      email: a.email || '',
       price: a.price ?? (foundSvc ? foundSvc.price : 0),
       advanceMode: a.advanceMode || data?.settings?.payments?.[0] || 'Cash',
     });
@@ -121,6 +122,10 @@ export default function AppointmentsPage() {
       const extractedMob = match[2].trim();
       setValue('customer', extractedName, { shouldValidate: true });
       setValue('mobile', extractedMob, { shouldValidate: true });
+      const found = (data?.customers || []).find((c) => c.mobile === extractedMob);
+      if (found?.email) {
+        setValue('email', found.email, { shouldValidate: true });
+      }
       return;
     }
 
@@ -134,6 +139,9 @@ export default function AppointmentsPage() {
     if (foundByCombined) {
       setValue('customer', foundByCombined.name, { shouldValidate: true });
       setValue('mobile', foundByCombined.mobile, { shouldValidate: true });
+      if (foundByCombined.email) {
+        setValue('email', foundByCombined.email, { shouldValidate: true });
+      }
       return;
     }
 
@@ -155,6 +163,10 @@ export default function AppointmentsPage() {
       const extractedName = match[2].trim();
       setValue('mobile', extractedMob, { shouldValidate: true });
       setValue('customer', extractedName, { shouldValidate: true });
+      const found = (data?.customers || []).find((c) => c.mobile === extractedMob);
+      if (found?.email) {
+        setValue('email', found.email, { shouldValidate: true });
+      }
       return;
     }
 
@@ -162,11 +174,16 @@ export default function AppointmentsPage() {
     const cleanNum = trimmed.replace(/\D/g, '').slice(0, 10);
     setValue('mobile', cleanNum, { shouldValidate: true });
 
-    // 3. If full 10 digits entered and customer name is currently empty, fill existing customer name
+    // 3. If full 10 digits entered, auto fill existing customer details
     if (cleanNum.length === 10) {
       const c = (data?.customers || []).find((x) => x.mobile === cleanNum);
-      if (c && !watch('customer')) {
-        setValue('customer', c.name, { shouldValidate: true });
+      if (c) {
+        if (!watch('customer')) {
+          setValue('customer', c.name, { shouldValidate: true });
+        }
+        if (c.email && !watch('email')) {
+          setValue('email', c.email, { shouldValidate: true });
+        }
       }
     }
   };
@@ -181,20 +198,34 @@ export default function AppointmentsPage() {
 
   const onSubmit = (form: Appointment) => {
     const id = editId || uid();
+    const cleanEmail = form.email?.trim() || undefined;
+
     updateData((d) => {
-      // Auto-add customer if new mobile
-      const exists = d.customers.find((c) => c.mobile === form.mobile);
-      if (!exists && form.mobile && form.customer) {
+      // Auto-add customer if new mobile or sync email to existing customer profile
+      const existingCustIdx = d.customers.findIndex((c) => c.mobile === form.mobile);
+      if (existingCustIdx >= 0) {
+        if (cleanEmail && !d.customers[existingCustIdx].email) {
+          const updated = [...d.customers];
+          updated[existingCustIdx] = { ...updated[existingCustIdx], email: cleanEmail };
+          d = { ...d, customers: updated };
+        }
+      } else if (form.mobile && form.customer) {
         d = {
           ...d,
           customers: [...d.customers, {
-            id: uid(), name: formatCustomerContactName(form.customer), mobile: form.mobile,
-            birthday: '', anniversary: '', notes: '',
+            id: uid(),
+            name: formatCustomerContactName(form.customer),
+            mobile: form.mobile,
+            email: cleanEmail,
+            birthday: '',
+            anniversary: '',
+            notes: '',
           }],
         };
       }
+
       const initialWorkStatus: WorkStatus = form.status === 'Cancelled' ? 'Cancelled' : (form.workStatus || 'Booked');
-      const updatedItem = { ...form, id, workStatus: initialWorkStatus };
+      const updatedItem = { ...form, id, email: cleanEmail, workStatus: initialWorkStatus };
 
       if (editId) {
         return {
@@ -217,6 +248,35 @@ export default function AppointmentsPage() {
           toast('✅ WhatsApp confirmation sent to customer!');
         }
       });
+    }
+
+    // Auto-send Email confirmation to customer via Resend if email is provided
+    if (cleanEmail && cleanEmail.includes('@') && form.status !== 'Cancelled') {
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'confirmation',
+          to: cleanEmail,
+          data: {
+            customerName: form.customer,
+            service: form.service,
+            staff: form.staff,
+            date: form.date,
+            time: form.time,
+            price: form.price,
+            address: data?.settings?.address,
+            salonName: data?.settings?.salon,
+          },
+        }),
+      })
+        .then((res) => res.json())
+        .then((res) => {
+          if (res.success) {
+            toast('📧 Email confirmation sent to customer via Resend!');
+          }
+        })
+        .catch(() => {});
     }
 
     setModalOpen(false);
@@ -652,6 +712,16 @@ export default function AppointmentsPage() {
               </option>
             ))}
           </datalist>
+        </div>
+
+        <div className="form-group">
+          <label className="label">Customer Email (Optional — for Resend confirmation &amp; invoice)</label>
+          <input
+            type="email"
+            className="input"
+            placeholder="e.g. customer@gmail.com"
+            {...register('email')}
+          />
         </div>
 
         <div className="form-grid">

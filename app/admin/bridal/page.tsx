@@ -137,6 +137,7 @@ export default function BridalPage() {
   const [form, setForm] = useState<Partial<BridalBooking>>({
     name: '',
     mobile: '',
+    email: '',
     venue: '',
     includeWedding: true,
     weddingDate: '',
@@ -225,6 +226,7 @@ const OTHER_EVENT_OPTIONS = [
           ...prev,
           name: found.name,
           mobile: found.mobile,
+          email: found.email || prev.email || '',
           birthday: found.birthday || prev.birthday || '',
           weddingDate: wDate,
           includeWedding: true,
@@ -269,6 +271,7 @@ const OTHER_EVENT_OPTIONS = [
             ...prev,
             name: found.name,
             mobile: found.mobile,
+            email: found.email || prev.email || '',
             birthday: found.birthday || prev.birthday || '',
             weddingDate: wDate,
             includeWedding: true,
@@ -322,6 +325,7 @@ const OTHER_EVENT_OPTIONS = [
     setForm({
       name: '',
       mobile: '',
+      email: '',
       birthday: '',
       venue: '',
       includeWedding: true,
@@ -356,6 +360,7 @@ const OTHER_EVENT_OPTIONS = [
     setTab(0);
     setForm({
       ...b,
+      email: b.email || '',
       includeWedding: b.includeWedding !== undefined ? b.includeWedding : !!b.weddingDate,
       includeSagai: b.includeSagai !== undefined ? b.includeSagai : !!b.sagaiDate,
       includeMandap: b.includeMandap !== undefined ? b.includeMandap : !!b.mandapDate,
@@ -384,6 +389,7 @@ const OTHER_EVENT_OPTIONS = [
     if (!form.mobile) { toast('Please enter a mobile number.', 'error'); setTab(0); return; }
 
     const id = editId || uid();
+    const cleanEmail = form.email?.trim() || undefined;
     const selectedEvents: string[] = [];
     if (form.includeWedding !== false && form.weddingDate) {
       selectedEvents.push(`Wedding (${fmtDate(form.weddingDate)} ${form.weddingTime || ''})`);
@@ -405,6 +411,7 @@ const OTHER_EVENT_OPTIONS = [
       id,
       name: form.name || '',
       mobile: form.mobile || '',
+      email: cleanEmail,
       birthday: form.birthday || '',
       venue: form.venue || '',
       includeWedding: form.includeWedding !== false,
@@ -435,7 +442,7 @@ const OTHER_EVENT_OPTIONS = [
     };
 
     updateData((d) => {
-      // Auto register / update customer profile with Birthday, Wedding Date (Anniversary), and Sagai Date
+      // Auto register / update customer profile with Birthday, Wedding Date (Anniversary), Sagai Date, and Email
       let customers = [...(d.customers || [])];
       const existingIdx = customers.findIndex(
         (c) => (c.mobile && c.mobile === form.mobile) || c.name.toLowerCase() === form.name?.toLowerCase()
@@ -447,6 +454,7 @@ const OTHER_EVENT_OPTIONS = [
       if (existingIdx >= 0) {
         customers[existingIdx] = {
           ...customers[existingIdx],
+          email: cleanEmail || customers[existingIdx].email,
           birthday: form.birthday || customers[existingIdx].birthday || '',
           anniversary: effectiveWedding || customers[existingIdx].anniversary || '',
           sagaiDate: effectiveSagai || customers[existingIdx].sagaiDate || '',
@@ -457,6 +465,7 @@ const OTHER_EVENT_OPTIONS = [
           id: uid(),
           name: form.name,
           mobile: form.mobile || '',
+          email: cleanEmail,
           birthday: form.birthday || '',
           anniversary: effectiveWedding,
           sagaiDate: effectiveSagai,
@@ -512,6 +521,32 @@ const OTHER_EVENT_OPTIONS = [
       sendDirectWhatsAppMessage(booking.mobile, msg).then((res) => {
         if (res.success) toast('✅ Bridal booking details sent to bride WhatsApp!');
       });
+    }
+
+    // Auto-send Email confirmation to bride via Resend if email is provided
+    if (cleanEmail && cleanEmail.includes('@') && !editId) {
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'confirmation',
+          to: cleanEmail,
+          data: {
+            customerName: booking.name,
+            service: `Bridal Package (${booking.packageName || 'Bridal Package'})`,
+            date: booking.weddingDate || booking.date || todayISO(),
+            time: booking.weddingTime || '10:00',
+            price: booking.package,
+            address: booking.venue || data?.settings?.address,
+            salonName: data?.settings?.salon,
+          },
+        }),
+      })
+        .then((res) => res.json())
+        .then((res) => {
+          if (res.success) toast('📧 Confirmation email sent to bride via Resend!');
+        })
+        .catch(() => {});
     }
 
     setModalOpen(false);
@@ -1089,6 +1124,16 @@ const OTHER_EVENT_OPTIONS = [
                   placeholder="e.g. The Grand Bhagwati, SG Highway, Surat"
                 />
               </div>
+            </div>
+            <div className="form-group" style={{ marginTop: 6 }}>
+              <label className="label">Bride Email (Optional — for Resend confirmation &amp; invoice)</label>
+              <input
+                type="email"
+                className="input"
+                value={form.email || ''}
+                onChange={(e) => set('email', e.target.value)}
+                placeholder="e.g. bride@gmail.com"
+              />
             </div>
           </div>
         )}

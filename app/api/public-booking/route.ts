@@ -5,6 +5,7 @@ import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
 import { uid } from '@/lib/utils';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage, bridalMessage } from '@/lib/whatsapp';
+import { sendResendEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
 
     const mobile = (appointment?.mobile || bridal?.mobile || '').replace(/\D/g, '').slice(-10);
     const customerName = (appointment?.customer || bridal?.name || '').trim();
+    const email = (appointment?.email || bridal?.email || customer?.email || '').trim();
 
     if (!customerName) {
       return NextResponse.json(
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
           time: appointment.time,
           customer: customerName,
           mobile,
+          email: email || undefined,
           service: appointment.service,
           staff: appointment.staff || 'Senior Beautician',
           advance: Number(appointment.advance) || 0,
@@ -75,6 +78,7 @@ export async function POST(request: Request) {
           time: '08:00 AM',
           customer: `👑 ${customerName} (BRIDAL)`,
           mobile,
+          email: email || undefined,
           service: `👑 Bridal: ${bridal.packageName || 'Bridal Package'}`,
           staff: 'Master Bridal Artist',
           advance: Number(bridal.advance) || 0,
@@ -90,6 +94,7 @@ export async function POST(request: Request) {
         id: bridal.id || uid(),
         name: customerName,
         mobile,
+        email: email || undefined,
         venue: bridal.venue || 'Surat Venue',
         event: bridal.event || 'Bridal Glam',
         date: bridal.date || bridal.weddingDate,
@@ -117,6 +122,7 @@ export async function POST(request: Request) {
       updatedCustomers[custIdx] = {
         ...updatedCustomers[custIdx],
         name: customerName,
+        email: email || updatedCustomers[custIdx].email,
         totalVisits: (updatedCustomers[custIdx].totalVisits || 0) + 1,
         lastVisit: newAppointment.date,
         anniversary: bridal?.weddingDate || updatedCustomers[custIdx].anniversary,
@@ -128,6 +134,7 @@ export async function POST(request: Request) {
           id: uid(),
           name: customerName,
           mobile,
+          email: email || undefined,
           totalVisits: 1,
           totalSpend: 0,
           lastVisit: newAppointment.date,
@@ -191,12 +198,49 @@ export async function POST(request: Request) {
       console.warn('[Public Booking WhatsApp] Dispatch error:', err?.message);
     }
 
+    // 8. Dispatch customer confirmation via Resend Email (if optional email provided)
+    let emailResult: any = null;
+    if (email && email.includes('@') && updatedData.settings?.emailConfirmationsEnabled !== false) {
+      try {
+        const serviceTitle =
+          type === 'bridal' && newBridal
+            ? `👑 Bridal: ${newBridal.packageName || 'Bridal Package'}`
+            : newAppointment.service || 'Salon Service';
+        const staffTitle = newAppointment.staff || 'Senior Beautician';
+        const bookingDate = newAppointment.date || newBridal?.weddingDate || '';
+        const bookingTime = newAppointment.time || '10:00 AM';
+
+        const emailHtml = renderAppointmentConfirmationHtml({
+          customerName,
+          service: serviceTitle,
+          staff: staffTitle,
+          date: bookingDate,
+          time: bookingTime,
+          price: newAppointment.price || newBridal?.package,
+          address,
+          salonName: salon,
+        });
+
+        emailResult = await sendResendEmail({
+          to: email,
+          subject: `✨ Appointment Confirmed — ${serviceTitle} at ${salon}`,
+          html: emailHtml,
+          from: updatedData.settings?.resendFromEmail,
+          apiKey: updatedData.settings?.resendApiKey,
+        });
+        console.log(`[Public Booking Email] Sent confirmation to ${email}:`, emailResult);
+      } catch (err: any) {
+        console.warn('[Public Booking Email] Dispatch error:', err?.message);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Booking successfully confirmed & synced with studio.',
       appointment: newAppointment,
       bridal: newBridal,
       whatsapp: waResult,
+      email: emailResult,
     });
   } catch (err: any) {
     console.error('Error in public-booking API route:', err);
