@@ -425,6 +425,10 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
           <img
             src={post.image}
             alt={post.title}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop';
+            }}
             style={{ width: '100%', height: 'auto', maxHeight: 460, objectFit: 'cover', display: 'block' }}
           />
         </div>
@@ -635,6 +639,10 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
                   <img
                     src={r.image}
                     alt={r.title}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop';
+                    }}
                     style={{ width: '100%', height: 130, objectFit: 'cover' }}
                   />
                   <div style={{ padding: '16px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>

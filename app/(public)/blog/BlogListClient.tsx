@@ -316,6 +316,10 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
                     src={post.image}
                     alt={post.title}
                     loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop';
+                    }}
                     style={{
                       width: '100%',
                       height: '100%',

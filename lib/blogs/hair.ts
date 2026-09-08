@@ -398,7 +398,7 @@ In Surat, hair fall is often exacerbated by hard tap water (rich in calcium and 
     publishedAt: '2026-03-09',
     author: 'Shree Hair Care Team',
     authorRole: 'Master Stylists & Texture Specialists',
-    image: 'https://images.unsplash.com/photo-1522337094345-a044af567b36?w=1200&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=1200&q=80&auto=format&fit=crop',
     tags: ['Anti Dandruff', 'Scalp Treatment', 'Itchy Scalp', 'Hair Salon Katargam'],
     content: `
 ## Why Drugstore Anti-Dandruff Shampoos Often Fail

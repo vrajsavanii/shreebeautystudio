@@ -58,7 +58,7 @@ At **Shree Beauty Studio** in Katargam, Surat, our Hydra Glow Facial is our most
     publishedAt: '2026-03-02',
     author: 'Shree Skin Care Team',
     authorRole: 'Certified Clinical Aestheticians',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1552693673-1bf958298935?w=1200&q=80&auto=format&fit=crop',
     tags: ['O3 Plus Facial', 'Bridal Glow', 'Bridal Skincare', 'Surat Beautician'],
     content: `
 ## Why Indian Brides Swear by the O3+ Professional Facial
@@ -151,7 +151,7 @@ At **Shree Beauty Studio**, we customize every facial after a microscopic skin c
     publishedAt: '2026-03-04',
     author: 'Shree Skin Care Team',
     authorRole: 'Certified Clinical Aestheticians',
-    image: 'https://images.unsplash.com/photo-1567928804456-537466be009e?w=1200&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=1200&q=80&auto=format&fit=crop',
     tags: ['Gold Facial', 'Herbal Facial', 'Anti Aging Facial', 'Surat Salon'],
     content: `
 ## The Timeless Magic of Gold in Skincare
@@ -237,7 +237,7 @@ At our Katargam salon, we advocate for organic **Raaga Professional and O3+ D-Ta
     publishedAt: '2026-03-06',
     author: 'Shree Skin Care Team',
     authorRole: 'Certified Clinical Aestheticians',
-    image: 'https://images.unsplash.com/photo-1508746829417-e6f548d8d6ed?w=1200&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1576426863848-c21f53c60b19?w=1200&q=80&auto=format&fit=crop',
     tags: ['Anti Aging', 'Skin Tightening', 'Collagen Facial', 'Wrinkle Treatment'],
     content: `
 ## Graceful Aging: Non-Invasive Firming Solutions
@@ -275,7 +275,7 @@ You don't need invasive surgical procedures to maintain youthful vitality. At **
     publishedAt: '2026-03-07',
     author: 'Shree Skin Care Team',
     authorRole: 'Certified Clinical Aestheticians',
-    image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=1200&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1526947425960-945c6e72858f?w=1200&q=80&auto=format&fit=crop',
     tags: ['Chemical Peels', 'Microdermabrasion', 'Skin Texture', 'Exfoliation Guide'],
     content: `
 ## Resurfacing Rough Skin: Chemical vs. Physical Exfoliation
@@ -450,7 +450,7 @@ Using heavy creams makes the T-zone break out, while using harsh oil-control was
     publishedAt: '2026-03-11',
     author: 'Shree Skin Care Team',
     authorRole: 'Certified Clinical Aestheticians',
-    image: 'https://images.unsplash.com/photo-1506152983158-b4a74a01c721?w=1200&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?w=1200&q=80&auto=format&fit=crop',
     tags: ['Dark Circles', 'Eye Care', 'Puffy Eyes', 'Eye Contour Facial'],
     content: `
 ## Why Under-Eye Skin Needs Specialized Care
@@ -495,7 +495,7 @@ At **Shree Beauty Studio**, our Eye Contour Rejuvenation treatments target all 3
     publishedAt: '2026-03-12',
     author: 'Shree Skin Care Team',
     authorRole: 'Certified Clinical Aestheticians',
-    image: 'https://images.unsplash.com/photo-1512290903823-efb2b528b7e2?w=1200&q=80&auto=format&fit=crop',
+    image: 'https://images.unsplash.com/photo-1597225244660-1cd128c64284?w=1200&q=80&auto=format&fit=crop',
     tags: ['Facial Aftercare', 'Skincare Tips', 'Glowing Skin', 'Salon Advice'],
     content: `
 ## Protecting Your Salon Glow Investment
