@@ -15,6 +15,8 @@ export default function robots(): MetadataRoute.Robots {
           '/my-appointments',
           '/faq',
           '/about',
+          '/blog',
+          '/blog/',
         ],
         disallow: [
           '/admin',

@@ -1464,11 +1464,11 @@ tbody tr.today-row {
 }
 
 .reviews-marquee-fwd {
-  animation: marquee-fwd 60s linear infinite;
+  animation: marquee-fwd 180s linear infinite;
 }
 
 .reviews-marquee-rev {
-  animation: marquee-rev 70s linear infinite;
+  animation: marquee-rev 210s linear infinite;
 }
 
 /* Pause on hover */

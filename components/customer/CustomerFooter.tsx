@@ -132,6 +132,9 @@ export default function CustomerFooter() {
             <Link href="/about" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
               About Us &amp; Heritage
             </Link>
+            <Link href="/blog" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+              Beauty &amp; Bridal Blog (50+ Guides)
+            </Link>
             <Link href="/faq" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
               Help &amp; FAQs
             </Link>

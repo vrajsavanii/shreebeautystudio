@@ -1,11 +1,12 @@
 import type { MetadataRoute } from 'next';
+import { ALL_BLOG_POSTS } from '@/lib/blog-data';
 
 const BASE_URL = 'https://shree-beauty-studio.vercel.app';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date().toISOString();
 
-  return [
+  const staticPages: MetadataRoute.Sitemap = [
     {
       url: BASE_URL,
       lastModified: now,
@@ -31,6 +32,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${BASE_URL}/blog`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
       url: `${BASE_URL}/faq`,
       lastModified: now,
       changeFrequency: 'monthly',
@@ -49,4 +56,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.5,
     },
   ];
+
+  const blogPages: MetadataRoute.Sitemap = ALL_BLOG_POSTS.map((post) => ({
+    url: `${BASE_URL}/blog/${post.slug}`,
+    lastModified: now,
+    changeFrequency: 'monthly',
+    priority: 0.8,
+  }));
+
+  return [...staticPages, ...blogPages];
 }
