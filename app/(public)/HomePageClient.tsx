@@ -65,7 +65,7 @@ const GOOGLE_REVIEWS = [
     rating: 5,
   },
   {
-    text: "Shree beauty studio have very friendly atmosphere. Amita, Bhavna aunty and her staff are so comfortable and polite for all customers and the important thing, they use all original product which is important for us. The feeling in this studio is like home saloon.",
+    text: "Shree beauty studio have very friendly atmosphere. The senior stylists and staff are so comfortable and polite for all customers and the important thing, they use all original product which is important for us. The feeling in this studio is like home saloon.",
     name: "Parul Savani",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLIJbMxQ_-zezajrclqidPSKTigQELlG6e6zoBHyy6YGF45ZQ=s120-c-rp-mo-br100",
@@ -79,7 +79,7 @@ const GOOGLE_REVIEWS = [
     rating: 5,
   },
   {
-    text: "Very good and professional service. Stylist Amita was very friendly and did a great job. She gave me an amazing haircut and hair colour streaks. I'll definitely visit again.",
+    text: "Very good and professional service. The senior stylist was very friendly and did a great job. She gave me an amazing haircut and hair colour streaks. I'll definitely visit again.",
     name: "Dharvi Dobariya",
     role: "Hair Colour & Cut · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjUzResOCcsqSoz_9nJlPwJo0xLc8XqaBBvD-50U6i-5XiGeahRbyQ=s120-c-rp-mo-br100",
@@ -114,7 +114,7 @@ const GOOGLE_REVIEWS = [
     rating: 5,
   },
   {
-    text: "Amazing service and results. Years of experience truly show in their work. Super clean, friendly staff and perfect results every single time. Amita di and Bhavna aunt's nature is very good — extremely sweet, polite and caring.",
+    text: "Amazing service and results. Years of experience truly show in their work. Super clean, friendly staff and perfect results every single time. The stylists' nature is very good — extremely sweet, polite and caring.",
     name: "Krupali Pavasia",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocIVao1NL3VuOgOx-xQlY1md8ANeCvJSmZGMpCZDrSnewy2FjQ=s120-c-rp-mo-br100",

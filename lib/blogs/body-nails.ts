@@ -10,9 +10,9 @@ export const BODY_NAILS_BLOGS: BlogPost[] = [
     category: 'Nails & Body',
     readTime: '5 min read',
     publishedAt: '2026-03-01',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Beautician & Waxing Specialist',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Certified Waxing & Body Care Specialists',
+    image: 'https://images.unsplash.com/photo-1590439471364-192aa70c0b53?w=1200&q=80&auto=format&fit=crop',
     tags: ['RICA Wax', 'Painless Waxing', 'Waxing Surat', 'Liposoluble Wax', 'Body Care'],
     content: `
 ## Why Your Wax Choice Matters for Skin Health
@@ -59,9 +59,9 @@ RICA wax is enriched with titanium dioxide, a calming mineral that reduces redne
     category: 'Nails & Body',
     readTime: '4 min read',
     publishedAt: '2026-03-02',
-    author: 'Bhavna Savani',
-    authorRole: 'Nail & Spa Specialist',
-    image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Certified Nail & Spa Technicians',
+    image: 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=1200&q=80&auto=format&fit=crop',
     tags: ['Manicure Surat', 'Pedicure Surat', 'Cracked Heels', 'Nail Care', 'Spa Treatment'],
     content: `
 ## More Than Prettified Nails: The Health Science
@@ -98,8 +98,8 @@ At **Shree Beauty Studio**, our **Deluxe Spa Manicure & Pedicure** is a complete
     category: 'Nails & Body',
     readTime: '5 min read',
     publishedAt: '2026-03-03',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Senior Body Spa & Wellness Therapists',
     image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80&auto=format&fit=crop',
     tags: ['Body Polishing', 'Body Scrub', 'Bridal Body Care', 'Skin Brightening'],
     content: `
@@ -137,9 +137,9 @@ While most women invest in monthly facial care, body skin often accumulates year
     category: 'Nails & Body',
     readTime: '4 min read',
     publishedAt: '2026-03-04',
-    author: 'Bhavna Savani',
-    authorRole: 'Master Threading Specialist',
-    image: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Master Threading & Facial Artists',
+    image: 'https://images.unsplash.com/photo-1583001931096-959e9a1a6223?w=1200&q=80&auto=format&fit=crop',
     tags: ['Eyebrow Threading', 'Brow Shaping', 'Painless Threading', 'Katargam Parlour'],
     content: `
 ## The Architectural Power of the Eyebrow Arch
@@ -183,8 +183,8 @@ At **Shree Beauty Studio** in Katargam, eyebrow shaping is an art form rooted in
     category: 'Nails & Body',
     readTime: '4 min read',
     publishedAt: '2026-03-05',
-    author: 'Bhavna Savani',
-    authorRole: 'Nail Artist & Beautician',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Certified Nail Extension & Art Specialists',
     image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1200&q=80&auto=format&fit=crop',
     tags: ['Nail Art Surat', 'Gel Extensions', 'Bridal Nails', 'French Ombre Nails'],
     content: `
@@ -228,9 +228,9 @@ At **Shree Beauty Studio**, our long-lasting **Gel Nail Extensions and Art** ens
     category: 'Nails & Body',
     readTime: '5 min read',
     publishedAt: '2026-03-06',
-    author: 'Amita Patel',
-    authorRole: 'Founder & Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Certified Waxing & Body Care Specialists',
+    image: 'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=1200&q=80&auto=format&fit=crop',
     tags: ['Bikini Waxing', 'Intimate Hygiene', 'RICA Wax', 'Ladies Salon Surat'],
     content: `
 ## Privacy, Hygiene & Compassion: Our Intimate Waxing Standard
@@ -273,9 +273,9 @@ At **Shree Beauty Studio** in Katargam, Surat, we are an exclusive ladies-only s
     category: 'Nails & Body',
     readTime: '4 min read',
     publishedAt: '2026-03-07',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Beautician & Waxing Specialist',
-    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Skin & Body Care Specialists',
+    image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200&q=80&auto=format&fit=crop',
     tags: ['Ingrown Hair', 'Strawberry Legs', 'Body Exfoliation', 'Post Wax Care'],
     content: `
 ## What Causes "Strawberry Legs" and Ingrown Bumps?
@@ -311,9 +311,9 @@ When new hair attempts to grow back after waxing or shaving, thick dead skin tra
     category: 'Nails & Body',
     readTime: '4 min read',
     publishedAt: '2026-03-08',
-    author: 'Bhavna Savani',
-    authorRole: 'Nail & Spa Specialist',
-    image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Nail & Body Specialists',
+    authorRole: 'Certified Nail & Spa Technicians',
+    image: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=1200&q=80&auto=format&fit=crop',
     tags: ['Paraffin Wax', 'Cracked Heels', 'Foot Spa Surat', 'Hand Spa'],
     content: `
 ## The Deep Healing Power of Warm Paraffin Therapy

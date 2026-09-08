@@ -53,6 +53,6 @@ export const formatCustomerContactName = (name: string): string => {
   if (!name) return '';
   const trimmed = name.trim();
   if (!trimmed) return '';
-  // Strip any existing Zyy prefix if present (e.g. "Z26 AMITA" -> "AMITA")
+  // Strip any existing Zyy prefix if present (e.g. "Z26 NAME" -> "NAME")
   return trimmed.replace(/^Z\d{2}\s+/i, '');
 };

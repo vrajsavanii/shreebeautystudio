@@ -10,8 +10,8 @@ export const HAIR_BLOGS: BlogPost[] = [
     category: 'Hair Aesthetics',
     readTime: '6 min read',
     publishedAt: '2026-03-01',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
     image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200&q=80&auto=format&fit=crop',
     tags: ['Hair Botox', 'Keratin Treatment', 'Hair Smoothing', 'Salon Surat', 'Frizzy Hair Solution'],
     content: `
@@ -69,9 +69,9 @@ Keratin is the natural structural protein of our hair. A professional Keratin tr
     category: 'Hair Aesthetics',
     readTime: '5 min read',
     publishedAt: '2026-03-02',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop',
     tags: ['Nanoplastia', 'Hair Straightening', 'Formaldehyde Free', 'Organic Hair Treatment'],
     content: `
 ## The Organic Hair Revolution: Nanoplastia Explained
@@ -114,9 +114,9 @@ The formula contains nanoparticles of collagen, silk amino acids, wheat proteins
     category: 'Hair Aesthetics',
     readTime: '5 min read',
     publishedAt: '2026-03-03',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist',
-    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=1200&q=80&auto=format&fit=crop',
     tags: ['Frizzy Hair', 'Surat Climate', 'Hair Care Tips', 'Anti Frizz Serum'],
     content: `
 ## Why Surat Hair Suffers from Chronic Frizz
@@ -160,9 +160,9 @@ Here are the tested solutions recommended by the senior stylists at **Shree Beau
     category: 'Hair Aesthetics',
     readTime: '4 min read',
     publishedAt: '2026-03-04',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
-    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=1200&q=80&auto=format&fit=crop',
     tags: ['Hair Spa', 'Scalp Health', 'Hair Growth', 'Salon Katargam'],
     content: `
 ## More Than Just Relaxation: The Science of Hair Spa
@@ -207,9 +207,9 @@ At **Shree Beauty Studio** in Katargam, Surat, our therapeutic hair spa is desig
     category: 'Hair Aesthetics',
     readTime: '5 min read',
     publishedAt: '2026-03-05',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
-    image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=1200&q=80&auto=format&fit=crop',
     tags: ['Haircut Surat', 'Butterfly Cut', 'Layer Cut', 'Feather Cut', 'Hairstyling'],
     content: `
 ## Elevating Your Look with the Right Precision Cut
@@ -258,9 +258,9 @@ At **Shree Beauty Studio**, our senior stylists specialize in the latest interna
     category: 'Hair Aesthetics',
     readTime: '5 min read',
     publishedAt: '2026-03-06',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist',
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=1200&q=80&auto=format&fit=crop',
     tags: ['Keratin Care', 'Sulfate Free Shampoo', 'Hair Maintenance', 'Salon Guide'],
     content: `
 ## Maximizing Your Keratin Investment
@@ -304,9 +304,9 @@ Here are the essential post-care instructions we provide to every client at **Sh
     category: 'Hair Aesthetics',
     readTime: '6 min read',
     publishedAt: '2026-03-07',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
-    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=1200&q=80&auto=format&fit=crop',
     tags: ['Hair Color', 'Balayage Surat', 'Highlights', 'Indian Skin Tone', 'Loreal Professional'],
     content: `
 ## Selecting the Perfect Hue for Indian Complexions
@@ -351,9 +351,9 @@ At **Shree Beauty Studio**, we strictly use ammonia-safe luxury color brands lik
     category: 'Hair Aesthetics',
     readTime: '6 min read',
     publishedAt: '2026-03-08',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
-    image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=1200&q=80&auto=format&fit=crop',
     tags: ['Hair Fall Solution', 'Scalp Care', 'Hair Loss Treatment', 'Salon Surat'],
     content: `
 ## Understanding Hair Fall: Normal Shedding vs. Serious Loss
@@ -396,9 +396,9 @@ In Surat, hair fall is often exacerbated by hard tap water (rich in calcium and 
     category: 'Hair Aesthetics',
     readTime: '4 min read',
     publishedAt: '2026-03-09',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist',
-    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1522337094345-a044af567b36?w=1200&q=80&auto=format&fit=crop',
     tags: ['Anti Dandruff', 'Scalp Treatment', 'Itchy Scalp', 'Hair Salon Katargam'],
     content: `
 ## Why Drugstore Anti-Dandruff Shampoos Often Fail
@@ -441,9 +441,9 @@ At **Shree Beauty Studio**, we take a clinical, therapeutic approach to scalp he
     category: 'Hair Aesthetics',
     readTime: '5 min read',
     publishedAt: '2026-03-10',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1500840216050-6ffa99d75160?w=1200&q=80&auto=format&fit=crop',
     tags: ['Hair Smoothening', 'Hair Straightening', 'Rebonding', 'Salon Surat'],
     content: `
 ## Choosing the Right Straightening Procedure
@@ -488,9 +488,9 @@ Here is a side-by-side comparison from our master stylists at **Shree Beauty Stu
     category: 'Hair Aesthetics',
     readTime: '4 min read',
     publishedAt: '2026-03-11',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist',
-    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=1200&q=80&auto=format&fit=crop',
     tags: ['Scalp Massage', 'Hot Oil Therapy', 'Head Massage Surat', 'Stress Relief'],
     content: `
 ## The Healing Power of Indian Champi Therapy
@@ -527,9 +527,9 @@ At **Shree Beauty Studio**, our scalp wellness treatments combine Ayurvedic wisd
     category: 'Hair Aesthetics',
     readTime: '4 min read',
     publishedAt: '2026-03-12',
-    author: 'Amita Patel',
-    authorRole: 'Master Hair Stylist & Director',
-    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Hair Care Team',
+    authorRole: 'Master Stylists & Texture Specialists',
+    image: 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=1200&q=80&auto=format&fit=crop',
     tags: ['Split Ends', 'Hair Trimming', 'Hair Dusting', 'Long Hair Care'],
     content: `
 ## The Myth About "Mending" Split Ends

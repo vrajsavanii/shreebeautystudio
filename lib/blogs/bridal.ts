@@ -10,8 +10,8 @@ export const BRIDAL_BLOGS: BlogPost[] = [
     category: 'Bridal & Makeup',
     readTime: '6 min read',
     publishedAt: '2026-03-01',
-    author: 'Amita Patel',
-    authorRole: 'Senior Bridal Makeup Artist & Founder',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
     image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80&auto=format&fit=crop',
     tags: ['Bridal Makeup Surat', 'HD Makeup', 'Airbrush Makeup', 'Wedding Beauty Guide', 'Katargam Salon'],
     content: `
@@ -84,9 +84,9 @@ A breathtaking bride is more than just makeup. Our comprehensive bridal packages
     category: 'Bridal & Makeup',
     readTime: '5 min read',
     publishedAt: '2026-03-02',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist & Makeover Specialist',
-    image: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=1200&q=80&auto=format&fit=crop',
     tags: ['HD Makeup', 'Airbrush Makeup', 'Bridal Guide', 'Indian Bride', 'Salon Surat'],
     content: `
 ## Deciding Between HD and Airbrush for Your Special Day
@@ -144,9 +144,9 @@ Airbrush makeup is applied using an electronic stylus that sprays a microscopic 
     category: 'Bridal & Makeup',
     readTime: '7 min read',
     publishedAt: '2026-03-03',
-    author: 'Amita Patel',
-    authorRole: 'Senior Bridal Makeup Artist & Founder',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80&auto=format&fit=crop',
     tags: ['Pre-Bridal Skincare', 'Bridal Timeline', 'Facials Surat', 'Wedding Glow'],
     content: `
 ## Why Every Bride Needs a Dedicated Skincare Timeline
@@ -201,8 +201,8 @@ At **Shree Beauty Studio** in Katargam, Surat, we recommend beginning your salon
     category: 'Bridal & Makeup',
     readTime: '5 min read',
     publishedAt: '2026-03-04',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist & Makeover Specialist',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
     image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=80&auto=format&fit=crop',
     tags: ['Sider Makeup', 'Bridesmaid Makeup', 'Party Makeup Surat', 'Sangeet Look'],
     content: `
@@ -249,8 +249,8 @@ At **Shree Beauty Studio** in Katargam, Surat, we specialize in coordinated **Si
     category: 'Bridal & Makeup',
     readTime: '6 min read',
     publishedAt: '2026-03-05',
-    author: 'Amita Patel',
-    authorRole: 'Senior Bridal Makeup Artist & Founder',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
     image: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&q=80&auto=format&fit=crop',
     tags: ['Gujarati Bride', 'Panetar Saree', 'Gharchola Draping', 'Surat Wedding'],
     content: `
@@ -296,9 +296,9 @@ Here is how our master drapers and stylists at **Shree Beauty Studio** craft the
     category: 'Bridal & Makeup',
     readTime: '5 min read',
     publishedAt: '2026-03-06',
-    author: 'Amita Patel',
-    authorRole: 'Senior Bridal Makeup Artist & Founder',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=1200&q=80&auto=format&fit=crop',
     tags: ['Waterproof Makeup', 'Sweatproof Bridal', 'Surat Humidity', 'Summer Wedding'],
     content: `
 ## Overcoming Surat's Coastal Climate on Your Wedding Day
@@ -337,9 +337,9 @@ At **Shree Beauty Studio** in Katargam, we specialize in high-end sweat-resistan
     category: 'Bridal & Makeup',
     readTime: '6 min read',
     publishedAt: '2026-03-07',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist & Makeover Specialist',
-    image: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=1200&q=80&auto=format&fit=crop',
     tags: ['Bridal Tips', 'Makeup Dos and Donts', 'Bridal Advice', 'Surat Brides'],
     content: `
 ## Essential Rules for Your Wedding Day Glam
@@ -386,9 +386,9 @@ Here are the top 10 rules compiled by the senior artists at **Shree Beauty Studi
     category: 'Bridal & Makeup',
     readTime: '5 min read',
     publishedAt: '2026-03-08',
-    author: 'Amita Patel',
-    authorRole: 'Senior Bridal Makeup Artist & Founder',
-    image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=80&auto=format&fit=crop',
     tags: ['Bridal Hairstyle', 'Hairstyle Face Shape', 'Bridal Bun', 'Surat Hair Salon'],
     content: `
 ## Harmonizing Your Hairstyle with Your Facial Features
@@ -437,9 +437,9 @@ At **Shree Beauty Studio** in Katargam, Surat, our master hairstylists evaluate 
     category: 'Bridal & Makeup',
     readTime: '5 min read',
     publishedAt: '2026-03-09',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist & Makeover Specialist',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1535295972055-1c762f4483e5?w=1200&q=80&auto=format&fit=crop',
     tags: ['Bridal Jewellery', 'Maang Tikka Setting', 'Dupatta Draping', 'Indian Bride'],
     content: `
 ## Ensuring Comfort Alongside Grandeur
@@ -482,9 +482,9 @@ At **Shree Beauty Studio** in Katargam, Surat, our certified drapers use special
     category: 'Bridal & Makeup',
     readTime: '4 min read',
     publishedAt: '2026-03-10',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist & Makeover Specialist',
-    image: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80&auto=format&fit=crop',
     tags: ['Haldi Makeup', 'Mehendi Look', 'Dewy Glow', 'Surat Bridal'],
     content: `
 ## Fresh, Playful Beauty for Pre-Wedding Festivities
@@ -525,9 +525,9 @@ Here is how **Shree Beauty Studio** styles brides for memorable Haldi and Mehend
     category: 'Bridal & Makeup',
     readTime: '5 min read',
     publishedAt: '2026-03-11',
-    author: 'Amita Patel',
-    authorRole: 'Senior Bridal Makeup Artist & Founder',
-    image: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=1200&q=80&auto=format&fit=crop',
     tags: ['Reception Makeup', 'Cocktail Glam', 'Reception Look', 'Surat Bridal Salon'],
     content: `
 ## Striking the Perfect Note for Your Grand Reception
@@ -572,9 +572,9 @@ At **Shree Beauty Studio**, we curate your reception look to ensure perfect harm
     category: 'Bridal & Makeup',
     readTime: '4 min read',
     publishedAt: '2026-03-12',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist & Makeover Specialist',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Bridal Team',
+    authorRole: 'Senior Bridal & Makeover Specialists',
+    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1200&q=80&auto=format&fit=crop',
     tags: ['Emergency Kit', 'Bridal Checklist', 'Touch Up Tips', 'Surat Wedding'],
     content: `
 ## Staying Picture-Perfect from Morning to Midnight

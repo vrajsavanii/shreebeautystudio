@@ -10,9 +10,9 @@ export const SURAT_GUIDES_BLOGS: BlogPost[] = [
     category: 'Surat Salon Guides',
     readTime: '4 min read',
     publishedAt: '2026-03-01',
-    author: 'Amita Patel',
-    authorRole: 'Founder & Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Katargam Studio Consultants',
+    image: 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=1200&q=80&auto=format&fit=crop',
     tags: ['Ladies Salon Surat', 'Katargam Beauty Parlour', 'Women Privacy', 'Shree Beauty Studio'],
     content: `
 ## A Sanctuary Dedicated Completely to Women
@@ -49,9 +49,9 @@ At **Shree Beauty Studio** in Radhika Society, Katargam, we made the conscious c
     category: 'Surat Salon Guides',
     readTime: '5 min read',
     publishedAt: '2026-03-02',
-    author: 'Amita Patel',
-    authorRole: 'Founder & Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Hygiene & Safety Officers',
+    image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200&q=80&auto=format&fit=crop',
     tags: ['Salon Hygiene', 'Sanitization Standards', 'Sterilization', 'Safe Salon Surat'],
     content: `
 ## Why Salon Hygiene Is Critical for Skin and Scalp Health
@@ -92,9 +92,9 @@ At **Shree Beauty Studio**, client health and safety is our foundational commitm
     category: 'Surat Salon Guides',
     readTime: '5 min read',
     publishedAt: '2026-03-03',
-    author: 'Amita Patel',
-    authorRole: 'Senior Bridal Makeup Artist & Founder',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Bridal Event Coordinators',
+    image: 'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?w=1200&q=80&auto=format&fit=crop',
     tags: ['Bridal Booking', 'Surat Wedding', 'Bridal Rate Card', 'Wedding Checklist'],
     content: `
 ## Navigating Surat's Busy Wedding Season
@@ -145,9 +145,9 @@ Follow this battle-tested checklist created by the bridal coordinators at **Shre
     category: 'Surat Salon Guides',
     readTime: '5 min read',
     publishedAt: '2026-03-04',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Stylist & Aesthetician',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Local Skincare Advisors',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80&auto=format&fit=crop',
     tags: ['Surat Climate', 'Hard Water Hair', 'Humidity Skincare', 'Local Beauty Guide'],
     content: `
 ## The Unique Environmental Realities of Surat
@@ -192,9 +192,9 @@ Regular deep-cleansing facials and restorative hair conditioning at **Shree Beau
     category: 'Surat Salon Guides',
     readTime: '4 min read',
     publishedAt: '2026-03-05',
-    author: 'Amita Patel',
-    authorRole: 'Founder & Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Client Experience Coordinators',
+    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1200&q=80&auto=format&fit=crop',
     tags: ['First Salon Visit', 'Katargam Salon', 'Shree Beauty Studio', 'Salon Amenities'],
     content: `
 ## Welcome to the Shree Beauty Family!
@@ -238,9 +238,9 @@ At **Shree Beauty Studio** in Katargam, Surat, we have welcomed thousands of cli
     category: 'Surat Salon Guides',
     readTime: '5 min read',
     publishedAt: '2026-03-06',
-    author: 'Amita Patel',
-    authorRole: 'Founder & Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Festive & Bridal Beauty Planners',
+    image: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1200&q=80&auto=format&fit=crop',
     tags: ['Festive Beauty', 'Navratri Glam', 'Diwali Glow', 'Wedding Season Surat'],
     content: `
 ## Celebrating the Rhythm of Indian Festivals in Surat

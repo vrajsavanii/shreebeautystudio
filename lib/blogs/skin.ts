@@ -10,8 +10,8 @@ export const SKIN_BLOGS: BlogPost[] = [
     category: 'Skin & Facials',
     readTime: '6 min read',
     publishedAt: '2026-03-01',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
     image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
     tags: ['Hydra Facial Surat', 'Glass Skin', 'Facial Treatment', 'Pore Cleansing', 'Katargam Salon'],
     content: `
@@ -56,8 +56,8 @@ At **Shree Beauty Studio** in Katargam, Surat, our Hydra Glow Facial is our most
     category: 'Skin & Facials',
     readTime: '5 min read',
     publishedAt: '2026-03-02',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Aesthetician',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
     image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
     tags: ['O3 Plus Facial', 'Bridal Glow', 'Bridal Skincare', 'Surat Beautician'],
     content: `
@@ -102,9 +102,9 @@ At **Shree Beauty Studio**, our certified aestheticians are trained in the authe
     category: 'Skin & Facials',
     readTime: '5 min read',
     publishedAt: '2026-03-03',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=1200&q=80&auto=format&fit=crop',
     tags: ['Acne Facial', 'Sensitive Skin', 'Pimple Treatment', 'Katargam Beautician'],
     content: `
 ## Dispelling the Myth: Can Facials Worsen Acne?
@@ -149,9 +149,9 @@ At **Shree Beauty Studio**, we customize every facial after a microscopic skin c
     category: 'Skin & Facials',
     readTime: '4 min read',
     publishedAt: '2026-03-04',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1567928804456-537466be009e?w=1200&q=80&auto=format&fit=crop',
     tags: ['Gold Facial', 'Herbal Facial', 'Anti Aging Facial', 'Surat Salon'],
     content: `
 ## The Timeless Magic of Gold in Skincare
@@ -188,9 +188,9 @@ At **Shree Beauty Studio** in Katargam, Surat, our 24K Gold & Herbal Radiance Fa
     category: 'Skin & Facials',
     readTime: '5 min read',
     publishedAt: '2026-03-05',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1515688594390-b649af70d282?w=1200&q=80&auto=format&fit=crop',
     tags: ['Tan Removal', 'D-Tan Pack', 'Facial Bleach', 'Sun Damage Repair'],
     content: `
 ## Reversing Sun Damage Safely in Coastal Gujarat
@@ -235,9 +235,9 @@ At our Katargam salon, we advocate for organic **Raaga Professional and O3+ D-Ta
     category: 'Skin & Facials',
     readTime: '5 min read',
     publishedAt: '2026-03-06',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1508746829417-e6f548d8d6ed?w=1200&q=80&auto=format&fit=crop',
     tags: ['Anti Aging', 'Skin Tightening', 'Collagen Facial', 'Wrinkle Treatment'],
     content: `
 ## Graceful Aging: Non-Invasive Firming Solutions
@@ -273,9 +273,9 @@ You don't need invasive surgical procedures to maintain youthful vitality. At **
     category: 'Skin & Facials',
     readTime: '5 min read',
     publishedAt: '2026-03-07',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=1200&q=80&auto=format&fit=crop',
     tags: ['Chemical Peels', 'Microdermabrasion', 'Skin Texture', 'Exfoliation Guide'],
     content: `
 ## Resurfacing Rough Skin: Chemical vs. Physical Exfoliation
@@ -318,9 +318,9 @@ Here is how **Chemical Enzyme Peels** compare to **Diamond Microdermabrasion** a
     category: 'Skin & Facials',
     readTime: '4 min read',
     publishedAt: '2026-03-08',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&q=80&auto=format&fit=crop',
     tags: ['Open Pores', 'Pore Tightening', 'Oily Skin Care', 'Salon Treatments'],
     content: `
 ## The Truth About Facial Pores
@@ -363,9 +363,9 @@ At **Shree Beauty Studio**, we help clients tighten pore visibility through medi
     category: 'Skin & Facials',
     readTime: '5 min read',
     publishedAt: '2026-03-09',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=1200&q=80&auto=format&fit=crop',
     tags: ['Pigmentation', 'Dark Spots Removal', 'Melasma Treatment', 'Skin Brightening'],
     content: `
 ## Conquering Hyperpigmentation in Indian Skin
@@ -402,9 +402,9 @@ Here is the targeted protocol we follow at **Shree Beauty Studio** to fade pigme
     category: 'Skin & Facials',
     readTime: '5 min read',
     publishedAt: '2026-03-10',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=1200&q=80&auto=format&fit=crop',
     tags: ['Combination Skin', 'Skincare Routine', 'Indian Skin Care', 'Daily Beauty Tips'],
     content: `
 ## Balancing the Dual Personality of Combination Skin
@@ -448,9 +448,9 @@ Using heavy creams makes the T-zone break out, while using harsh oil-control was
     category: 'Skin & Facials',
     readTime: '4 min read',
     publishedAt: '2026-03-11',
-    author: 'Bhavna Savani',
-    authorRole: 'Senior Aesthetician',
-    image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1506152983158-b4a74a01c721?w=1200&q=80&auto=format&fit=crop',
     tags: ['Dark Circles', 'Eye Care', 'Puffy Eyes', 'Eye Contour Facial'],
     content: `
 ## Why Under-Eye Skin Needs Specialized Care
@@ -493,9 +493,9 @@ At **Shree Beauty Studio**, our Eye Contour Rejuvenation treatments target all 3
     category: 'Skin & Facials',
     readTime: '4 min read',
     publishedAt: '2026-03-12',
-    author: 'Amita Patel',
-    authorRole: 'Senior Aesthetician & Founder',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f02a76f2f9c?w=1200&q=80&auto=format&fit=crop',
+    author: 'Shree Skin Care Team',
+    authorRole: 'Certified Clinical Aestheticians',
+    image: 'https://images.unsplash.com/photo-1512290903823-efb2b528b7e2?w=1200&q=80&auto=format&fit=crop',
     tags: ['Facial Aftercare', 'Skincare Tips', 'Glowing Skin', 'Salon Advice'],
     content: `
 ## Protecting Your Salon Glow Investment
