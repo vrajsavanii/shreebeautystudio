@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://shree-beauty-studio.vercel.app'),
   title: 'Shree Beauty Studio — Management System',
   description:
     'Cloud-first salon management platform for Shree Beauty Studio, Surat. Book appointments, manage billing, inventory, bridal bookings and more.',

@@ -11,6 +11,8 @@ const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/services', label: 'Services' },
   { href: '/bridal', label: 'Bridal & Siders' },
+  { href: '/about', label: 'About' },
+  { href: '/faq', label: 'FAQ' },
   { href: '/my-appointments', label: 'My Appointments' },
 ];
 

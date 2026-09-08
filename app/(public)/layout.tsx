@@ -1,48 +1,48 @@
-'use client';
+import type { Metadata } from 'next';
+import PublicLayoutClient from '@/components/customer/PublicLayoutClient';
 
-import React, { useEffect } from 'react';
-import CustomerNavbar from '@/components/customer/CustomerNavbar';
-import CustomerFooter from '@/components/customer/CustomerFooter';
-import { MessageCircle } from 'lucide-react';
-import { useSalonStore } from '@/lib/store';
+export const metadata: Metadata = {
+  title: {
+    default: 'Shree Beauty Studio — Luxury Salon & Bridal Makeup in Katargam, Surat',
+    template: '%s | Shree Beauty Studio, Surat',
+  },
+  description:
+    'Shree Beauty Studio is a premium beauty salon in Katargam, Surat offering bridal makeup, hair treatments, skincare facials, and professional beauty services. Book your appointment online or on WhatsApp.',
+  keywords: [
+    'beauty salon Surat',
+    'beauty studio Katargam Surat',
+    'bridal makeup Surat',
+    'hair salon Surat',
+    'ladies salon Surat',
+    'facial Surat',
+    'makeup artist Surat',
+    'hair treatment Surat',
+    'Shree Beauty Studio',
+    'best salon Surat',
+  ],
+  authors: [{ name: 'Shree Beauty Studio' }],
+  openGraph: {
+    type: 'website',
+    locale: 'en_IN',
+    siteName: 'Shree Beauty Studio',
+    images: [
+      {
+        url: '/logo-with-name.png',
+        width: 400,
+        height: 400,
+        alt: 'Shree Beauty Studio — Luxury Salon in Surat',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
-  const { data, updateData } = useSalonStore();
-  const whatsapp = data?.settings?.whatsapp || '919824183769';
-
-  useEffect(() => {
-    fetch('/api/public-data')
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && (res.services || res.settings || res.bridalPackages)) {
-          updateData((prev) => ({
-            ...prev,
-            settings: { ...prev.settings, ...(res.settings || {}) },
-            services: res.services && res.services.length > 0 ? res.services : prev.services,
-            bridalPackages: res.bridalPackages && res.bridalPackages.length > 0 ? res.bridalPackages : prev.bridalPackages,
-          }));
-        }
-      })
-      .catch((err) => console.warn('Public data sync notice:', err));
-  }, [updateData]);
-
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-      <CustomerNavbar />
-      <main style={{ flex: 1 }}>{children}</main>
-      <CustomerFooter />
-
-      {/* Sticky Quick WhatsApp Floating Button */}
-      <a
-        href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%27d%20like%20to%20inquire%20about%20booking.`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="cust-whatsapp-float"
-        aria-label="Chat with Shree Beauty Studio on WhatsApp"
-      >
-        <MessageCircle size={22} />
-        <span>Book via WhatsApp</span>
-      </a>
-    </div>
-  );
+  return <PublicLayoutClient>{children}</PublicLayoutClient>;
 }

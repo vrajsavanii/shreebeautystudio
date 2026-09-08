@@ -129,6 +129,12 @@ export default function CustomerFooter() {
             <Link href="/bridal" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
               Bridal &amp; Siders Packages
             </Link>
+            <Link href="/about" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+              About Us &amp; Heritage
+            </Link>
+            <Link href="/faq" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+              Help &amp; FAQs
+            </Link>
             <Link href="/book" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
               Book Online Appointment
             </Link>
