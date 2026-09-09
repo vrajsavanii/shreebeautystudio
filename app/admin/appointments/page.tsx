@@ -16,8 +16,34 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 
-type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'cancelled';
-const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed'];
+type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
+const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed', 'Not Attempted'];
+
+/**
+ * Calculates the effective work status of an appointment.
+ * Rule: If an appointment is booked but not started, it remains OPEN for up to 2 days after the booking date.
+ * After 2 days past the booking date (day 3+), it automatically transitions to 'Not Attempted'.
+ */
+export function getEffectiveWorkStatus(a: Appointment, todayDate: string = todayISO()): WorkStatus {
+  if (a.status === 'Cancelled' || a.workStatus === 'Cancelled') return 'Cancelled';
+  if (a.workStatus === 'Completed' || a.workStatus === 'Billed' || a.status === 'Completed' || a.invoiceId) {
+    return a.workStatus === 'Billed' || a.invoiceId ? 'Billed' : 'Completed';
+  }
+  if (a.workStatus === 'In Service') return 'In Service';
+  if (a.status === 'Not Attempted' || a.workStatus === 'Not Attempted') return 'Not Attempted';
+
+  if (a.date && a.date < todayDate) {
+    const [tY, tM, tD] = todayDate.split('-').map(Number);
+    const [aY, aM, aD] = a.date.split('-').map(Number);
+    const tUtc = Date.UTC(tY, tM - 1, tD);
+    const aUtc = Date.UTC(aY, aM - 1, aD);
+    const diffDays = Math.floor((tUtc - aUtc) / (1000 * 60 * 60 * 24));
+    if (diffDays > 2) {
+      return 'Not Attempted';
+    }
+  }
+  return a.workStatus || 'Booked';
+}
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -49,12 +75,39 @@ export default function AppointmentsPage() {
   const appointments = data?.appointments || [];
 
   const counts = useMemo(() => {
-    const todayCount = appointments.filter((a) => a.date === today && a.status !== 'Cancelled').length;
-    const upcomingCount = appointments.filter((a) => a.date >= today && a.status === 'Confirmed' && (a.workStatus === 'Booked' || !a.workStatus)).length;
-    const inServiceCount = appointments.filter((a) => a.workStatus === 'In Service').length;
-    const completedCount = appointments.filter((a) => a.workStatus === 'Completed' || a.workStatus === 'Billed' || a.status === 'Completed').length;
-    const cancelledCount = appointments.filter((a) => a.status === 'Cancelled' || a.workStatus === 'Cancelled').length;
-    return { all: appointments.length, today: todayCount, upcoming: upcomingCount, inService: inServiceCount, completed: completedCount, cancelled: cancelledCount };
+    let todayCount = 0;
+    let upcomingCount = 0;
+    let inServiceCount = 0;
+    let completedCount = 0;
+    let notAttemptedCount = 0;
+    let cancelledCount = 0;
+
+    appointments.forEach((a) => {
+      const ws = getEffectiveWorkStatus(a, today);
+      if (ws === 'Cancelled') {
+        cancelledCount++;
+      } else if (ws === 'Not Attempted') {
+        notAttemptedCount++;
+      } else if (ws === 'Completed' || ws === 'Billed') {
+        completedCount++;
+      } else if (ws === 'In Service') {
+        inServiceCount++;
+      } else {
+        // ws === 'Booked' (Open / Confirmed)
+        if (a.date === today) todayCount++;
+        upcomingCount++;
+      }
+    });
+
+    return {
+      all: appointments.length,
+      today: todayCount,
+      upcoming: upcomingCount,
+      inService: inServiceCount,
+      completed: completedCount,
+      notAttempted: notAttemptedCount,
+      cancelled: cancelledCount,
+    };
   }, [appointments, today]);
 
   const filtered = useMemo(() => {
@@ -70,13 +123,14 @@ export default function AppointmentsPage() {
 
         if (!matchesSearch) return false;
 
-        const ws = a.workStatus || (a.status === 'Cancelled' ? 'Cancelled' : 'Booked');
+        const ws = getEffectiveWorkStatus(a, today);
 
-        if (activeTab === 'today') return a.date === today && a.status !== 'Cancelled';
-        if (activeTab === 'upcoming') return a.date >= today && a.status === 'Confirmed' && ws === 'Booked';
+        if (activeTab === 'today') return a.date === today && ws !== 'Cancelled' && ws !== 'Not Attempted';
+        if (activeTab === 'upcoming') return ws === 'Booked';
         if (activeTab === 'inservice') return ws === 'In Service';
-        if (activeTab === 'completed') return ws === 'Completed' || ws === 'Billed' || a.status === 'Completed';
-        if (activeTab === 'cancelled') return a.status === 'Cancelled' || ws === 'Cancelled';
+        if (activeTab === 'completed') return ws === 'Completed' || ws === 'Billed';
+        if (activeTab === 'not-attempted') return ws === 'Not Attempted';
+        if (activeTab === 'cancelled') return ws === 'Cancelled';
         return true;
       })
       .sort((a, b) => b.date.localeCompare(a.date) || a.time.localeCompare(b.time));
@@ -440,6 +494,24 @@ export default function AppointmentsPage() {
 
         <button
           type="button"
+          className={`tab-btn ${activeTab === 'not-attempted' ? 'active' : ''}`}
+          onClick={() => setActiveTab('not-attempted')}
+        >
+          <span>⚠️ Not Attempted</span>
+          <span
+            className="tab-badge"
+            style={{
+              background: counts.notAttempted > 0 ? '#fef3c7' : '#f1f5f9',
+              color: counts.notAttempted > 0 ? '#92400e' : '#64748b',
+              fontWeight: 800,
+            }}
+          >
+            {counts.notAttempted}
+          </span>
+        </button>
+
+        <button
+          type="button"
           className={`tab-btn ${activeTab === 'cancelled' ? 'active' : ''}`}
           onClick={() => setActiveTab('cancelled')}
         >
@@ -475,7 +547,7 @@ export default function AppointmentsPage() {
                     </thead>
                     <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
                       {filtered.map((a) => {
-                        const ws = a.workStatus || (a.status === 'Cancelled' ? 'Cancelled' : 'Booked');
+                        const ws = getEffectiveWorkStatus(a, today);
                         return (
                           <motion.tr
                             key={a.id}
@@ -505,6 +577,24 @@ export default function AppointmentsPage() {
                             <td>
                               {ws === 'Cancelled' ? (
                                 <span className="badge-chip cancelled">Cancelled</span>
+                              ) : ws === 'Not Attempted' ? (
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: 999,
+                                    background: '#fef3c7',
+                                    color: '#92400e',
+                                    border: '1px solid #fde68a',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 3,
+                                  }}
+                                  title="Appointment was not started within 2 days after scheduled date"
+                                >
+                                  ⚠️ Not Attempted
+                                </span>
                               ) : (
                                 <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                                   <span
@@ -570,7 +660,7 @@ export default function AppointmentsPage() {
                             </td>
                             <td>
                               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                {ws === 'Booked' && (
+                                {(ws === 'Booked' || ws === 'Not Attempted') && (
                                   <button
                                     className="btn btn-sm btn-ghost"
                                     style={{ color: 'var(--teal)', fontSize: 10.5, padding: '3px 6px' }}

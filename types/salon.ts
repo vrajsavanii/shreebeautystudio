@@ -94,8 +94,8 @@ export interface Customer {
   lastVisit?: string;
 }
 
-export type AppointmentStatus = 'Confirmed' | 'Pending' | 'Cancelled' | 'Completed';
-export type WorkStatus = 'Booked' | 'In Service' | 'Completed' | 'Billed' | 'Cancelled';
+export type AppointmentStatus = 'Confirmed' | 'Pending' | 'Cancelled' | 'Completed' | 'Not Attempted';
+export type WorkStatus = 'Booked' | 'In Service' | 'Completed' | 'Billed' | 'Cancelled' | 'Not Attempted';
 
 export interface Appointment {
   id: string;
