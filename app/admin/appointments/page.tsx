@@ -3,11 +3,11 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, fmtDate, money, formatCustomerContactName } from '@/lib/utils';
-import { Appointment, AppointmentStatus, WorkStatus, Invoice } from '@/types/salon';
+import { Appointment, AppointmentStatus, WorkStatus, Invoice, StudioHoliday, HolidayType } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
@@ -16,6 +16,7 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
+import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
 type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
 const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed', 'Not Attempted'];
@@ -58,7 +59,68 @@ export default function AppointmentsPage() {
   const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
   const [isSplitAdvance, setIsSplitAdvance] = useState(false);
   const [splitAdvanceAmounts, setSplitAdvanceAmounts] = useState<Record<string, number | ''>>({});
+  const [holidayModalOpen, setHolidayModalOpen] = useState(false);
+  const [holidayForm, setHolidayForm] = useState<{
+    date: string;
+    endDate: string;
+    type: HolidayType;
+    reason: string;
+    notes: string;
+  }>({
+    date: todayISO(),
+    endDate: '',
+    type: 'Holiday',
+    reason: '',
+    notes: '',
+  });
+
   const today = todayISO();
+  const holidays = data?.holidays || [];
+
+  const handleAddHoliday = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!holidayForm.date) {
+      toast('Please select a date', 'error');
+      return;
+    }
+    if (!holidayForm.reason.trim()) {
+      toast('Please enter a reason / title (e.g. Diwali Holiday, Full Day Housefull)', 'error');
+      return;
+    }
+
+    const item: StudioHoliday = {
+      id: uid(),
+      date: holidayForm.date,
+      endDate: holidayForm.endDate || undefined,
+      type: holidayForm.type,
+      reason: holidayForm.reason.trim(),
+      notes: holidayForm.notes.trim() || undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    updateData((d) => ({
+      ...d,
+      holidays: [item, ...(d.holidays || []).filter((h) => h.date !== item.date)],
+    }));
+    scheduleSave();
+    toast(`✅ Marked ${fmtDate(item.date)} as ${item.type}!`);
+    setHolidayForm({
+      date: todayISO(),
+      endDate: '',
+      type: 'Holiday',
+      reason: '',
+      notes: '',
+    });
+  };
+
+  const handleDeleteHoliday = (id: string) => {
+    updateData((d) => ({
+      ...d,
+      holidays: (d.holidays || []).filter((h) => h.id !== id),
+    }));
+    scheduleSave();
+    toast('Holiday / Blocked date removed', 'info');
+  };
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<Appointment>({
     defaultValues: {
@@ -427,7 +489,24 @@ export default function AppointmentsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setHolidayModalOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              borderColor: '#f59e0b',
+              color: '#b45309',
+              background: '#fffbeb',
+              fontWeight: 700,
+            }}
+            title="Manage Studio Holidays, Closed days, or Fully Booked dates"
+          >
+            <CalendarOff size={15} /> Holidays &amp; Slot Full ({holidays.length})
+          </button>
           <button
             type="button"
             className="btn btn-ghost"
@@ -438,13 +517,58 @@ export default function AppointmentsPage() {
             }}
             style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--teal)', color: 'var(--teal)', fontWeight: 700 }}
           >
-            <Eye size={15} /> Copy Customer Booking Link
+            <Eye size={15} /> Copy Booking Link
           </button>
           <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
             <Plus size={15} /> New Appointment
           </motion.button>
         </div>
       </div>
+
+      {/* Today's Studio Holiday / Fully Booked Alert Banner */}
+      {(() => {
+        const todayCheck = checkDateHolidayOrBlocked(today, holidays);
+        if (!todayCheck.isBlocked) return null;
+        const isHoli = todayCheck.holiday?.type === 'Holiday';
+        return (
+          <div
+            style={{
+              background: isHoli ? '#fef3c7' : '#fee2e2',
+              border: `1.5px solid ${isHoli ? '#fde68a' : '#fecaca'}`,
+              color: isHoli ? '#92400e' : '#991b1b',
+              borderRadius: 12,
+              padding: '12px 18px',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 22 }}>{isHoli ? '🏖️' : '⛔'}</span>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 13.5 }}>
+                  Today ({fmtDate(today)}) is marked as {isHoli ? 'Studio Holiday (Closed)' : 'Fully Booked / Slots Full'}!
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.9 }}>
+                  Notice: <b>{todayCheck.holiday?.reason}</b> {todayCheck.holiday?.notes ? `· ${todayCheck.holiday?.notes}` : ''}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => setHolidayModalOpen(true)}
+              style={{ fontSize: 11.5, fontWeight: 800, background: '#ffffff', borderColor: 'currentColor' }}
+            >
+              Manage Holidays &rarr;
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Sub Tabs */}
       <div className="tabs">
@@ -812,6 +936,30 @@ export default function AppointmentsPage() {
           <div className="form-group">
             <label className="label">Date</label>
             <input type="date" className="input" {...register('date', { required: true })} />
+            {(() => {
+              const check = checkDateHolidayOrBlocked(watch('date'), holidays);
+              if (!check.isBlocked) return null;
+              return (
+                <div
+                  style={{
+                    background: check.holiday?.type === 'Holiday' ? '#fef3c7' : '#fee2e2',
+                    border: `1px solid ${check.holiday?.type === 'Holiday' ? '#fde68a' : '#fecaca'}`,
+                    color: check.holiday?.type === 'Holiday' ? '#92400e' : '#991b1b',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    marginTop: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <AlertTriangle size={14} />
+                  <span>{check.badgeText} (Admin Override Allowed)</span>
+                </div>
+              );
+            })()}
           </div>
           <div className="form-group">
             <label className="label">Time</label>
@@ -1098,6 +1246,168 @@ export default function AppointmentsPage() {
         invoice={receiptModalInv}
         salonData={data}
       />
+
+      {/* Studio Holidays & Slot Full Management Modal */}
+      <Modal
+        isOpen={holidayModalOpen}
+        onClose={() => setHolidayModalOpen(false)}
+        title="📅 Studio Holidays &amp; Full Bookings Management"
+        footer={
+          <button className="btn btn-ghost" onClick={() => setHolidayModalOpen(false)}>
+            Close
+          </button>
+        }
+      >
+        <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: '0 0 16px' }}>
+          Mark dates when Shree Beauty Studio is <b>Closed / on Holiday (રજા)</b> or <b>Fully Booked / Slots Full (હાઉસફુલ)</b>. When marked, customers booking online will see these dates as unavailable.
+        </p>
+
+        {/* Add Holiday / Block Date Form */}
+        <form onSubmit={handleAddHoliday} style={{ background: '#f8fafc', border: '1.5px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+          <div style={{ fontWeight: 800, fontSize: 13.5, color: 'var(--text)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>➕ Mark New Holiday / Block Date</span>
+          </div>
+
+          <div className="form-grid" style={{ marginBottom: 12 }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="label">Date (Single Day or Start Date) *</label>
+              <input
+                type="date"
+                className="input"
+                required
+                value={holidayForm.date}
+                onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="label">Status / Block Type *</label>
+              <select
+                className="input"
+                value={holidayForm.type}
+                onChange={(e) => setHolidayForm({ ...holidayForm, type: e.target.value as HolidayType })}
+              >
+                <option value="Holiday">🏖️ Studio Holiday (Salon Closed / રજા)</option>
+                <option value="Full Booking">⛔ Full Booking / Slots Full (હાઉસફુલ)</option>
+                <option value="Closed">🔒 Studio Closed (Weekly Off / અંગત)</option>
+                <option value="Maintenance">🛠️ Maintenance / Private Session</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="form-grid" style={{ marginBottom: 12 }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="label">Reason / Occasion / Title *</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Diwali Vacation, VIP Bridal Full Day, Studio Maintenance"
+                value={holidayForm.reason}
+                onChange={(e) => setHolidayForm({ ...holidayForm, reason: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="label">End Date (Optional — for multi-day vacation)</label>
+              <input
+                type="date"
+                className="input"
+                min={holidayForm.date}
+                value={holidayForm.endDate}
+                onChange={(e) => setHolidayForm({ ...holidayForm, endDate: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+            <button
+              type="submit"
+              className="btn btn-primary btn-sm"
+              style={{
+                background: holidayForm.type === 'Holiday' ? 'linear-gradient(135deg, #d97706, #b45309)' : holidayForm.type === 'Full Booking' ? 'linear-gradient(135deg, #e11d48, #be123c)' : 'var(--teal)',
+                borderColor: 'transparent',
+                fontWeight: 800,
+              }}
+            >
+              + Save Holiday / Block Date
+            </button>
+          </div>
+        </form>
+
+        {/* Existing Holidays / Blocked Dates List */}
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>
+              📋 Active Holidays &amp; Blocked Dates ({(holidays || []).length})
+            </span>
+          </div>
+
+          {(holidays || []).length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px 16px', background: '#f8fafc', borderRadius: 10, border: '1px dashed var(--border)', color: 'var(--muted)', fontSize: 12.5 }}>
+              No holidays or full booking dates marked yet. All regular dates are open for booking.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflowY: 'auto' }}>
+              {(holidays || []).map((h) => {
+                const isHoli = h.type === 'Holiday';
+                const isFull = h.type === 'Full Booking';
+                return (
+                  <div
+                    key={h.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: isHoli ? '#fffbeb' : isFull ? '#fff1f2' : '#f8fafc',
+                      border: `1.5px solid ${isHoli ? '#fde68a' : isFull ? '#fecdd3' : 'var(--border)'}`,
+                      borderRadius: 10,
+                      padding: '10px 14px',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 18 }}>{isHoli ? '🏖️' : isFull ? '⛔' : '🔒'}</span>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>
+                            {fmtDate(h.date)} {h.endDate ? `→ ${fmtDate(h.endDate)}` : ''}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 800,
+                              padding: '2px 8px',
+                              borderRadius: 999,
+                              background: isHoli ? '#fef3c7' : isFull ? '#ffe4e6' : '#e2e8f0',
+                              color: isHoli ? '#92400e' : isFull ? '#9f1239' : '#334155',
+                            }}
+                          >
+                            {h.type}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                          {h.reason} {h.notes ? `(${h.notes})` : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn-icon danger"
+                      onClick={() => handleDeleteHoliday(h.id)}
+                      title="Delete / Unblock this date"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -780,6 +780,8 @@ export const DEFAULT_DATA: SalonData = {
   bankAccounts: [],
   accountTransfers: [],
   transferSeq: 1001,
+  // Studio Holidays & Blocked Dates
+  holidays: [],
 };
 
 export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonData {
@@ -841,6 +843,8 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     bankAccounts: Array.isArray(incoming.bankAccounts) ? incoming.bankAccounts : DEFAULT_DATA.bankAccounts,
     accountTransfers: Array.isArray(incoming.accountTransfers) ? incoming.accountTransfers : DEFAULT_DATA.accountTransfers,
     transferSeq: typeof incoming.transferSeq === 'number' ? incoming.transferSeq : DEFAULT_DATA.transferSeq,
+    // Studio Holidays & Blocked Dates
+    holidays: Array.isArray(incoming.holidays) ? incoming.holidays : (DEFAULT_DATA.holidays || []),
   };
 }
 

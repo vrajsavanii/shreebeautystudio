@@ -27,6 +27,7 @@ import { sendDirectWhatsAppMessage, appointmentCustomerMessage } from '@/lib/wha
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl, downloadICS } from '@/lib/calendar';
+import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
 const TIME_SLOTS = [
   '09:00 AM',
@@ -106,6 +107,16 @@ export default function PublicBookingPage() {
     }, 0);
   }, [selectedBridalPkgIds, bridalPackages]);
 
+  // Holiday & Fully Booked Checks
+  const regularHolidayCheck = useMemo(
+    () => checkDateHolidayOrBlocked(bookingDate, data?.holidays || []),
+    [bookingDate, data?.holidays]
+  );
+  const bridalHolidayCheck = useMemo(
+    () => checkDateHolidayOrBlocked(weddingDate, data?.holidays || []),
+    [weddingDate, data?.holidays]
+  );
+
   const toggleService = (name: string) => {
     setSelectedServices((prev) =>
       prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
@@ -120,6 +131,12 @@ export default function PublicBookingPage() {
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const activeCheck = bookingMode === 'bridal' ? bridalHolidayCheck : regularHolidayCheck;
+    if (activeCheck.isBlocked) {
+      alert(activeCheck.userMessage);
+      return;
+    }
 
     if (!customerName.trim()) {
       alert('Please enter your full name.');
@@ -795,7 +812,7 @@ export default function PublicBookingPage() {
                             width: '100%',
                             padding: '9px 12px',
                             borderRadius: 10,
-                            border: '1.5px solid #cbd5e1',
+                            border: `1.5px solid ${regularHolidayCheck.isBlocked ? '#f43f5e' : '#cbd5e1'}`,
                             fontSize: 13,
                             fontWeight: 700,
                             outline: 'none',
@@ -810,6 +827,7 @@ export default function PublicBookingPage() {
                         <select
                           value={selectedStaff}
                           onChange={(e) => setSelectedStaff(e.target.value)}
+                          disabled={regularHolidayCheck.isBlocked}
                           style={{
                             width: '100%',
                             padding: '9px 12px',
@@ -818,6 +836,7 @@ export default function PublicBookingPage() {
                             fontSize: 13,
                             fontWeight: 600,
                             outline: 'none',
+                            opacity: regularHolidayCheck.isBlocked ? 0.6 : 1,
                           }}
                         >
                           <option value="">Any Senior Beautician</option>
@@ -830,7 +849,24 @@ export default function PublicBookingPage() {
                       </div>
                     </div>
 
-                    <div>
+                    {regularHolidayCheck.isBlocked && (
+                      <div
+                        style={{
+                          background: regularHolidayCheck.holiday?.type === 'Holiday' ? '#fef3c7' : '#fee2e2',
+                          border: `1.5px solid ${regularHolidayCheck.holiday?.type === 'Holiday' ? '#fde68a' : '#fecaca'}`,
+                          color: regularHolidayCheck.holiday?.type === 'Holiday' ? '#92400e' : '#991b1b',
+                          borderRadius: 12,
+                          padding: '12px 16px',
+                          marginBottom: 14,
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {regularHolidayCheck.userMessage}
+                      </div>
+                    )}
+
+                    <div style={{ opacity: regularHolidayCheck.isBlocked ? 0.4 : 1, pointerEvents: regularHolidayCheck.isBlocked ? 'none' : 'auto' }}>
                       <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 6 }}>
                         Select Time Slot:
                       </label>
@@ -967,7 +1003,7 @@ export default function PublicBookingPage() {
                             width: '100%',
                             padding: '9px 12px',
                             borderRadius: 10,
-                            border: '1.5px solid #cbd5e1',
+                            border: `1.5px solid ${bridalHolidayCheck.isBlocked ? '#f43f5e' : '#cbd5e1'}`,
                             fontSize: 13,
                             fontWeight: 700,
                             outline: 'none',
@@ -996,6 +1032,23 @@ export default function PublicBookingPage() {
                         />
                       </div>
                     </div>
+
+                    {bridalHolidayCheck.isBlocked && (
+                      <div
+                        style={{
+                          background: bridalHolidayCheck.holiday?.type === 'Holiday' ? '#fef3c7' : '#fee2e2',
+                          border: `1.5px solid ${bridalHolidayCheck.holiday?.type === 'Holiday' ? '#fde68a' : '#fecaca'}`,
+                          color: bridalHolidayCheck.holiday?.type === 'Holiday' ? '#92400e' : '#991b1b',
+                          borderRadius: 12,
+                          padding: '12px 16px',
+                          marginBottom: 14,
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {bridalHolidayCheck.userMessage}
+                      </div>
+                    )}
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                       <div>
@@ -1140,44 +1193,62 @@ export default function PublicBookingPage() {
               </div>
 
               {/* Submit Button */}
-              <motion.button
-                type="submit"
-                disabled={
-                  isSubmitting ||
-                  (bookingMode === 'regular' && selectedServices.length === 0) ||
-                  (bookingMode === 'bridal' && selectedBridalPkgIds.length === 0)
-                }
-                style={{
-                  width: '100%',
-                  padding: '14px 20px',
-                  borderRadius: 14,
-                  background:
-                    bookingMode === 'bridal'
-                      ? 'linear-gradient(135deg, #db2777 0%, #be185d 100%)'
-                      : 'linear-gradient(135deg, #05424a 0%, #0d626e 100%)',
-                  color: '#ffffff',
-                  fontWeight: 900,
-                  fontSize: 15,
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  boxShadow:
-                    bookingMode === 'bridal'
-                      ? '0 8px 24px rgba(219,39,119,0.35)'
-                      : '0 8px 24px rgba(5,66,74,0.3)',
-                }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {bookingMode === 'bridal' ? <Crown size={18} /> : <Sparkles size={18} />}
-                {isSubmitting
-                  ? 'Processing Booking…'
-                  : bookingMode === 'bridal'
-                  ? `Confirm Bridal Booking (${money(bridalTotal)})`
-                  : `Confirm Booking (${money(regularTotal)})`}
-              </motion.button>
+              {(() => {
+                const activeHolidayCheck = bookingMode === 'bridal' ? bridalHolidayCheck : regularHolidayCheck;
+                const isBlocked = activeHolidayCheck.isBlocked;
+
+                return (
+                  <motion.button
+                    type="submit"
+                    disabled={
+                      isSubmitting ||
+                      isBlocked ||
+                      (bookingMode === 'regular' && selectedServices.length === 0) ||
+                      (bookingMode === 'bridal' && selectedBridalPkgIds.length === 0)
+                    }
+                    style={{
+                      width: '100%',
+                      padding: '14px 20px',
+                      borderRadius: 14,
+                      background: isBlocked
+                        ? '#94a3b8'
+                        : bookingMode === 'bridal'
+                        ? 'linear-gradient(135deg, #db2777 0%, #be185d 100%)'
+                        : 'linear-gradient(135deg, #05424a 0%, #0d626e 100%)',
+                      color: '#ffffff',
+                      fontWeight: 900,
+                      fontSize: 15,
+                      border: 'none',
+                      cursor: isBlocked ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: isBlocked
+                        ? 'none'
+                        : bookingMode === 'bridal'
+                        ? '0 8px 24px rgba(219,39,119,0.35)'
+                        : '0 8px 24px rgba(5,66,74,0.3)',
+                    }}
+                    whileTap={isBlocked ? {} : { scale: 0.98 }}
+                  >
+                    {isBlocked ? (
+                      <span>⛔</span>
+                    ) : bookingMode === 'bridal' ? (
+                      <Crown size={18} />
+                    ) : (
+                      <Sparkles size={18} />
+                    )}
+                    {isSubmitting
+                      ? 'Processing Booking…'
+                      : isBlocked
+                      ? `${activeHolidayCheck.badgeText} - Booking Unavailable`
+                      : bookingMode === 'bridal'
+                      ? `Confirm Bridal Booking (${money(bridalTotal)})`
+                      : `Confirm Booking (${money(regularTotal)})`}
+                  </motion.button>
+                );
+              })()}
             </motion.form>
           )}
         </AnimatePresence>

@@ -470,6 +470,19 @@ export interface AccountTransfer {
   notes?: string;
 }
 
+// ── Studio Holidays & Blocked / Full Booking Dates ───────────────────────────
+export type HolidayType = 'Holiday' | 'Full Booking' | 'Closed' | 'Maintenance';
+
+export interface StudioHoliday {
+  id: string;
+  date: string; // YYYY-MM-DD
+  endDate?: string; // Optional end date for multi-day holiday
+  type: HolidayType;
+  reason: string;
+  notes?: string;
+  createdAt?: string;
+}
+
 // ── Main SalonData ────────────────────────────────────────────────────────────
 export interface SalonData {
   settings: SalonSettings;
@@ -502,4 +515,6 @@ export interface SalonData {
   bankAccounts?: BankAccount[];
   accountTransfers?: AccountTransfer[];
   transferSeq?: number;
+  // Holidays & Blocked Dates
+  holidays?: StudioHoliday[];
 }

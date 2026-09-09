@@ -59,6 +59,31 @@ export async function POST(req: NextRequest) {
     }
 
     const data = rows[0].data;
+
+    // Check if the requested date is marked as Studio Holiday, Closed, or Fully Booked
+    const holidays = data.holidays || [];
+    const holidayMatch = holidays.find((h: any) => {
+      if (h.date === date) return true;
+      if (h.endDate && date >= h.date && date <= h.endDate) return true;
+      return false;
+    });
+
+    if (holidayMatch) {
+      const msg =
+        holidayMatch.type === 'Holiday'
+          ? `🏖️ Studio is closed for Holiday on this date (${holidayMatch.reason}).`
+          : holidayMatch.type === 'Full Booking'
+          ? `⛔ All slots are Fully Booked for this date (${holidayMatch.reason}).`
+          : `🔒 Studio is closed on this date (${holidayMatch.reason}).`;
+
+      return NextResponse.json({
+        slots: [],
+        message: msg,
+        isBlocked: true,
+        holiday: holidayMatch,
+      });
+    }
+
     const settings = data.settings || {};
     const openTime = timeToMinutes(settings.open || '10:00');
     const closeTime = timeToMinutes(settings.close || '19:00');
