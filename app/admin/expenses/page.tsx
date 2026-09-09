@@ -2825,22 +2825,22 @@ export default function ExpensesPage() {
             </select>
           </div>
 
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <div className="form-group">
             <label className="label">Paid To / Recipient</label>
             <input
               type="text"
               className="input"
-              placeholder="e.g. Building Landlord, Milkman, Tea Stall, Housekeeper"
+              placeholder="e.g. Building Landlord, Milkman, Tea Stall"
               {...register('paidTo')}
             />
           </div>
 
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <div className="form-group">
             <label className="label">Notes / Description</label>
             <input
               type="text"
               className="input"
-              placeholder="e.g. Electricity bill for July / Fresh towels laundry"
+              placeholder="e.g. Electricity bill / Laundry"
               {...register('notes')}
             />
           </div>
@@ -3125,12 +3125,12 @@ export default function ExpensesPage() {
             />
           </div>
 
-          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <div className="form-group">
             <label className="label">Notes / Purpose</label>
             <input
               type="text"
               className="input"
-              placeholder="e.g. Daily cash collection deposited in bank / ATM cash withdrawal"
+              placeholder="e.g. Daily cash deposit / ATM withdrawal"
               value={transferForm.notes}
               onChange={(e) => setTransferForm({ ...transferForm, notes: e.target.value })}
             />
@@ -3172,7 +3172,7 @@ export default function ExpensesPage() {
                 setPaymentInItem(null);
               }}
             >
-              Cancel (રદ કરો)
+              Cancel
             </button>
             <button
               className="btn btn-primary"
@@ -3185,100 +3185,86 @@ export default function ExpensesPage() {
         }
       >
         {paymentInItem && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Customer Summary Header Box */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Customer Summary Compact Strip */}
             <div style={{
               background: '#f0fdf4',
-              border: '1.5px solid #bbf7d0',
-              borderRadius: 12,
-              padding: '14px 16px',
+              border: '1px solid #bbf7d0',
+              borderRadius: 8,
+              padding: '8px 12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 8,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <User size={16} /> {paymentInItem.name}
-                  </div>
-                  {paymentInItem.mobile && paymentInItem.mobile !== '-' && (
-                    <div style={{ fontSize: 12, color: '#15803d', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Phone size={12} /> {paymentInItem.mobile}
-                    </div>
-                  )}
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <User size={15} /> {paymentInItem.name}
+                </span>
+                {paymentInItem.mobile && paymentInItem.mobile !== '-' && (
+                  <span style={{ fontSize: 11.5, color: '#15803d', fontWeight: 600 }}>
+                    📞 {paymentInItem.mobile}
+                  </span>
+                )}
                 <span style={{
-                  padding: '4px 10px',
-                  borderRadius: 8,
-                  fontSize: 11.5,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  fontSize: 11,
                   fontWeight: 800,
                   background: paymentInItem.type === 'Bridal' ? '#fce7f3' : '#e0f2fe',
                   color: paymentInItem.type === 'Bridal' ? '#be185d' : '#0369a1',
                 }}>
-                  {paymentInItem.type === 'Bridal' ? '👑 Bridal' : '📄 Invoice'}: {paymentInItem.no}
+                  {paymentInItem.type === 'Bridal' ? '👑 Bridal' : '📄 Bill'}: {paymentInItem.no}
                 </span>
               </div>
-
-              {/* Stats pill row */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 8,
-                marginTop: 12,
-                paddingTop: 10,
-                borderTop: '1px dashed #86efac',
-                textAlign: 'center',
-              }}>
-                <div>
-                  <div style={{ fontSize: 10.5, color: '#4b5563', textTransform: 'uppercase', fontWeight: 600 }}>Total Bill</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#1f2937' }}>{money(paymentInItem.total)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10.5, color: '#4b5563', textTransform: 'uppercase', fontWeight: 600 }}>Already Paid</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#059669' }}>{money(paymentInItem.paid)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10.5, color: '#dc2626', textTransform: 'uppercase', fontWeight: 700 }}>Pending Due</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: '#dc2626' }}>{money(paymentInItem.balance)}</div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                <span>Total: <b>{money(paymentInItem.total)}</b></span>
+                <span style={{ color: '#059669' }}>Paid: <b>{money(paymentInItem.paid)}</b></span>
+                <span style={{ color: '#dc2626', fontWeight: 900, background: '#fee2e2', padding: '2px 8px', borderRadius: 6 }}>
+                  Pending: {money(paymentInItem.balance)}
+                </span>
               </div>
             </div>
 
-            {/* Form Fields */}
-            <div className="form-grid">
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label className="label" style={{ margin: 0 }}>Receiving Amount (જમા કરવાની રકમ ₹) *</label>
-                  <div style={{ display: 'flex', gap: 6 }}>
+            {/* Form Fields - 2x2 Grid */}
+            <div className="form-grid" style={{ gap: 10 }}>
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                  <label className="label" style={{ margin: 0, fontSize: 12 }}>Receiving Amount (₹) *</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
                     <button
                       type="button"
                       style={{
-                        padding: '2px 8px',
-                        fontSize: 11,
+                        padding: '1px 6px',
+                        fontSize: 10.5,
                         fontWeight: 700,
                         background: '#dcfce7',
                         color: '#15803d',
                         border: '1px solid #86efac',
-                        borderRadius: 6,
+                        borderRadius: 4,
                         cursor: 'pointer',
                       }}
                       onClick={() => setPaymentInAmount(paymentInItem.balance)}
                     >
-                      Full: {money(paymentInItem.balance)}
+                      Full
                     </button>
                     {paymentInItem.balance > 100 && (
                       <button
                         type="button"
                         style={{
-                          padding: '2px 8px',
-                          fontSize: 11,
+                          padding: '1px 6px',
+                          fontSize: 10.5,
                           fontWeight: 700,
                           background: '#f1f5f9',
                           color: '#475569',
                           border: '1px solid var(--border)',
-                          borderRadius: 6,
+                          borderRadius: 4,
                           cursor: 'pointer',
                         }}
                         onClick={() => setPaymentInAmount(Math.round(paymentInItem.balance / 2))}
                       >
-                        50%: {money(Math.round(paymentInItem.balance / 2))}
+                        50%
                       </button>
                     )}
                   </div>
@@ -3289,7 +3275,7 @@ export default function ExpensesPage() {
                   max={paymentInItem.balance}
                   step="any"
                   className="input"
-                  style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}
+                  style={{ fontSize: 14, fontWeight: 800, color: '#059669', height: 36 }}
                   placeholder="₹ Amount"
                   value={paymentInAmount}
                   onChange={(e) => setPaymentInAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -3298,9 +3284,10 @@ export default function ExpensesPage() {
               </div>
 
               <div className="form-group">
-                <label className="label">Payment Mode (ચૂકવણી મોડ) *</label>
+                <label className="label" style={{ marginBottom: 2, fontSize: 12 }}>Payment Mode *</label>
                 <select
                   className="input"
+                  style={{ height: 36 }}
                   value={paymentInMode}
                   onChange={(e) => setPaymentInMode(e.target.value)}
                 >
@@ -3313,21 +3300,23 @@ export default function ExpensesPage() {
               </div>
 
               <div className="form-group">
-                <label className="label">Payment Date (તારીખ) *</label>
+                <label className="label" style={{ marginBottom: 2, fontSize: 12 }}>Payment Date *</label>
                 <input
                   type="date"
                   className="input"
+                  style={{ height: 36 }}
                   value={paymentInDate}
                   onChange={(e) => setPaymentInDate(e.target.value)}
                 />
               </div>
 
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="label">Notes / Reference (નોંધ)</label>
+              <div className="form-group">
+                <label className="label" style={{ marginBottom: 2, fontSize: 12 }}>Notes / Reference</label>
                 <input
                   type="text"
                   className="input"
-                  placeholder="e.g. Cleared remaining balance / UPI Ref ID"
+                  style={{ height: 36 }}
+                  placeholder="e.g. Cleared balance / UPI Ref"
                   value={paymentInNotes}
                   onChange={(e) => setPaymentInNotes(e.target.value)}
                 />
@@ -3354,7 +3343,7 @@ export default function ExpensesPage() {
                 setPaymentOutItem(null);
               }}
             >
-              Cancel (રદ કરો)
+              Cancel
             </button>
             <button
               className="btn btn-primary"
@@ -3367,24 +3356,27 @@ export default function ExpensesPage() {
         }
       >
         {paymentOutItem && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Supplier Summary Header Box */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Supplier Summary Compact Strip */}
             <div style={{
               background: '#f5f3ff',
-              border: '1.5px solid #ddd6fe',
-              borderRadius: 12,
-              padding: '14px 16px',
+              border: '1px solid #ddd6fe',
+              borderRadius: 8,
+              padding: '8px 12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 8,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#6b21a8', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Building2 size={16} /> {paymentOutItem.supplier}
-                  </div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#6b21a8', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Building2 size={15} /> {paymentOutItem.supplier}
+                </span>
                 <span style={{
-                  padding: '4px 10px',
-                  borderRadius: 8,
-                  fontSize: 11.5,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  fontSize: 11,
                   fontWeight: 800,
                   background: '#ede9fe',
                   color: '#6b21a8',
@@ -3392,70 +3384,53 @@ export default function ExpensesPage() {
                   🛒 Purchase: {paymentOutItem.no}
                 </span>
               </div>
-
-              {/* Stats pill row */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 8,
-                marginTop: 12,
-                paddingTop: 10,
-                borderTop: '1px dashed #c4b5fd',
-                textAlign: 'center',
-              }}>
-                <div>
-                  <div style={{ fontSize: 10.5, color: '#4b5563', textTransform: 'uppercase', fontWeight: 600 }}>Total Purchase</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#1f2937' }}>{money(paymentOutItem.total)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10.5, color: '#4b5563', textTransform: 'uppercase', fontWeight: 600 }}>Already Paid</div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#059669' }}>{money(paymentOutItem.paid)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 10.5, color: '#dc2626', textTransform: 'uppercase', fontWeight: 700 }}>Pending Payable</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: '#dc2626' }}>{money(paymentOutItem.balance)}</div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                <span>Total: <b>{money(paymentOutItem.total)}</b></span>
+                <span style={{ color: '#059669' }}>Paid: <b>{money(paymentOutItem.paid)}</b></span>
+                <span style={{ color: '#dc2626', fontWeight: 900, background: '#fee2e2', padding: '2px 8px', borderRadius: 6 }}>
+                  Payable: {money(paymentOutItem.balance)}
+                </span>
               </div>
             </div>
 
-            {/* Form Fields */}
-            <div className="form-grid">
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <label className="label" style={{ margin: 0 }}>Paying Amount (ચૂકવવાની રકમ ₹) *</label>
-                  <div style={{ display: 'flex', gap: 6 }}>
+            {/* Form Fields - 2x2 Grid */}
+            <div className="form-grid" style={{ gap: 10 }}>
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                  <label className="label" style={{ margin: 0, fontSize: 12 }}>Paying Amount (₹) *</label>
+                  <div style={{ display: 'flex', gap: 4 }}>
                     <button
                       type="button"
                       style={{
-                        padding: '2px 8px',
-                        fontSize: 11,
+                        padding: '1px 6px',
+                        fontSize: 10.5,
                         fontWeight: 700,
                         background: '#ede9fe',
                         color: '#6b21a8',
                         border: '1px solid #c4b5fd',
-                        borderRadius: 6,
+                        borderRadius: 4,
                         cursor: 'pointer',
                       }}
                       onClick={() => setPaymentOutAmount(paymentOutItem.balance)}
                     >
-                      Full: {money(paymentOutItem.balance)}
+                      Full
                     </button>
                     {paymentOutItem.balance > 100 && (
                       <button
                         type="button"
                         style={{
-                          padding: '2px 8px',
-                          fontSize: 11,
+                          padding: '1px 6px',
+                          fontSize: 10.5,
                           fontWeight: 700,
                           background: '#f1f5f9',
                           color: '#475569',
                           border: '1px solid var(--border)',
-                          borderRadius: 6,
+                          borderRadius: 4,
                           cursor: 'pointer',
                         }}
                         onClick={() => setPaymentOutAmount(Math.round(paymentOutItem.balance / 2))}
                       >
-                        50%: {money(Math.round(paymentOutItem.balance / 2))}
+                        50%
                       </button>
                     )}
                   </div>
@@ -3466,7 +3441,7 @@ export default function ExpensesPage() {
                   max={paymentOutItem.balance}
                   step="any"
                   className="input"
-                  style={{ fontSize: 16, fontWeight: 800, color: '#7c3aed' }}
+                  style={{ fontSize: 14, fontWeight: 800, color: '#7c3aed', height: 36 }}
                   placeholder="₹ Amount"
                   value={paymentOutAmount}
                   onChange={(e) => setPaymentOutAmount(e.target.value === '' ? '' : Number(e.target.value))}
@@ -3475,9 +3450,10 @@ export default function ExpensesPage() {
               </div>
 
               <div className="form-group">
-                <label className="label">Payment Mode (ચૂકવણી મોડ) *</label>
+                <label className="label" style={{ marginBottom: 2, fontSize: 12 }}>Payment Mode *</label>
                 <select
                   className="input"
+                  style={{ height: 36 }}
                   value={paymentOutMode}
                   onChange={(e) => setPaymentOutMode(e.target.value)}
                 >
@@ -3490,21 +3466,23 @@ export default function ExpensesPage() {
               </div>
 
               <div className="form-group">
-                <label className="label">Payment Date (તારીખ) *</label>
+                <label className="label" style={{ marginBottom: 2, fontSize: 12 }}>Payment Date *</label>
                 <input
                   type="date"
                   className="input"
+                  style={{ height: 36 }}
                   value={paymentOutDate}
                   onChange={(e) => setPaymentOutDate(e.target.value)}
                 />
               </div>
 
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label className="label">Notes / Reference (નોંધ)</label>
+              <div className="form-group">
+                <label className="label" style={{ marginBottom: 2, fontSize: 12 }}>Notes / Reference</label>
                 <input
                   type="text"
                   className="input"
-                  placeholder="e.g. Paid via Cheque / NEFT Ref ID"
+                  style={{ height: 36 }}
+                  placeholder="e.g. Paid via NEFT / Cheque"
                   value={paymentOutNotes}
                   onChange={(e) => setPaymentOutNotes(e.target.value)}
                 />
