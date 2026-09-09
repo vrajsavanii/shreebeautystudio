@@ -66,5 +66,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Shree Beauty Studio needs camera access to scan product and service barcodes for quick POS billing.</string>
 </dict>
 </plist>
