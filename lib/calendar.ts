@@ -209,3 +209,161 @@ function todayDateString(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
+
+/**
+ * Generates a complete RFC 5545 iCalendar (.ics) string containing ALL active appointments & bridal events.
+ */
+export function generateBulkAppointmentsICS(
+  appointments: Array<{
+    id?: string;
+    customer: string;
+    mobile?: string;
+    service: string;
+    date: string;
+    time?: string;
+    staff?: string;
+    advance?: number;
+    notes?: string;
+    price?: number;
+    status?: string;
+  }>,
+  bridals: Array<{
+    id?: string;
+    name: string;
+    mobile?: string;
+    packageName?: string;
+    weddingDate?: string;
+    date?: string;
+    venue?: string;
+    advance?: number;
+    totalAmount?: number;
+    package?: number;
+    status?: string;
+  }> = [],
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+): string {
+  const nowStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const events: string[] = [];
+
+  (appointments || [])
+    .filter((a) => a.date && a.status !== 'Cancelled')
+    .forEach((a) => {
+      const dtStart = formatICSDate(a.date, a.time || '10:00');
+      const dtEnd = addMinutes(a.date, a.time || '10:00', 60);
+      const summary = `💅 ${a.service} — ${a.customer} (${salon})`;
+      const desc = [
+        `Appointment: ${a.service}`,
+        `Customer: ${a.customer}`,
+        a.mobile ? `Mobile: +91 ${a.mobile}` : '',
+        a.staff ? `Beautician: ${a.staff}` : '',
+        a.price ? `Price: ₹${a.price}` : '',
+        a.advance ? `Advance: ₹${a.advance}` : '',
+        a.notes ? `Notes: ${a.notes}` : '',
+        `Address: ${address}`,
+      ].filter(Boolean).join('\\n');
+
+      events.push(`BEGIN:VEVENT
+UID:appt-${a.id || Math.random().toString(36).slice(2)}@shreebeautystudio
+DTSTAMP:${nowStamp}
+DTSTART;TZID=Asia/Kolkata:${dtStart}
+DTEND;TZID=Asia/Kolkata:${dtEnd}
+SUMMARY:${summary.replace(/,/g, '\\,')}
+DESCRIPTION:${desc}
+LOCATION:${address.replace(/,/g, '\\,')}
+STATUS:CONFIRMED
+BEGIN:VALARM
+TRIGGER:-PT30M
+ACTION:DISPLAY
+DESCRIPTION:Reminder: ${a.service} for ${a.customer} in 30 minutes
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT2H
+ACTION:DISPLAY
+DESCRIPTION:Reminder: ${a.service} for ${a.customer} in 2 hours
+END:VALARM
+END:VEVENT`);
+    });
+
+  (bridals || [])
+    .filter((b) => (b.weddingDate || b.date) && b.status !== 'Cancelled')
+    .forEach((b) => {
+      const bDate = b.weddingDate || b.date || todayDateString();
+      const dtStart = formatICSDate(bDate, '08:00');
+      const dtEnd = addMinutes(bDate, '08:00', 180);
+      const pkg = b.packageName || 'Bridal Package';
+      const summary = `👑 Bridal: ${pkg} — ${b.name} (${salon})`;
+      const desc = [
+        `Bridal Makeup: ${pkg}`,
+        `Bride: ${b.name}`,
+        b.mobile ? `Mobile: +91 ${b.mobile}` : '',
+        `Total: ₹${b.totalAmount || b.package || 0}`,
+        b.advance ? `Advance: ₹${b.advance}` : '',
+        b.venue ? `Venue: ${b.venue}` : `Studio: ${address}`,
+      ].filter(Boolean).join('\\n');
+
+      events.push(`BEGIN:VEVENT
+UID:bridal-${b.id || Math.random().toString(36).slice(2)}@shreebeautystudio
+DTSTAMP:${nowStamp}
+DTSTART;TZID=Asia/Kolkata:${dtStart}
+DTEND;TZID=Asia/Kolkata:${dtEnd}
+SUMMARY:${summary.replace(/,/g, '\\,')}
+DESCRIPTION:${desc}
+LOCATION:${(b.venue || address).replace(/,/g, '\\,')}
+STATUS:CONFIRMED
+BEGIN:VALARM
+TRIGGER:-PT1440M
+ACTION:DISPLAY
+DESCRIPTION:Bridal Event Tomorrow: ${b.name}
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT120M
+ACTION:DISPLAY
+DESCRIPTION:Bridal Event Today: ${b.name} in 2 hours
+END:VALARM
+END:VEVENT`);
+    });
+
+  return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Shree Beauty Studio//Salon Management//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:${salon} - Appointments & Bookings
+X-WR-TIMEZONE:Asia/Kolkata
+BEGIN:VTIMEZONE
+TZID:Asia/Kolkata
+X-LIC-LOCATION:Asia/Kolkata
+BEGIN:STANDARD
+TZOFFSETFROM:+0530
+TZOFFSETTO:+0530
+TZNAME:IST
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE
+${events.join('\n')}
+END:VCALENDAR`;
+}
+
+/**
+ * One-click download of all salon appointments as a single .ics calendar file.
+ */
+export function downloadBulkAppointmentsICS(
+  appointments: any[],
+  bridals: any[] = [],
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+) {
+  if (typeof window === 'undefined') return;
+  const ics = generateBulkAppointmentsICS(appointments, bridals, salon, address);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shree-beauty-studio-all-appointments-${todayDateString()}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+

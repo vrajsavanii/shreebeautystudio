@@ -12,11 +12,11 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { type, appointment, bridal } = body;
+    const { type, appointment, bridal, appointments, bridals } = body;
 
-    if (!appointment && !bridal) {
+    if (!appointment && !bridal && !appointments && !bridals) {
       return NextResponse.json(
-        { success: false, error: 'Appointment or Bridal payload required' },
+        { success: false, error: 'Appointment, Bridal, or Bulk payload required' },
         { status: 400 }
       );
     }
@@ -34,6 +34,33 @@ export async function POST(request: Request) {
       : { ...DEFAULT_DATA };
 
     const settings = salonData.settings || {};
+
+    if (type === 'bulk' || appointments || bridals) {
+      const apptList = appointments || salonData.appointments || [];
+      const bridalList = bridals || salonData.bridal || [];
+      let syncedCount = 0;
+
+      for (const a of apptList) {
+        if (a.date && a.status !== 'Cancelled') {
+          await autoSyncAppointmentToGoogleCalendar(a, settings);
+          syncedCount++;
+        }
+      }
+
+      for (const b of bridalList) {
+        if ((b.weddingDate || b.date) && b.status !== 'Cancelled') {
+          await autoSyncBridalToGoogleCalendar(b, settings);
+          syncedCount++;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        provider: settings.googleCalendarWebhookUrl ? 'webhook' : 'live-feed',
+        syncedCount,
+        message: `Successfully processed ${syncedCount} appointments for Google Calendar sync!`,
+      });
+    }
 
     let result;
     if (type === 'bridal' || bridal) {

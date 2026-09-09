@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM } from '@/lib/utils';
@@ -15,7 +15,7 @@ import { openWA, appointmentStaffMessage, appointmentCustomerMessage, sendDirect
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
-import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
+import { getAppointmentGoogleCalendarUrl, downloadBulkAppointmentsICS } from '@/lib/calendar';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
 type ApptTab = 'all' | 'pending' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
@@ -60,6 +60,8 @@ export default function AppointmentsPage() {
   const [isSplitAdvance, setIsSplitAdvance] = useState(false);
   const [splitAdvanceAmounts, setSplitAdvanceAmounts] = useState<Record<string, number | ''>>({});
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
+  const [calendarSyncModalOpen, setCalendarSyncModalOpen] = useState(false);
+  const [bulkSyncing, setBulkSyncing] = useState(false);
   const [holidayForm, setHolidayForm] = useState<{
     date: string;
     endDate: string;
@@ -73,6 +75,34 @@ export default function AppointmentsPage() {
     reason: '',
     notes: '',
   });
+
+  const handleBulkCloudSync = async () => {
+    setBulkSyncing(true);
+    try {
+      const activeAppts = (data?.appointments || []).filter((a) => a.status !== 'Cancelled');
+      const activeBridals = (data?.bridal || []).filter((b) => b.status !== 'Cancelled');
+
+      const res = await fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'bulk',
+          appointments: activeAppts,
+          bridals: activeBridals,
+        }),
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        toast(`✅ ${resData.message || 'Synced to Google Calendar successfully!'}`);
+      } else {
+        toast(resData.error || 'Failed to sync to Google Calendar', 'error');
+      }
+    } catch (err: any) {
+      toast('Network error during Google Calendar sync', 'error');
+    } finally {
+      setBulkSyncing(false);
+    }
+  };
 
   const today = todayISO();
   const holidays = data?.holidays || [];
@@ -642,6 +672,23 @@ export default function AppointmentsPage() {
             style={{ display: 'flex', alignItems: 'center', gap: 6, borderColor: 'var(--teal)', color: 'var(--teal)', fontWeight: 700 }}
           >
             <Eye size={15} /> Copy Booking Link
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setCalendarSyncModalOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              borderColor: '#3b82f6',
+              color: '#1d4ed8',
+              background: '#eff6ff',
+              fontWeight: 700,
+            }}
+            title="Sync or Export all appointments to Google Calendar"
+          >
+            <Calendar size={15} /> 📅 Google Calendar Sync
           </button>
           <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
             <Plus size={15} /> New Appointment
@@ -1685,6 +1732,155 @@ export default function AppointmentsPage() {
               })}
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Google Calendar Bulk Sync & Export Modal */}
+      <Modal
+        isOpen={calendarSyncModalOpen}
+        onClose={() => setCalendarSyncModalOpen(false)}
+        title="📅 Google Calendar All-Appointments Sync & Export"
+        footer={
+          <button className="btn btn-ghost" onClick={() => setCalendarSyncModalOpen(false)}>
+            Close
+          </button>
+        }
+      >
+        <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 16px', lineHeight: 1.5 }}>
+          Show and sync <b>all salon appointments and bridal bookings</b> into your Google Calendar on your phone and computer.
+        </p>
+
+        {/* Method 1: 1-Click .ICS File Export & Import (Instant for all appointments) */}
+        <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+            <span style={{ fontWeight: 800, fontSize: 14, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+              📥 Method 1: Instant 1-Click Export All to Google Calendar
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 800, background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 6 }}>
+              Fastest &amp; Guaranteed
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: '#374151', marginBottom: 12, lineHeight: 1.5 }}>
+            Download an all-in-one <code>.ics</code> calendar file containing all <b>{appointments.filter((a) => a.status !== 'Cancelled').length} appointments</b> and open Google Calendar Import to save them in 10 seconds!
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                downloadBulkAppointmentsICS(
+                  appointments,
+                  data?.bridal || [],
+                  data?.settings?.salon,
+                  data?.settings?.address
+                );
+                toast('📥 Downloaded .ICS file with all appointments!');
+              }}
+              style={{ background: '#16a34a', borderColor: '#15803d', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Download size={14} /> 1. Download All Appointments (.ICS)
+            </button>
+            <a
+              href="https://calendar.google.com/calendar/u/0/r/settings/export"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-ghost btn-sm"
+              style={{
+                background: '#ffffff',
+                borderColor: '#86efac',
+                color: '#166534',
+                fontWeight: 800,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <ExternalLink size={14} /> 2. Open Google Calendar Import Page ↗
+            </a>
+          </div>
+          <div style={{ background: '#ffffff', borderRadius: 8, padding: '10px 12px', border: '1px solid #bbf7d0', marginTop: 12, fontSize: 11.5, color: '#14532d' }}>
+            <b>Step-by-step Gujarati Guide (Google Calendar માં બધી અપોઇન્ટમેન્ટ્સ કેવી રીતે સેવ કરવી):</b>
+            <ol style={{ margin: '4px 0 0', paddingLeft: 18, lineHeight: 1.5 }}>
+              <li>પહેલા <b>&quot;1. Download All Appointments&quot;</b> બટન દબાવી ફાઇલ ડાઉનલોડ કરો.</li>
+              <li>પછી <b>&quot;2. Open Google Calendar Import Page&quot;</b> ખોલીને <b>&quot;Select file from your computer&quot;</b> માં ડાઉનલોડ થયેલી ફાઇલ પસંદ કરો.</li>
+              <li><b>&quot;Import&quot;</b> દબાવતાં જ તમામ અપોઇન્ટમેન્ટ્સ તમારા Google Calendar માં તાત્કાલિક દેખાશે!</li>
+            </ol>
+          </div>
+        </div>
+
+        {/* Method 2: Live WebCal Google Calendar Feed URL (Continuous 24/7 background sync) */}
+        <div style={{ background: '#eff6ff', border: '1.5px solid #93c5fd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+            <span style={{ fontWeight: 800, fontSize: 14, color: '#1e40af', display: 'flex', alignItems: 'center', gap: 6 }}>
+              ⚡ Method 2: Live 24/7 Auto-Sync Feed URL
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 800, background: '#dbeafe', color: '#1d4ed8', padding: '2px 8px', borderRadius: 6 }}>
+              Zero-Maintenance
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: '#374151', marginBottom: 10, lineHeight: 1.5 }}>
+            Subscribe to your live salon feed URL in Google Calendar. Any new appointment booked will automatically sync directly into your Google Calendar.
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <input
+              type="text"
+              readOnly
+              className="input"
+              value={typeof window !== 'undefined' ? `${window.location.origin}/api/calendar/feed.ics` : '/api/calendar/feed.ics'}
+              style={{ background: '#fff', fontSize: 12, fontWeight: 600, color: '#1e3a8a' }}
+            />
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                const url = typeof window !== 'undefined' ? `${window.location.origin}/api/calendar/feed.ics` : '/api/calendar/feed.ics';
+                navigator.clipboard.writeText(url);
+                toast('🔗 Live Calendar Feed URL copied to clipboard!');
+              }}
+              style={{ flexShrink: 0, background: '#2563eb', borderColor: '#1d4ed8', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+            >
+              <Copy size={13} /> Copy Feed URL
+            </button>
+          </div>
+          <div style={{ background: '#ffffff', borderRadius: 8, padding: '10px 12px', border: '1px solid #bfdbfe', fontSize: 11.5, color: '#1e3a8a' }}>
+            <b>How to Subscribe in Google Calendar (Google Calendar માં કાયમ માટે ઓટો-સિંક કેવી રીતે કરવું):</b>
+            <ol style={{ margin: '4px 0 0', paddingLeft: 18, lineHeight: 1.5 }}>
+              <li>તમારા મોબાઈલ કે કમ્પ્યુટરમાં <a href="https://calendar.google.com" target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontWeight: 700 }}>Google Calendar</a> ખોલો.</li>
+              <li>ડાબી બાજુ <b>&quot;Other calendars&quot;</b> પાસે <b>+</b> નિશાન દબાવી <b>&quot;From URL&quot;</b> પસંદ કરો.</li>
+              <li>ઉપરથી Copy કરેલી Feed URL પેસ્ટ કરી <b>&quot;Add calendar&quot;</b> દબાવો. હવેથી બધી નવી એપોઇન્ટમેન્ટ્સ આપમેળે સિંક થતી રહેશે!</li>
+            </ol>
+          </div>
+        </div>
+
+        {/* Method 3: Cloud Webhook Direct Sync */}
+        <div style={{ background: '#faf5ff', border: '1.5px solid #d8b4fe', borderRadius: 12, padding: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontWeight: 800, fontSize: 14, color: '#6b21a8' }}>
+              🚀 Method 3: Cloud Webhook Push ({data?.settings?.googleCalendarWebhookUrl ? 'Configured' : 'No Webhook Set'})
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 12 }}>
+            Push all current active appointments directly to your Google Apps Script webhook cloud connector.
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={handleBulkCloudSync}
+            disabled={bulkSyncing}
+            style={{
+              background: '#ffffff',
+              borderColor: '#c084fc',
+              color: '#7e22ce',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <RefreshCw size={13} className={bulkSyncing ? 'spin' : ''} />
+            {bulkSyncing ? 'Syncing all appointments…' : 'Push All to Cloud Webhook'}
+          </button>
         </div>
       </Modal>
     </div>
