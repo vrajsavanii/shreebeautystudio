@@ -4,6 +4,7 @@
 
 import { Appointment, Invoice } from '@/types/salon';
 import { fmtDate, money } from './utils';
+import { getAppointmentGoogleCalendarUrl } from './calendar';
 
 /**
  * Send a WhatsApp text message directly via Meta WhatsApp Cloud API (Zero Browser Redirects).
@@ -95,6 +96,7 @@ export function openWAApp(mobile: string, message: string) {
 }
 
 export function appointmentStaffMessage(a: Appointment, salon: string): string {
+  const gcalUrl = getAppointmentGoogleCalendarUrl(a, salon);
   return `📢 *NEW APPOINTMENT ALERT — ${salon}* 📢
 ────────────────────────────
 👤 Customer: ${a.customer}
@@ -106,6 +108,9 @@ export function appointmentStaffMessage(a: Appointment, salon: string): string {
 💵 Advance Paid: ${money(a.advance || 0)}
 📝 Notes: ${a.notes || 'None'}
 ────────────────────────────
+📅 *Save to Google Calendar (Auto Reminder):*
+${gcalUrl}
+
 Please prepare the station and products in advance. ✨`;
 }
 
@@ -114,6 +119,7 @@ export function appointmentCustomerMessage(
   salon: string,
   address: string
 ): string {
+  const gcalUrl = getAppointmentGoogleCalendarUrl(a, salon, address);
   return `✨ *APPOINTMENT CONFIRMED — ${salon}* ✨
 ────────────────────────────
 Dear ${a.customer},
@@ -124,12 +130,16 @@ Your appointment is confirmed! Here are your booking details:
 💄 Service: ${a.service}
 👩‍💼 Artist: ${a.staff || 'Senior Beautician'}
 💵 Advance Paid: ${money(a.advance || 0)}
-📍 Address: ${address || 'Ring Road, Surat'}
+📍 Address: ${address || 'Surat, Gujarat'}
+
+📅 *Save to Google Calendar & Auto-Reminder:*
+👉 ${gcalUrl}
 
 Thank you for choosing ${salon}! We look forward to pampering you. 💖`;
 }
 
 export function appointmentReminderMessage(a: Appointment, salon: string): string {
+  const gcalUrl = getAppointmentGoogleCalendarUrl(a, salon);
   return `⏰ *APPOINTMENT REMINDER — ${salon}* ⏰
 ────────────────────────────
 Dear ${a.customer},
@@ -138,6 +148,9 @@ This is a gentle reminder for your upcoming salon appointment:
 📅 Date: ${fmtDate(a.date)}
 ⏰ Time: ${a.time}
 💄 Service: ${a.service}
+
+📅 *Open in Google Calendar:*
+👉 ${gcalUrl}
 
 Please arrive 5-10 minutes prior to your time.
 If you need to reschedule, reply to this message. See you soon! 💖`;

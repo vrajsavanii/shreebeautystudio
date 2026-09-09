@@ -26,6 +26,7 @@ import { Appointment, BridalBooking, BridalPackage } from '@/types/salon';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage } from '@/lib/whatsapp';
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl, downloadICS } from '@/lib/calendar';
 
 const TIME_SLOTS = [
   '09:00 AM',
@@ -506,6 +507,80 @@ export default function PublicBookingPage() {
                     <span style={{ fontWeight: 700, color: '#475569' }}>{confirmedBridal.venue}</span>
                   </div>
                 )}
+              </div>
+
+              {/* 1-Click Google Calendar & Auto-Reminder Sync Button */}
+              <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
+                <a
+                  href={
+                    confirmedBridal
+                      ? getBridalGoogleCalendarUrl(confirmedBridal, salon, address)
+                      : confirmedAppt
+                      ? getAppointmentGoogleCalendarUrl(confirmedAppt, salon, address)
+                      : '#'
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: 14,
+                    padding: '13px 20px',
+                    borderRadius: 14,
+                    textDecoration: 'none',
+                    boxShadow: '0 6px 20px rgba(37,99,235,0.35)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Calendar size={18} />
+                  <span>📅 Save to Google Calendar (Auto Reminder)</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirmedBridal) {
+                      downloadICS({
+                        title: `👑 Bridal: ${confirmedBridal.packageName} — ${salon}`,
+                        description: `Bridal Booking for ${confirmedBridal.name}\nVenue: ${confirmedBridal.venue || address}\nTotal: ₹${confirmedBridal.totalAmount}`,
+                        location: confirmedBridal.venue || address,
+                        startDate: confirmedBridal.weddingDate || confirmedBridal.date,
+                        startTime: '08:00',
+                        durationMinutes: 180,
+                      });
+                    } else if (confirmedAppt) {
+                      downloadICS({
+                        title: `💅 ${confirmedAppt.service} — ${salon}`,
+                        description: `Appointment for ${confirmedAppt.customer}\nService: ${confirmedAppt.service}\nStaff: ${confirmedAppt.staff || 'Studio Team'}`,
+                        location: address,
+                        startDate: confirmedAppt.date,
+                        startTime: confirmedAppt.time || '10:00',
+                        durationMinutes: 60,
+                      });
+                    }
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    background: '#f8fafc',
+                    color: '#334155',
+                    fontWeight: 700,
+                    fontSize: 12.5,
+                    padding: '10px 16px',
+                    borderRadius: 12,
+                    border: '1.5px solid #cbd5e1',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <span>📥 Download Calendar Invite (.ics file)</span>
+                </button>
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>

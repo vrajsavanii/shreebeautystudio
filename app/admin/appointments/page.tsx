@@ -15,6 +15,7 @@ import { openWA, appointmentStaffMessage, appointmentCustomerMessage, sendDirect
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
+import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
 
 type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
 const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed', 'Not Attempted'];
@@ -713,6 +714,23 @@ export default function AppointmentsPage() {
                                 <button className="btn-icon edit" onClick={() => openEdit(a)} title="Edit">
                                   <Pencil size={12} />
                                 </button>
+                                <a
+                                  href={getAppointmentGoogleCalendarUrl(a, data?.settings?.salon, data?.settings?.address)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn-icon"
+                                  title="📅 Save & Remind in Google Calendar"
+                                  style={{
+                                    background: '#eff6ff',
+                                    color: '#2563eb',
+                                    textDecoration: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  <Calendar size={12} />
+                                </a>
                                 <button
                                   className="btn-icon wa"
                                   title="WhatsApp staff"
@@ -740,16 +758,54 @@ export default function AppointmentsPage() {
         onClose={() => setModalOpen(false)}
         title={editId ? 'Edit Appointment' : 'New Appointment'}
         footer={
-          <>
-            <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
-            <motion.button
-              className="btn btn-primary"
-              onClick={handleSubmit(onSubmit)}
-              whileTap={{ scale: 0.97 }}
-            >
-              {editId ? 'Update' : 'Book Appointment'}
-            </motion.button>
-          </>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            {watch('date') ? (
+              <a
+                href={getAppointmentGoogleCalendarUrl(
+                  {
+                    customer: watchCustomer || 'Customer',
+                    mobile: watchMobile,
+                    service: watch('service') || 'Salon Service',
+                    date: watch('date'),
+                    time: watch('time') || '10:00',
+                    staff: watch('staff'),
+                    advance: watchAdvance,
+                    notes: watch('notes'),
+                    price: watch('price'),
+                  },
+                  data?.settings?.salon,
+                  data?.settings?.address
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-sm"
+                style={{
+                  color: '#2563eb',
+                  borderColor: '#bfdbfe',
+                  background: '#eff6ff',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 11.5,
+                }}
+                title="Open Google Calendar to save event with automatic reminders"
+              >
+                <Calendar size={13} /> 📅 Google Calendar Event
+              </a>
+            ) : <div />}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+              <motion.button
+                className="btn btn-primary"
+                onClick={handleSubmit(onSubmit)}
+                whileTap={{ scale: 0.97 }}
+              >
+                {editId ? 'Update' : 'Book Appointment'}
+              </motion.button>
+            </div>
+          </div>
         }
       >
         <div className="form-grid">

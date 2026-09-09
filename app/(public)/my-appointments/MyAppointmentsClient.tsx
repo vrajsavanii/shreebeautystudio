@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { Phone, Search, Calendar, Clock, User, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
+import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 15 },
@@ -330,6 +331,46 @@ function MyAppointmentsView() {
                         </div>
                       )}
                     </div>
+
+                    {!isCancelled && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 2 }}>
+                        <a
+                          href={getAppointmentGoogleCalendarUrl(
+                            {
+                              customer: appt.customer || customerName || 'Customer',
+                              mobile: appt.mobile || mobile,
+                              service: appt.service || 'Salon Service',
+                              date: appt.date,
+                              time: appt.time,
+                              staff: appt.staff,
+                              advance: appt.advance,
+                              notes: appt.notes,
+                              price: appt.price,
+                            },
+                            data?.settings?.salon,
+                            data?.settings?.address
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            background: '#eff6ff',
+                            color: '#2563eb',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: 10,
+                            padding: '6px 12px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          <Calendar size={13} />
+                          <span>📅 Save to Google Calendar (Auto Reminder)</span>
+                        </a>
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}
