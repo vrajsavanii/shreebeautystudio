@@ -114,6 +114,51 @@ ${gcalUrl}
 Please prepare the station and products in advance. ✨`;
 }
 
+export function appointmentRequestPendingMessage(
+  a: Appointment,
+  salon: string,
+  address: string
+): string {
+  return `⏳ *APPOINTMENT REQUEST RECEIVED — ${salon}* ⏳
+────────────────────────────
+Dear ${a.customer},
+We have received your online appointment booking request!
+
+📋 *Requested Booking Details:*
+📅 Date: ${fmtDate(a.date)}
+⏰ Time: ${a.time}
+💄 Service: ${a.service}
+👩‍💼 Beautician: ${a.staff || 'Senior Beautician'}
+📍 Location: ${address || 'Katargam, Surat'}
+
+📌 *Status:* ⏳ *PENDING SALON CONFIRMATION*
+Our studio team is reviewing your time slot. You will receive a final *CONFIRMED* message once approved by our salon.
+
+Thank you for choosing ${salon}! ✨`;
+}
+
+export function bridalRequestPendingMessage(
+  name: string,
+  packageName: string,
+  weddingDate: string,
+  venue: string,
+  salon: string
+): string {
+  return `⏳ *BRIDAL BOOKING REQUEST RECEIVED — ${salon}* ⏳
+────────────────────────────
+Dear ${name},
+We have received your Bridal & Siders package booking request!
+
+👑 *Package:* ${packageName}
+💍 *Wedding Date:* ${fmtDate(weddingDate)}
+📍 *Venue:* ${venue || 'Surat Venue'}
+
+📌 *Status:* ⏳ *PENDING ARTIST CONFIRMATION*
+Our Master Bridal Artist will verify the date schedule and send your final confirmation shortly.
+
+Thank you for choosing ${salon}! 👑💖`;
+}
+
 export function appointmentCustomerMessage(
   a: Appointment,
   salon: string,
@@ -123,7 +168,7 @@ export function appointmentCustomerMessage(
   return `✨ *APPOINTMENT CONFIRMED — ${salon}* ✨
 ────────────────────────────
 Dear ${a.customer},
-Your appointment is confirmed! Here are your booking details:
+🎉 Your appointment has been officially CONFIRMED! Here are your confirmed booking details:
 
 📅 Date: ${fmtDate(a.date)}
 ⏰ Time: ${a.time}

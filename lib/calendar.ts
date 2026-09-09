@@ -169,7 +169,7 @@ export function getBridalGoogleCalendarUrl(
   b: {
     name: string;
     mobile?: string;
-    packageName: string;
+    packageName?: string;
     weddingDate?: string;
     date?: string;
     venue?: string;
@@ -182,11 +182,12 @@ export function getBridalGoogleCalendarUrl(
   address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
 ): string {
   const eventDate = b.weddingDate || b.date || todayDateString();
+  const pkgName = b.packageName || 'Bridal Package';
   const details = [
     `👑 BRIDAL APPOINTMENT — ${salon}`,
     `👰 Bride: ${b.name}`,
     b.mobile ? `📞 Mobile: +91 ${b.mobile}` : '',
-    `💄 Package: ${b.packageName}`,
+    `💄 Package: ${pkgName}`,
     b.event ? `🎉 Event: ${b.event}` : '',
     b.venue ? `📍 Venue: ${b.venue}` : `📍 Studio: ${address}`,
     b.totalAmount ? `💰 Package Total: ₹${b.totalAmount}` : '',
@@ -195,7 +196,7 @@ export function getBridalGoogleCalendarUrl(
   ].filter(Boolean).join('\n');
 
   return getGoogleCalendarUrl({
-    title: `👑 Bridal Makeup: ${b.packageName} — ${b.name} (${salon})`,
+    title: `👑 Bridal Makeup: ${pkgName} — ${b.name} (${salon})`,
     description: details,
     location: b.venue || address || salon,
     startDate: eventDate,

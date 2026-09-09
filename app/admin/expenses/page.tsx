@@ -846,11 +846,11 @@ export default function ExpensesPage() {
           badgeBorder: '#ddd6fe',
           docNo: 'APPT',
           date: a.date,
-          partyName: a.clientName || 'Client',
-          partyMobile: a.clientPhone || '-',
+          partyName: a.customer || 'Client',
+          partyMobile: a.mobile || '-',
           amount: Number(a.advance || 0),
           mode: a.advanceMode || 'Cash',
-          notes: `Advance for appointment (${a.serviceName || 'Service'})`,
+          notes: `Advance for appointment (${a.service || 'Service'})`,
         });
       }
     });

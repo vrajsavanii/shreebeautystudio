@@ -23,7 +23,7 @@ import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, fmtDate, money, isPastTimeForDate, getFirstFutureSlot } from '@/lib/utils';
 import { Appointment, BridalBooking, BridalPackage } from '@/types/salon';
-import { sendDirectWhatsAppMessage, appointmentCustomerMessage } from '@/lib/whatsapp';
+import { sendDirectWhatsAppMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage } from '@/lib/whatsapp';
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl, downloadICS } from '@/lib/calendar';
@@ -189,9 +189,9 @@ export default function PublicBookingPage() {
           service: selectedServices.join(', '),
           staff: selectedStaff || 'Senior Beautician',
           advance: 0,
-          status: 'Confirmed',
+          status: 'Pending',
           workStatus: 'Booked',
-          notes: notes.trim() || 'Online Self-Booking',
+          notes: notes.trim() || 'Online Booking Request (Pending Approval)',
         };
 
         // Update Local Store for instant client UX
@@ -220,7 +220,7 @@ export default function PublicBookingPage() {
 
         scheduleSave();
 
-        // Sync directly to Supabase cloud via server API and dispatch WhatsApp & Email confirmation
+        // Sync directly to Supabase cloud via server API and dispatch WhatsApp & Email request notification
         const apiRes = await fetch('/api/public-booking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -236,7 +236,7 @@ export default function PublicBookingPage() {
 
         // If the server endpoint wasn't reached, fallback to client-side dispatch
         if (!apiRes || !apiRes.ok) {
-          const msg = appointmentCustomerMessage(newAppt, salon, address);
+          const msg = appointmentRequestPendingMessage(newAppt, salon, address);
           sendDirectWhatsAppMessage(newAppt.mobile, msg).catch((err) =>
             console.error('WhatsApp Fallback Error:', err)
           );
@@ -278,7 +278,7 @@ export default function PublicBookingPage() {
           advance: 0,
           balance: bridalTotal,
           status: 'Booked',
-          notes: notes.trim() || 'Online Bridal Self-Booking',
+          notes: notes.trim() || 'Online Bridal Booking Request',
         };
 
         // Also add an appointment record for calendar visibility
@@ -292,7 +292,7 @@ export default function PublicBookingPage() {
           service: `👑 Bridal: ${selectedPkgsList.map((p) => p.name).join(', ')}`,
           staff: 'Master Bridal Artist',
           advance: 0,
-          status: 'Confirmed',
+          status: 'Pending',
           workStatus: 'Booked',
           notes: `Venue: ${venue || 'Surat'} | Event: ${eventTitle}`,
         };
@@ -477,28 +477,49 @@ export default function PublicBookingPage() {
                   width: 68,
                   height: 68,
                   borderRadius: '50%',
-                  background: confirmedBridal ? '#fce7f3' : '#dcfce7',
-                  color: confirmedBridal ? '#db2777' : '#16a34a',
+                  background: '#fef3c7',
+                  color: '#b45309',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 16px',
                 }}
               >
-                {confirmedBridal ? <Crown size={38} /> : <CheckCircle2 size={38} />}
+                <Clock size={38} />
               </div>
 
               <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 900, color: '#0f172a' }}>
-                {confirmedBridal ? '👑 Bridal Booking Confirmed!' : 'Appointment Confirmed! 💖'}
+                {confirmedBridal ? '👑 Bridal Request Submitted!' : '⏳ Booking Request Submitted!'}
               </h2>
-              <p style={{ margin: '0 0 20px', fontSize: 13.5, color: '#64748b' }}>
-                We have received your booking and dispatched a WhatsApp confirmation to{' '}
+              <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#64748b' }}>
+                We have received your appointment request. Request notification dispatched to{' '}
                 <b>+91 {confirmedAppt?.mobile || confirmedBridal?.mobile}</b>
                 {customerEmail ? (
-                  <span> and an email confirmation to <b>{customerEmail}</b></span>
+                  <span> and <b>{customerEmail}</b></span>
                 ) : null}
                 .
               </p>
+
+              {/* Gujarati Notice Banner: Confirmed Thaya Pasi J Book Thase */}
+              <div
+                style={{
+                  background: '#fffbeb',
+                  border: '1.5px solid #fde68a',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  marginBottom: 20,
+                  textAlign: 'left',
+                  fontSize: 13,
+                  color: '#92400e',
+                  lineHeight: 1.5,
+                  fontWeight: 600,
+                }}
+              >
+                <div style={{ fontWeight: 800, fontSize: 13.5, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  📢 અગત્યની સૂચના (Booking Status):
+                </div>
+                તમારું અપોઇન્ટમેન્ટ બુકિંગ સ્ટુડિયો ટીમ તરફથી <b>Confirm (મંજૂર)</b> કરવામાં આવ્યા પછી જ Final થશે. કન્ફર્મ થતાં જ તમને WhatsApp પર <b>Confirmed મેસેજ અને સમય</b> મોકલવામાં આવશે.
+              </div>
 
               {/* Booking Summary Box */}
               <div
@@ -514,6 +535,12 @@ export default function PublicBookingPage() {
                   gap: 10,
                 }}
               >
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
+                  <span style={{ color: '#64748b' }}>Booking Status:</span>
+                  <span style={{ fontWeight: 800, color: '#b45309', background: '#fef3c7', padding: '2px 10px', borderRadius: 99, fontSize: 12 }}>
+                    ⏳ Pending Salon Confirmation (કન્ફર્મેશન બાકી)
+                  </span>
+                </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
                   <span style={{ color: '#64748b' }}>Customer Name:</span>
                   <span style={{ fontWeight: 800, color: '#0f172a' }}>
@@ -533,7 +560,7 @@ export default function PublicBookingPage() {
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
-                  <span style={{ color: '#64748b' }}>Event / Booking Date:</span>
+                  <span style={{ color: '#64748b' }}>Requested Date &amp; Time:</span>
                   <span style={{ fontWeight: 800, color: '#16a34a' }}>
                     {fmtDate(confirmedAppt?.date || confirmedBridal?.date || todayISO())}
                     {confirmedAppt?.time ? ` at ${confirmedAppt.time}` : ''}
@@ -547,8 +574,34 @@ export default function PublicBookingPage() {
                 )}
               </div>
 
-              {/* 1-Click Google Calendar & Auto-Reminder Sync Button */}
+              {/* Action Buttons */}
               <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
+                <a
+                  href={`https://wa.me/${phone}?text=${encodeURIComponent(
+                    `Hello ${salon}! I have submitted an online appointment request for ${
+                      confirmedAppt?.service || confirmedBridal?.packageName
+                    } on ${fmtDate(confirmedAppt?.date || confirmedBridal?.date)}.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    background: '#25D366',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: 14,
+                    padding: '13px 20px',
+                    borderRadius: 14,
+                    textDecoration: 'none',
+                    boxShadow: '0 6px 20px rgba(37,211,102,0.3)',
+                  }}
+                >
+                  <MessageCircle size={18} />
+                  <span>Chat with Salon on WhatsApp</span>
+                </a>
                 <a
                   href={
                     confirmedBridal
@@ -585,7 +638,7 @@ export default function PublicBookingPage() {
                     if (confirmedBridal) {
                       downloadICS({
                         title: `👑 Bridal: ${confirmedBridal.packageName} — ${salon}`,
-                        description: `Bridal Booking for ${confirmedBridal.name}\nVenue: ${confirmedBridal.venue || address}\nTotal: ₹${confirmedBridal.totalAmount}`,
+                        description: `Bridal Booking for ${confirmedBridal.name}\nVenue: ${confirmedBridal.venue || address}\nTotal: ₹${confirmedBridal.totalAmount || confirmedBridal.package || 0}`,
                         location: confirmedBridal.venue || address,
                         startDate: confirmedBridal.weddingDate || confirmedBridal.date,
                         startTime: '08:00',
@@ -1309,14 +1362,14 @@ export default function PublicBookingPage() {
                       <Sparkles size={18} />
                     )}
                     {isSubmitting
-                      ? 'Processing Booking…'
+                      ? 'Submitting Booking Request…'
                       : activeHolidayCheck.isBlocked
                       ? `${activeHolidayCheck.badgeText} - Booking Unavailable`
                       : isPastSlotBlocked
                       ? '⏰ Past Time Slot - Choose Live/Future Time'
                       : bookingMode === 'bridal'
-                      ? `Confirm Bridal Booking (${money(bridalTotal)})`
-                      : `Confirm Booking (${money(regularTotal)})`}
+                      ? `👑 Submit Bridal Booking Request (${money(bridalTotal)})`
+                      : `💄 Submit Booking Request (${money(regularTotal)})`}
                   </motion.button>
                 );
               })()}

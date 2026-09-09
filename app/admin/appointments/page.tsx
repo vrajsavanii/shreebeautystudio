@@ -18,7 +18,7 @@ import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
-type ApptTab = 'all' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
+type ApptTab = 'all' | 'pending' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
 const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed', 'Not Attempted'];
 
 /**
@@ -26,7 +26,7 @@ const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled'
  * Rule: If an appointment is booked but not started, it remains OPEN for up to 2 days after the booking date.
  * After 2 days past the booking date (day 3+), it automatically transitions to 'Not Attempted'.
  */
-export function getEffectiveWorkStatus(a: Appointment, todayDate: string = todayISO()): WorkStatus {
+function getEffectiveWorkStatus(a: Appointment, todayDate: string = todayISO()): WorkStatus {
   if (a.status === 'Cancelled' || a.workStatus === 'Cancelled') return 'Cancelled';
   if (a.workStatus === 'Completed' || a.workStatus === 'Billed' || a.status === 'Completed' || a.invoiceId) {
     return a.workStatus === 'Billed' || a.invoiceId ? 'Billed' : 'Completed';
@@ -138,6 +138,7 @@ export default function AppointmentsPage() {
   const appointments = data?.appointments || [];
 
   const counts = useMemo(() => {
+    let pendingCount = 0;
     let todayCount = 0;
     let upcomingCount = 0;
     let inServiceCount = 0;
@@ -146,17 +147,21 @@ export default function AppointmentsPage() {
     let cancelledCount = 0;
 
     appointments.forEach((a) => {
+      if (a.status === 'Pending') {
+        pendingCount++;
+        return;
+      }
       const ws = getEffectiveWorkStatus(a, today);
-      if (ws === 'Cancelled') {
+      if (ws === 'Cancelled' || a.status === 'Cancelled') {
         cancelledCount++;
-      } else if (ws === 'Not Attempted') {
+      } else if (ws === 'Not Attempted' || a.status === 'Not Attempted') {
         notAttemptedCount++;
-      } else if (ws === 'Completed' || ws === 'Billed') {
+      } else if (ws === 'Completed' || ws === 'Billed' || a.status === 'Completed') {
         completedCount++;
       } else if (ws === 'In Service') {
         inServiceCount++;
       } else {
-        // ws === 'Booked' (Open / Confirmed)
+        // ws === 'Booked' (Confirmed)
         if (a.date === today) todayCount++;
         upcomingCount++;
       }
@@ -164,6 +169,7 @@ export default function AppointmentsPage() {
 
     return {
       all: appointments.length,
+      pending: pendingCount,
       today: todayCount,
       upcoming: upcomingCount,
       inService: inServiceCount,
@@ -188,16 +194,102 @@ export default function AppointmentsPage() {
 
         const ws = getEffectiveWorkStatus(a, today);
 
-        if (activeTab === 'today') return a.date === today && ws !== 'Cancelled' && ws !== 'Not Attempted';
-        if (activeTab === 'upcoming') return ws === 'Booked';
-        if (activeTab === 'inservice') return ws === 'In Service';
+        if (activeTab === 'pending') return a.status === 'Pending';
+        if (activeTab === 'today') return a.status !== 'Pending' && a.date === today && ws !== 'Cancelled' && ws !== 'Not Attempted';
+        if (activeTab === 'upcoming') return a.status !== 'Pending' && ws === 'Booked';
+        if (activeTab === 'inservice') return a.status !== 'Pending' && ws === 'In Service';
         if (activeTab === 'completed') return ws === 'Completed' || ws === 'Billed';
         if (activeTab === 'not-attempted') return ws === 'Not Attempted';
-        if (activeTab === 'cancelled') return ws === 'Cancelled';
+        if (activeTab === 'cancelled') return ws === 'Cancelled' || a.status === 'Cancelled';
         return true;
       })
       .sort((a, b) => b.date.localeCompare(a.date) || a.time.localeCompare(b.time));
   }, [appointments, search, activeTab, today]);
+
+  const handleConfirmAppointment = (appt: Appointment) => {
+    const cleanEmail = appt.email?.trim() || undefined;
+    const updatedAppt: Appointment = {
+      ...appt,
+      status: 'Confirmed',
+      workStatus: appt.workStatus === 'Cancelled' ? 'Booked' : (appt.workStatus || 'Booked'),
+    };
+
+    updateData((d) => ({
+      ...d,
+      appointments: d.appointments.map((a) => (a.id === appt.id ? updatedAppt : a)),
+    }));
+    scheduleSave();
+    toast(`🎉 Appointment Confirmed for ${appt.customer}!`);
+
+    // 1. WhatsApp Confirmation Message
+    if (appt.mobile) {
+      const salon = data?.settings?.salon || 'Shree Beauty Studio';
+      const address = data?.settings?.address || 'Surat, Gujarat';
+      const msg = appointmentCustomerMessage(updatedAppt, salon, address);
+      sendDirectWhatsAppMessage(appt.mobile, msg).then((res) => {
+        if (res.success) {
+          toast('✅ WhatsApp confirmation sent to customer!');
+        }
+      });
+    }
+
+    // 2. Email confirmation via Resend
+    if (cleanEmail && cleanEmail.includes('@')) {
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'confirmation',
+          to: cleanEmail,
+          data: {
+            customerName: appt.customer,
+            service: appt.service,
+            staff: appt.staff,
+            date: appt.date,
+            time: appt.time,
+            price: appt.price,
+            address: data?.settings?.address,
+            salonName: data?.settings?.salon,
+          },
+        }),
+      }).catch(() => {});
+    }
+
+    // 3. Auto-save to Google Calendar in cloud
+    fetch('/api/calendar/auto-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'appointment',
+        appointment: updatedAppt,
+      }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.provider === 'webhook') {
+          toast('📅 Auto-saved to Google Calendar in Cloud!');
+        }
+      })
+      .catch(() => {});
+  };
+
+  const handleRejectAppointment = (appt: Appointment) => {
+    updateData((d) => ({
+      ...d,
+      appointments: d.appointments.map((a) =>
+        a.id === appt.id ? { ...a, status: 'Cancelled', workStatus: 'Cancelled' } : a
+      ),
+    }));
+    scheduleSave();
+    toast(`❌ Appointment request rejected for ${appt.customer}`, 'info');
+
+    // WhatsApp Cancellation Notice
+    if (appt.mobile) {
+      const salon = data?.settings?.salon || 'Shree Beauty Studio';
+      const rejectMsg = `❌ *Appointment Request Update — ${salon}*\n\nNamaste *${appt.customer}*,\n\nWe regret to inform you that your booking request for *${appt.service}* on *${fmtDate(appt.date)}* at *${appt.time}* could not be confirmed at this time due to slot unavailability.\n\nPlease contact us directly to reschedule: 📞 ${data?.settings?.whatsapp || ''}\n\nThank you! ✨`;
+      sendDirectWhatsAppMessage(appt.mobile, rejectMsg);
+    }
+  };
 
   const openNew = () => {
     setEditId(null);
@@ -602,6 +694,46 @@ export default function AppointmentsPage() {
         );
       })()}
 
+      {/* Pending Booking Requests Alert Banner */}
+      {counts.pending > 0 && (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+            border: '1.5px solid #f59e0b',
+            color: '#92400e',
+            borderRadius: 12,
+            padding: '12px 18px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+            boxShadow: '0 2px 10px rgba(245, 158, 11, 0.12)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 24 }}>⏳</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13.5 }}>
+                {counts.pending} New Pending Booking Request{counts.pending > 1 ? 's' : ''} (નવી બુકિંગ વિનંતી)!
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.9 }}>
+                Customer has requested an appointment online. Click <b>Confirm &amp; Notify</b> to confirm and auto-send WhatsApp notification.
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-gold"
+            onClick={() => setActiveTab('pending')}
+            style={{ fontWeight: 800, padding: '6px 14px' }}
+          >
+            Review Pending Requests ({counts.pending}) &rarr;
+          </button>
+        </div>
+      )}
+
       {/* Sub Tabs */}
       <div className="tabs">
         <button
@@ -611,6 +743,28 @@ export default function AppointmentsPage() {
         >
           <span>All Bookings</span>
           <span className="tab-badge">{counts.all}</span>
+        </button>
+
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+          onClick={() => setActiveTab('pending')}
+          style={{
+            borderBottom: activeTab === 'pending' ? '2px solid #f59e0b' : undefined,
+            color: activeTab === 'pending' ? '#b45309' : undefined,
+          }}
+        >
+          <span>⏳ Pending Requests</span>
+          <span
+            className="tab-badge"
+            style={{
+              background: counts.pending > 0 ? '#f59e0b' : '#f1f5f9',
+              color: counts.pending > 0 ? '#ffffff' : '#64748b',
+              fontWeight: 800,
+            }}
+          >
+            {counts.pending}
+          </span>
         </button>
 
         <button
@@ -682,8 +836,8 @@ export default function AppointmentsPage() {
         {filtered.length === 0 ? (
           <div className="empty-state">
             <Calendar size={48} />
-            <h3>{search ? 'No results found' : 'No appointments yet'}</h3>
-            <p>Book your first appointment to get started</p>
+            <h3>{search ? 'No results found' : activeTab === 'pending' ? 'No pending requests' : 'No appointments yet'}</h3>
+            <p>{activeTab === 'pending' ? 'All online booking requests have been reviewed.' : 'Book your first appointment to get started'}</p>
             {!search && (
               <motion.button className="btn btn-primary btn-sm" onClick={openNew} whileTap={{ scale: 0.97 }}>
                 <Plus size={14} /> New Appointment
@@ -732,7 +886,26 @@ export default function AppointmentsPage() {
                               </div>
                             </td>
                             <td>
-                              {ws === 'Cancelled' ? (
+                              {a.status === 'Pending' ? (
+                                <span
+                                  style={{
+                                    fontSize: 10.5,
+                                    fontWeight: 800,
+                                    padding: '3px 8px',
+                                    borderRadius: 999,
+                                    background: '#fef3c7',
+                                    color: '#b45309',
+                                    border: '1.5px solid #fde68a',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    boxShadow: '0 1px 3px rgba(245,158,11,0.15)',
+                                  }}
+                                  title="Customer has requested this booking online; pending studio confirmation"
+                                >
+                                  ⏳ Pending Review
+                                </span>
+                              ) : ws === 'Cancelled' ? (
                                 <span className="badge-chip cancelled">Cancelled</span>
                               ) : ws === 'Not Attempted' ? (
                                 <span
@@ -817,55 +990,97 @@ export default function AppointmentsPage() {
                             </td>
                             <td>
                               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                                {(ws === 'Booked' || ws === 'Not Attempted') && (
-                                  <button
-                                    className="btn btn-sm btn-ghost"
-                                    style={{ color: 'var(--teal)', fontSize: 10.5, padding: '3px 6px' }}
-                                    onClick={() => handleStartService(a.id)}
-                                    title="Start beautician service"
-                                  >
-                                    <Play size={10} /> Start
-                                  </button>
-                                )}
-                                {ws === 'In Service' && (
-                                  <button
-                                    className="btn btn-sm btn-ghost"
-                                    style={{ color: 'var(--green)', fontSize: 10.5, padding: '3px 6px' }}
-                                    onClick={() => handleCompleteService(a.id)}
-                                    title="Complete service"
-                                  >
-                                    <CheckCircle2 size={10} /> Complete
-                                  </button>
-                                )}
-                                {ws === 'Completed' && (
-                                  <button
-                                    className="btn btn-sm btn-gold"
-                                    style={{ fontSize: 10.5, padding: '3px 6px' }}
-                                    onClick={() => handleConvertToBill(a)}
-                                    title="Convert to Bill POS"
-                                  >
-                                    <ReceiptText size={10} /> Bill POS
-                                  </button>
-                                )}
-                                {ws === 'Billed' && (
-                                  <button
-                                    className="btn btn-sm btn-ghost"
-                                    style={{ fontSize: 10.5, padding: '3px 6px' }}
-                                    onClick={() => router.push('/billing')}
-                                    title="View Billing POS"
-                                  >
-                                    <Eye size={10} /> View Bill
-                                  </button>
-                                )}
+                                {a.status === 'Pending' ? (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-primary"
+                                      style={{
+                                        fontSize: 10.5,
+                                        padding: '4px 8px',
+                                        fontWeight: 800,
+                                        background: 'linear-gradient(135deg, #10b981, #059669)',
+                                        borderColor: '#059669',
+                                        color: '#ffffff',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 3,
+                                      }}
+                                      onClick={() => handleConfirmAppointment(a)}
+                                      title="Confirm booking and send WhatsApp confirmation to customer"
+                                    >
+                                      <CheckCircle2 size={12} /> Confirm &amp; Notify
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-ghost"
+                                      style={{
+                                        fontSize: 10.5,
+                                        padding: '4px 6px',
+                                        color: '#ef4444',
+                                        borderColor: '#fca5a5',
+                                        background: '#fef2f2',
+                                        fontWeight: 700,
+                                      }}
+                                      onClick={() => handleRejectAppointment(a)}
+                                      title="Reject / Cancel this booking request"
+                                    >
+                                      ❌ Reject
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    {(ws === 'Booked' || ws === 'Not Attempted') && (
+                                      <button
+                                        className="btn btn-sm btn-ghost"
+                                        style={{ color: 'var(--teal)', fontSize: 10.5, padding: '3px 6px' }}
+                                        onClick={() => handleStartService(a.id)}
+                                        title="Start beautician service"
+                                      >
+                                        <Play size={10} /> Start
+                                      </button>
+                                    )}
+                                    {ws === 'In Service' && (
+                                      <button
+                                        className="btn btn-sm btn-ghost"
+                                        style={{ color: 'var(--green)', fontSize: 10.5, padding: '3px 6px' }}
+                                        onClick={() => handleCompleteService(a.id)}
+                                        title="Complete service"
+                                      >
+                                        <CheckCircle2 size={10} /> Complete
+                                      </button>
+                                    )}
+                                    {ws === 'Completed' && (
+                                      <button
+                                        className="btn btn-sm btn-gold"
+                                        style={{ fontSize: 10.5, padding: '3px 6px' }}
+                                        onClick={() => handleConvertToBill(a)}
+                                        title="Convert to Bill POS"
+                                      >
+                                        <ReceiptText size={10} /> Bill POS
+                                      </button>
+                                    )}
+                                    {ws === 'Billed' && (
+                                      <button
+                                        className="btn btn-sm btn-ghost"
+                                        style={{ fontSize: 10.5, padding: '3px 6px' }}
+                                        onClick={() => router.push('/billing')}
+                                        title="View Billing POS"
+                                      >
+                                        <Eye size={10} /> View Bill
+                                      </button>
+                                    )}
 
-                                <button
-                                  className="btn btn-sm btn-ghost"
-                                  style={{ color: 'var(--teal)', fontSize: 10.5, padding: '3px 6px', fontWeight: 600 }}
-                                  onClick={() => handleOpenReceipt(a)}
-                                  title="View / Print / Download PDF Invoice Receipt"
-                                >
-                                  <FileText size={11} /> Bill PDF
-                                </button>
+                                    <button
+                                      className="btn btn-sm btn-ghost"
+                                      style={{ color: 'var(--teal)', fontSize: 10.5, padding: '3px 6px', fontWeight: 600 }}
+                                      onClick={() => handleOpenReceipt(a)}
+                                      title="View / Print / Download PDF Invoice Receipt"
+                                    >
+                                      <FileText size={11} /> Bill PDF
+                                    </button>
+                                  </>
+                                )}
 
                                 <button className="btn-icon edit" onClick={() => openEdit(a)} title="Edit">
                                   <Pencil size={12} />
@@ -889,7 +1104,7 @@ export default function AppointmentsPage() {
                                 </a>
                                 <button
                                   className="btn-icon wa"
-                                  title="WhatsApp staff"
+                                  title="WhatsApp staff / customer"
                                   onClick={() => openWA(a.mobile, appointmentStaffMessage(a, data.settings.salon))}
                                 >
                                   <MessageCircle size={12} />

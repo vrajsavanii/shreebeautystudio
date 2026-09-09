@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
 import { uid, todayISO, isPastTimeForDate } from '@/lib/utils';
-import { sendDirectWhatsAppMessage, appointmentCustomerMessage, bridalMessage } from '@/lib/whatsapp';
+import { sendDirectWhatsAppMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage, bridalMessage } from '@/lib/whatsapp';
 import { sendResendEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
 import { autoSyncAppointmentToGoogleCalendar, autoSyncBridalToGoogleCalendar } from '@/lib/google-calendar-server';
 
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       ? (rows[0].data as SalonData)
       : { ...DEFAULT_DATA };
 
-    // 2. Prepare new appointment
+    // 2. Prepare new appointment with Pending Status
     const newAppointment: Appointment = appointment
       ? {
           id: appointment.id || uid(),
@@ -94,9 +94,9 @@ export async function POST(request: Request) {
           service: appointment.service,
           staff: appointment.staff || 'Senior Beautician',
           advance: Number(appointment.advance) || 0,
-          status: appointment.status || 'Confirmed',
+          status: appointment.status || 'Pending',
           workStatus: appointment.workStatus || 'Booked',
-          notes: appointment.notes || 'Online Self-Booking',
+          notes: appointment.notes || 'Online Booking Request (Pending Salon Approval)',
         }
       : {
           id: uid(),
@@ -108,9 +108,9 @@ export async function POST(request: Request) {
           service: `👑 Bridal: ${bridal.packageName || 'Bridal Package'}`,
           staff: 'Master Bridal Artist',
           advance: Number(bridal.advance) || 0,
-          status: 'Confirmed',
+          status: 'Pending',
           workStatus: 'Booked',
-          notes: `Venue: ${bridal.venue || 'Surat'} | Event: ${bridal.event || 'Wedding'}`,
+          notes: `Venue: ${bridal.venue || 'Surat'} | Event: ${bridal.event || 'Wedding'} (Pending Approval)`,
         };
 
     // 3. Prepare new bridal booking if bridal mode
@@ -208,18 +208,35 @@ export async function POST(request: Request) {
       }
     }
 
-    // 7. Dispatch customer confirmation via WhatsApp (pure Meta API)
+    // 7. Dispatch customer booking request notification via WhatsApp (pure Meta API)
     const salon = updatedData.settings?.salon || 'Shree Beauty Studio';
     const address = updatedData.settings?.address || 'Ring Road, Surat, Gujarat';
+    const isPending = newAppointment.status === 'Pending';
     const msg =
       type === 'bridal' && newBridal
-        ? bridalMessage(customerName, newBridal.packageName, newBridal.weddingDate, newBridal.venue, salon)
-        : appointmentCustomerMessage(newAppointment, salon, address);
+        ? (isPending
+            ? bridalRequestPendingMessage(
+                customerName,
+                newBridal.packageName || 'Bridal Package',
+                newBridal.weddingDate || newBridal.date || '',
+                newBridal.venue || 'Surat Venue',
+                salon
+              )
+            : bridalMessage(
+                customerName,
+                newBridal.packageName || 'Bridal Package',
+                newBridal.weddingDate || newBridal.date || '',
+                newBridal.venue || 'Surat Venue',
+                salon
+              ))
+        : (isPending
+            ? appointmentRequestPendingMessage(newAppointment, salon, address)
+            : appointmentCustomerMessage(newAppointment, salon, address));
 
     let waResult: any = null;
     try {
       waResult = await sendDirectWhatsAppMessage(mobile, msg, updatedData.settings);
-      console.log(`[Public Booking WhatsApp] Sent confirmation to ${mobile}:`, waResult);
+      console.log(`[Public Booking WhatsApp] Sent request notification to ${mobile}:`, waResult);
     } catch (err: any) {
       console.warn('[Public Booking WhatsApp] Dispatch error:', err?.message);
     }
@@ -249,7 +266,9 @@ export async function POST(request: Request) {
 
         emailResult = await sendResendEmail({
           to: email,
-          subject: `✨ Appointment Confirmed — ${serviceTitle} at ${salon}`,
+          subject: isPending
+            ? `⏳ Booking Request Received — ${serviceTitle} at ${salon}`
+            : `✨ Appointment Confirmed — ${serviceTitle} at ${salon}`,
           html: emailHtml,
           from: updatedData.settings?.resendFromEmail,
           apiKey: updatedData.settings?.resendApiKey,

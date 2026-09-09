@@ -172,6 +172,7 @@ export interface Invoice {
   loyaltyPointsEarned?: number;
   loyaltyPointsRedeemed?: number;
   walletAmountUsed?: number;
+  notes?: string;
 }
 
 export interface InventoryItem {
@@ -366,6 +367,7 @@ export interface BridalBooking {
   packageSessions?: number;
   packageIncludes?: string;
   package: number;
+  totalAmount?: number;
   advance: number;
   advanceAccount?: string;
   advanceMode?: string;
