@@ -241,8 +241,9 @@ Today's Total Revenue: ₹${todayRev}`;
           >
             <Sparkles size={18} color="#fef08a" />
           </div>
-          <span>AI Copilot</span>
+          <span className="copilot-btn-text">AI Copilot</span>
           <span
+            className="copilot-shortcut"
             style={{
               background: 'rgba(255,255,255,0.2)',
               fontSize: 10,

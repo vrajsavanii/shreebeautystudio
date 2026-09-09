@@ -964,16 +964,16 @@ function BillingContent() {
     );
   }, [recentInvoices, historySearch]);
 
-  const tabs: { id: BillingViewTab; label: string; icon: any; count?: number }[] = [
-    { id: 'split', label: 'Side-by-Side POS', icon: Columns },
-    { id: 'builder', label: 'New POS Bill', icon: Receipt },
-    { id: 'history', label: 'Invoice Receipts History', icon: History, count: recentInvoices.length },
+  const tabs: { id: BillingViewTab; label: string; shortLabel: string; icon: any; count?: number }[] = [
+    { id: 'split', label: 'Side-by-Side POS', shortLabel: 'Split POS', icon: Columns },
+    { id: 'builder', label: 'New POS Bill', shortLabel: 'New Bill', icon: Receipt },
+    { id: 'history', label: 'Invoice Receipts History', shortLabel: 'History', icon: History, count: recentInvoices.length },
   ];
 
   return (
     <div>
       {/* Sub Tabs */}
-      <div className="tabs">
+      <div className="tabs billing-tabs">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -985,7 +985,8 @@ function BillingContent() {
               onClick={() => setActiveTab(tab.id)}
             >
               <Icon size={14} />
-              <span>{tab.label}</span>
+              <span className="tab-label-full">{tab.label}</span>
+              <span className="tab-label-short">{tab.shortLabel}</span>
               {tab.count !== undefined && <span className="tab-badge">{tab.count}</span>}
             </button>
           );
@@ -1118,7 +1119,7 @@ function BillingContent() {
       <div className={activeTab === 'split' ? 'billing-layout' : ''}>
         {/* Invoice Builder Component */}
         {(activeTab === 'split' || activeTab === 'builder') && (
-          <motion.div className="card" style={{ padding: 24 }} variants={fadeSlideUp} initial="hidden" animate="visible">
+          <motion.div className="card billing-builder-card" variants={fadeSlideUp} initial="hidden" animate="visible">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0, color: 'var(--text)' }}>
                 {editingInvoiceId
@@ -1249,6 +1250,7 @@ function BillingContent() {
               </div>
             )}
             <div
+              className="billing-barcode-container"
               style={{
                 display: 'flex',
                 gap: 8,
@@ -1260,27 +1262,31 @@ function BillingContent() {
                 margin: '14px 0 16px',
               }}
             >
-              <Barcode size={20} color="var(--teal)" />
-              <input
-                type="text"
-                className="input"
-                style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px' }}
-                placeholder="Scan barcode with USB laser gun or type & press Enter…"
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleScanBarcode();
-                  }
-                }}
-              />
-              <button className="btn btn-primary btn-sm" type="button" onClick={() => handleScanBarcode()}>
-                Scan Item
-              </button>
-              <button className="btn btn-ghost btn-sm" type="button" onClick={() => setCameraModalOpen(true)}>
-                <Camera size={14} /> Camera
-              </button>
+              <div className="billing-barcode-input-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                <Barcode size={20} color="var(--teal)" style={{ flexShrink: 0 }} />
+                <input
+                  type="text"
+                  className="input billing-barcode-input"
+                  style={{ flex: 1, minWidth: 0, border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px' }}
+                  placeholder="Scan barcode or type & press Enter…"
+                  value={barcodeInput}
+                  onChange={(e) => setBarcodeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleScanBarcode();
+                    }
+                  }}
+                />
+              </div>
+              <div className="billing-barcode-actions" style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                <button className="btn btn-primary btn-sm" type="button" onClick={() => handleScanBarcode()}>
+                  Scan Item
+                </button>
+                <button className="btn btn-ghost btn-sm" type="button" onClick={() => setCameraModalOpen(true)}>
+                  <Camera size={14} /> Camera
+                </button>
+              </div>
             </div>
 
             {/* Line Items */}
@@ -1296,173 +1302,172 @@ function BillingContent() {
                 </motion.button>
               </div>
 
-              {/* Column Header Titles */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(180px, 1.8fr) 52px 75px 105px 75px 28px',
-                  gap: 6,
-                  padding: '6px 8px',
-                  background: '#e2e8f0',
-                  borderRadius: '6px 6px 0 0',
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: '#334155',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.03em',
-                  marginBottom: 4,
-                  alignItems: 'center',
-                }}
-              >
-                <span>Service / Product Description</span>
-                <span style={{ textAlign: 'center' }}>Qty</span>
-                <span style={{ textAlign: 'right' }}>Price (₹)</span>
-                <span style={{ textAlign: 'center' }}>Disc (₹ / %)</span>
-                <span style={{ textAlign: 'right' }}>Total (₹)</span>
-                <span></span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {lines.map((line, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+              {/* Column Header Titles & Lines in Scrollable Container for Mobile */}
+              <div className="billing-lines-scroll" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
+                <div style={{ minWidth: 540 }}>
+                  <div
                     style={{
                       display: 'grid',
                       gridTemplateColumns: 'minmax(180px, 1.8fr) 52px 75px 105px 75px 28px',
                       gap: 6,
+                      padding: '6px 8px',
+                      background: '#e2e8f0',
+                      borderRadius: '6px 6px 0 0',
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: '#334155',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.03em',
+                      marginBottom: 4,
                       alignItems: 'center',
                     }}
                   >
-                    {/* Item Name + Type Badge */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <button
-                        type="button"
-                        className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
+                    <span>Service / Product Description</span>
+                    <span style={{ textAlign: 'center' }}>Qty</span>
+                    <span style={{ textAlign: 'right' }}>Price (₹)</span>
+                    <span style={{ textAlign: 'center' }}>Disc (₹ / %)</span>
+                    <span style={{ textAlign: 'right' }}>Total (₹)</span>
+                    <span></span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {lines.map((line, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
                         style={{
-                          cursor: 'pointer',
-                          fontSize: 10.5,
-                          padding: '3px 6px',
-                          border: 'none',
-                          flexShrink: 0,
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(180px, 1.8fr) 52px 75px 105px 75px 28px',
+                          gap: 6,
+                          alignItems: 'center',
                         }}
-                        title={line.type === 'P' ? 'Retail Product (Click to switch to Service)' : 'Salon Service (Click to switch to Product)'}
-                        onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
                       >
-                        {line.type === 'P' ? '📦' : '💄'}
-                      </button>
-                      <input
-                        type="text"
-                        className="input"
-                        list="billing-items-list"
-                        placeholder="Select service or scan product…"
-                        value={line.name}
-                        onChange={(e) => handleItemSelect(idx, e.target.value)}
-                        style={{ fontSize: 12.5, padding: '7px 9px' }}
-                      />
-                    </div>
-
-                    {/* Qty */}
-                    <input
-                      type="number"
-                      min={1}
-                      className="input"
-                      title="Quantity"
-                      placeholder="Qty"
-                      value={line.qty}
-                      onChange={(e) => setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
-                      style={{ textAlign: 'center', fontSize: 12.5, padding: '7px 4px' }}
-                    />
-
-                    {/* Price */}
-                    <input
-                      type="number"
-                      min={0}
-                      className="input"
-                      title="Rate (₹)"
-                      placeholder="₹ 0"
-                      value={line.price}
-                      onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
-                      style={{ textAlign: 'right', fontSize: 12.5, padding: '7px 6px' }}
-                    />
-
-                    {/* Item Discount Input + Unit Toggle (₹ or %) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <input
-                        type="number"
-                        min={0}
-                        className="input"
-                        title="Discount on this item"
-                        placeholder="0"
-                        value={line.discount || ''}
-                        onChange={(e) => setLine(idx, { discount: Number(e.target.value) || 0 })}
-                        style={{
-                          textAlign: 'right',
-                          fontSize: 12,
-                          padding: '7px 4px',
-                          color: Number(line.discount || 0) > 0 ? 'var(--green)' : 'inherit',
-                          fontWeight: Number(line.discount || 0) > 0 ? 700 : 400,
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        style={{
-                          padding: '5px 5px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          minWidth: 24,
-                          height: 32,
-                          borderRadius: 5,
-                          color: (line.discountType || '₹') === '%' ? '#2563eb' : 'var(--teal)',
-                          background: (line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4',
-                          border: '1px solid #cbd5e1',
-                        }}
-                        title={`Toggle Discount Unit: currently ${line.discountType || '₹'}`}
-                        onClick={() => setLine(idx, { discountType: (line.discountType || '₹') === '₹' ? '%' : '₹' })}
-                      >
-                        {line.discountType || '₹'}
-                      </button>
-                    </div>
-
-                    {/* Line Net Total */}
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--teal)' }}>
-                        {money(calcLineTotal(line))}
-                      </div>
-                      {calcLineDiscount(line) > 0 && (
-                        <div style={{ fontSize: 9.5, color: 'var(--green)', fontWeight: 700 }}>
-                          −{money(calcLineDiscount(line))}
+                        {/* Item Name + Type Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            type="button"
+                            className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
+                            style={{
+                              cursor: 'pointer',
+                              fontSize: 10.5,
+                              padding: '3px 6px',
+                              border: 'none',
+                              flexShrink: 0,
+                            }}
+                            title={line.type === 'P' ? 'Retail Product (Click to switch to Service)' : 'Salon Service (Click to switch to Product)'}
+                            onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
+                          >
+                            {line.type === 'P' ? '📦' : '💄'}
+                          </button>
+                          <input
+                            type="text"
+                            className="input"
+                            list="billing-items-list"
+                            placeholder="Select service or scan product…"
+                            value={line.name}
+                            onChange={(e) => handleItemSelect(idx, e.target.value)}
+                            style={{ fontSize: 12.5, padding: '7px 9px' }}
+                          />
                         </div>
-                      )}
-                    </div>
 
-                    {/* Delete Line */}
-                    <button
-                      className="btn-icon danger"
-                      style={{ width: 28, height: 28 }}
-                      onClick={() =>
-                        setLines((p) => {
-                          const remaining = p.filter((_, i) => i !== idx);
-                          return remaining.length === 0 ? [EMPTY_LINE()] : remaining;
-                        })
-                      }
-                      disabled={lines.length === 1 && !lines[0].name}
-                      title="Remove item"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </motion.div>
-                ))}
+                        {/* Qty */}
+                        <input
+                          type="number"
+                          min={1}
+                          className="input"
+                          title="Quantity"
+                          placeholder="Qty"
+                          value={line.qty}
+                          onChange={(e) => setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
+                          style={{ textAlign: 'center', fontSize: 12.5, padding: '7px 4px' }}
+                        />
 
-                <datalist id="billing-items-list">
-                  {allItems.map((item, i) => (
-                    <option key={i} value={item.name}>
-                      {item.label}
-                    </option>
-                  ))}
-                </datalist>
+                        {/* Price */}
+                        <input
+                          type="number"
+                          min={0}
+                          className="input"
+                          title="Rate (₹)"
+                          placeholder="₹ 0"
+                          value={line.price}
+                          onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
+                          style={{ textAlign: 'right', fontSize: 12.5, padding: '7px 6px' }}
+                        />
+
+                        {/* Item Discount Input + Unit Toggle (₹ or %) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <input
+                            type="number"
+                            min={0}
+                            className="input"
+                            title="Discount on this item"
+                            placeholder="0"
+                            value={line.discount || ''}
+                            onChange={(e) => setLine(idx, { discount: Number(e.target.value) || 0 })}
+                            style={{
+                              textAlign: 'right',
+                              fontSize: 12,
+                              padding: '7px 4px',
+                              color: Number(line.discount || 0) > 0 ? 'var(--green)' : 'inherit',
+                              fontWeight: Number(line.discount || 0) > 0 ? 700 : 400,
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            style={{
+                              padding: '5px 5px',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              minWidth: 24,
+                              height: 32,
+                              borderRadius: 5,
+                              color: (line.discountType || '₹') === '%' ? '#2563eb' : 'var(--teal)',
+                              background: (line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4',
+                              border: '1px solid #cbd5e1',
+                            }}
+                            title={`Toggle Discount Unit: currently ${line.discountType || '₹'}`}
+                            onClick={() => setLine(idx, { discountType: (line.discountType || '₹') === '₹' ? '%' : '₹' })}
+                          >
+                            {line.discountType || '₹'}
+                          </button>
+                        </div>
+
+                        {/* Line Net Total */}
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: 12.5, fontWeight: 700 }}>
+                            {money(calcLineTotal(line))}
+                          </span>
+                        </div>
+
+                        {/* Delete Line */}
+                        <button
+                          className="btn-icon danger"
+                          style={{ width: 28, height: 28 }}
+                          onClick={() =>
+                            setLines((p) => {
+                              const remaining = p.filter((_, i) => i !== idx);
+                              return remaining.length === 0 ? [EMPTY_LINE()] : remaining;
+                            })
+                          }
+                          disabled={lines.length === 1 && !lines[0].name}
+                          title="Remove item"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </motion.div>
+                    ))}
+
+                    <datalist id="billing-items-list">
+                      {allItems.map((item, i) => (
+                        <option key={i} value={item.name}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1751,7 +1756,7 @@ function BillingContent() {
 
         {/* Invoice Receipts History Panel */}
         {(activeTab === 'split' || activeTab === 'history') && (
-          <motion.div className="card" style={{ padding: 24 }} variants={fadeSlideUp} initial="hidden" animate="visible">
+          <motion.div className="card billing-builder-card" variants={fadeSlideUp} initial="hidden" animate="visible">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0, color: 'var(--text)' }}>
                 Recent Invoices ({filteredInvoices.length})

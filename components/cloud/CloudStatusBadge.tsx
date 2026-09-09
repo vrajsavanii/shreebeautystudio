@@ -37,7 +37,7 @@ export default function CloudStatusBadge() {
           {icon}
         </motion.span>
       </AnimatePresence>
-      <span>{label}</span>
+      <span className="cloud-badge-label">{label}</span>
     </button>
   );
 }

@@ -83,7 +83,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       {/* Mobile: hamburger */}
       <button
         className="btn-icon"
-        onClick={onMenuClick}
+        onClick={() => {
+          if (onMenuClick) {
+            onMenuClick();
+          } else if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('open-mobile-more'));
+          }
+        }}
         style={{ display: 'none' }}
         id="mobile-menu-btn"
         aria-label="Open menu"
@@ -92,11 +98,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </button>
 
       {/* Left: Page Title & Breadcrumb Subtitle */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, flexShrink: 1 }}>
+      <div className="topbar-title-wrap" style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, flexShrink: 1 }}>
         <h1 className="topbar-title" style={{ fontSize: 17, margin: 0, lineHeight: 1.2 }}>
           {pageInfo.title}
         </h1>
-        <div style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+        <div className="topbar-subtitle" style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
           <span style={{ fontWeight: 600, color: 'var(--teal)' }}>
             {data?.settings?.salon || 'Shree Beauty Studio'}
           </span>
@@ -108,7 +114,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       {/* Center / Right: Live Date & Time + Alert Pills + Quick Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'nowrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', flexShrink: 0 }}>
         {/* Live Date & Time Pill */}
         <div
           style={{
@@ -143,7 +149,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {todayAppts > 0 && (
           <Link
             href="/admin/appointments"
-            className="badge badge-teal"
+            className="badge badge-teal topbar-badge"
             style={{
               textDecoration: 'none',
               padding: '4px 9px',
@@ -151,11 +157,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
+              flexShrink: 0,
             }}
             title={`${todayAppts} appointment(s) scheduled for today`}
           >
             <Sparkles size={11} color="var(--teal)" />
-            <span>{todayAppts} Today</span>
+            <span className="topbar-badge-label">{todayAppts} Today</span>
+            <span className="topbar-badge-short">{todayAppts}</span>
           </Link>
         )}
 
@@ -163,7 +171,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {lowStockCount > 0 && (
           <Link
             href="/admin/inventory"
-            className="badge badge-red"
+            className="badge badge-red topbar-badge"
             style={{
               textDecoration: 'none',
               padding: '4px 9px',
@@ -171,11 +179,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
+              flexShrink: 0,
             }}
             title={`${lowStockCount} item(s) below re-order level`}
           >
             <AlertTriangle size={11} color="var(--red)" />
-            <span>{lowStockCount} Low</span>
+            <span className="topbar-badge-label">{lowStockCount} Low</span>
+            <span className="topbar-badge-short">{lowStockCount}</span>
           </Link>
         )}
 
@@ -252,22 +262,25 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
         {/* Active User Pill */}
         <div
+          className="topbar-user-pill"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 5,
             background: isSalesperson ? '#f0fdf4' : '#fefce8',
             border: isSalesperson ? '1px solid #bbf7d0' : '1px solid #fef08a',
-            padding: '4px 10px',
+            padding: '3px 8px',
             borderRadius: 99,
             fontSize: 11.5,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
         >
           {isSalesperson ? <UserCheck size={13} color="#16a34a" /> : <ShieldCheck size={13} color="#ca8a04" />}
-          <span style={{ fontWeight: 700, color: isSalesperson ? '#15803d' : '#854d0e' }}>
+          <span className="topbar-user-name" style={{ fontWeight: 700, color: isSalesperson ? '#15803d' : '#854d0e' }}>
             {currentUser?.name || 'Owner'}
           </span>
-          <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 99, background: isSalesperson ? '#dcfce7' : '#fef9c3', color: isSalesperson ? '#166534' : '#713f12', fontWeight: 800 }}>
+          <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 99, background: isSalesperson ? '#dcfce7' : '#fef9c3', color: isSalesperson ? '#166534' : '#713f12', fontWeight: 800 }}>
             {isSalesperson ? 'Sales' : 'Admin'}
           </span>
           <button
@@ -279,7 +292,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               border: 'none',
               color: '#94a3b8',
               cursor: 'pointer',
-              padding: '0 0 0 4px',
+              padding: '0 0 0 2px',
               display: 'flex',
               alignItems: 'center',
             }}
@@ -293,12 +306,29 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </div>
 
       <style>{`
+        .topbar-badge-short { display: none; }
         @media (max-width: 992px) {
           .topbar-datetime { display: none !important; }
         }
         @media (max-width: 767px) {
-          #mobile-menu-btn { display: flex !important; }
+          #mobile-menu-btn { display: flex !important; margin-right: 2px; }
           .topbar-actions { display: none !important; }
+          .topbar-subtitle { display: none !important; }
+          .topbar-user-name { display: none !important; }
+          .topbar-badge-label { display: none !important; }
+          .topbar-badge-short { display: inline !important; }
+        }
+        @media (max-width: 480px) {
+          .topbar-title {
+            font-size: 14.5px !important;
+            max-width: 115px !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+          }
+          .topbar-badge {
+            padding: 3px 6px !important;
+          }
         }
       `}</style>
     </header>

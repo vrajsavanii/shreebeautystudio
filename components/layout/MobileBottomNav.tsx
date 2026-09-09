@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Calendar, Receipt, Heart, MoreHorizontal,
   X, Users, Package, ShoppingBag, Building2, UserCog, Bell, BarChart3, Settings, Sparkles, MessageCircle, Wallet, ExternalLink
@@ -34,6 +34,17 @@ const MORE_NAV = [
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setMoreOpen(true);
+    const handleToggle = () => setMoreOpen((prev) => !prev);
+    window.addEventListener('open-mobile-more', handleOpen);
+    window.addEventListener('toggle-mobile-more', handleToggle);
+    return () => {
+      window.removeEventListener('open-mobile-more', handleOpen);
+      window.removeEventListener('toggle-mobile-more', handleToggle);
+    };
+  }, []);
 
   return (
     <>
