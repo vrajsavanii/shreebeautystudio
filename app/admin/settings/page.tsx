@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
-  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail
+  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSync } from '@/lib/sync';
@@ -16,7 +16,7 @@ import Modal from '@/components/ui/Modal';
 import { supabase } from '@/lib/supabase';
 import { fadeSlideUp, staggerContainer } from '@/variants';
 
-type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'whatsapp' | 'email' | 'cloud';
+type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'cloud';
 
 export default function SettingsPage() {
   const { data, updateData, cloudStatus, lastSynced } = useSalonStore();
@@ -167,6 +167,7 @@ export default function SettingsPage() {
     { id: 'services', label: 'Services & Pricing', icon: Scissors },
     { id: 'reminders', label: 'Reminder Timing', icon: Bell },
     { id: 'billing', label: 'Billing & Accounts', icon: CreditCard },
+    { id: 'loyalty', label: 'Loyalty Scheme & Rewards', icon: Sparkles },
     { id: 'whatsapp', label: 'WhatsApp Webhook', icon: MessageCircle },
     { id: 'email', label: 'Email & Resend', icon: Mail },
     { id: 'cloud', label: 'Cloud Database', icon: CloudCog },
@@ -351,6 +352,200 @@ export default function SettingsPage() {
               <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4 }}>
                 These appear in all dropdowns for billing, bridal advances, and vendor purchases.
               </span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Loyalty Scheme & Rewards Tab */}
+        {activeTab === 'loyalty' && (
+          <motion.div key="loyalty" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
+            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div>
+                <h2>🌟 Customer Loyalty Points & Reward Scheme</h2>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>Turn regular clients into repeat lifetime customers with points on every visit</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                  background: s.loyaltyEnabled !== false ? '#dcfce7' : '#fee2e2',
+                  color: s.loyaltyEnabled !== false ? '#15803d' : '#b91c1c',
+                  border: `1px solid ${s.loyaltyEnabled !== false ? '#86efac' : '#fecaca'}`,
+                }}>
+                  {s.loyaltyEnabled !== false ? '🟢 LOYALTY SCHEME ACTIVE (ON)' : '🔴 LOYALTY SCHEME DISABLED (OFF)'}
+                </span>
+              </div>
+            </div>
+
+            {/* Master ON / OFF Switch Banner */}
+            <div style={{
+              background: s.loyaltyEnabled !== false
+                ? 'linear-gradient(135deg, #fefce8, #fffbeb)'
+                : '#f8fafc',
+              border: `2px solid ${s.loyaltyEnabled !== false ? '#fde047' : 'var(--border)'}`,
+              borderRadius: 14,
+              padding: 20,
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 16,
+              boxShadow: s.loyaltyEnabled !== false ? '0 4px 20px rgba(234, 179, 8, 0.12)' : 'none',
+            }}>
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <Sparkles size={22} color={s.loyaltyEnabled !== false ? '#ca8a04' : 'var(--muted)'} />
+                  <span style={{ fontSize: 16, fontWeight: 800, color: s.loyaltyEnabled !== false ? '#854d0e' : 'var(--text)' }}>
+                    Master Loyalty Scheme Switch
+                  </span>
+                </div>
+                <p style={{ fontSize: 12.5, color: s.loyaltyEnabled !== false ? '#a16207' : 'var(--muted)', margin: 0 }}>
+                  {s.loyaltyEnabled !== false
+                    ? 'Loyalty Points calculation, earning on POS bills, customer points ledger, and bill discounts are currently ACTIVE.'
+                    : 'Loyalty Points system is turned OFF. Customers will not earn or redeem points during billing.'}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Big Visual Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = s.loyaltyEnabled === false;
+                    update('loyaltyEnabled', nextVal);
+                    toast(nextVal ? '🌟 Loyalty Scheme turned ON!' : '⏸️ Loyalty Scheme turned OFF!', nextVal ? 'success' : 'info');
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '11px 20px',
+                    borderRadius: 999,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    background: s.loyaltyEnabled !== false ? 'linear-gradient(135deg, #16a34a, #15803d)' : '#64748b',
+                    color: '#ffffff',
+                    boxShadow: s.loyaltyEnabled !== false ? '0 4px 14px rgba(22, 163, 74, 0.35)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <span style={{
+                    display: 'inline-block',
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    background: '#ffffff',
+                    boxShadow: '0 0 8px rgba(255,255,255,0.8)'
+                  }} />
+                  {s.loyaltyEnabled !== false ? 'LOYALTY IS ON (Click to Turn OFF)' : 'LOYALTY IS OFF (Click to Turn ON)'}
+                </button>
+              </div>
+            </div>
+
+            {/* Config Fields (disabled or dimmed if turned off) */}
+            <div style={{
+              opacity: s.loyaltyEnabled !== false ? 1 : 0.5,
+              pointerEvents: s.loyaltyEnabled !== false ? 'auto' : 'none',
+              transition: 'opacity 0.2s ease',
+            }}>
+              <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                ⚙️ Points Earning & Redemption Calculation Rules
+              </h3>
+
+              <div className="form-grid" style={{ marginBottom: 16 }}>
+                <div className="form-group">
+                  <label className="label">
+                    💰 Points Earning Rate (₹ Spent per 1 Point)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      min={1}
+                      className="input"
+                      value={s.loyaltyEarnRate || 100}
+                      onChange={(e) => update('loyaltyEarnRate', Math.max(1, Number(e.target.value)))}
+                      placeholder="100"
+                      style={{ paddingLeft: 28 }}
+                    />
+                    <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--muted)' }}>₹</span>
+                  </div>
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    Example: If set to ₹100, a bill of ₹1,500 gives the customer <b>15 Points</b>.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="label">
+                    🎁 Points Redemption Rate (Points required for ₹1 Discount)
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      min={1}
+                      className="input"
+                      value={s.loyaltyRedeemRate || 10}
+                      onChange={(e) => update('loyaltyRedeemRate', Math.max(1, Number(e.target.value)))}
+                      placeholder="10"
+                      style={{ paddingRight: 60 }}
+                    />
+                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--muted)', fontSize: 12 }}>pts = ₹1</span>
+                  </div>
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    Example: If set to 10 pts = ₹1, then 100 points give ₹10 discount (500 pts = ₹50 OFF).
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="label">
+                    🔒 Minimum Points Required to Redeem
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="input"
+                    value={s.loyaltyMinRedeem !== undefined ? s.loyaltyMinRedeem : 50}
+                    onChange={(e) => update('loyaltyMinRedeem', Math.max(0, Number(e.target.value)))}
+                    placeholder="50"
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    Customer must have at least this many points to apply discount at checkout.
+                  </span>
+                </div>
+              </div>
+
+              {/* Digital Wallet Toggle */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                padding: 16,
+                marginTop: 8,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: 'var(--text)', marginBottom: 2 }}>
+                      💳 Customer Prepaid / Store Wallet Balance
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      Allow customers to maintain advance wallet balance and pay directly from wallet at checkout.
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={s.walletEnabled !== false}
+                      onChange={(e) => update('walletEnabled', e.target.checked)}
+                      style={{ width: 18, height: 18, accentColor: 'var(--teal)' }}
+                    />
+                    <span>{s.walletEnabled !== false ? 'Wallet ON' : 'Wallet OFF'}</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
