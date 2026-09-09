@@ -45,7 +45,7 @@ import { useForm } from 'react-hook-form';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import Link from 'next/link';
 
-type RojmelTab = 'dashboard' | 'all' | 'today' | 'categories' | 'daybook' | 'banks';
+type RojmelTab = 'dashboard' | 'payment-in' | 'all' | 'today' | 'categories' | 'daybook' | 'banks';
 
 const EXPENSE_CATEGORIES = [
   'Rent',
@@ -65,6 +65,10 @@ export default function ExpensesPage() {
 
   const [activeTab, setActiveTab] = useState<RojmelTab>('dashboard');
   const [search, setSearch] = useState('');
+  const [paymentInSearch, setPaymentInSearch] = useState('');
+  const [paymentInModeFilter, setPaymentInModeFilter] = useState('All');
+  const [deleteVoucherId, setDeleteVoucherId] = useState<string | null>(null);
+  const [selectPendingModalOpen, setSelectPendingModalOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -652,6 +656,46 @@ export default function ExpensesPage() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [expenses, search, activeTab, today]);
 
+  // Payment-In Calculations & Filtering
+  const paymentInVouchers = useMemo(() => {
+    return vouchers.filter((v) => v.type === 'Payment-In');
+  }, [vouchers]);
+
+  const paymentInStats = useMemo(() => {
+    const monthStart = today.slice(0, 7) + '-01';
+    const inVouchers = vouchers.filter((v) => v.type === 'Payment-In');
+    const totalIn = inVouchers.reduce((s, v) => s + Number(v.amount || 0), 0);
+    const todayIn = inVouchers
+      .filter((v) => v.date === today)
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const monthIn = inVouchers
+      .filter((v) => v.date >= monthStart)
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const todayCount = inVouchers.filter((v) => v.date === today).length;
+    return { totalIn, todayIn, monthIn, totalCount: inVouchers.length, todayCount };
+  }, [vouchers, today]);
+
+  const filteredPaymentInList = useMemo(() => {
+    const q = (paymentInSearch || '').toLowerCase().trim();
+    return paymentInVouchers
+      .filter((v) => {
+        const matchesSearch =
+          !q ||
+          (v.partyName && v.partyName.toLowerCase().includes(q)) ||
+          (v.partyMobile && v.partyMobile.toLowerCase().includes(q)) ||
+          (v.voucherNo && v.voucherNo.toLowerCase().includes(q)) ||
+          (v.linkedDocNo && v.linkedDocNo.toLowerCase().includes(q)) ||
+          (v.notes && v.notes.toLowerCase().includes(q)) ||
+          (v.mode && v.mode.toLowerCase().includes(q));
+
+        const matchesMode =
+          paymentInModeFilter === 'All' || v.mode?.toLowerCase() === paymentInModeFilter.toLowerCase();
+
+        return matchesSearch && matchesMode;
+      })
+      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.voucherNo || '').localeCompare(a.voucherNo || ''));
+  }, [paymentInVouchers, paymentInSearch, paymentInModeFilter]);
+
   // Day Book Calculation for selected Date
   const daybook = useMemo(() => {
     const d = daybookDate;
@@ -1034,6 +1078,63 @@ export default function ExpensesPage() {
     setDeleteTransferId(null);
   };
 
+  const handleDeleteVoucher = (id: string) => {
+    const v = vouchers.find((x) => x.id === id);
+    if (!v) return;
+
+    updateData((d) => {
+      const updatedVouchers = (d.vouchers || []).filter((x) => x.id !== id);
+      let updatedInvoices = [...(d.invoices || [])];
+      let updatedBridals = [...(d.bridal || [])];
+      let updatedPurchases = [...(d.purchases || [])];
+
+      if (v.type === 'Payment-In') {
+        // Roll back invoice payment
+        updatedInvoices = updatedInvoices.map((inv) => {
+          if (inv.id === v.partyId || (v.linkedDocNo && inv.no === v.linkedDocNo)) {
+            const newPaid = Math.max(0, Number(inv.paid || 0) - Number(v.amount || 0));
+            const totalPaid = newPaid + Number(inv.advance || 0);
+            const newBal = Math.max(0, Number(inv.total || 0) - totalPaid);
+            return { ...inv, paid: newPaid, balance: newBal };
+          }
+          return inv;
+        });
+
+        // Roll back bridal advance
+        updatedBridals = updatedBridals.map((b) => {
+          if (b.id === v.partyId || (v.linkedDocNo && (b.packageName === v.linkedDocNo || b.id === v.linkedDocNo))) {
+            const newAdv = Math.max(0, Number(b.advance || 0) - Number(v.amount || 0));
+            const newBal = Math.max(0, Number(b.package || 0) - newAdv);
+            return { ...b, advance: newAdv, balance: newBal };
+          }
+          return b;
+        });
+      } else if (v.type === 'Payment-Out') {
+        // Roll back purchase payment
+        updatedPurchases = updatedPurchases.map((p) => {
+          if (p.id === v.partyId || (v.linkedDocNo && p.no === v.linkedDocNo)) {
+            const newPaid = Math.max(0, Number(p.paid || 0) - Number(v.amount || 0));
+            const newBal = Math.max(0, Number(p.total || 0) - newPaid);
+            return { ...p, paid: newPaid, balance: newBal };
+          }
+          return p;
+        });
+      }
+
+      return {
+        ...d,
+        vouchers: updatedVouchers,
+        invoices: updatedInvoices,
+        bridal: updatedBridals,
+        purchases: updatedPurchases,
+      };
+    });
+
+    scheduleSave();
+    toast(`✅ Payment વાઉચર (${v.voucherNo}) ડિલીટ થયું અને બાકી હિસાબ રીસ્ટોર થયો!`);
+    setDeleteVoucherId(null);
+  };
+
   const getBankStats = (bankName: string) => {
     const match = vyaparStats.bankModeBreakdown.find(
       (m) => m.mode.toLowerCase() === bankName.toLowerCase()
@@ -1229,6 +1330,18 @@ export default function ExpensesPage() {
         >
           <BarChart3 size={14} />
           <span>📊 Vyapar Dashboard</span>
+        </button>
+
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === 'payment-in' ? 'active' : ''}`}
+          onClick={() => setActiveTab('payment-in')}
+        >
+          <ArrowDownLeft size={14} />
+          <span>📥 Payment In</span>
+          <span className="tab-badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800 }}>
+            {paymentInVouchers.length}
+          </span>
         </button>
 
         <button
@@ -1913,6 +2026,258 @@ export default function ExpensesPage() {
               </div>
             </div>
 
+          </motion.div>
+        )}
+
+        {/* ======== PAYMENT IN (ALL CUSTOMER COLLECTIONS) TAB ======== */}
+        {activeTab === 'payment-in' && (
+          <motion.div key="payment-in-list" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit">
+            {/* Top Metrics Cards */}
+            <motion.div
+              className="stats-grid"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              style={{ marginTop: 16 }}
+            >
+              <motion.div className="stat-card" variants={fadeSlideUp}>
+                <div className="stat-card-icon" style={{ background: 'rgba(5,150,105,.12)', color: '#059669' }}>
+                  <ArrowDownLeft size={20} />
+                </div>
+                <div className="stat-card-label">Total Payment In (કુલ જમા)</div>
+                <div className="stat-card-value" style={{ color: '#059669' }}>
+                  {money(paymentInStats.totalIn)}
+                </div>
+                <div className="stat-card-sub">{paymentInStats.totalCount} Payment In Vouchers</div>
+              </motion.div>
+
+              <motion.div className="stat-card" variants={fadeSlideUp}>
+                <div className="stat-card-icon" style={{ background: 'rgba(37,99,235,.12)', color: '#2563eb' }}>
+                  <Calendar size={20} />
+                </div>
+                <div className="stat-card-label">Today's Collection (આજનું કલેક્શન)</div>
+                <div className="stat-card-value" style={{ color: '#2563eb' }}>
+                  {money(paymentInStats.todayIn)}
+                </div>
+                <div className="stat-card-sub">{paymentInStats.todayCount} Received on {fmtDate(today)}</div>
+              </motion.div>
+
+              <motion.div className="stat-card" variants={fadeSlideUp}>
+                <div className="stat-card-icon" style={{ background: 'rgba(13,148,136,.12)', color: '#0d9488' }}>
+                  <TrendingUp size={20} />
+                </div>
+                <div className="stat-card-label">This Month's Inflow (આ મહિને)</div>
+                <div className="stat-card-value" style={{ color: '#0d9488' }}>
+                  {money(paymentInStats.monthIn)}
+                </div>
+                <div className="stat-card-sub">Customer & Bridal Collections</div>
+              </motion.div>
+
+              <motion.div className="stat-card" variants={fadeSlideUp}>
+                <div className="stat-card-icon" style={{ background: 'rgba(217,119,6,.12)', color: '#d97706' }}>
+                  <BadgeIndianRupee size={20} />
+                </div>
+                <div className="stat-card-label">Pending Receivables (બાકી લેવાના)</div>
+                <div className="stat-card-value" style={{ color: vyaparStats.toCollect > 0 ? '#d97706' : '#059669' }}>
+                  {money(vyaparStats.toCollect)}
+                </div>
+                <div className="stat-card-sub">{pendingCollections.length} Pending Customers / Bridal</div>
+              </motion.div>
+            </motion.div>
+
+            {/* Main Toolbar */}
+            <div className="toolbar" style={{ justifyContent: 'space-between', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 280, flexWrap: 'wrap' }}>
+                <div className="search-wrap" style={{ flex: 1, minWidth: 220, maxWidth: 380 }}>
+                  <Search size={15} className="search-icon" />
+                  <input
+                    type="search"
+                    className="input"
+                    placeholder="Search Customer, Mobile, Voucher #, Bill #…"
+                    value={paymentInSearch}
+                    onChange={(e) => setPaymentInSearch(e.target.value)}
+                  />
+                </div>
+
+                <select
+                  className="input"
+                  style={{ width: 'auto', minWidth: 140, height: 38 }}
+                  value={paymentInModeFilter}
+                  onChange={(e) => setPaymentInModeFilter(e.target.value)}
+                >
+                  <option value="All">All Modes (તમામ)</option>
+                  {paymentModes.map((m) => (
+                    <option key={m} value={m}>
+                      {m === 'Cash' ? '💵 Cash' : m.includes('UPI') || m.includes('GPay') || m.includes('PhonePe') ? `📱 ${m}` : m === 'Card' ? `💳 Card` : `🏦 ${m}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <motion.button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setSelectPendingModalOpen(true)}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', borderColor: '#059669', gap: 6 }}
+                >
+                  <Plus size={15} /> + Record Payment In (નાણાં જમા કરો)
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Table or Empty State */}
+            <div className="card" style={{ marginTop: 12 }}>
+              {filteredPaymentInList.length === 0 ? (
+                <div className="empty-state" style={{ padding: '40px 20px' }}>
+                  <div style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: '50%',
+                    background: '#dcfce7',
+                    color: '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 14px',
+                  }}>
+                    <ArrowDownLeft size={30} />
+                  </div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800 }}>
+                    {paymentInSearch || paymentInModeFilter !== 'All'
+                      ? 'No matching Payment In entries found'
+                      : 'હજી સુધી કોઈ Payment In એન્ટ્રી નોંધાયેલ નથી'}
+                  </h3>
+                  <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 450, margin: '6px auto 16px' }}>
+                    ગ્રાહક પાસેથી બાકી બિલ અથવા બ્રાઇડલ બુકિંગના નાણાં જમા થતાં જ તે તમામ એન્ટ્રી અહીં જોવા મળશે.
+                  </p>
+                  {pendingCollections.length > 0 && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setSelectPendingModalOpen(true)}
+                      style={{ gap: 6, background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', borderColor: '#059669' }}
+                    >
+                      <Plus size={14} /> Collect from Pending ({pendingCollections.length} Parties)
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Voucher # & Date</th>
+                        <th>Customer / Party (ગ્રાહક)</th>
+                        <th>Linked Document</th>
+                        <th>Payment Mode</th>
+                        <th style={{ textAlign: 'right' }}>Amount Received (જમા)</th>
+                        <th>Notes / Purpose</th>
+                        <th style={{ textAlign: 'center' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                      {filteredPaymentInList.map((v) => {
+                        const isCash = v.mode?.toLowerCase() === 'cash';
+                        const isUpi = v.mode?.toLowerCase().includes('upi') || v.mode?.toLowerCase().includes('gpay') || v.mode?.toLowerCase().includes('phonepe');
+                        const isCard = v.mode?.toLowerCase() === 'card';
+
+                        return (
+                          <motion.tr key={v.id} variants={fadeSlideUp}>
+                            <td>
+                              <div style={{
+                                fontWeight: 800,
+                                color: '#059669',
+                                fontSize: 12.5,
+                                fontFamily: 'monospace',
+                                background: '#f0fdf4',
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                display: 'inline-block',
+                                border: '1px solid #bbf7d0',
+                              }}>
+                                {v.voucherNo}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                                {fmtDate(v.date)}
+                              </div>
+                            </td>
+
+                            <td>
+                              <div style={{ fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <User size={14} style={{ color: '#2563eb' }} />
+                                <span>{v.partyName}</span>
+                              </div>
+                              {v.partyMobile && v.partyMobile !== '-' && (
+                                <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                  <Phone size={11} />
+                                  <span>{v.partyMobile}</span>
+                                </div>
+                              )}
+                            </td>
+
+                            <td>
+                              {v.linkedDocNo ? (
+                                <span style={{
+                                  padding: '3px 8px',
+                                  borderRadius: 6,
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                  background: v.linkedDocNo.startsWith('INV') || v.linkedDocNo.includes('Bill') ? '#e0f2fe' : '#fce7f3',
+                                  color: v.linkedDocNo.startsWith('INV') || v.linkedDocNo.includes('Bill') ? '#0369a1' : '#be185d',
+                                }}>
+                                  {v.linkedDocNo.startsWith('INV') ? `📄 Bill: ${v.linkedDocNo}` : `👑 ${v.linkedDocNo}`}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Direct Payment</span>
+                              )}
+                            </td>
+
+                            <td>
+                              <span style={{
+                                padding: '3px 10px',
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                background: isCash ? '#fef3c7' : isUpi ? '#dbeafe' : isCard ? '#ede9fe' : '#f1f5f9',
+                                color: isCash ? '#92400e' : isUpi ? '#1e40af' : isCard ? '#6b21a8' : '#334155',
+                              }}>
+                                {isCash ? '💵 Cash' : isUpi ? `📱 ${v.mode}` : isCard ? `💳 Card` : `🏦 ${v.mode}`}
+                              </span>
+                            </td>
+
+                            <td style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 900, color: '#059669', fontSize: 14.5 }}>
+                                +{money(v.amount)}
+                              </div>
+                            </td>
+
+                            <td style={{ color: 'var(--muted)', fontSize: 12, maxWidth: 220 }}>
+                              {v.notes || '—'}
+                            </td>
+
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                className="btn-icon danger"
+                                onClick={() => setDeleteVoucherId(v.id)}
+                                title="Delete Payment In Voucher (Reverts Balance)"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </motion.tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -3491,6 +3856,135 @@ export default function ExpensesPage() {
           </div>
         )}
       </Modal>
+
+      {/* Delete Payment In Voucher Confirmation Modal */}
+      {deleteVoucherId && (
+        <Modal
+          isOpen={!!deleteVoucherId}
+          onClose={() => setDeleteVoucherId(null)}
+          title="🗑️ Delete Payment In Voucher?"
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeleteVoucherId(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" onClick={() => handleDeleteVoucher(deleteVoucherId)}>
+                Delete & Revert Balance
+              </button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: 14 }}>
+            Are you sure you want to delete Payment In Voucher <b>{vouchers.find((v) => v.id === deleteVoucherId)?.voucherNo}</b> ({money(vouchers.find((v) => v.id === deleteVoucherId)?.amount || 0)}) of <b>{vouchers.find((v) => v.id === deleteVoucherId)?.partyName}</b>?
+          </p>
+          <div style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            color: '#92400e',
+            borderRadius: 8,
+            padding: '10px 12px',
+            fontSize: 12,
+            marginTop: 12,
+          }}>
+            ⚠️ <b>Note:</b> આ વાઉચર ડિલીટ કરવાથી ગ્રાહકનું બિલ / બ્રાઇડલ બેલેન્સ ફરીથી બાકી (Pending) થઈ જશે.
+          </div>
+        </Modal>
+      )}
+
+      {/* Select Pending Customer for Payment In Modal */}
+      {selectPendingModalOpen && (
+        <Modal
+          isOpen={selectPendingModalOpen}
+          onClose={() => setSelectPendingModalOpen(false)}
+          title="📥 Record Payment In — Select Pending Customer / Booking"
+          footer={
+            <button className="btn btn-ghost" onClick={() => setSelectPendingModalOpen(false)}>
+              Close
+            </button>
+          }
+        >
+          {pendingCollections.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px 10px' }}>
+              <div style={{ fontSize: 36, marginBottom: 8 }}>🎉</div>
+              <h4 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 800 }}>કોઈ ગ્રાહકનું પેન્ડિંગ બેલેન્સ નથી!</h4>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--muted)' }}>
+                તમામ ગ્રાહક બિલો અને બ્રાઇડલ બુકિંગના નાણાં સંપૂર્ણ ચૂકવાઈ ગયા છે.
+              </p>
+            </div>
+          ) : (
+            <div style={{ maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+                જે ગ્રાહક પાસેથી નાણાં જમા લેવાના હોય તે ગ્રાહક સામે <b>"📥 Collect"</b> બટન પર ક્લિક કરો:
+              </div>
+              {pendingCollections.map((item) => (
+                <div
+                  key={`${item.type}-${item.id}`}
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid var(--border)',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 10,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13.5 }}>
+                      <User size={14} style={{ color: '#2563eb' }} />
+                      <span>{item.name}</span>
+                      <span style={{
+                        fontSize: 10.5,
+                        padding: '1px 6px',
+                        borderRadius: 4,
+                        fontWeight: 800,
+                        background: item.type === 'Bridal' ? '#fce7f3' : '#e0f2fe',
+                        color: item.type === 'Bridal' ? '#be185d' : '#0369a1',
+                      }}>
+                        {item.type === 'Bridal' ? '👑 Bridal' : `📄 ${item.no}`}
+                      </span>
+                    </div>
+                    {item.mobile && item.mobile !== '-' && (
+                      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>
+                        📞 {item.mobile} • {fmtDate(item.date)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600 }}>PENDING</div>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: '#dc2626' }}>
+                        {money(item.balance)}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-primary"
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                        borderColor: '#059669',
+                      }}
+                      onClick={() => {
+                        setSelectPendingModalOpen(false);
+                        openPaymentIn(item);
+                      }}
+                    >
+                      <ArrowDownLeft size={13} /> Collect
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }
