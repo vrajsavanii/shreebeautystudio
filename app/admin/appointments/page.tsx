@@ -16,6 +16,7 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { getAppointmentGoogleCalendarUrl, downloadBulkAppointmentsICS } from '@/lib/calendar';
+import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
 type ApptTab = 'all' | 'pending' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
@@ -1855,32 +1856,86 @@ export default function AppointmentsPage() {
 
         {/* Method 3: Cloud Webhook Direct Sync */}
         <div style={{ background: '#faf5ff', border: '1.5px solid #d8b4fe', borderRadius: 12, padding: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
             <span style={{ fontWeight: 800, fontSize: 14, color: '#6b21a8' }}>
-              🚀 Method 3: Cloud Webhook Push ({data?.settings?.googleCalendarWebhookUrl ? 'Configured' : 'No Webhook Set'})
+              🚀 Method 3: Instant Cloud Webhook Auto-Sync
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 800, background: '#f3e8ff', color: '#7e22ce', padding: '2px 8px', borderRadius: 6 }}>
+              {data?.settings?.googleCalendarWebhookUrl ? '✅ Webhook Configured' : '⚙️ Webhook Not Set'}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 12 }}>
-            Push all current active appointments directly to your Google Apps Script webhook cloud connector.
+          <div style={{ fontSize: 12, color: '#4b5563', marginBottom: 10 }}>
+            Every time an appointment is booked or confirmed, it will automatically insert directly into your Google Calendar in real-time.
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={handleBulkCloudSync}
-            disabled={bulkSyncing}
-            style={{
-              background: '#ffffff',
-              borderColor: '#c084fc',
-              color: '#7e22ce',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <RefreshCw size={13} className={bulkSyncing ? 'spin' : ''} />
-            {bulkSyncing ? 'Syncing all appointments…' : 'Push All to Cloud Webhook'}
-          </button>
+
+          <div className="form-group" style={{ marginBottom: 10 }}>
+            <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#581c87' }}>
+              Google Apps Script Web App URL
+            </label>
+            <input
+              type="url"
+              className="input"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              value={data?.settings?.googleCalendarWebhookUrl || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                updateData((d) => ({ ...d, settings: { ...(d.settings || {}), googleCalendarWebhookUrl: val } }));
+                scheduleSave();
+              }}
+              style={{ background: '#fff', fontSize: 12 }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                navigator.clipboard.writeText(SAMPLE_GOOGLE_APPS_SCRIPT_CODE);
+                toast('📋 Google Apps Script Code copied to clipboard!');
+              }}
+              style={{ background: '#fff', borderColor: '#d8b4fe', color: '#7e22ce', fontSize: 11.5, fontWeight: 700 }}
+            >
+              <Copy size={12} /> 1. Copy Apps Script Code
+            </button>
+            <a
+              href="https://script.google.com"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost btn-sm"
+              style={{ background: '#fff', borderColor: '#d8b4fe', color: '#7e22ce', fontSize: 11.5, fontWeight: 700, textDecoration: 'none' }}
+            >
+              <ExternalLink size={12} /> 2. Open script.google.com ↗
+            </a>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={handleBulkCloudSync}
+              disabled={bulkSyncing}
+              style={{
+                background: '#7e22ce',
+                borderColor: '#6b21a8',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 11.5,
+              }}
+            >
+              <RefreshCw size={13} className={bulkSyncing ? 'spin' : ''} />
+              {bulkSyncing ? 'Pushing to Google Calendar…' : '3. Push All Appointments to Webhook'}
+            </button>
+          </div>
+
+          <div style={{ background: '#ffffff', borderRadius: 8, padding: '10px 12px', border: '1px solid #e9d5ff', fontSize: 11.5, color: '#581c87' }}>
+            <b>Free 1-Minute Cloud Setup (૧ મિનિટમાં ફ્રી સેટઅપ):</b>
+            <ol style={{ margin: '4px 0 0', paddingLeft: 18, lineHeight: 1.5 }}>
+              <li><b>&quot;1. Copy Apps Script Code&quot;</b> પર ક્લિક કરો.</li>
+              <li><b>&quot;2. Open script.google.com&quot;</b> ખોલી New Project બનાવી ત્યાં કોડ પેસ્ટ કરો.</li>
+              <li><b>Deploy &rarr; New deployment &rarr; Web app</b> (Who has access: <b>Anyone</b>) કરી Deploy કરો.</li>
+              <li>મળેલી Web App URL ઉપરના બોક્સમાં પેસ્ટ કરો. હવેથી દરેક અપોઇન્ટમેન્ટ આપમેળે તમારા Google Calendar માં સેવ થશે!</li>
+            </ol>
+          </div>
         </div>
       </Modal>
     </div>
