@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
-  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles
+  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles, Calendar, CheckCircle2
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSync } from '@/lib/sync';
@@ -15,8 +15,9 @@ import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import { supabase } from '@/lib/supabase';
 import { fadeSlideUp, staggerContainer } from '@/variants';
+import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 
-type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'cloud';
+type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'cloud';
 
 export default function SettingsPage() {
   const { data, updateData, cloudStatus, lastSynced } = useSalonStore();
@@ -113,6 +114,56 @@ export default function SettingsPage() {
     }
   };
 
+  // Google Calendar Testing State
+  const [testingCalendar, setTestingCalendar] = useState(false);
+  const [calendarTestResult, setCalendarTestResult] = useState<{ success: boolean; msg: string } | null>(null);
+
+  const handleTestCalendar = async () => {
+    setTestingCalendar(true);
+    setCalendarTestResult(null);
+    try {
+      const res = await fetch('/api/calendar/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          webhookUrl: s.googleCalendarWebhookUrl,
+          ownerEmail: s.googleCalendarOwnerEmail,
+          salonName: s.salon,
+        }),
+      });
+      const resJson = await res.json();
+      if (resJson.success) {
+        toast('✅ Google Calendar test event sent successfully!');
+        setCalendarTestResult({
+          success: true,
+          msg: `✅ Success! Event synced via ${resJson.provider || 'cloud'}. Event ID: ${resJson.eventId || 'synced'}`,
+        });
+      } else {
+        toast(resJson.error || 'Failed to sync with Google Calendar', 'error');
+        setCalendarTestResult({ success: false, msg: `❌ ${resJson.error || 'Failed to sync'}` });
+      }
+    } catch (err: any) {
+      toast('Network error testing Google Calendar sync', 'error');
+      setCalendarTestResult({ success: false, msg: `❌ ${err.message}` });
+    } finally {
+      setTestingCalendar(false);
+    }
+  };
+
+  const handleCopyScriptCode = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(SAMPLE_GOOGLE_APPS_SCRIPT_CODE);
+      toast('📋 Google Apps Script code copied to clipboard!');
+    }
+  };
+
+  const handleCopyFeedUrl = () => {
+    if (typeof window !== 'undefined') {
+      const feedUrl = `${window.location.origin}/api/calendar/feed.ics`;
+      navigator.clipboard.writeText(feedUrl);
+      toast('📋 Google Calendar Live Feed URL copied!');
+    }
+  };
 
   const update = (key: string, val: unknown) => {
     updateData((d) => ({ ...d, settings: { ...d.settings, [key]: val } }));
@@ -170,6 +221,7 @@ export default function SettingsPage() {
     { id: 'loyalty', label: 'Loyalty Scheme & Rewards', icon: Sparkles },
     { id: 'whatsapp', label: 'WhatsApp Webhook', icon: MessageCircle },
     { id: 'email', label: 'Email & Resend', icon: Mail },
+    { id: 'calendar', label: 'Google Calendar (Auto Sync)', icon: Calendar },
     { id: 'cloud', label: 'Cloud Database', icon: CloudCog },
   ];
 
@@ -926,6 +978,198 @@ export default function SettingsPage() {
                     </>
                   )}
                 </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Google Calendar Cloud Auto-Sync Tab */}
+        {activeTab === 'calendar' && (
+          <motion.div key="calendar" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
+            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <div>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                    <Calendar size={22} color="#0284c7" /> 📅 Google Calendar Cloud Auto-Sync
+                  </h2>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+                    Automatically saves appointments and bridal events directly to Google Calendar in the cloud with automated reminders.
+                  </div>
+                </div>
+                <label className="toggle-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.googleCalendarEnabled !== false}
+                    onChange={(e) => update('googleCalendarEnabled', e.target.checked)}
+                  />
+                  <span>Cloud Auto-Sync Active</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Studio Owner Google Calendar Email */}
+            <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: 18, marginBottom: 20 }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: 14.5, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle2 size={18} color="#166534" /> 1. Studio Owner Gmail Address
+              </h3>
+              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 12 }}>
+                Enter the primary Google/Gmail account where you want all salon appointment invites and calendar notifications delivered.
+              </div>
+              <input
+                type="email"
+                className="input"
+                placeholder="e.g. shreebeautystudio@gmail.com"
+                value={s.googleCalendarOwnerEmail || ''}
+                onChange={(e) => update('googleCalendarOwnerEmail', e.target.value)}
+                style={{ background: '#fff' }}
+              />
+            </div>
+
+            {/* Option A: Live WebCal Google Calendar Feed URL */}
+            <div style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: 14, padding: 18, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⚡ Method A: Live Google Calendar Subscription Feed (0-Setup Auto-Sync)
+                </h3>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#0369a1', background: '#e0f2fe', padding: '3px 8px', borderRadius: 6 }}>
+                  Instant &amp; Realtime
+                </span>
+              </div>
+              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 12, lineHeight: 1.5 }}>
+                Subscribe to your studio&apos;s live calendar feed directly inside Google Calendar. Google Calendar will automatically sync every new and upcoming appointment continuously in the background!
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <input
+                  type="text"
+                  readOnly
+                  className="input"
+                  value={typeof window !== 'undefined' ? `${window.location.origin}/api/calendar/feed.ics` : '/api/calendar/feed.ics'}
+                  style={{ background: '#fff', fontWeight: 600, color: '#0f172a' }}
+                />
+                <motion.button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleCopyFeedUrl}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ flexShrink: 0, background: '#0284c7', borderColor: '#0284c7' }}
+                >
+                  <Copy size={14} /> Copy Feed URL
+                </motion.button>
+              </div>
+
+              <div style={{ background: '#ffffff', borderRadius: 10, padding: '12px 14px', border: '1px solid #e0f2fe', fontSize: 12, color: '#475569' }}>
+                <b>How to add to Google Calendar (One-time 10-second setup):</b>
+                <ol style={{ margin: '6px 0 0', paddingLeft: 18, lineHeight: 1.6 }}>
+                  <li>Open <a href="https://calendar.google.com" target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: 700 }}>Google Calendar</a> on your phone or computer.</li>
+                  <li>On the left panel, click the <b>+</b> next to <b>&quot;Other calendars&quot;</b> and select <b>&quot;From URL&quot;</b>.</li>
+                  <li>Paste the copied Feed URL and click <b>&quot;Add calendar&quot;</b>. Done! All salon appointments are now auto-synced.</li>
+                </ol>
+              </div>
+            </div>
+
+            {/* Option B: Direct Push via Google Apps Script Webhook */}
+            <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: 14, padding: 18, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#7e22ce', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🚀 Method B: Direct Google Calendar API Webhook (Instant Event Creation)
+                </h3>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#7e22ce', background: '#f3e8ff', padding: '3px 8px', borderRadius: 6 }}>
+                  100% Free for any Gmail
+                </span>
+              </div>
+              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 12, lineHeight: 1.5 }}>
+                Deploy a free 10-line Google Apps Script in your Google account to auto-insert appointments into your main Google Calendar the exact second a booking happens.
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 14 }}>
+                <label className="label">Google Apps Script Web App URL</label>
+                <input
+                  type="url"
+                  className="input"
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  value={s.googleCalendarWebhookUrl || ''}
+                  onChange={(e) => update('googleCalendarWebhookUrl', e.target.value)}
+                  style={{ background: '#fff' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <motion.button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleCopyScriptCode}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ background: '#fff', border: '1px solid #d8b4fe', color: '#7e22ce', fontWeight: 700 }}
+                >
+                  <Copy size={13} /> Copy Google Apps Script Code
+                </motion.button>
+                <a
+                  href="https://script.google.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-ghost btn-sm"
+                  style={{ background: '#fff', border: '1px solid #d8b4fe', color: '#7e22ce', textDecoration: 'none', fontWeight: 700 }}
+                >
+                  Open script.google.com ↗
+                </a>
+              </div>
+
+              <details style={{ fontSize: 12, color: '#475569', background: '#fff', padding: '10px 12px', borderRadius: 8, border: '1px solid #e9d5ff' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, color: '#7e22ce' }}>
+                  Click to view Setup Instructions &amp; Code snippet
+                </summary>
+                <div style={{ marginTop: 8 }}>
+                  <p style={{ margin: '0 0 6px' }}>1. Go to <a href="https://script.google.com" target="_blank" rel="noreferrer" style={{ color: '#7e22ce', fontWeight: 700 }}>script.google.com</a> and click <b>New project</b>.</p>
+                  <p style={{ margin: '0 0 6px' }}>2. Click the <b>Copy Google Apps Script Code</b> button above and paste it into the editor.</p>
+                  <p style={{ margin: '0 0 6px' }}>3. Click <b>Deploy</b> &rarr; <b>New deployment</b> &rarr; Select type: <b>Web app</b>.</p>
+                  <p style={{ margin: '0 0 6px' }}>4. Set <i>&quot;Execute as: Me&quot;</i> and <i>&quot;Who has access: Anyone&quot;</i> &rarr; Click <b>Deploy</b>.</p>
+                  <p style={{ margin: '0' }}>5. Copy the <b>Web app URL</b> and paste it in the box above. Save settings!</p>
+                </div>
+              </details>
+            </div>
+
+            {/* Test Connection Box */}
+            <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: 14, padding: 18 }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
+                ⚡ Test Google Calendar Cloud Connection
+              </h3>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 12 }}>
+                Click below to send an instant test appointment event to verify cloud synchronization.
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <motion.button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleTestCalendar}
+                  disabled={testingCalendar}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ background: '#0284c7', borderColor: '#0284c7' }}
+                >
+                  {testingCalendar ? (
+                    <>
+                      <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      Testing Sync…
+                    </>
+                  ) : (
+                    <>
+                      <Play size={14} /> Send Test Calendar Event
+                    </>
+                  )}
+                </motion.button>
+
+                {calendarTestResult && (
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      color: calendarTestResult.success ? '#166534' : '#991b1b',
+                    }}
+                  >
+                    {calendarTestResult.msg}
+                  </span>
+                )}
               </div>
             </div>
           </motion.div>

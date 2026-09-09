@@ -549,6 +549,23 @@ const OTHER_EVENT_OPTIONS = [
         .catch(() => {});
     }
 
+    // Auto-sync directly to Google Calendar in the cloud
+    fetch('/api/calendar/auto-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'bridal',
+        bridal: booking,
+      }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.provider === 'webhook') {
+          toast('📅 Bridal event auto-saved to Google Calendar in Cloud!');
+        }
+      })
+      .catch(() => {});
+
     setModalOpen(false);
   };
 

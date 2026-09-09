@@ -409,6 +409,25 @@ export default function AppointmentsPage() {
         .catch(() => {});
     }
 
+    // Auto-sync directly to Google Calendar in the cloud
+    if (form.status !== 'Cancelled') {
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'appointment',
+          appointment: { ...form, id, email: cleanEmail },
+        }),
+      })
+        .then((res) => res.json())
+        .then((res) => {
+          if (res.success && res.provider === 'webhook') {
+            toast('📅 Auto-saved to Google Calendar in Cloud!');
+          }
+        })
+        .catch(() => {});
+    }
+
     setModalOpen(false);
   };
 

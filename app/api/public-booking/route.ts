@@ -6,6 +6,7 @@ import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
 import { uid, todayISO, isPastTimeForDate } from '@/lib/utils';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage, bridalMessage } from '@/lib/whatsapp';
 import { sendResendEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
+import { autoSyncAppointmentToGoogleCalendar, autoSyncBridalToGoogleCalendar } from '@/lib/google-calendar-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -259,6 +260,19 @@ export async function POST(request: Request) {
       }
     }
 
+    // 9. Auto-sync directly to Google Calendar in the Cloud
+    let calendarSyncResult: any = null;
+    try {
+      if (type === 'bridal' && newBridal) {
+        calendarSyncResult = await autoSyncBridalToGoogleCalendar(newBridal, updatedData.settings);
+      } else {
+        calendarSyncResult = await autoSyncAppointmentToGoogleCalendar(newAppointment, updatedData.settings);
+      }
+      console.log('[Public Booking Google Calendar Auto-Sync]:', calendarSyncResult);
+    } catch (err: any) {
+      console.warn('[Public Booking Google Calendar Auto-Sync Error]:', err?.message);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Booking successfully confirmed & synced with studio.',
@@ -266,6 +280,7 @@ export async function POST(request: Request) {
       bridal: newBridal,
       whatsapp: waResult,
       email: emailResult,
+      calendar: calendarSyncResult,
     });
   } catch (err: any) {
     console.error('Error in public-booking API route:', err);
