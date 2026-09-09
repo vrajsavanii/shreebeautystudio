@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, fmtDate, money, formatCustomerContactName } from '@/lib/utils';
+import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM } from '@/lib/utils';
 import { Appointment, AppointmentStatus, WorkStatus, Invoice, StudioHoliday, HolidayType } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -203,8 +203,9 @@ export default function AppointmentsPage() {
     setEditId(null);
     setIsSplitAdvance(false);
     setSplitAdvanceAmounts({});
+    const nextLiveTime = getCurrentRoundedTimeHHMM(15);
     reset({
-      id: '', date: today, time: '10:00', customer: '', mobile: '', email: '',
+      id: '', date: today, time: nextLiveTime, customer: '', mobile: '', email: '',
       service: '',
       price: '' as any,
       staff: '',
@@ -314,6 +315,18 @@ export default function AppointmentsPage() {
   };
 
   const onSubmit = (form: Appointment) => {
+    // Validate past dates & times when booking a NEW appointment
+    if (!editId) {
+      if (form.date < today) {
+        toast('Cannot book appointment for a past date.', 'error');
+        return;
+      }
+      if (form.date === today && isPastTimeForDate(form.date, form.time)) {
+        toast('Cannot book appointment for a past time. Please select current live or upcoming future time.', 'error');
+        return;
+      }
+    }
+
     const id = editId || uid();
     const cleanEmail = form.email?.trim() || undefined;
 
@@ -935,7 +948,12 @@ export default function AppointmentsPage() {
         <div className="form-grid">
           <div className="form-group">
             <label className="label">Date</label>
-            <input type="date" className="input" {...register('date', { required: true })} />
+            <input
+              type="date"
+              className="input"
+              min={editId ? undefined : today}
+              {...register('date', { required: true })}
+            />
             {(() => {
               const check = checkDateHolidayOrBlocked(watch('date'), holidays);
               if (!check.isBlocked) return null;
@@ -964,6 +982,33 @@ export default function AppointmentsPage() {
           <div className="form-group">
             <label className="label">Time</label>
             <input type="time" className="input" {...register('time', { required: true })} />
+            {(() => {
+              const selectedDate = watch('date');
+              const selectedTime = watch('time');
+              if (!editId && selectedDate === today && isPastTimeForDate(selectedDate, selectedTime)) {
+                return (
+                  <div
+                    style={{
+                      background: '#fff1f2',
+                      border: '1px solid #fecdd3',
+                      color: '#be123c',
+                      borderRadius: 8,
+                      padding: '6px 10px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      marginTop: 6,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <AlertTriangle size={14} />
+                    <span>⚠️ Past time! Please select live/future time.</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
         </div>
 

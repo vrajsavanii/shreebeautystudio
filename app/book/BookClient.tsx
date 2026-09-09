@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, fmtDate, money } from '@/lib/utils';
+import { uid, todayISO, fmtDate, money, isPastTimeForDate, getFirstFutureSlot } from '@/lib/utils';
 import { Appointment, BridalBooking, BridalPackage } from '@/types/salon';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage } from '@/lib/whatsapp';
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
@@ -59,7 +59,7 @@ export default function PublicBookingPage() {
   // Form State - Regular Services
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [bookingDate, setBookingDate] = useState(todayISO());
-  const [selectedTime, setSelectedTime] = useState('11:00 AM');
+  const [selectedTime, setSelectedTime] = useState(() => getFirstFutureSlot(todayISO(), TIME_SLOTS) || TIME_SLOTS[0]);
   const [selectedStaff, setSelectedStaff] = useState('');
 
   // Form State - Bridal Bookings
@@ -117,6 +117,11 @@ export default function PublicBookingPage() {
     [weddingDate, data?.holidays]
   );
 
+  // Past Time Slots Check
+  const areAllSlotsPast = useMemo(() => {
+    return TIME_SLOTS.every((slot) => isPastTimeForDate(bookingDate, slot));
+  }, [bookingDate]);
+
   const toggleService = (name: string) => {
     setSelectedServices((prev) =>
       prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name]
@@ -136,6 +141,22 @@ export default function PublicBookingPage() {
     if (activeCheck.isBlocked) {
       alert(activeCheck.userMessage);
       return;
+    }
+
+    if (bookingMode === 'regular') {
+      if (bookingDate < todayISO()) {
+        alert('Cannot book appointments for past dates.');
+        return;
+      }
+      if (isPastTimeForDate(bookingDate, selectedTime)) {
+        alert('Selected time slot has already passed for today. Please select a live upcoming future time slot.');
+        return;
+      }
+    } else {
+      if (weddingDate < todayISO()) {
+        alert('Cannot book bridal appointments for past dates.');
+        return;
+      }
     }
 
     if (!customerName.trim()) {
@@ -807,7 +828,14 @@ export default function PublicBookingPage() {
                           type="date"
                           min={todayISO()}
                           value={bookingDate}
-                          onChange={(e) => setBookingDate(e.target.value)}
+                          onChange={(e) => {
+                            const newDate = e.target.value;
+                            setBookingDate(newDate);
+                            if (isPastTimeForDate(newDate, selectedTime)) {
+                              const nextValid = getFirstFutureSlot(newDate, TIME_SLOTS);
+                              if (nextValid) setSelectedTime(nextValid);
+                            }
+                          }}
                           style={{
                             width: '100%',
                             padding: '9px 12px',
@@ -866,27 +894,66 @@ export default function PublicBookingPage() {
                       </div>
                     )}
 
+                    {!regularHolidayCheck.isBlocked && areAllSlotsPast && (
+                      <div
+                        style={{
+                          background: '#fff1f2',
+                          border: '1.5px solid #fecdd3',
+                          color: '#be123c',
+                          borderRadius: 12,
+                          padding: '12px 16px',
+                          marginBottom: 14,
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        ⏰ All appointment slots for today have already passed. Please select tomorrow or an upcoming date.
+                      </div>
+                    )}
+
                     <div style={{ opacity: regularHolidayCheck.isBlocked ? 0.4 : 1, pointerEvents: regularHolidayCheck.isBlocked ? 'none' : 'auto' }}>
-                      <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 6 }}>
-                        Select Time Slot:
-                      </label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', margin: 0 }}>
+                          Select Time Slot:
+                        </label>
+                        {bookingDate === todayISO() && (
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: 6 }}>
+                            ⚡ Live Future Slots
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: 6 }}>
                         {TIME_SLOTS.map((slot) => {
-                          const isSelected = selectedTime === slot;
+                          const isSlotPast = isPastTimeForDate(bookingDate, slot);
+                          const isSelected = selectedTime === slot && !isSlotPast;
                           return (
                             <button
                               key={slot}
                               type="button"
-                              onClick={() => setSelectedTime(slot)}
+                              disabled={isSlotPast || regularHolidayCheck.isBlocked}
+                              onClick={() => !isSlotPast && setSelectedTime(slot)}
+                              title={isSlotPast ? 'Past time slot — cannot be booked' : `Book ${slot}`}
                               style={{
                                 padding: '8px 6px',
                                 borderRadius: 8,
                                 fontSize: 11.5,
                                 fontWeight: 700,
-                                border: `1.5px solid ${isSelected ? '#05424a' : '#e2e8f0'}`,
-                                background: isSelected ? '#05424a' : '#f8fafc',
-                                color: isSelected ? '#ffffff' : '#334155',
-                                cursor: 'pointer',
+                                border: isSlotPast
+                                  ? '1px dashed #cbd5e1'
+                                  : `1.5px solid ${isSelected ? '#05424a' : '#e2e8f0'}`,
+                                background: isSlotPast
+                                  ? '#f1f5f9'
+                                  : isSelected
+                                  ? '#05424a'
+                                  : '#f8fafc',
+                                color: isSlotPast
+                                  ? '#94a3b8'
+                                  : isSelected
+                                  ? '#ffffff'
+                                  : '#334155',
+                                cursor: isSlotPast ? 'not-allowed' : 'pointer',
+                                opacity: isSlotPast ? 0.45 : 1,
+                                textDecoration: isSlotPast ? 'line-through' : 'none',
                                 transition: 'all 0.15s ease',
                               }}
                             >
@@ -1195,7 +1262,9 @@ export default function PublicBookingPage() {
               {/* Submit Button */}
               {(() => {
                 const activeHolidayCheck = bookingMode === 'bridal' ? bridalHolidayCheck : regularHolidayCheck;
-                const isBlocked = activeHolidayCheck.isBlocked;
+                const isTimePast = bookingMode === 'regular' && isPastTimeForDate(bookingDate, selectedTime);
+                const isPastSlotBlocked = bookingMode === 'regular' && (areAllSlotsPast || isTimePast);
+                const isBlocked = activeHolidayCheck.isBlocked || isPastSlotBlocked;
 
                 return (
                   <motion.button
@@ -1241,8 +1310,10 @@ export default function PublicBookingPage() {
                     )}
                     {isSubmitting
                       ? 'Processing Booking…'
-                      : isBlocked
+                      : activeHolidayCheck.isBlocked
                       ? `${activeHolidayCheck.badgeText} - Booking Unavailable`
+                      : isPastSlotBlocked
+                      ? '⏰ Past Time Slot - Choose Live/Future Time'
                       : bookingMode === 'bridal'
                       ? `Confirm Bridal Booking (${money(bridalTotal)})`
                       : `Confirm Booking (${money(regularTotal)})`}

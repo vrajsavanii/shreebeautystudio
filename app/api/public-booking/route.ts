@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
-import { uid } from '@/lib/utils';
+import { uid, todayISO, isPastTimeForDate } from '@/lib/utils';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage, bridalMessage } from '@/lib/whatsapp';
 import { sendResendEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
 
@@ -37,6 +37,31 @@ export async function POST(request: Request) {
         { success: false, error: 'Valid 10-digit mobile number is required.' },
         { status: 400 }
       );
+    }
+
+    // Validate that the booking date / time is live/future and not in the past
+    const today = todayISO();
+    if (type === 'regular' && appointment) {
+      if (appointment.date < today) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot book appointments for past dates.' },
+          { status: 400 }
+        );
+      }
+      if (appointment.date === today && isPastTimeForDate(appointment.date, appointment.time)) {
+        return NextResponse.json(
+          { success: false, error: 'Selected time slot has already passed for today. Please select a live/future time.' },
+          { status: 400 }
+        );
+      }
+    } else if (type === 'bridal' && bridal) {
+      const bDate = bridal.weddingDate || bridal.date;
+      if (bDate && bDate < today) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot book bridal appointments for past dates.' },
+          { status: 400 }
+        );
+      }
     }
 
     const supabase = getSupabaseAdmin();
