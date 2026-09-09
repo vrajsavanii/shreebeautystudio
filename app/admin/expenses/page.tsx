@@ -67,6 +67,7 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState('');
   const [paymentInSearch, setPaymentInSearch] = useState('');
   const [paymentInModeFilter, setPaymentInModeFilter] = useState('All');
+  const [paymentInTypeFilter, setPaymentInTypeFilter] = useState('All');
   const [deleteVoucherId, setDeleteVoucherId] = useState<string | null>(null);
   const [selectPendingModalOpen, setSelectPendingModalOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -656,45 +657,242 @@ export default function ExpensesPage() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [expenses, search, activeTab, today]);
 
-  // Payment-In Calculations & Filtering
-  const paymentInVouchers = useMemo(() => {
-    return vouchers.filter((v) => v.type === 'Payment-In');
-  }, [vouchers]);
+  // Payment-In Unified Records (All historic sales invoices, advances, and payment vouchers)
+  const allPaymentInEntries = useMemo(() => {
+    const list: {
+      id: string;
+      source: 'voucher' | 'invoice-payment' | 'invoice-advance' | 'bridal-advance' | 'appointment-advance';
+      typeLabel: string;
+      badgeBg: string;
+      badgeColor: string;
+      badgeBorder: string;
+      docNo: string;
+      date: string;
+      partyName: string;
+      partyMobile: string;
+      amount: number;
+      mode: string;
+      notes: string;
+      voucherId?: string;
+      invoiceId?: string;
+    }[] = [];
+
+    // 1. Dedicated Payment-In Vouchers
+    vouchers
+      .filter((v) => v.type === 'Payment-In')
+      .forEach((v) => {
+        list.push({
+          id: `vch-${v.id}`,
+          source: 'voucher',
+          typeLabel: '📥 Payment Voucher',
+          badgeBg: '#dcfce7',
+          badgeColor: '#15803d',
+          badgeBorder: '#bbf7d0',
+          docNo: v.voucherNo,
+          date: v.date,
+          partyName: v.partyName || 'Customer',
+          partyMobile: v.partyMobile || '-',
+          amount: Number(v.amount || 0),
+          mode: v.mode || 'Cash',
+          notes: v.notes || (v.linkedDocNo ? `Payment against ${v.linkedDocNo}` : 'Payment In'),
+          voucherId: v.id,
+        });
+      });
+
+    // Mapped vouchers per invoice to avoid double-counting direct bill paid amount
+    const invoiceVouchersTotal: Record<string, number> = {};
+    vouchers
+      .filter((v) => v.type === 'Payment-In')
+      .forEach((v) => {
+        if (v.partyId) {
+          invoiceVouchersTotal[v.partyId] = (invoiceVouchersTotal[v.partyId] || 0) + Number(v.amount || 0);
+        }
+      });
+
+    // 2. Direct Sales Invoices / Bills (Past & Existing)
+    invoices.forEach((inv) => {
+      // A. Advance received on Invoice
+      if (Number(inv.advance || 0) > 0) {
+        list.push({
+          id: `inv-adv-${inv.id}`,
+          source: 'invoice-advance',
+          typeLabel: '🔖 Bill Advance',
+          badgeBg: '#fef3c7',
+          badgeColor: '#92400e',
+          badgeBorder: '#fde68a',
+          docNo: inv.no || 'INV',
+          date: inv.date,
+          partyName: inv.customer || 'Walk-in Customer',
+          partyMobile: inv.mobile || '-',
+          amount: Number(inv.advance || 0),
+          mode: inv.advanceMode || 'Cash',
+          notes: `Advance payment for Bill #${inv.no || ''}`,
+          invoiceId: inv.id,
+        });
+      }
+
+      // B. Direct Payment at Billing Time
+      const vPaid = invoiceVouchersTotal[inv.id] || 0;
+      const directPaid = Math.max(0, Number(inv.paid || 0) - vPaid);
+
+      if (directPaid > 0) {
+        if (inv.splitPayment && (Number(inv.splitPayment.cash || 0) > 0 || Number(inv.splitPayment.upi || 0) > 0 || Number(inv.splitPayment.card || 0) > 0)) {
+          if (Number(inv.splitPayment.cash || 0) > 0) {
+            list.push({
+              id: `inv-split-cash-${inv.id}`,
+              source: 'invoice-payment',
+              typeLabel: '📄 Bill Payment',
+              badgeBg: '#e0f2fe',
+              badgeColor: '#0369a1',
+              badgeBorder: '#bae6fd',
+              docNo: inv.no || 'INV',
+              date: inv.date,
+              partyName: inv.customer || 'Walk-in Customer',
+              partyMobile: inv.mobile || '-',
+              amount: Number(inv.splitPayment.cash || 0),
+              mode: 'Cash',
+              notes: `Split payment (Cash) for Bill #${inv.no || ''}`,
+              invoiceId: inv.id,
+            });
+          }
+          if (Number(inv.splitPayment.upi || 0) > 0) {
+            list.push({
+              id: `inv-split-upi-${inv.id}`,
+              source: 'invoice-payment',
+              typeLabel: '📄 Bill Payment',
+              badgeBg: '#e0f2fe',
+              badgeColor: '#0369a1',
+              badgeBorder: '#bae6fd',
+              docNo: inv.no || 'INV',
+              date: inv.date,
+              partyName: inv.customer || 'Walk-in Customer',
+              partyMobile: inv.mobile || '-',
+              amount: Number(inv.splitPayment.upi || 0),
+              mode: inv.splitPayment.upiMode || 'GPay UPI',
+              notes: `Split payment (UPI) for Bill #${inv.no || ''}`,
+              invoiceId: inv.id,
+            });
+          }
+          if (Number(inv.splitPayment.card || 0) > 0) {
+            list.push({
+              id: `inv-split-card-${inv.id}`,
+              source: 'invoice-payment',
+              typeLabel: '📄 Bill Payment',
+              badgeBg: '#e0f2fe',
+              badgeColor: '#0369a1',
+              badgeBorder: '#bae6fd',
+              docNo: inv.no || 'INV',
+              date: inv.date,
+              partyName: inv.customer || 'Walk-in Customer',
+              partyMobile: inv.mobile || '-',
+              amount: Number(inv.splitPayment.card || 0),
+              mode: 'Card',
+              notes: `Split payment (Card) for Bill #${inv.no || ''}`,
+              invoiceId: inv.id,
+            });
+          }
+        } else {
+          list.push({
+            id: `inv-paid-${inv.id}`,
+            source: 'invoice-payment',
+            typeLabel: '📄 Bill Payment',
+            badgeBg: '#e0f2fe',
+            badgeColor: '#0369a1',
+            badgeBorder: '#bae6fd',
+            docNo: inv.no || 'INV',
+            date: inv.date,
+            partyName: inv.customer || 'Walk-in Customer',
+            partyMobile: inv.mobile || '-',
+            amount: directPaid,
+            mode: inv.mode || 'Cash',
+            notes: inv.notes ? `Bill #${inv.no || ''} - ${inv.notes}` : `Direct payment for Bill #${inv.no || ''}`,
+            invoiceId: inv.id,
+          });
+        }
+      }
+    });
+
+    // 3. Bridal Booking Advances (not already billed in an invoice)
+    const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
+    bridals.forEach((b) => {
+      if (!billedBridalIds.has(b.id) && Number(b.advance || 0) > 0) {
+        list.push({
+          id: `bridal-adv-${b.id}`,
+          source: 'bridal-advance',
+          typeLabel: '👑 Bridal Advance',
+          badgeBg: '#fce7f3',
+          badgeColor: '#be185d',
+          badgeBorder: '#fbcfe8',
+          docNo: b.packageName || 'Bridal Booking',
+          date: b.date || b.weddingDate || today,
+          partyName: b.name || 'Bride',
+          partyMobile: b.mobile || '-',
+          amount: Number(b.advance || 0),
+          mode: (b as any).advanceAccount || b.advanceMode || 'Cash',
+          notes: `Advance for Bridal Booking (${b.packageName || 'Package'})`,
+        });
+      }
+    });
+
+    // 4. Appointment Advances (not already billed in an invoice)
+    appointments.forEach((a) => {
+      if (!a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0) {
+        list.push({
+          id: `appt-adv-${a.id}`,
+          source: 'appointment-advance',
+          typeLabel: '📅 Appt Advance',
+          badgeBg: '#ede9fe',
+          badgeColor: '#6b21a8',
+          badgeBorder: '#ddd6fe',
+          docNo: 'APPT',
+          date: a.date,
+          partyName: a.clientName || 'Client',
+          partyMobile: a.clientPhone || '-',
+          amount: Number(a.advance || 0),
+          mode: a.advanceMode || 'Cash',
+          notes: `Advance for appointment (${a.serviceName || 'Service'})`,
+        });
+      }
+    });
+
+    return list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.docNo || '').localeCompare(a.docNo || ''));
+  }, [vouchers, invoices, bridals, appointments, today]);
 
   const paymentInStats = useMemo(() => {
     const monthStart = today.slice(0, 7) + '-01';
-    const inVouchers = vouchers.filter((v) => v.type === 'Payment-In');
-    const totalIn = inVouchers.reduce((s, v) => s + Number(v.amount || 0), 0);
-    const todayIn = inVouchers
+    const totalIn = allPaymentInEntries.reduce((s, v) => s + Number(v.amount || 0), 0);
+    const todayIn = allPaymentInEntries
       .filter((v) => v.date === today)
       .reduce((s, v) => s + Number(v.amount || 0), 0);
-    const monthIn = inVouchers
+    const monthIn = allPaymentInEntries
       .filter((v) => v.date >= monthStart)
       .reduce((s, v) => s + Number(v.amount || 0), 0);
-    const todayCount = inVouchers.filter((v) => v.date === today).length;
-    return { totalIn, todayIn, monthIn, totalCount: inVouchers.length, todayCount };
-  }, [vouchers, today]);
+    const todayCount = allPaymentInEntries.filter((v) => v.date === today).length;
+    return { totalIn, todayIn, monthIn, totalCount: allPaymentInEntries.length, todayCount };
+  }, [allPaymentInEntries, today]);
 
   const filteredPaymentInList = useMemo(() => {
     const q = (paymentInSearch || '').toLowerCase().trim();
-    return paymentInVouchers
+    return allPaymentInEntries
       .filter((v) => {
         const matchesSearch =
           !q ||
           (v.partyName && v.partyName.toLowerCase().includes(q)) ||
           (v.partyMobile && v.partyMobile.toLowerCase().includes(q)) ||
-          (v.voucherNo && v.voucherNo.toLowerCase().includes(q)) ||
-          (v.linkedDocNo && v.linkedDocNo.toLowerCase().includes(q)) ||
+          (v.docNo && v.docNo.toLowerCase().includes(q)) ||
+          (v.typeLabel && v.typeLabel.toLowerCase().includes(q)) ||
           (v.notes && v.notes.toLowerCase().includes(q)) ||
           (v.mode && v.mode.toLowerCase().includes(q));
 
         const matchesMode =
           paymentInModeFilter === 'All' || v.mode?.toLowerCase() === paymentInModeFilter.toLowerCase();
 
-        return matchesSearch && matchesMode;
-      })
-      .sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.voucherNo || '').localeCompare(a.voucherNo || ''));
-  }, [paymentInVouchers, paymentInSearch, paymentInModeFilter]);
+        const matchesType =
+          paymentInTypeFilter === 'All' || v.source === paymentInTypeFilter;
+
+        return matchesSearch && matchesMode && matchesType;
+      });
+  }, [allPaymentInEntries, paymentInSearch, paymentInModeFilter, paymentInTypeFilter]);
 
   // Day Book Calculation for selected Date
   const daybook = useMemo(() => {
@@ -1340,7 +1538,7 @@ export default function ExpensesPage() {
           <ArrowDownLeft size={14} />
           <span>📥 Payment In</span>
           <span className="tab-badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800 }}>
-            {paymentInVouchers.length}
+            {allPaymentInEntries.length}
           </span>
         </button>
 
@@ -2048,7 +2246,7 @@ export default function ExpensesPage() {
                 <div className="stat-card-value" style={{ color: '#059669' }}>
                   {money(paymentInStats.totalIn)}
                 </div>
-                <div className="stat-card-sub">{paymentInStats.totalCount} Payment In Vouchers</div>
+                <div className="stat-card-sub">{allPaymentInEntries.length} Total Entries (Bills + Advances + Vouchers)</div>
               </motion.div>
 
               <motion.div className="stat-card" variants={fadeSlideUp}>
@@ -2070,7 +2268,7 @@ export default function ExpensesPage() {
                 <div className="stat-card-value" style={{ color: '#0d9488' }}>
                   {money(paymentInStats.monthIn)}
                 </div>
-                <div className="stat-card-sub">Customer & Bridal Collections</div>
+                <div className="stat-card-sub">Customer Bills, Bridal & Vouchers</div>
               </motion.div>
 
               <motion.div className="stat-card" variants={fadeSlideUp}>
@@ -2087,13 +2285,13 @@ export default function ExpensesPage() {
 
             {/* Main Toolbar */}
             <div className="toolbar" style={{ justifyContent: 'space-between', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 280, flexWrap: 'wrap' }}>
-                <div className="search-wrap" style={{ flex: 1, minWidth: 220, maxWidth: 380 }}>
+              <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+                <div className="search-wrap" style={{ flex: 1, minWidth: 220, maxWidth: 360 }}>
                   <Search size={15} className="search-icon" />
                   <input
                     type="search"
                     className="input"
-                    placeholder="Search Customer, Mobile, Voucher #, Bill #…"
+                    placeholder="Search Customer, Mobile, Bill #, Voucher #…"
                     value={paymentInSearch}
                     onChange={(e) => setPaymentInSearch(e.target.value)}
                   />
@@ -2101,11 +2299,25 @@ export default function ExpensesPage() {
 
                 <select
                   className="input"
+                  style={{ width: 'auto', minWidth: 160, height: 38 }}
+                  value={paymentInTypeFilter}
+                  onChange={(e) => setPaymentInTypeFilter(e.target.value)}
+                >
+                  <option value="All">All Types (તમામ જૂની & નવી એન્ટ્રી)</option>
+                  <option value="invoice-payment">📄 Sales Bills (બિલ ચુકવણી)</option>
+                  <option value="voucher">📥 Payment Vouchers (વાઉચર્સ)</option>
+                  <option value="invoice-advance">🔖 Bill Advances (એડવાન્સ)</option>
+                  <option value="bridal-advance">👑 Bridal Advances (બ્રાઇડલ)</option>
+                  <option value="appointment-advance">📅 Appt Advances (એપોઇન્ટમેન્ટ)</option>
+                </select>
+
+                <select
+                  className="input"
                   style={{ width: 'auto', minWidth: 140, height: 38 }}
                   value={paymentInModeFilter}
                   onChange={(e) => setPaymentInModeFilter(e.target.value)}
                 >
-                  <option value="All">All Modes (તમામ)</option>
+                  <option value="All">All Modes (તમામ મોડ)</option>
                   {paymentModes.map((m) => (
                     <option key={m} value={m}>
                       {m === 'Cash' ? '💵 Cash' : m.includes('UPI') || m.includes('GPay') || m.includes('PhonePe') ? `📱 ${m}` : m === 'Card' ? `💳 Card` : `🏦 ${m}`}
@@ -2145,12 +2357,12 @@ export default function ExpensesPage() {
                     <ArrowDownLeft size={30} />
                   </div>
                   <h3 style={{ fontSize: 16, fontWeight: 800 }}>
-                    {paymentInSearch || paymentInModeFilter !== 'All'
+                    {paymentInSearch || paymentInModeFilter !== 'All' || paymentInTypeFilter !== 'All'
                       ? 'No matching Payment In entries found'
                       : 'હજી સુધી કોઈ Payment In એન્ટ્રી નોંધાયેલ નથી'}
                   </h3>
                   <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 450, margin: '6px auto 16px' }}>
-                    ગ્રાહક પાસેથી બાકી બિલ અથવા બ્રાઇડલ બુકિંગના નાણાં જમા થતાં જ તે તમામ એન્ટ્રી અહીં જોવા મળશે.
+                    ગ્રાહક પાસેથી બિલ, એડવાન્સ અથવા વાઉચર દ્વારા જમા થયેલા તમામ નાણાં અહીં જોવા મળશે.
                   </p>
                   {pendingCollections.length > 0 && (
                     <button
@@ -2168,9 +2380,9 @@ export default function ExpensesPage() {
                   <table>
                     <thead>
                       <tr>
-                        <th>Voucher # & Date</th>
+                        <th>Type & Doc / Voucher #</th>
+                        <th>Date (તારીખ)</th>
                         <th>Customer / Party (ગ્રાહક)</th>
-                        <th>Linked Document</th>
                         <th>Payment Mode</th>
                         <th style={{ textAlign: 'right' }}>Amount Received (જમા)</th>
                         <th>Notes / Purpose</th>
@@ -2186,22 +2398,34 @@ export default function ExpensesPage() {
                         return (
                           <motion.tr key={v.id} variants={fadeSlideUp}>
                             <td>
-                              <div style={{
-                                fontWeight: 800,
-                                color: '#059669',
-                                fontSize: 12.5,
-                                fontFamily: 'monospace',
-                                background: '#f0fdf4',
-                                padding: '2px 8px',
-                                borderRadius: 6,
-                                display: 'inline-block',
-                                border: '1px solid #bbf7d0',
-                              }}>
-                                {v.voucherNo}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                                <span style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 800,
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  background: v.badgeBg,
+                                  color: v.badgeColor,
+                                  border: `1px solid ${v.badgeBorder}`,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}>
+                                  {v.typeLabel}
+                                </span>
+                                <span style={{
+                                  fontWeight: 800,
+                                  fontSize: 12.5,
+                                  fontFamily: 'monospace',
+                                  color: 'var(--text)',
+                                }}>
+                                  {v.docNo}
+                                </span>
                               </div>
-                              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
-                                {fmtDate(v.date)}
-                              </div>
+                            </td>
+
+                            <td style={{ color: 'var(--muted)', fontSize: 12 }}>
+                              {fmtDate(v.date)}
                             </td>
 
                             <td>
@@ -2214,23 +2438,6 @@ export default function ExpensesPage() {
                                   <Phone size={11} />
                                   <span>{v.partyMobile}</span>
                                 </div>
-                              )}
-                            </td>
-
-                            <td>
-                              {v.linkedDocNo ? (
-                                <span style={{
-                                  padding: '3px 8px',
-                                  borderRadius: 6,
-                                  fontSize: 11.5,
-                                  fontWeight: 700,
-                                  background: v.linkedDocNo.startsWith('INV') || v.linkedDocNo.includes('Bill') ? '#e0f2fe' : '#fce7f3',
-                                  color: v.linkedDocNo.startsWith('INV') || v.linkedDocNo.includes('Bill') ? '#0369a1' : '#be185d',
-                                }}>
-                                  {v.linkedDocNo.startsWith('INV') ? `📄 Bill: ${v.linkedDocNo}` : `👑 ${v.linkedDocNo}`}
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Direct Payment</span>
                               )}
                             </td>
 
@@ -2256,19 +2463,32 @@ export default function ExpensesPage() {
                               </div>
                             </td>
 
-                            <td style={{ color: 'var(--muted)', fontSize: 12, maxWidth: 220 }}>
+                            <td style={{ color: 'var(--muted)', fontSize: 12, maxWidth: 240 }}>
                               {v.notes || '—'}
                             </td>
 
                             <td style={{ textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                className="btn-icon danger"
-                                onClick={() => setDeleteVoucherId(v.id)}
-                                title="Delete Payment In Voucher (Reverts Balance)"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {v.voucherId ? (
+                                <button
+                                  type="button"
+                                  className="btn-icon danger"
+                                  onClick={() => setDeleteVoucherId(v.voucherId!)}
+                                  title="Delete Payment In Voucher (Reverts Balance)"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              ) : v.invoiceId ? (
+                                <Link
+                                  href="/admin/invoices"
+                                  className="btn-icon"
+                                  title="View Invoice in Sales"
+                                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  <Receipt size={14} />
+                                </Link>
+                              ) : (
+                                <span style={{ fontSize: 11, color: 'var(--muted)' }}>—</span>
+                              )}
                             </td>
                           </motion.tr>
                         );
