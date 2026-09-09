@@ -534,7 +534,7 @@ body {
 /* ─── Form Inputs ────────────────────────────────────────────────── */
 .input {
   width: 100%;
-  padding: 9px 12px;
+  padding: 8px 12px;
   font-size: 13px;
   font-family: inherit;
   border: 1.5px solid var(--border);
@@ -543,6 +543,16 @@ body {
   color: var(--text);
   transition: border-color 0.16s ease, box-shadow 0.16s ease;
   outline: none;
+  box-sizing: border-box;
+}
+
+select.input,
+select {
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: normal;
+  vertical-align: middle;
+  cursor: pointer;
 }
 
 .input:focus {

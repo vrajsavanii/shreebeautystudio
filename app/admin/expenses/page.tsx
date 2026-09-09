@@ -2285,13 +2285,13 @@ export default function ExpensesPage() {
 
             {/* Main Toolbar */}
             <div className="toolbar" style={{ justifyContent: 'space-between', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 300, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 320, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div className="search-wrap" style={{ flex: 1, minWidth: 220, maxWidth: 360 }}>
                   <Search size={15} className="search-icon" />
                   <input
                     type="search"
                     className="input"
-                    placeholder="Search Customer, Mobile, Bill #, Voucher #…"
+                    placeholder="Search Customer, Mobile, Bill #…"
                     value={paymentInSearch}
                     onChange={(e) => setPaymentInSearch(e.target.value)}
                   />
@@ -2299,11 +2299,11 @@ export default function ExpensesPage() {
 
                 <select
                   className="input"
-                  style={{ width: 'auto', minWidth: 160, height: 38 }}
+                  style={{ width: 'auto', minWidth: 185, padding: '7px 12px', fontSize: 13, color: 'var(--text)' }}
                   value={paymentInTypeFilter}
                   onChange={(e) => setPaymentInTypeFilter(e.target.value)}
                 >
-                  <option value="All">All Types (તમામ જૂની & નવી એન્ટ્રી)</option>
+                  <option value="All">All Types (તમામ એન્ટ્રીઓ)</option>
                   <option value="invoice-payment">📄 Sales Bills (બિલ ચુકવણી)</option>
                   <option value="voucher">📥 Payment Vouchers (વાઉચર્સ)</option>
                   <option value="invoice-advance">🔖 Bill Advances (એડવાન્સ)</option>
@@ -2313,7 +2313,7 @@ export default function ExpensesPage() {
 
                 <select
                   className="input"
-                  style={{ width: 'auto', minWidth: 140, height: 38 }}
+                  style={{ width: 'auto', minWidth: 150, padding: '7px 12px', fontSize: 13, color: 'var(--text)' }}
                   value={paymentInModeFilter}
                   onChange={(e) => setPaymentInModeFilter(e.target.value)}
                 >
