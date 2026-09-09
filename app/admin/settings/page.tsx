@@ -129,6 +129,12 @@ export default function SettingsPage() {
           webhookUrl: s.googleCalendarWebhookUrl,
           ownerEmail: s.googleCalendarOwnerEmail,
           salonName: s.salon,
+          serviceAccountEmail: s.googleServiceAccountEmail,
+          privateKey: s.googlePrivateKey,
+          calendarId: s.googleCalendarId,
+          clientId: s.googleClientId,
+          clientSecret: s.googleClientSecret,
+          refreshToken: s.googleRefreshToken,
         }),
       });
       const resJson = await res.json();
@@ -987,13 +993,13 @@ export default function SettingsPage() {
         {activeTab === 'calendar' && (
           <motion.div key="calendar" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
             <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 10 }}>
                 <div>
                   <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
-                    <Calendar size={22} color="#0284c7" /> 📅 Google Calendar Cloud Auto-Sync
+                    <Calendar size={22} color="#0284c7" /> 📅 Google Calendar API &amp; Cloud Auto-Sync
                   </h2>
                   <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                    Automatically saves appointments and bridal events directly to Google Calendar in the cloud with automated reminders.
+                    ગુગલ કેલેન્ડરમાં બધી નવી અપોઇન્ટમેન્ટ્સ અને બ્રાઇડલ બુકિંગ ઓટોમેટિક સેવ કરો (Direct Cloud API / Webhook Integration)
                   </div>
                 </div>
                 <label className="toggle-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
@@ -1007,13 +1013,21 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Notice explaining API vs URL */}
+            <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 20, color: '#92400e', fontSize: 12.5, lineHeight: 1.5 }}>
+              <b>💡 મહત્વની માહિતી (Why Google Calendar API?):</b>
+              <div style={{ marginTop: 4 }}>
+                Google Calendar માં <b>&quot;From URL&quot;</b> ઓપ્શન ફક્ત ત્યારે જ કામ કરે જ્યારે તમારી વેબસાઇટ લાઈવ પબ્લિક ડોમેન પર હોય. લોકલ કમ્પ્યુટર (localhost) અને તાત્કાલિક ઇન્સ્ટન્ટ ક્લાઉડ સેવ માટે નીચે આપેલા <b>Method 1 (Google Calendar API)</b> અથવા <b>Method 2 (Apps Script Webhook)</b> નો ઉપયોગ કરો!
+              </div>
+            </div>
+
             {/* Studio Owner Google Calendar Email */}
             <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: 18, marginBottom: 20 }}>
               <h3 style={{ margin: '0 0 8px', fontSize: 14.5, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <CheckCircle2 size={18} color="#166534" /> 1. Studio Owner Gmail Address
               </h3>
               <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 12 }}>
-                Enter the primary Google/Gmail account where you want all salon appointment invites and calendar notifications delivered.
+                Enter your primary Google/Gmail account where salon appointments should be synced and notified.
               </div>
               <input
                 type="email"
@@ -1025,21 +1039,151 @@ export default function SettingsPage() {
               />
             </div>
 
-            {/* Option A: Live WebCal Google Calendar Feed URL */}
-            <div style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: 14, padding: 18, marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  ⚡ Method A: Live Google Calendar Subscription Feed (0-Setup Auto-Sync)
+            {/* Method 1: Official Google Calendar REST API v3 (Service Account) */}
+            <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 14, padding: 18, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#15803d', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🚀 Method 1: Official Google Calendar API v3 (Service Account)
                 </h3>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#0369a1', background: '#e0f2fe', padding: '3px 8px', borderRadius: 6 }}>
-                  Instant &amp; Realtime
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', background: '#dcfce7', padding: '3px 8px', borderRadius: 6 }}>
+                  Direct Google Cloud API
+                </span>
+              </div>
+              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 14, lineHeight: 1.5 }}>
+                Directly connects to Google Calendar via Google Cloud REST API v3 using a Service Account JSON Key. Appointments are inserted into your Google Calendar instantly.
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label className="label" style={{ fontWeight: 700, fontSize: 12 }}>Service Account Client Email (client_email)</label>
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="salon-calendar@my-project.iam.gserviceaccount.com"
+                  value={s.googleServiceAccountEmail || ''}
+                  onChange={(e) => update('googleServiceAccountEmail', e.target.value)}
+                  style={{ background: '#fff' }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label className="label" style={{ fontWeight: 700, fontSize: 12 }}>Service Account Private Key (private_key PEM)</label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC...\n-----END PRIVATE KEY-----"
+                  value={s.googlePrivateKey || ''}
+                  onChange={(e) => update('googlePrivateKey', e.target.value)}
+                  style={{ background: '#fff', fontFamily: 'monospace', fontSize: 11 }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 12 }}>
+                <label className="label" style={{ fontWeight: 700, fontSize: 12 }}>Google Calendar ID (Calendar ID)</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="primary (or your-gmail@gmail.com)"
+                  value={s.googleCalendarId || ''}
+                  onChange={(e) => update('googleCalendarId', e.target.value)}
+                  style={{ background: '#fff' }}
+                />
+                <span style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'block' }}>
+                  Default is <code>primary</code>. (Tip: Make sure you share your Google Calendar with your Service Account Email with &quot;Make changes to events&quot; permission!).
+                </span>
+              </div>
+
+              <details style={{ fontSize: 12, color: '#475569', background: '#fff', padding: '10px 12px', borderRadius: 8, border: '1px solid #bbf7d0' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, color: '#15803d' }}>
+                  📖 Google Cloud Service Account બનાવવાની સરળ રીત (Gujarati Guide)
+                </summary>
+                <div style={{ marginTop: 8, lineHeight: 1.6 }}>
+                  <ol style={{ margin: 0, paddingLeft: 18 }}>
+                    <li><a href="https://console.cloud.google.com" target="_blank" rel="noreferrer" style={{ color: '#15803d', fontWeight: 700 }}>Google Cloud Console</a> ખોલો અને નવો પ્રોજેક્ટ બનાવો.</li>
+                    <li><b>APIs &amp; Services &rarr; Enable APIs</b> માં જઈ <b>Google Calendar API</b> સક્ષમ (Enable) કરો.</li>
+                    <li><b>Credentials &rarr; Create Credentials &rarr; Service Account</b> બનાવીને <b>Keys &rarr; Add Key (JSON)</b> ડાઉનલોડ કરો.</li>
+                    <li>ડાઉનલોડ થયેલ JSON ફાઇલમાંથી <code>client_email</code> અને <code>private_key</code> ઉપરના બોક્સમાં પેસ્ટ કરો.</li>
+                    <li>તમારા Google Calendar ની Settings માં જઈ <b>Share with specific people</b> માં આ Service Account Email ઉમેરીને <i>&quot;Make changes to events&quot;</i> પરમિશન આપો.</li>
+                  </ol>
+                </div>
+              </details>
+            </div>
+
+            {/* Method 2: Direct Push via Google Apps Script Webhook */}
+            <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: 14, padding: 18, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#7e22ce', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ⚡ Method 2: Google Apps Script Webhook (100% Free &amp; 1-Minute Setup)
+                </h3>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#7e22ce', background: '#f3e8ff', padding: '3px 8px', borderRadius: 6 }}>
+                  Easiest for any Gmail
                 </span>
               </div>
               <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 12, lineHeight: 1.5 }}>
-                Subscribe to your studio&apos;s live calendar feed directly inside Google Calendar. Google Calendar will automatically sync every new and upcoming appointment continuously in the background!
+                તમારા અંગત જીમેઇલ (Gmail) એકાઉન્ટમાં ફ્રી Google Apps Script લગાવીને ૧ સેકન્ડમાં બધી અપોઇન્ટમેન્ટ્સ ઓટોમેટિક ગુગલ કેલેન્ડરમાં સેવ કરો.
               </div>
 
-              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              <div className="form-group" style={{ marginBottom: 14 }}>
+                <label className="label" style={{ fontWeight: 700, fontSize: 12 }}>Google Apps Script Web App URL</label>
+                <input
+                  type="url"
+                  className="input"
+                  placeholder="https://script.google.com/macros/s/.../exec"
+                  value={s.googleCalendarWebhookUrl || ''}
+                  onChange={(e) => update('googleCalendarWebhookUrl', e.target.value)}
+                  style={{ background: '#fff' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                <motion.button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleCopyScriptCode}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ background: '#fff', border: '1px solid #d8b4fe', color: '#7e22ce', fontWeight: 700 }}
+                >
+                  <Copy size={13} /> 1. Copy Google Apps Script Code
+                </motion.button>
+                <a
+                  href="https://script.google.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-ghost btn-sm"
+                  style={{ background: '#fff', border: '1px solid #d8b4fe', color: '#7e22ce', textDecoration: 'none', fontWeight: 700 }}
+                >
+                  2. Open script.google.com ↗
+                </a>
+              </div>
+
+              <details style={{ fontSize: 12, color: '#475569', background: '#fff', padding: '10px 12px', borderRadius: 8, border: '1px solid #e9d5ff' }}>
+                <summary style={{ cursor: 'pointer', fontWeight: 700, color: '#7e22ce' }}>
+                  📖 1-Minute Apps Script Setup Guide (૧ મિનિટમાં ફ્રી સેટઅપ)
+                </summary>
+                <div style={{ marginTop: 8, lineHeight: 1.6 }}>
+                  <p style={{ margin: '0 0 6px' }}>1. <a href="https://script.google.com" target="_blank" rel="noreferrer" style={{ color: '#7e22ce', fontWeight: 700 }}>script.google.com</a> ખોલીને <b>New project</b> પર ક્લિક કરો.</p>
+                  <p style={{ margin: '0 0 6px' }}>2. ઉપર આપેલ <b>&quot;1. Copy Google Apps Script Code&quot;</b> બટન દબાવી કોડ કોપી કરી એડિટરમાં પેસ્ટ કરો.</p>
+                  <p style={{ margin: '0 0 6px' }}>3. ઉપર જમણી બાજુ <b>Deploy &rarr; New deployment</b> પર ક્લિક કરો. Type માં <b>Web app</b> પસંદ કરો.</p>
+                  <p style={{ margin: '0 0 6px' }}>4. <i>&quot;Execute as: Me&quot;</i> અને <i>&quot;Who has access: Anyone&quot;</i> રાખીને <b>Deploy</b> પર ક્લિક કરો.</p>
+                  <p style={{ margin: '0' }}>5. મળેલી <b>Web app URL</b> કોપી કરીને ઉપરના બોક્સમાં પેસ્ટ કરો અને Save કરો!</p>
+                </div>
+              </details>
+            </div>
+
+            {/* Option 3: Live WebCal Google Calendar Feed URL (For Online / Hosted Production) */}
+            <div style={{ background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: 14, padding: 18, marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  🌐 Method 3: Live Calendar Feed URL (For Live Hosted Domains)
+                </h3>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#0369a1', background: '#e0f2fe', padding: '3px 8px', borderRadius: 6 }}>
+                  For Live Websites
+                </span>
+              </div>
+              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 12, lineHeight: 1.5 }}>
+                જ્યારે સ્ટુડિયો વેબસાઇટ લાઈવ ડોમેઇન (Vercel / Cloud) પર હોસ્ટ થશે, ત્યારે તમે આ Feed URL ને ગૂગલ કેલેન્ડરમાં &quot;From URL&quot; તરીકે એડ કરી શકો છો.
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <input
                   type="text"
                   readOnly
@@ -1057,88 +1201,18 @@ export default function SettingsPage() {
                   <Copy size={14} /> Copy Feed URL
                 </motion.button>
               </div>
-
-              <div style={{ background: '#ffffff', borderRadius: 10, padding: '12px 14px', border: '1px solid #e0f2fe', fontSize: 12, color: '#475569' }}>
-                <b>How to add to Google Calendar (One-time 10-second setup):</b>
-                <ol style={{ margin: '6px 0 0', paddingLeft: 18, lineHeight: 1.6 }}>
-                  <li>Open <a href="https://calendar.google.com" target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontWeight: 700 }}>Google Calendar</a> on your phone or computer.</li>
-                  <li>On the left panel, click the <b>+</b> next to <b>&quot;Other calendars&quot;</b> and select <b>&quot;From URL&quot;</b>.</li>
-                  <li>Paste the copied Feed URL and click <b>&quot;Add calendar&quot;</b>. Done! All salon appointments are now auto-synced.</li>
-                </ol>
-              </div>
-            </div>
-
-            {/* Option B: Direct Push via Google Apps Script Webhook */}
-            <div style={{ background: '#faf5ff', border: '1.5px solid #e9d5ff', borderRadius: 14, padding: 18, marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: '#7e22ce', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  🚀 Method B: Direct Google Calendar API Webhook (Instant Event Creation)
-                </h3>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#7e22ce', background: '#f3e8ff', padding: '3px 8px', borderRadius: 6 }}>
-                  100% Free for any Gmail
-                </span>
-              </div>
-              <div style={{ fontSize: 12.5, color: '#374151', marginBottom: 12, lineHeight: 1.5 }}>
-                Deploy a free 10-line Google Apps Script in your Google account to auto-insert appointments into your main Google Calendar the exact second a booking happens.
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="label">Google Apps Script Web App URL</label>
-                <input
-                  type="url"
-                  className="input"
-                  placeholder="https://script.google.com/macros/s/.../exec"
-                  value={s.googleCalendarWebhookUrl || ''}
-                  onChange={(e) => update('googleCalendarWebhookUrl', e.target.value)}
-                  style={{ background: '#fff' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                <motion.button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleCopyScriptCode}
-                  whileTap={{ scale: 0.97 }}
-                  style={{ background: '#fff', border: '1px solid #d8b4fe', color: '#7e22ce', fontWeight: 700 }}
-                >
-                  <Copy size={13} /> Copy Google Apps Script Code
-                </motion.button>
-                <a
-                  href="https://script.google.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-ghost btn-sm"
-                  style={{ background: '#fff', border: '1px solid #d8b4fe', color: '#7e22ce', textDecoration: 'none', fontWeight: 700 }}
-                >
-                  Open script.google.com ↗
-                </a>
-              </div>
-
-              <details style={{ fontSize: 12, color: '#475569', background: '#fff', padding: '10px 12px', borderRadius: 8, border: '1px solid #e9d5ff' }}>
-                <summary style={{ cursor: 'pointer', fontWeight: 700, color: '#7e22ce' }}>
-                  Click to view Setup Instructions &amp; Code snippet
-                </summary>
-                <div style={{ marginTop: 8 }}>
-                  <p style={{ margin: '0 0 6px' }}>1. Go to <a href="https://script.google.com" target="_blank" rel="noreferrer" style={{ color: '#7e22ce', fontWeight: 700 }}>script.google.com</a> and click <b>New project</b>.</p>
-                  <p style={{ margin: '0 0 6px' }}>2. Click the <b>Copy Google Apps Script Code</b> button above and paste it into the editor.</p>
-                  <p style={{ margin: '0 0 6px' }}>3. Click <b>Deploy</b> &rarr; <b>New deployment</b> &rarr; Select type: <b>Web app</b>.</p>
-                  <p style={{ margin: '0 0 6px' }}>4. Set <i>&quot;Execute as: Me&quot;</i> and <i>&quot;Who has access: Anyone&quot;</i> &rarr; Click <b>Deploy</b>.</p>
-                  <p style={{ margin: '0' }}>5. Copy the <b>Web app URL</b> and paste it in the box above. Save settings!</p>
-                </div>
-              </details>
             </div>
 
             {/* Test Connection Box */}
             <div style={{ background: '#fff', border: '1.5px solid var(--border)', borderRadius: 14, padding: 18 }}>
               <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
-                ⚡ Test Google Calendar Cloud Connection
+                ⚡ Test Google Calendar Cloud Connection (ટેસ્ટ ઇવેન્ટ મોકલો)
               </h3>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 12 }}>
-                Click below to send an instant test appointment event to verify cloud synchronization.
+                Click below to send an instant live test appointment to verify Google Calendar API &amp; Webhook connection.
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <motion.button
                   type="button"
                   className="btn btn-primary"

@@ -1,7 +1,4 @@
-// lib/google-calendar-server.ts
-// Centralized server-side Google Calendar Cloud Auto-Sync Service
-// Automatically saves appointments directly into Google Calendar in the cloud.
-
+import crypto from 'crypto';
 import { Appointment, BridalBooking, SalonSettings } from '@/types/salon';
 import { timeToMinutes } from './utils';
 
@@ -22,8 +19,121 @@ export interface CalendarSyncResult {
   success: boolean;
   provider?: string;
   eventId?: string;
+  htmlLink?: string;
   message?: string;
   error?: string;
+}
+
+/**
+ * Generates an OAuth2 access token for Google Service Account using native Node.js crypto (RS256 JWT Bearer).
+ */
+export async function getServiceAccountAccessToken(
+  clientEmail: string,
+  privateKeyPem: string
+): Promise<string> {
+  let cleanKey = privateKeyPem.trim();
+  if (cleanKey.includes('\\n')) {
+    cleanKey = cleanKey.replace(/\\n/g, '\n');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const claimSet = {
+    iss: clientEmail.trim(),
+    scope: 'https://www.googleapis.com/auth/calendar',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const encodeBase64Url = (obj: any) =>
+    Buffer.from(JSON.stringify(obj))
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+
+  const unsignedToken = `${encodeBase64Url(header)}.${encodeBase64Url(claimSet)}`;
+  const sign = crypto.createSign('RSA-SHA256');
+  sign.update(unsignedToken);
+  sign.end();
+  const signature = sign
+    .sign(cleanKey, 'base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  const jwt = `${unsignedToken}.${signature}`;
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Google Service Account Token failed (${res.status}): ${errText}`);
+  }
+
+  const data = await res.json();
+  return data.access_token;
+}
+
+/**
+ * Refreshes an OAuth 2.0 access token using client_id, client_secret, and refresh_token.
+ */
+export async function getOAuthAccessToken(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string
+): Promise<string> {
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId.trim(),
+      client_secret: clientSecret.trim(),
+      refresh_token: refreshToken.trim(),
+      grant_type: 'refresh_token',
+    }).toString(),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Google OAuth Refresh failed (${res.status}): ${errText}`);
+  }
+
+  const data = await res.json();
+  return data.access_token;
+}
+
+/**
+ * Inserts an event directly into Google Calendar via Official Google Calendar REST API v3.
+ */
+export async function insertGoogleCalendarV3Event(
+  accessToken: string,
+  calendarId: string = 'primary',
+  eventPayload: GoogleCalendarEventPayload
+): Promise<{ id: string; htmlLink?: string }> {
+  const targetCalId = calendarId || 'primary';
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalId)}/events`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(eventPayload),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Google Calendar API v3 error (${res.status}): ${errText}`);
+  }
+
+  return await res.json();
 }
 
 /**
@@ -151,17 +261,74 @@ export function buildBridalEventPayload(
 }
 
 /**
- * Automatically syncs an event to Google Calendar via configured Webhook (Google Apps Script / Zapier) or Direct API.
+ * Automatically syncs an event to Google Calendar via Official Google Calendar API v3 or Cloud Webhook.
  */
 export async function syncEventToGoogleCalendar(
   eventPayload: GoogleCalendarEventPayload,
   settings?: Partial<SalonSettings>
 ): Promise<CalendarSyncResult> {
+  const saEmail =
+    settings?.googleServiceAccountEmail?.trim() ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+  const saKey =
+    settings?.googlePrivateKey?.trim() ||
+    process.env.GOOGLE_PRIVATE_KEY?.trim();
+  const calendarId =
+    settings?.googleCalendarId?.trim() ||
+    process.env.GOOGLE_CALENDAR_ID?.trim() ||
+    'primary';
+
+  const oauthClientId =
+    settings?.googleClientId?.trim() ||
+    process.env.GOOGLE_CLIENT_ID?.trim();
+  const oauthSecret =
+    settings?.googleClientSecret?.trim() ||
+    process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const oauthRefreshToken =
+    settings?.googleRefreshToken?.trim() ||
+    process.env.GOOGLE_REFRESH_TOKEN?.trim();
+
   const webhookUrl =
     settings?.googleCalendarWebhookUrl?.trim() ||
     process.env.GOOGLE_CALENDAR_WEBHOOK_URL?.trim();
 
-  // 1. Check if Webhook / Google Apps Script Auto-Sync is configured
+  // 1. Priority 1: Official Google Calendar API v3 via Service Account
+  if (saEmail && saKey) {
+    try {
+      const accessToken = await getServiceAccountAccessToken(saEmail, saKey);
+      const event = await insertGoogleCalendarV3Event(accessToken, calendarId, eventPayload);
+      return {
+        success: true,
+        provider: 'google_api_service_account',
+        eventId: event.id,
+        htmlLink: event.htmlLink,
+        message: 'Event successfully created in Google Calendar via Official Google Calendar API v3!',
+      };
+    } catch (err: any) {
+      console.error('[Google Calendar API Service Account Error]:', err?.message);
+      // Fall through to next provider if available
+    }
+  }
+
+  // 2. Priority 2: Official Google Calendar API v3 via OAuth 2.0 Refresh Token
+  if (oauthClientId && oauthSecret && oauthRefreshToken) {
+    try {
+      const accessToken = await getOAuthAccessToken(oauthClientId, oauthSecret, oauthRefreshToken);
+      const event = await insertGoogleCalendarV3Event(accessToken, calendarId, eventPayload);
+      return {
+        success: true,
+        provider: 'google_api_oauth2',
+        eventId: event.id,
+        htmlLink: event.htmlLink,
+        message: 'Event successfully created in Google Calendar via Official Google Calendar OAuth 2.0 API!',
+      };
+    } catch (err: any) {
+      console.error('[Google Calendar API OAuth2 Error]:', err?.message);
+      // Fall through to next provider
+    }
+  }
+
+  // 3. Priority 3: Google Apps Script Webhook
   if (webhookUrl) {
     try {
       const res = await fetch(webhookUrl, {
@@ -185,23 +352,13 @@ export async function syncEventToGoogleCalendar(
       } else {
         const text = await res.text().catch(() => '');
         console.warn('[Google Calendar Webhook Sync Failed]:', res.status, text);
-        return {
-          success: false,
-          provider: 'webhook',
-          error: `Webhook returned status ${res.status}: ${text}`,
-        };
       }
     } catch (err: any) {
       console.error('[Google Calendar Webhook Exception]:', err?.message);
-      return {
-        success: false,
-        provider: 'webhook',
-        error: err?.message || 'Network error syncing to Google Calendar webhook',
-      };
     }
   }
 
-  // 2. If no direct webhook URL configured, we still succeed and notify that live feed / email ICS is active
+  // 4. Default fallback: Live WebCal Feed ready
   return {
     success: true,
     provider: 'feed_and_invite',

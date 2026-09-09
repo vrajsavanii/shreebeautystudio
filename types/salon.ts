@@ -45,13 +45,16 @@ export interface SalonSettings {
   emailWishesEnabled?: boolean;
   // Security & Admin Credentials
   adminPassword?: string;
-  // Google Calendar Cloud Auto-Sync
+  // Google Calendar Cloud Auto-Sync (Official Google Calendar API v3)
   googleCalendarEnabled?: boolean;
   googleCalendarOwnerEmail?: string;
-  googleCalendarId?: string;
+  googleCalendarId?: string; // Calendar ID (e.g. primary or xxx@group.calendar.google.com)
   googleCalendarWebhookUrl?: string; // Webhook (Google Apps Script / Zapier / Make)
-  googleServiceAccountEmail?: string;
-  googlePrivateKey?: string;
+  googleServiceAccountEmail?: string; // Service Account client_email
+  googlePrivateKey?: string; // Service Account private_key PEM
+  googleClientId?: string; // OAuth 2.0 Client ID
+  googleClientSecret?: string; // OAuth 2.0 Client Secret
+  googleRefreshToken?: string; // OAuth 2.0 Refresh Token
 }
 
 export interface Service {

@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       ? (rows[0].data as SalonData)
       : { ...DEFAULT_DATA };
 
-    const settings = salonData.settings || {};
+    const settings = { ...(salonData.settings || {}), ...(body.settings || {}) };
 
     if (type === 'bulk' || appointments || bridals) {
       const apptList = appointments || salonData.appointments || [];

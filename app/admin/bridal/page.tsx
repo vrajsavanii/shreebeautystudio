@@ -556,11 +556,12 @@ const OTHER_EVENT_OPTIONS = [
       body: JSON.stringify({
         type: 'bridal',
         bridal: booking,
+        settings: data?.settings,
       }),
     })
       .then((res) => res.json())
       .then((res) => {
-        if (res.success && res.provider === 'webhook') {
+        if (res.success && res.provider !== 'feed_and_invite') {
           toast('📅 Bridal event auto-saved to Google Calendar in Cloud!');
         }
       })

@@ -90,6 +90,7 @@ export default function AppointmentsPage() {
           type: 'bulk',
           appointments: activeAppts,
           bridals: activeBridals,
+          settings: data?.settings,
         }),
       });
       const resData = await res.json();
@@ -293,11 +294,12 @@ export default function AppointmentsPage() {
       body: JSON.stringify({
         type: 'appointment',
         appointment: updatedAppt,
+        settings: data?.settings,
       }),
     })
       .then((res) => res.json())
       .then((res) => {
-        if (res.success && res.provider === 'webhook') {
+        if (res.success && res.provider !== 'feed_and_invite') {
           toast('📅 Auto-saved to Google Calendar in Cloud!');
         }
       })
@@ -540,11 +542,12 @@ export default function AppointmentsPage() {
         body: JSON.stringify({
           type: 'appointment',
           appointment: { ...form, id, email: cleanEmail },
+          settings: data?.settings,
         }),
       })
         .then((res) => res.json())
         .then((res) => {
-          if (res.success && res.provider === 'webhook') {
+          if (res.success && res.provider !== 'feed_and_invite') {
             toast('📅 Auto-saved to Google Calendar in Cloud!');
           }
         })

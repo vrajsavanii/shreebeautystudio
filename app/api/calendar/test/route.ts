@@ -9,16 +9,26 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { webhookUrl, ownerEmail, salonName } = body;
+    const body = await request.json().catch(() => ({}));
+    const {
+      webhookUrl,
+      ownerEmail,
+      salonName,
+      serviceAccountEmail,
+      privateKey,
+      calendarId,
+      clientId,
+      clientSecret,
+      refreshToken,
+    } = body;
 
     const today = todayISO();
     const { startISO, endISO } = formatISTDateTime(today, '14:00', 45);
     const salon = salonName || 'Shree Beauty Studio';
 
     const testEvent = {
-      summary: `✨ [${salon} TEST] Google Calendar Cloud Auto-Sync Live Test`,
-      description: `🎉 Congratulations! Your Shree Beauty Studio Google Calendar auto-sync is connected successfully.\n\nAll new appointments and bridal bookings will now automatically save directly to your Google Calendar in the cloud with automated reminders!`,
+      summary: `✨ [${salon} TEST] Google Calendar API Cloud Auto-Sync Live Test`,
+      description: `🎉 Congratulations! Your Shree Beauty Studio Google Calendar API auto-sync is connected successfully.\n\nAll new appointments and bridal bookings will now automatically save directly to your Google Calendar in the cloud with automated reminders!`,
       location: 'Katargam, Surat, Gujarat',
       start: { dateTime: startISO, timeZone: 'Asia/Kolkata' },
       end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
@@ -35,6 +45,12 @@ export async function POST(request: Request) {
     const result = await syncEventToGoogleCalendar(testEvent, {
       googleCalendarWebhookUrl: webhookUrl,
       googleCalendarOwnerEmail: ownerEmail,
+      googleServiceAccountEmail: serviceAccountEmail,
+      googlePrivateKey: privateKey,
+      googleCalendarId: calendarId,
+      googleClientId: clientId,
+      googleClientSecret: clientSecret,
+      googleRefreshToken: refreshToken,
       salon: salon,
     });
 
