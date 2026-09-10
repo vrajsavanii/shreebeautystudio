@@ -347,7 +347,7 @@ export default function InvoiceReceiptModal({
           borderRadius: 16,
           boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
           width: '100%',
-          maxWidth: 520,
+          maxWidth: 580,
           maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
@@ -873,18 +873,52 @@ export default function InvoiceReceiptModal({
         {/* Footer Action Buttons */}
         <div
           style={{
-            padding: '14px 20px',
-            background: '#ffffff',
+            padding: '14px 18px',
+            background: '#f8fafc',
             borderTop: '1px solid #e2e8f0',
             display: 'flex',
+            flexDirection: 'column',
             gap: 10,
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', gap: 8 }}>
-            {/* WhatsApp Send Button — with loading / success / failed states */}
+          {/* Status feedback bar if any */}
+          {((waResult.message && waResult.status !== 'idle') || (emailResult.message && emailResult.status !== 'idle')) && (
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '7px 12px',
+                borderRadius: 8,
+                background:
+                  waResult.status === 'sent' || emailResult.status === 'sent'
+                    ? '#dcfce7'
+                    : waResult.status === 'sending' || emailResult.status === 'sending'
+                    ? '#e0f2fe'
+                    : '#fee2e2',
+                color:
+                  waResult.status === 'sent' || emailResult.status === 'sent'
+                    ? '#15803d'
+                    : waResult.status === 'sending' || emailResult.status === 'sending'
+                    ? '#0369a1'
+                    : '#b91c1c',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              {waResult.message || emailResult.message}
+            </div>
+          )}
+
+          {/* Row 1: Share & PDF Export Actions */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
+              gap: 8,
+            }}
+          >
+            {/* WhatsApp Send Button */}
             <button
               type="button"
               className="btn btn-sm"
@@ -904,40 +938,33 @@ export default function InvoiceReceiptModal({
                     : '#053320',
                 fontWeight: 700,
                 border: 'none',
-                padding: '8px 14px',
+                padding: '9px 10px',
                 borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
+                justifyContent: 'center',
+                gap: 5,
+                fontSize: 12,
                 cursor: waResult.status === 'sending' ? 'wait' : 'pointer',
                 opacity: waResult.status === 'sending' ? 0.8 : 1,
-                minWidth: 170,
-                justifyContent: 'center',
-                transition: 'background 0.3s',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
               }}
             >
-              {waResult.status === 'sending' && (
+              {waResult.status === 'sending' ? (
                 <>
                   <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  Sending…
+                  <span>Sending…</span>
                 </>
-              )}
-              {waResult.status === 'sent' && (
+              ) : waResult.status === 'sent' ? (
                 <>
                   <CheckCircle2 size={14} />
-                  ✅ Sent!
+                  <span>Sent!</span>
                 </>
-              )}
-              {(waResult.status === 'failed' || waResult.status === 'not_configured') && (
-                <>
-                  <AlertCircle size={14} />
-                  {waResult.status === 'not_configured' ? 'Not Configured' : '❌ Failed'}
-                </>
-              )}
-              {waResult.status === 'idle' && (
+              ) : (
                 <>
                   <MessageCircle size={15} />
-                  Send WhatsApp Bill
+                  <span>WhatsApp Bill</span>
                 </>
               )}
             </button>
@@ -953,69 +980,36 @@ export default function InvoiceReceiptModal({
                 color: '#9D174D',
                 fontWeight: 700,
                 border: '1px solid #FBCFE8',
-                padding: '8px 14px',
+                padding: '9px 10px',
                 borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 5,
+                fontSize: 12,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
               {emailResult.status === 'sending' ? (
                 <>
                   <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  Sending Email…
+                  <span>Sending…</span>
                 </>
               ) : emailResult.status === 'sent' ? (
                 <>
                   <CheckCircle2 size={14} />
-                  Email Sent!
+                  <span>Sent!</span>
                 </>
               ) : (
                 <>
                   <Mail size={15} />
-                  Email Invoice
+                  <span>Email Invoice</span>
                 </>
               )}
             </button>
 
-            {/* Email status message */}
-            {emailResult.message && emailResult.status !== 'idle' && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: emailResult.status === 'sent' ? '#16a34a' : '#dc2626',
-                  display: 'flex',
-                  alignItems: 'center',
-                  lineHeight: 1.3,
-                }}
-              >
-                {emailResult.message}
-              </div>
-            )}
-
-            {/* Status message below the button */}
-            {waResult.message && waResult.status !== 'idle' && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color:
-                    waResult.status === 'sent'
-                      ? '#16a34a'
-                      : waResult.status === 'sending'
-                      ? '#0369a1'
-                      : '#dc2626',
-                  display: 'flex',
-                  alignItems: 'center',
-                  maxWidth: 180,
-                  lineHeight: 1.3,
-                }}
-              >
-                {waResult.message}
-              </div>
-            )}
-
+            {/* Thermal PDF Button */}
             <button
               type="button"
               className="btn btn-sm"
@@ -1026,18 +1020,22 @@ export default function InvoiceReceiptModal({
                 color: '#ffffff',
                 fontWeight: 700,
                 border: 'none',
-                padding: '8px 12px',
+                padding: '9px 10px',
                 borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: 5,
+                fontSize: 12,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
               title="Download Ultra-HD Thermal Receipt PDF (58mm/80mm)"
             >
-              <Download size={14} /> {downloading && downloadingFormat === 'thermal' ? 'Creating…' : '📥 Thermal PDF'}
+              <Download size={14} /> {downloading && downloadingFormat === 'thermal' ? 'Creating…' : 'Thermal PDF'}
             </button>
 
+            {/* A4 PDF Button */}
             <button
               type="button"
               className="btn btn-sm"
@@ -1048,20 +1046,32 @@ export default function InvoiceReceiptModal({
                 color: '#ffffff',
                 fontWeight: 700,
                 border: 'none',
-                padding: '8px 12px',
+                padding: '9px 10px',
                 borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: 5,
+                fontSize: 12,
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
               title="Download Ultra-HD A4 Full Page Tax Invoice PDF"
             >
-              <FileText size={14} /> {downloading && downloadingFormat === 'a4' ? 'Creating…' : '📄 A4 PDF'}
+              <FileText size={14} /> {downloading && downloadingFormat === 'a4' ? 'Creating…' : 'A4 PDF'}
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          {/* Row 2: Print Bill & Done Actions */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingTop: 8,
+              borderTop: '1px solid #e2e8f0',
+            }}
+          >
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -1069,18 +1079,34 @@ export default function InvoiceReceiptModal({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5,
-                padding: '8px 12px',
+                gap: 6,
+                padding: '8px 16px',
                 fontWeight: 700,
+                fontSize: 12.5,
+                border: '1.5px solid #cbd5e1',
+                borderRadius: 8,
+                background: '#ffffff',
+                color: '#334155',
+                cursor: 'pointer',
               }}
             >
               <Printer size={14} /> Print Bill
             </button>
+
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className="btn btn-primary btn-sm"
               onClick={onClose}
-              style={{ padding: '8px 14px' }}
+              style={{
+                padding: '8px 24px',
+                fontWeight: 800,
+                fontSize: 12.5,
+                borderRadius: 8,
+                background: '#0d9488',
+                color: '#ffffff',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
               Done
             </button>
