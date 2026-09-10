@@ -483,10 +483,23 @@ const OTHER_EVENT_OPTIONS = [
       // Reconcile and sync linked invoice if present
       invoices = invoices.map((inv) => {
         if (inv.bridalBookingId === booking.id || (inv.mobile === booking.mobile && inv.customer === booking.name)) {
+          const pkgName = booking.packageName
+            ? `${booking.packageName}${booking.packageType && !booking.packageName.toLowerCase().includes('package') ? ` (${booking.packageType})` : ''}`
+            : (booking.packageType || 'Bridal & Makeup Package');
           return {
             ...inv,
             customer: booking.name,
             mobile: booking.mobile,
+            lines: [
+              {
+                type: 'S',
+                name: pkgName,
+                qty: 1,
+                price: booking.package,
+                discount: 0,
+                discountType: '₹',
+              },
+            ],
             subtotal: booking.package,
             total: booking.package,
             advance: booking.advance,
@@ -596,45 +609,23 @@ const OTHER_EVENT_OPTIONS = [
     (b.includeOther && b.otherDate) && `${b.otherEventName || 'Pre-Event'}: ${fmtDate(b.otherDate)}${b.otherTime ? ` @ ${b.otherTime}` : ''}`,
   ].filter(Boolean).join(' • ');
 
-  // Generate an official Invoice with ONLY the ticked/selected functions
+  // Generate an official Invoice with ONLY the package name mentioned as line item
   const handleGenerateInvoice = (b: BridalBooking) => {
-    const events: { name: string; date?: string; time?: string }[] = [];
-    if (b.includeWedding !== false && b.weddingDate) {
-      events.push({ name: 'Wedding Day Bridal Makeup & Draping', date: b.weddingDate, time: b.weddingTime });
-    }
-    if (b.includeSagai && b.sagaiDate) {
-      events.push({ name: 'Sagai / Engagement Ceremony Makeup & Styling', date: b.sagaiDate, time: b.sagaiTime });
-    }
-    if (b.includeMandap !== false && b.mandapDate) {
-      events.push({ name: 'Mandap Muhurat Makeup & Styling', date: b.mandapDate, time: b.mandapTime });
-    }
-    if (b.includeMusic !== false && b.musicDate) {
-      events.push({ name: 'Music / Sangeet Night Makeup & Hair Styling', date: b.musicDate, time: b.musicTime });
-    }
-    if (b.includeOther && b.otherDate) {
-      events.push({ name: `${b.otherEventName || 'Pre-Wedding Ceremony'} Makeup & Styling`, date: b.otherDate, time: b.otherTime });
-    }
-
-    if (events.length === 0) {
-      toast('Please enable at least 1 function checkbox to generate a bill.', 'error');
-      return;
-    }
-
     const totalPkg = Number(b.package || 0);
-    const perEventPrice = Math.round(totalPkg / events.length);
+    const pkgName = b.packageName 
+      ? `${b.packageName}${b.packageType && !b.packageName.toLowerCase().includes('package') ? ` (${b.packageType})` : ''}`
+      : (b.packageType || 'Bridal & Makeup Package');
 
-    const lines: InvoiceLine[] = events.map((ev, idx) => {
-      const isLast = idx === events.length - 1;
-      const price = isLast ? totalPkg - perEventPrice * (events.length - 1) : perEventPrice;
-      return {
+    const lines: InvoiceLine[] = [
+      {
         type: 'S',
-        name: `${b.packageName ? `[${b.packageName}] ` : ''}${ev.name}${ev.date ? ` (${fmtDate(ev.date)}${ev.time ? ` @ ${ev.time}` : ''})` : ''}`,
+        name: pkgName,
         qty: 1,
-        price: price,
+        price: totalPkg,
         discount: 0,
         discountType: '₹',
-      };
-    });
+      },
+    ];
 
     const existingInv = (data?.invoices || []).find(
       (i) => i.bridalBookingId === b.id || (i.mobile === b.mobile && i.customer === b.name)
