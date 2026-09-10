@@ -799,7 +799,8 @@ export default function ExpensesPage() {
   const allPaymentInEntries = useMemo(() => {
     const list: {
       id: string;
-      source: 'voucher' | 'invoice-payment' | 'invoice-advance' | 'bridal-advance' | 'appointment-advance';
+      flow: 'IN' | 'OUT';
+      source: 'voucher' | 'invoice-payment' | 'invoice-advance' | 'bridal-advance' | 'appointment-advance' | 'expense' | 'purchase' | 'voucher-out' | 'transfer';
       typeLabel: string;
       badgeBg: string;
       badgeColor: string;
@@ -815,15 +816,19 @@ export default function ExpensesPage() {
       invoiceId?: string;
       bridalId?: string;
       apptId?: string;
+      expenseId?: string;
+      purchaseId?: string;
+      transferId?: string;
       splitType?: 'cash' | 'upi' | 'card';
     }[] = [];
 
-    // 1. Dedicated Payment-In Vouchers
+    // 1. Dedicated Payment-In Vouchers (IN)
     vouchers
       .filter((v) => v.type === 'Payment-In')
       .forEach((v) => {
         list.push({
           id: `vch-${v.id}`,
+          flow: 'IN',
           source: 'voucher',
           typeLabel: '📥 Payment Voucher',
           badgeBg: '#dcfce7',
@@ -850,12 +855,13 @@ export default function ExpensesPage() {
         }
       });
 
-    // 2. Direct Sales Invoices / Bills (Past & Existing)
+    // 2. Direct Sales Invoices / Bills (IN)
     invoices.forEach((inv) => {
       // A. Advance received on Invoice
       if (Number(inv.advance || 0) > 0) {
         list.push({
           id: `inv-adv-${inv.id}`,
+          flow: 'IN',
           source: 'invoice-advance',
           typeLabel: '🔖 Bill Advance',
           badgeBg: '#fef3c7',
@@ -881,6 +887,7 @@ export default function ExpensesPage() {
           if (Number(inv.splitPayment.cash || 0) > 0) {
             list.push({
               id: `inv-split-cash-${inv.id}`,
+              flow: 'IN',
               source: 'invoice-payment',
               typeLabel: '📄 Bill Payment',
               badgeBg: '#e0f2fe',
@@ -900,6 +907,7 @@ export default function ExpensesPage() {
           if (Number(inv.splitPayment.upi || 0) > 0) {
             list.push({
               id: `inv-split-upi-${inv.id}`,
+              flow: 'IN',
               source: 'invoice-payment',
               typeLabel: '📄 Bill Payment',
               badgeBg: '#e0f2fe',
@@ -919,6 +927,7 @@ export default function ExpensesPage() {
           if (Number(inv.splitPayment.card || 0) > 0) {
             list.push({
               id: `inv-split-card-${inv.id}`,
+              flow: 'IN',
               source: 'invoice-payment',
               typeLabel: '📄 Bill Payment',
               badgeBg: '#e0f2fe',
@@ -938,6 +947,7 @@ export default function ExpensesPage() {
         } else {
           list.push({
             id: `inv-paid-${inv.id}`,
+            flow: 'IN',
             source: 'invoice-payment',
             typeLabel: '📄 Bill Payment',
             badgeBg: '#e0f2fe',
@@ -956,12 +966,13 @@ export default function ExpensesPage() {
       }
     });
 
-    // 3. Bridal Booking Advances (not already billed in an invoice)
+    // 3. Bridal Booking Advances (IN)
     const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
     bridals.forEach((b) => {
       if (!billedBridalIds.has(b.id) && Number(b.advance || 0) > 0) {
         list.push({
           id: `bridal-adv-${b.id}`,
+          flow: 'IN',
           source: 'bridal-advance',
           typeLabel: '👑 Bridal Advance',
           badgeBg: '#fce7f3',
@@ -979,11 +990,12 @@ export default function ExpensesPage() {
       }
     });
 
-    // 4. Appointment Advances (not already billed in an invoice)
+    // 4. Appointment Advances (IN)
     appointments.forEach((a) => {
       if (!a.invoiceId && a.workStatus !== 'Billed' && Number(a.advance || 0) > 0) {
         list.push({
           id: `appt-adv-${a.id}`,
+          flow: 'IN',
           source: 'appointment-advance',
           typeLabel: '📅 Appt Advance',
           badgeBg: '#ede9fe',
@@ -1001,20 +1013,116 @@ export default function ExpensesPage() {
       }
     });
 
+    // 5. Salon Expenses (OUT)
+    expenses.forEach((e) => {
+      list.push({
+        id: `exp-${e.id}`,
+        flow: 'OUT',
+        source: 'expense',
+        typeLabel: '💸 Salon Expense',
+        badgeBg: '#fee2e2',
+        badgeColor: '#b91c1c',
+        badgeBorder: '#fecaca',
+        docNo: e.expenseNo || 'EXP',
+        date: e.date,
+        partyName: e.paidTo ? `${e.category} (${e.paidTo})` : e.category,
+        partyMobile: '-',
+        amount: Number(e.amount || 0),
+        mode: e.mode || 'Cash',
+        notes: e.notes || e.category,
+        expenseId: e.id,
+      });
+    });
+
+    // 6. Supplier Purchase Payments (OUT)
+    purchases.forEach((p) => {
+      if (Number(p.paid || 0) > 0) {
+        list.push({
+          id: `pur-${p.id}`,
+          flow: 'OUT',
+          source: 'purchase',
+          typeLabel: '📦 Purchase Paid',
+          badgeBg: '#ffedd5',
+          badgeColor: '#c2410c',
+          badgeBorder: '#fed7aa',
+          docNo: p.no || 'PUR',
+          date: p.date,
+          partyName: p.supplier || 'Supplier',
+          partyMobile: '-',
+          amount: Number(p.paid || 0),
+          mode: p.mode || 'Cash',
+          notes: `Paid for Purchase #${p.no || ''} (${p.supplier || ''})`,
+          purchaseId: p.id,
+        });
+      }
+    });
+
+    // 7. Payment-Out Vouchers (OUT)
+    vouchers
+      .filter((v) => v.type === 'Payment-Out')
+      .forEach((v) => {
+        list.push({
+          id: `vch-out-${v.id}`,
+          flow: 'OUT',
+          source: 'voucher-out',
+          typeLabel: '📤 Payment Out',
+          badgeBg: '#fee2e2',
+          badgeColor: '#991b1b',
+          badgeBorder: '#fecaca',
+          docNo: v.voucherNo,
+          date: v.date,
+          partyName: v.partyName || 'Supplier',
+          partyMobile: v.partyMobile || '-',
+          amount: Number(v.amount || 0),
+          mode: v.mode || 'Cash',
+          notes: v.notes || (v.linkedDocNo ? `Payment against ${v.linkedDocNo}` : 'Payment Out'),
+          voucherId: v.id,
+        });
+      });
+
+    // 8. Account Transfers (TRANSFER / OUT)
+    accountTransfers.forEach((t) => {
+      list.push({
+        id: `trf-${t.id}`,
+        flow: 'OUT',
+        source: 'transfer',
+        typeLabel: '🔄 Fund Transfer',
+        badgeBg: '#f3e8ff',
+        badgeColor: '#7e22ce',
+        badgeBorder: '#e9d5ff',
+        docNo: t.transferNo || 'TRF',
+        date: t.date,
+        partyName: `${t.fromName || t.from} ➔ ${t.toName || t.to}`,
+        partyMobile: '-',
+        amount: Number(t.amount || 0),
+        mode: `${t.from} ➔ ${t.to}`,
+        notes: t.notes || `Transfer from ${t.from} to ${t.to}`,
+        transferId: t.id,
+      });
+    });
+
     return list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.docNo || '').localeCompare(a.docNo || ''));
-  }, [vouchers, invoices, bridals, appointments, today]);
+  }, [vouchers, invoices, bridals, appointments, expenses, purchases, accountTransfers, today]);
 
   const paymentInStats = useMemo(() => {
     const monthStart = today.slice(0, 7) + '-01';
-    const totalIn = allPaymentInEntries.reduce((s, v) => s + Number(v.amount || 0), 0);
+    const totalIn = allPaymentInEntries.filter((v) => v.flow === 'IN').reduce((s, v) => s + Number(v.amount || 0), 0);
+    const totalOut = allPaymentInEntries.filter((v) => v.flow === 'OUT').reduce((s, v) => s + Number(v.amount || 0), 0);
     const todayIn = allPaymentInEntries
-      .filter((v) => v.date === today)
+      .filter((v) => v.date === today && v.flow === 'IN')
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const todayOut = allPaymentInEntries
+      .filter((v) => v.date === today && v.flow === 'OUT')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
     const monthIn = allPaymentInEntries
-      .filter((v) => v.date >= monthStart)
+      .filter((v) => v.date >= monthStart && v.flow === 'IN')
       .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const monthOut = allPaymentInEntries
+      .filter((v) => v.date >= monthStart && v.flow === 'OUT')
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const totalCount = allPaymentInEntries.length;
     const todayCount = allPaymentInEntries.filter((v) => v.date === today).length;
-    return { totalIn, todayIn, monthIn, totalCount: allPaymentInEntries.length, todayCount };
+    return { totalIn, totalOut, net: totalIn - totalOut, todayIn, todayOut, monthIn, monthOut, totalCount, todayCount };
   }, [allPaymentInEntries, today]);
 
   const filteredPaymentInList = useMemo(() => {
@@ -1034,11 +1142,26 @@ export default function ExpensesPage() {
           paymentInModeFilter === 'All' || v.mode?.toLowerCase() === paymentInModeFilter.toLowerCase();
 
         const matchesType =
-          paymentInTypeFilter === 'All' || v.source === paymentInTypeFilter;
+          paymentInTypeFilter === 'All' ||
+          (paymentInTypeFilter === 'IN' && v.flow === 'IN') ||
+          (paymentInTypeFilter === 'OUT' && v.flow === 'OUT') ||
+          v.source === paymentInTypeFilter ||
+          (paymentInTypeFilter === 'voucher' && (v.source === 'voucher' || v.source === 'voucher-out'));
 
         return matchesSearch && matchesMode && matchesType;
       });
   }, [allPaymentInEntries, paymentInSearch, paymentInModeFilter, paymentInTypeFilter]);
+
+  const filteredPaymentInStats = useMemo(() => {
+    const totalIn = filteredPaymentInList
+      .filter((v) => v.flow === 'IN')
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const totalOut = filteredPaymentInList
+      .filter((v) => v.flow === 'OUT')
+      .reduce((s, v) => s + Number(v.amount || 0), 0);
+    const net = totalIn - totalOut;
+    return { totalIn, totalOut, net };
+  }, [filteredPaymentInList]);
 
   // Day Book Calculation for selected Date
   const daybook = useMemo(() => {
@@ -1703,8 +1826,42 @@ export default function ExpensesPage() {
     setPaymentOutItem(null);
   };
 
-  // Open Edit Payment In Modal
+  // Open Edit Payment In / Out Modal
   const handleOpenEditPaymentEntry = (entry: (typeof allPaymentInEntries)[0]) => {
+    if (entry.source === 'expense') {
+      const exp = expenses.find((e) => e.id === entry.expenseId);
+      if (exp) {
+        setEditId(exp.id);
+        reset({
+          id: exp.id,
+          expenseNo: exp.expenseNo,
+          date: exp.date,
+          category: exp.category,
+          amount: exp.amount,
+          mode: exp.mode,
+          paidTo: exp.paidTo || '',
+          notes: exp.notes || '',
+        });
+        setModalOpen(true);
+        return;
+      }
+    }
+    if (entry.source === 'transfer') {
+      const trf = accountTransfers.find((t) => t.id === entry.transferId);
+      if (trf) {
+        setTransferForm({
+          from: trf.from || 'Cash',
+          to: trf.to || '',
+          amount: trf.amount || '',
+          date: trf.date || todayISO(),
+          notes: trf.notes || '',
+        });
+        setDeleteTransferId(null);
+        setTransferModalOpen(true);
+        return;
+      }
+    }
+
     setEditPaymentEntry(entry);
     setEditEntryAmount(entry.amount);
     setEditEntryMode(entry.mode || 'Cash');
@@ -1714,7 +1871,7 @@ export default function ExpensesPage() {
     setEditEntryPartyMobile(entry.partyMobile === '-' ? '' : (entry.partyMobile || ''));
   };
 
-  // Save Edit Payment In Entry
+  // Save Edit Payment Entry
   const handleSaveEditPaymentEntry = () => {
     if (!editPaymentEntry) return;
     const newAmt = Number(editEntryAmount);
@@ -1731,6 +1888,9 @@ export default function ExpensesPage() {
       let updatedInvoices = [...(d.invoices || [])];
       let updatedBridals = [...(d.bridal || [])];
       let updatedAppointments = [...(d.appointments || [])];
+      let updatedExpenses = [...(d.expenses || [])];
+      let updatedPurchases = [...(d.purchases || [])];
+      let updatedTransfers = [...(d.accountTransfers || [])];
 
       if (editPaymentEntry.source === 'voucher') {
         updatedVouchers = updatedVouchers.map((v) => {
@@ -1751,7 +1911,6 @@ export default function ExpensesPage() {
         // Also adjust linked invoice / bridal / appt balance by diff
         const v = vouchers.find((x) => x.id === editPaymentEntry.voucherId);
         if (v && v.partyId) {
-          // Check if invoice
           updatedInvoices = updatedInvoices.map((inv) => {
             if (inv.id === v.partyId || (v.linkedDocNo && inv.no === v.linkedDocNo)) {
               const updatedPaid = Math.max(0, Number(inv.paid || 0) + diff);
@@ -1762,7 +1921,6 @@ export default function ExpensesPage() {
             return inv;
           });
 
-          // Check if bridal
           updatedBridals = updatedBridals.map((b) => {
             if (b.id === v.partyId || (v.linkedDocNo && (b.packageName === v.linkedDocNo || b.id === v.linkedDocNo))) {
               const updatedAdv = Math.max(0, Number(b.advance || 0) + diff);
@@ -1772,7 +1930,6 @@ export default function ExpensesPage() {
             return b;
           });
 
-          // Check if appointment
           updatedAppointments = updatedAppointments.map((a) => {
             if (a.id === v.partyId || (v.linkedDocNo && a.service === v.linkedDocNo)) {
               const updatedAdv = Math.max(0, Number(a.advance || 0) + diff);
@@ -1781,6 +1938,73 @@ export default function ExpensesPage() {
             return a;
           });
         }
+      } else if (editPaymentEntry.source === 'voucher-out') {
+        updatedVouchers = updatedVouchers.map((v) => {
+          if (v.id === editPaymentEntry.voucherId) {
+            return {
+              ...v,
+              amount: newAmt,
+              mode: editEntryMode,
+              date: editEntryDate,
+              notes: editEntryNotes,
+              partyName: editEntryPartyName || v.partyName,
+            };
+          }
+          return v;
+        });
+
+        const v = vouchers.find((x) => x.id === editPaymentEntry.voucherId);
+        if (v && v.partyId) {
+          updatedPurchases = updatedPurchases.map((p) => {
+            if (p.id === v.partyId || (v.linkedDocNo && p.no === v.linkedDocNo)) {
+              const updatedPaid = Math.max(0, Number(p.paid || 0) + diff);
+              const updatedBal = Math.max(0, Number(p.total || 0) - updatedPaid);
+              return { ...p, paid: updatedPaid, balance: updatedBal };
+            }
+            return p;
+          });
+        }
+      } else if (editPaymentEntry.source === 'expense') {
+        updatedExpenses = updatedExpenses.map((e) => {
+          if (e.id === editPaymentEntry.expenseId) {
+            return {
+              ...e,
+              amount: newAmt,
+              mode: editEntryMode,
+              date: editEntryDate,
+              notes: editEntryNotes,
+              paidTo: editEntryPartyName || e.paidTo,
+            };
+          }
+          return e;
+        });
+      } else if (editPaymentEntry.source === 'purchase') {
+        updatedPurchases = updatedPurchases.map((p) => {
+          if (p.id === editPaymentEntry.purchaseId) {
+            const updatedBal = Math.max(0, Number(p.total || 0) - newAmt);
+            return {
+              ...p,
+              paid: newAmt,
+              mode: editEntryMode,
+              date: editEntryDate,
+              balance: updatedBal,
+              supplier: editEntryPartyName || p.supplier,
+            };
+          }
+          return p;
+        });
+      } else if (editPaymentEntry.source === 'transfer') {
+        updatedTransfers = updatedTransfers.map((t) => {
+          if (t.id === editPaymentEntry.transferId) {
+            return {
+              ...t,
+              amount: newAmt,
+              date: editEntryDate,
+              notes: editEntryNotes,
+            };
+          }
+          return t;
+        });
       } else if (editPaymentEntry.source === 'invoice-advance') {
         updatedInvoices = updatedInvoices.map((inv) => {
           if (inv.id === editPaymentEntry.invoiceId) {
@@ -1798,7 +2022,6 @@ export default function ExpensesPage() {
           return inv;
         });
 
-        // If bridal booking attached to invoice
         const inv = invoices.find((i) => i.id === editPaymentEntry.invoiceId);
         if (inv?.bridalBookingId) {
           updatedBridals = updatedBridals.map((b) => {
@@ -1886,15 +2109,18 @@ export default function ExpensesPage() {
         invoices: updatedInvoices,
         bridal: updatedBridals,
         appointments: updatedAppointments,
+        expenses: updatedExpenses,
+        purchases: updatedPurchases,
+        accountTransfers: updatedTransfers,
       };
     });
 
     scheduleSave();
-    toast(`✅ Payment In એન્ટ્રી (${editPaymentEntry.docNo}) અપડેટ થઈ ગઈ!`);
+    toast(`✅ વ્યવહાર એન્ટ્રી (${editPaymentEntry.docNo}) અપડેટ થઈ ગઈ!`);
     setEditPaymentEntry(null);
   };
 
-  // Confirm Delete Payment In Entry
+  // Confirm Delete Transaction Entry
   const handleConfirmDeletePaymentEntry = () => {
     if (!deletePaymentEntry) return;
 
@@ -1903,6 +2129,9 @@ export default function ExpensesPage() {
       let updatedInvoices = [...(d.invoices || [])];
       let updatedBridals = [...(d.bridal || [])];
       let updatedAppointments = [...(d.appointments || [])];
+      let updatedExpenses = [...(d.expenses || [])];
+      let updatedPurchases = [...(d.purchases || [])];
+      let updatedTransfers = [...(d.accountTransfers || [])];
 
       if (deletePaymentEntry.source === 'voucher') {
         const v = updatedVouchers.find((x) => x.id === deletePaymentEntry.voucherId);
@@ -1937,6 +2166,32 @@ export default function ExpensesPage() {
             return a;
           });
         }
+      } else if (deletePaymentEntry.source === 'voucher-out') {
+        const v = updatedVouchers.find((x) => x.id === deletePaymentEntry.voucherId);
+        updatedVouchers = updatedVouchers.filter((x) => x.id !== deletePaymentEntry.voucherId);
+
+        if (v && v.partyId) {
+          const vAmt = Number(v.amount || 0);
+          updatedPurchases = updatedPurchases.map((p) => {
+            if (p.id === v.partyId || (v.linkedDocNo && p.no === v.linkedDocNo)) {
+              const newPaid = Math.max(0, Number(p.paid || 0) - vAmt);
+              const newBal = Math.max(0, Number(p.total || 0) - newPaid);
+              return { ...p, paid: newPaid, balance: newBal };
+            }
+            return p;
+          });
+        }
+      } else if (deletePaymentEntry.source === 'expense') {
+        updatedExpenses = updatedExpenses.filter((e) => e.id !== deletePaymentEntry.expenseId);
+      } else if (deletePaymentEntry.source === 'purchase') {
+        updatedPurchases = updatedPurchases.map((p) => {
+          if (p.id === deletePaymentEntry.purchaseId) {
+            return { ...p, paid: 0, balance: Number(p.total || 0) };
+          }
+          return p;
+        });
+      } else if (deletePaymentEntry.source === 'transfer') {
+        updatedTransfers = updatedTransfers.filter((t) => t.id !== deletePaymentEntry.transferId);
       } else if (deletePaymentEntry.source === 'invoice-advance') {
         updatedInvoices = updatedInvoices.map((inv) => {
           if (inv.id === deletePaymentEntry.invoiceId) {
@@ -2018,11 +2273,14 @@ export default function ExpensesPage() {
         invoices: updatedInvoices,
         bridal: updatedBridals,
         appointments: updatedAppointments,
+        expenses: updatedExpenses,
+        purchases: updatedPurchases,
+        accountTransfers: updatedTransfers,
       };
     });
 
     scheduleSave();
-    toast(`✅ Payment In એન્ટ્રી (${deletePaymentEntry.docNo}) ડિલીટ થઈ ગઈ અને બાકી હિસાબ રીસ્ટોર થયો!`);
+    toast(`✅ વ્યવહાર એન્ટ્રી (${deletePaymentEntry.docNo}) ડિલીટ થઈ ગઈ અને બાકી હિસાબ રીસ્ટોર થયો!`);
     setDeletePaymentEntry(null);
   };
 
@@ -2044,9 +2302,9 @@ export default function ExpensesPage() {
           className={`tab-btn ${activeTab === 'payment-in' ? 'active' : ''}`}
           onClick={() => setActiveTab('payment-in')}
         >
-          <ArrowDownLeft size={14} />
-          <span>📥 Payment In</span>
-          <span className="tab-badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: 800 }}>
+          <ArrowRightLeft size={14} />
+          <span>💳 All Payments & Passbook (રોજમેળ)</span>
+          <span className="tab-badge" style={{ background: '#dbeafe', color: '#1e40af', fontWeight: 800 }}>
             {allPaymentInEntries.length}
           </span>
         </button>
@@ -3023,18 +3281,18 @@ export default function ExpensesPage() {
           </motion.div>
         )}
 
-        {/* ======== PAYMENT IN (ALL CUSTOMER COLLECTIONS) TAB ======== */}
+        {/* ======== ALL PAYMENTS & PASSBOOK (IN / OUT / EXPENSE / TRANSFERS) TAB ======== */}
         {activeTab === 'payment-in' && (
           <motion.div key="payment-in-list" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit">
             {/* Main Toolbar */}
             <div className="toolbar" style={{ justifyContent: 'space-between', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
-              <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 320, flexWrap: 'wrap', alignItems: 'center' }}>
-                <div className="search-wrap" style={{ flex: 1, minWidth: 220, maxWidth: 360 }}>
+              <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 320, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="search-wrap" style={{ flex: 1, minWidth: 200, maxWidth: 320 }}>
                   <Search size={15} className="search-icon" />
                   <input
                     type="search"
                     className="input"
-                    placeholder="Search Customer, Mobile, Bill #…"
+                    placeholder="Search Customer, Supplier, Expense, Doc #…"
                     value={paymentInSearch}
                     onChange={(e) => setPaymentInSearch(e.target.value)}
                   />
@@ -3042,21 +3300,26 @@ export default function ExpensesPage() {
 
                 <select
                   className="input"
-                  style={{ width: 'auto', minWidth: 185, padding: '7px 12px', fontSize: 13, color: 'var(--text)' }}
+                  style={{ width: 'auto', minWidth: 190, padding: '7px 12px', fontSize: 12.5, color: 'var(--text)' }}
                   value={paymentInTypeFilter}
                   onChange={(e) => setPaymentInTypeFilter(e.target.value)}
                 >
-                  <option value="All">All Types (તમામ એન્ટ્રીઓ)</option>
+                  <option value="All">All Transactions (તમામ વ્યવહારો - In & Out)</option>
+                  <option value="IN">📥 All Money In (તમામ જમા +₹)</option>
+                  <option value="OUT">📤 All Money Out & Expenses (તમામ ઉધાર & ખર્ચા -₹)</option>
+                  <option value="expense">💸 Salon Expenses (સલૂન ખર્ચા)</option>
                   <option value="invoice-payment">📄 Sales Bills (બિલ ચુકવણી)</option>
-                  <option value="voucher">📥 Payment Vouchers (વાઉચર્સ)</option>
                   <option value="invoice-advance">🔖 Bill Advances (એડવાન્સ)</option>
                   <option value="bridal-advance">👑 Bridal Advances (બ્રાઇડલ)</option>
                   <option value="appointment-advance">📅 Appt Advances (એપોઇન્ટમેન્ટ)</option>
+                  <option value="purchase">📦 Supplier Purchases (ખરીદી)</option>
+                  <option value="voucher">📥/📤 Vouchers (વાઉચર્સ)</option>
+                  <option value="transfer">🔄 Transfers (ટ્રાન્સફર)</option>
                 </select>
 
                 <select
                   className="input"
-                  style={{ width: 'auto', minWidth: 150, padding: '7px 12px', fontSize: 13, color: 'var(--text)' }}
+                  style={{ width: 'auto', minWidth: 140, padding: '7px 12px', fontSize: 12.5, color: 'var(--text)' }}
                   value={paymentInModeFilter}
                   onChange={(e) => setPaymentInModeFilter(e.target.value)}
                 >
@@ -3069,16 +3332,115 @@ export default function ExpensesPage() {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                 <motion.button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-sm btn-primary"
                   onClick={() => setSelectPendingModalOpen(true)}
                   whileTap={{ scale: 0.97 }}
-                  style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', borderColor: '#059669', gap: 6 }}
+                  style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', borderColor: '#059669', gap: 5, fontSize: 12, padding: '6px 12px' }}
                 >
-                  <Plus size={15} /> + Record Payment In (નાણાં જમા કરો)
+                  <ArrowDownLeft size={13} /> + Record Payment In
                 </motion.button>
+
+                <motion.button
+                  type="button"
+                  className="btn btn-sm btn-outline"
+                  onClick={() => {
+                    reset({
+                      id: '',
+                      expenseNo: '',
+                      date: today,
+                      category: 'Staff Tea & Refreshments',
+                      amount: 0,
+                      mode: 'Cash',
+                      paidTo: '',
+                      notes: '',
+                    });
+                    setEditId(null);
+                    setModalOpen(true);
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ borderColor: '#ef4444', color: '#dc2626', background: '#fef2f2', gap: 5, fontSize: 12, padding: '6px 12px' }}
+                >
+                  <Wallet size={13} /> + Add Expense
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  className="btn btn-sm btn-outline"
+                  onClick={() => {
+                    if (pendingPayments.length > 0) {
+                      openPaymentOut(pendingPayments[0]);
+                    } else {
+                      openPaymentOut({ id: uid(), no: 'PUR', supplier: 'Supplier', date: todayISO(), total: 0, paid: 0, balance: 0 });
+                    }
+                  }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ borderColor: '#ea580c', color: '#c2410c', background: '#fff7ed', gap: 5, fontSize: 12, padding: '6px 12px' }}
+                >
+                  <ArrowUpRight size={13} /> + Payment Out
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  className="btn btn-sm btn-outline"
+                  onClick={() => openNewTransfer()}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ borderColor: '#2563eb', color: '#1d4ed8', background: '#eff6ff', gap: 5, fontSize: 12, padding: '6px 12px' }}
+                >
+                  <ArrowRightLeft size={13} /> + Transfer
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Quick Summary Pill Bar */}
+            <div style={{
+              display: 'flex',
+              gap: 14,
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              background: '#f8fafc',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '10px 16px',
+              marginTop: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ArrowDownLeft size={16} style={{ color: '#059669' }} />
+                <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Total Money In (જમા):</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#059669' }}>
+                  +{money(filteredPaymentInStats.totalIn)}
+                </span>
+              </div>
+
+              <div style={{ width: 1, height: 18, background: 'var(--border)' }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ArrowUpRight size={16} style={{ color: '#dc2626' }} />
+                <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Total Money Out (ઉધાર & ખર્ચ):</span>
+                <span style={{ fontSize: 14, fontWeight: 900, color: '#dc2626' }}>
+                  -{money(filteredPaymentInStats.totalOut)}
+                </span>
+              </div>
+
+              <div style={{ width: 1, height: 18, background: 'var(--border)' }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <BadgeIndianRupee size={16} style={{ color: filteredPaymentInStats.net >= 0 ? '#2563eb' : '#dc2626' }} />
+                <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Net Cashflow (ચોખ્ખો નફો/બેલેન્સ):</span>
+                <span style={{
+                  fontSize: 14,
+                  fontWeight: 900,
+                  color: filteredPaymentInStats.net >= 0 ? '#2563eb' : '#dc2626',
+                }}>
+                  {money(filteredPaymentInStats.net)}
+                </span>
+              </div>
+
+              <div style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--muted)' }}>
+                Showing <b>{filteredPaymentInList.length}</b> of <b>{allPaymentInEntries.length}</b> transactions
               </div>
             </div>
 
@@ -3090,44 +3452,46 @@ export default function ExpensesPage() {
                     width: 60,
                     height: 60,
                     borderRadius: '50%',
-                    background: '#dcfce7',
-                    color: '#059669',
+                    background: '#f1f5f9',
+                    color: 'var(--muted)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 14px',
                   }}>
-                    <ArrowDownLeft size={30} />
+                    <ArrowRightLeft size={30} />
                   </div>
                   <h3 style={{ fontSize: 16, fontWeight: 800 }}>
                     {paymentInSearch || paymentInModeFilter !== 'All' || paymentInTypeFilter !== 'All'
-                      ? 'No matching Payment In entries found'
-                      : 'હજી સુધી કોઈ Payment In એન્ટ્રી નોંધાયેલ નથી'}
+                      ? 'No matching transaction entries found'
+                      : 'હજી સુધી કોઈ વ્યવહાર નોંધાયેલ નથી'}
                   </h3>
                   <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 450, margin: '6px auto 16px' }}>
-                    ગ્રાહક પાસેથી બિલ, એડવાન્સ અથવા વાઉચર દ્વારા જમા થયેલા તમામ નાણાં અહીં જોવા મળશે.
+                    ગ્રાહક બિલો, એડવાન્સ, સલૂન ખર્ચા, સપ્લાયર ખરીદી અને ટ્રાન્સફરની તમામ એન્ટ્રીઓ અહીં જોવા મળશે.
                   </p>
-                  {pendingCollections.length > 0 && (
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={() => setSelectPendingModalOpen(true)}
-                      style={{ gap: 6, background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', borderColor: '#059669' }}
-                    >
-                      <Plus size={14} /> Collect from Pending ({pendingCollections.length} Parties)
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    {pendingCollections.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setSelectPendingModalOpen(true)}
+                        style={{ gap: 6, background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', borderColor: '#059669' }}
+                      >
+                        <Plus size={14} /> Collect from Pending ({pendingCollections.length} Parties)
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="table-wrap">
                   <table>
                     <thead>
                       <tr>
-                        <th>Type & Doc / Voucher #</th>
+                        <th>Type & Doc / Ref #</th>
                         <th>Date (તારીખ)</th>
-                        <th>Customer / Party (ગ્રાહક)</th>
+                        <th>Party / Category / Reason</th>
                         <th>Payment Mode</th>
-                        <th style={{ textAlign: 'right' }}>Amount Received (જમા)</th>
+                        <th style={{ textAlign: 'right' }}>Amount (જમા / ઉધાર)</th>
                         <th>Notes / Purpose</th>
                         <th style={{ textAlign: 'center' }}>Actions</th>
                       </tr>
@@ -3137,6 +3501,7 @@ export default function ExpensesPage() {
                         const isCash = v.mode?.toLowerCase() === 'cash';
                         const isUpi = v.mode?.toLowerCase().includes('upi') || v.mode?.toLowerCase().includes('gpay') || v.mode?.toLowerCase().includes('phonepe');
                         const isCard = v.mode?.toLowerCase() === 'card';
+                        const isFlowIn = v.flow === 'IN';
 
                         return (
                           <motion.tr key={v.id} variants={fadeSlideUp}>
@@ -3173,7 +3538,15 @@ export default function ExpensesPage() {
 
                             <td>
                               <div style={{ fontWeight: 700, fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <User size={14} style={{ color: '#2563eb' }} />
+                                {v.source === 'expense' ? (
+                                  <Wallet size={14} style={{ color: '#dc2626' }} />
+                                ) : v.source === 'purchase' || v.source === 'voucher-out' ? (
+                                  <ShoppingBag size={14} style={{ color: '#ea580c' }} />
+                                ) : v.source === 'transfer' ? (
+                                  <ArrowRightLeft size={14} style={{ color: '#9333ea' }} />
+                                ) : (
+                                  <User size={14} style={{ color: '#2563eb' }} />
+                                )}
                                 <span>{v.partyName}</span>
                               </div>
                               {v.partyMobile && v.partyMobile !== '-' && (
@@ -3201,8 +3574,12 @@ export default function ExpensesPage() {
                             </td>
 
                             <td style={{ textAlign: 'right' }}>
-                              <div style={{ fontWeight: 900, color: '#059669', fontSize: 14.5 }}>
-                                +{money(v.amount)}
+                              <div style={{
+                                fontWeight: 900,
+                                color: isFlowIn ? '#059669' : '#dc2626',
+                                fontSize: 14.5,
+                              }}>
+                                {isFlowIn ? `+${money(v.amount)}` : `-${money(v.amount)}`}
                               </div>
                             </td>
 
@@ -3217,7 +3594,7 @@ export default function ExpensesPage() {
                                   type="button"
                                   className="btn-icon"
                                   onClick={() => handleOpenEditPaymentEntry(v)}
-                                  title="Edit Payment In Entry (રકમ / મોડ / તારીખ સુધારો)"
+                                  title="Edit Transaction Entry (રકમ / મોડ / તારીખ સુધારો)"
                                   style={{
                                     color: '#2563eb',
                                     background: '#eff6ff',
@@ -3264,7 +3641,7 @@ export default function ExpensesPage() {
                                   type="button"
                                   className="btn-icon danger"
                                   onClick={() => setDeletePaymentEntry(v)}
-                                  title="Delete Payment In (ડિલીટ કરો & બેલેન્સ રીવર્ટ કરો)"
+                                  title="Delete Transaction (ડિલીટ કરો & બેલેન્સ રીવર્ટ કરો)"
                                   style={{
                                     color: '#dc2626',
                                     background: '#fef2f2',
