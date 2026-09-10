@@ -41,8 +41,9 @@ import {
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, money, fmtDate } from '@/lib/utils';
-import { Expense, BankAccount, AccountTransfer, PaymentVoucher } from '@/types/salon';
+import { Expense, BankAccount, AccountTransfer, PaymentVoucher, Invoice } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
+import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { useToast } from '@/components/ui/Toast';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
@@ -114,6 +115,17 @@ export default function ExpensesPage() {
   const [paymentInMode, setPaymentInMode] = useState<string>('Cash');
   const [paymentInDate, setPaymentInDate] = useState<string>(todayISO());
   const [paymentInNotes, setPaymentInNotes] = useState<string>('');
+
+  // Payment In Unified Edit & Delete State
+  const [editPaymentEntry, setEditPaymentEntry] = useState<any>(null);
+  const [editEntryAmount, setEditEntryAmount] = useState<number | ''>('');
+  const [editEntryMode, setEditEntryMode] = useState<string>('Cash');
+  const [editEntryDate, setEditEntryDate] = useState<string>(todayISO());
+  const [editEntryNotes, setEditEntryNotes] = useState<string>('');
+  const [editEntryPartyName, setEditEntryPartyName] = useState<string>('');
+  const [editEntryPartyMobile, setEditEntryPartyMobile] = useState<string>('');
+  const [deletePaymentEntry, setDeletePaymentEntry] = useState<any>(null);
+  const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
 
   // Payment Out (Supplier Payments) Modal State
   const [paymentOutModalOpen, setPaymentOutModalOpen] = useState(false);
@@ -801,6 +813,9 @@ export default function ExpensesPage() {
       notes: string;
       voucherId?: string;
       invoiceId?: string;
+      bridalId?: string;
+      apptId?: string;
+      splitType?: 'cash' | 'upi' | 'card';
     }[] = [];
 
     // 1. Dedicated Payment-In Vouchers
@@ -877,6 +892,7 @@ export default function ExpensesPage() {
               partyMobile: inv.mobile || '-',
               amount: Number(inv.splitPayment.cash || 0),
               mode: 'Cash',
+              splitType: 'cash',
               notes: `Split payment (Cash) for Bill #${inv.no || ''}`,
               invoiceId: inv.id,
             });
@@ -895,6 +911,7 @@ export default function ExpensesPage() {
               partyMobile: inv.mobile || '-',
               amount: Number(inv.splitPayment.upi || 0),
               mode: inv.splitPayment.upiMode || 'GPay UPI',
+              splitType: 'upi',
               notes: `Split payment (UPI) for Bill #${inv.no || ''}`,
               invoiceId: inv.id,
             });
@@ -913,6 +930,7 @@ export default function ExpensesPage() {
               partyMobile: inv.mobile || '-',
               amount: Number(inv.splitPayment.card || 0),
               mode: 'Card',
+              splitType: 'card',
               notes: `Split payment (Card) for Bill #${inv.no || ''}`,
               invoiceId: inv.id,
             });
@@ -956,6 +974,7 @@ export default function ExpensesPage() {
           amount: Number(b.advance || 0),
           mode: (b as any).advanceAccount || b.advanceMode || 'Cash',
           notes: `Advance for Bridal Booking (${b.packageName || 'Package'})`,
+          bridalId: b.id,
         });
       }
     });
@@ -977,6 +996,7 @@ export default function ExpensesPage() {
           amount: Number(a.advance || 0),
           mode: a.advanceMode || 'Cash',
           notes: `Advance for appointment (${a.service || 'Service'})`,
+          apptId: a.id,
         });
       }
     });
@@ -1681,6 +1701,329 @@ export default function ExpensesPage() {
     toast(`✅ ${money(amt)} નું Payment Out સફળતાપૂર્વક ચૂકવાઈ ગયું! (${paymentOutItem.supplier})`);
     setPaymentOutModalOpen(false);
     setPaymentOutItem(null);
+  };
+
+  // Open Edit Payment In Modal
+  const handleOpenEditPaymentEntry = (entry: (typeof allPaymentInEntries)[0]) => {
+    setEditPaymentEntry(entry);
+    setEditEntryAmount(entry.amount);
+    setEditEntryMode(entry.mode || 'Cash');
+    setEditEntryDate(entry.date || todayISO());
+    setEditEntryNotes(entry.notes || '');
+    setEditEntryPartyName(entry.partyName || '');
+    setEditEntryPartyMobile(entry.partyMobile === '-' ? '' : (entry.partyMobile || ''));
+  };
+
+  // Save Edit Payment In Entry
+  const handleSaveEditPaymentEntry = () => {
+    if (!editPaymentEntry) return;
+    const newAmt = Number(editEntryAmount);
+    if (isNaN(newAmt) || newAmt < 0) {
+      toast('કૃપા કરીને માન્ય રકમ દાખલ કરો (Please enter a valid amount)', 'error');
+      return;
+    }
+
+    const oldAmt = Number(editPaymentEntry.amount || 0);
+    const diff = newAmt - oldAmt;
+
+    updateData((d) => {
+      let updatedVouchers = [...(d.vouchers || [])];
+      let updatedInvoices = [...(d.invoices || [])];
+      let updatedBridals = [...(d.bridal || [])];
+      let updatedAppointments = [...(d.appointments || [])];
+
+      if (editPaymentEntry.source === 'voucher') {
+        updatedVouchers = updatedVouchers.map((v) => {
+          if (v.id === editPaymentEntry.voucherId) {
+            return {
+              ...v,
+              amount: newAmt,
+              mode: editEntryMode,
+              date: editEntryDate,
+              notes: editEntryNotes,
+              partyName: editEntryPartyName || v.partyName,
+              partyMobile: editEntryPartyMobile !== undefined ? editEntryPartyMobile : v.partyMobile,
+            };
+          }
+          return v;
+        });
+
+        // Also adjust linked invoice / bridal / appt balance by diff
+        const v = vouchers.find((x) => x.id === editPaymentEntry.voucherId);
+        if (v && v.partyId) {
+          // Check if invoice
+          updatedInvoices = updatedInvoices.map((inv) => {
+            if (inv.id === v.partyId || (v.linkedDocNo && inv.no === v.linkedDocNo)) {
+              const updatedPaid = Math.max(0, Number(inv.paid || 0) + diff);
+              const totalPaid = updatedPaid + Number(inv.advance || 0);
+              const updatedBal = Math.max(0, Number(inv.total || 0) - totalPaid);
+              return { ...inv, paid: updatedPaid, balance: updatedBal };
+            }
+            return inv;
+          });
+
+          // Check if bridal
+          updatedBridals = updatedBridals.map((b) => {
+            if (b.id === v.partyId || (v.linkedDocNo && (b.packageName === v.linkedDocNo || b.id === v.linkedDocNo))) {
+              const updatedAdv = Math.max(0, Number(b.advance || 0) + diff);
+              const updatedBal = Math.max(0, Number(b.package || 0) - updatedAdv);
+              return { ...b, advance: updatedAdv, balance: updatedBal };
+            }
+            return b;
+          });
+
+          // Check if appointment
+          updatedAppointments = updatedAppointments.map((a) => {
+            if (a.id === v.partyId || (v.linkedDocNo && a.service === v.linkedDocNo)) {
+              const updatedAdv = Math.max(0, Number(a.advance || 0) + diff);
+              return { ...a, advance: updatedAdv };
+            }
+            return a;
+          });
+        }
+      } else if (editPaymentEntry.source === 'invoice-advance') {
+        updatedInvoices = updatedInvoices.map((inv) => {
+          if (inv.id === editPaymentEntry.invoiceId) {
+            const totalPaid = Number(inv.paid || 0) + newAmt;
+            const updatedBal = Math.max(0, Number(inv.total || 0) - totalPaid);
+            return {
+              ...inv,
+              advance: newAmt,
+              advanceMode: editEntryMode,
+              balance: updatedBal,
+              customer: editEntryPartyName || inv.customer,
+              mobile: editEntryPartyMobile || inv.mobile,
+            };
+          }
+          return inv;
+        });
+
+        // If bridal booking attached to invoice
+        const inv = invoices.find((i) => i.id === editPaymentEntry.invoiceId);
+        if (inv?.bridalBookingId) {
+          updatedBridals = updatedBridals.map((b) => {
+            if (b.id === inv.bridalBookingId) {
+              const updatedBal = Math.max(0, Number(b.package || 0) - newAmt);
+              return { ...b, advance: newAmt, advanceMode: editEntryMode, balance: updatedBal };
+            }
+            return b;
+          });
+        }
+      } else if (editPaymentEntry.source === 'invoice-payment') {
+        updatedInvoices = updatedInvoices.map((inv) => {
+          if (inv.id === editPaymentEntry.invoiceId) {
+            if (editPaymentEntry.splitType) {
+              const split = { ...(inv.splitPayment || { cash: 0, upi: 0, card: 0, upiMode: 'GPay UPI' }) };
+              if (editPaymentEntry.splitType === 'cash') split.cash = newAmt;
+              if (editPaymentEntry.splitType === 'upi') {
+                split.upi = newAmt;
+                split.upiMode = editEntryMode;
+              }
+              if (editPaymentEntry.splitType === 'card') split.card = newAmt;
+
+              const totalPaidFromSplit = Number(split.cash || 0) + Number(split.upi || 0) + Number(split.card || 0);
+              const totalPaid = totalPaidFromSplit + Number(inv.advance || 0);
+              const updatedBal = Math.max(0, Number(inv.total || 0) - totalPaid);
+              return {
+                ...inv,
+                splitPayment: split,
+                paid: totalPaidFromSplit,
+                balance: updatedBal,
+                customer: editEntryPartyName || inv.customer,
+                mobile: editEntryPartyMobile || inv.mobile,
+              };
+            } else {
+              const totalPaid = newAmt + Number(inv.advance || 0);
+              const updatedBal = Math.max(0, Number(inv.total || 0) - totalPaid);
+              return {
+                ...inv,
+                paid: newAmt,
+                mode: editEntryMode,
+                date: editEntryDate,
+                notes: editEntryNotes,
+                balance: updatedBal,
+                customer: editEntryPartyName || inv.customer,
+                mobile: editEntryPartyMobile || inv.mobile,
+              };
+            }
+          }
+          return inv;
+        });
+      } else if (editPaymentEntry.source === 'bridal-advance') {
+        updatedBridals = updatedBridals.map((b) => {
+          if (b.id === editPaymentEntry.bridalId) {
+            const updatedBal = Math.max(0, Number(b.package || 0) - newAmt);
+            return {
+              ...b,
+              advance: newAmt,
+              advanceMode: editEntryMode,
+              advanceAccount: editEntryMode,
+              balance: updatedBal,
+              name: editEntryPartyName || b.name,
+              mobile: editEntryPartyMobile || b.mobile,
+            };
+          }
+          return b;
+        });
+      } else if (editPaymentEntry.source === 'appointment-advance') {
+        updatedAppointments = updatedAppointments.map((a) => {
+          if (a.id === editPaymentEntry.apptId) {
+            return {
+              ...a,
+              advance: newAmt,
+              advanceMode: editEntryMode,
+              customer: editEntryPartyName || a.customer,
+              mobile: editEntryPartyMobile || a.mobile,
+            };
+          }
+          return a;
+        });
+      }
+
+      return {
+        ...d,
+        vouchers: updatedVouchers,
+        invoices: updatedInvoices,
+        bridal: updatedBridals,
+        appointments: updatedAppointments,
+      };
+    });
+
+    scheduleSave();
+    toast(`✅ Payment In એન્ટ્રી (${editPaymentEntry.docNo}) અપડેટ થઈ ગઈ!`);
+    setEditPaymentEntry(null);
+  };
+
+  // Confirm Delete Payment In Entry
+  const handleConfirmDeletePaymentEntry = () => {
+    if (!deletePaymentEntry) return;
+
+    updateData((d) => {
+      let updatedVouchers = [...(d.vouchers || [])];
+      let updatedInvoices = [...(d.invoices || [])];
+      let updatedBridals = [...(d.bridal || [])];
+      let updatedAppointments = [...(d.appointments || [])];
+
+      if (deletePaymentEntry.source === 'voucher') {
+        const v = updatedVouchers.find((x) => x.id === deletePaymentEntry.voucherId);
+        updatedVouchers = updatedVouchers.filter((x) => x.id !== deletePaymentEntry.voucherId);
+
+        if (v && v.partyId) {
+          const vAmt = Number(v.amount || 0);
+          updatedInvoices = updatedInvoices.map((inv) => {
+            if (inv.id === v.partyId || (v.linkedDocNo && inv.no === v.linkedDocNo)) {
+              const updatedPaid = Math.max(0, Number(inv.paid || 0) - vAmt);
+              const totalPaid = updatedPaid + Number(inv.advance || 0);
+              const updatedBal = Math.max(0, Number(inv.total || 0) - totalPaid);
+              return { ...inv, paid: updatedPaid, balance: updatedBal };
+            }
+            return inv;
+          });
+
+          updatedBridals = updatedBridals.map((b) => {
+            if (b.id === v.partyId || (v.linkedDocNo && (b.packageName === v.linkedDocNo || b.id === v.linkedDocNo))) {
+              const updatedAdv = Math.max(0, Number(b.advance || 0) - vAmt);
+              const updatedBal = Math.max(0, Number(b.package || 0) - updatedAdv);
+              return { ...b, advance: updatedAdv, balance: updatedBal };
+            }
+            return b;
+          });
+
+          updatedAppointments = updatedAppointments.map((a) => {
+            if (a.id === v.partyId || (v.linkedDocNo && a.service === v.linkedDocNo)) {
+              const updatedAdv = Math.max(0, Number(a.advance || 0) - vAmt);
+              return { ...a, advance: updatedAdv };
+            }
+            return a;
+          });
+        }
+      } else if (deletePaymentEntry.source === 'invoice-advance') {
+        updatedInvoices = updatedInvoices.map((inv) => {
+          if (inv.id === deletePaymentEntry.invoiceId) {
+            const updatedBal = Math.max(0, Number(inv.total || 0) - Number(inv.paid || 0));
+            return {
+              ...inv,
+              advance: 0,
+              advanceMode: undefined,
+              balance: updatedBal,
+            };
+          }
+          return inv;
+        });
+
+        const inv = invoices.find((i) => i.id === deletePaymentEntry.invoiceId);
+        if (inv?.bridalBookingId) {
+          updatedBridals = updatedBridals.map((b) => {
+            if (b.id === inv.bridalBookingId) {
+              return { ...b, advance: 0, balance: Number(b.package || 0) };
+            }
+            return b;
+          });
+        }
+      } else if (deletePaymentEntry.source === 'invoice-payment') {
+        updatedInvoices = updatedInvoices.map((inv) => {
+          if (inv.id === deletePaymentEntry.invoiceId) {
+            if (deletePaymentEntry.splitType) {
+              const split = { ...(inv.splitPayment || { cash: 0, upi: 0, card: 0 }) };
+              if (deletePaymentEntry.splitType === 'cash') split.cash = 0;
+              if (deletePaymentEntry.splitType === 'upi') split.upi = 0;
+              if (deletePaymentEntry.splitType === 'card') split.card = 0;
+
+              const totalPaidFromSplit = Number(split.cash || 0) + Number(split.upi || 0) + Number(split.card || 0);
+              const totalPaid = totalPaidFromSplit + Number(inv.advance || 0);
+              const updatedBal = Math.max(0, Number(inv.total || 0) - totalPaid);
+              return {
+                ...inv,
+                splitPayment: split,
+                paid: totalPaidFromSplit,
+                balance: updatedBal,
+              };
+            } else {
+              const updatedBal = Math.max(0, Number(inv.total || 0) - Number(inv.advance || 0));
+              return {
+                ...inv,
+                paid: 0,
+                balance: updatedBal,
+              };
+            }
+          }
+          return inv;
+        });
+      } else if (deletePaymentEntry.source === 'bridal-advance') {
+        updatedBridals = updatedBridals.map((b) => {
+          if (b.id === deletePaymentEntry.bridalId) {
+            return {
+              ...b,
+              advance: 0,
+              balance: Number(b.package || 0),
+            };
+          }
+          return b;
+        });
+      } else if (deletePaymentEntry.source === 'appointment-advance') {
+        updatedAppointments = updatedAppointments.map((a) => {
+          if (a.id === deletePaymentEntry.apptId) {
+            return {
+              ...a,
+              advance: 0,
+            };
+          }
+          return a;
+        });
+      }
+
+      return {
+        ...d,
+        vouchers: updatedVouchers,
+        invoices: updatedInvoices,
+        bridal: updatedBridals,
+        appointments: updatedAppointments,
+      };
+    });
+
+    scheduleSave();
+    toast(`✅ Payment In એન્ટ્રી (${deletePaymentEntry.docNo}) ડિલીટ થઈ ગઈ અને બાકી હિસાબ રીસ્ટોર થયો!`);
+    setDeletePaymentEntry(null);
   };
 
   return (
@@ -2868,27 +3211,75 @@ export default function ExpensesPage() {
                             </td>
 
                             <td style={{ textAlign: 'center' }}>
-                              {v.voucherId ? (
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}>
+                                {/* Edit Button */}
+                                <button
+                                  type="button"
+                                  className="btn-icon"
+                                  onClick={() => handleOpenEditPaymentEntry(v)}
+                                  title="Edit Payment In Entry (રકમ / મોડ / તારીખ સુધારો)"
+                                  style={{
+                                    color: '#2563eb',
+                                    background: '#eff6ff',
+                                    border: '1px solid #bfdbfe',
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: 6,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  <Pencil size={13} />
+                                </button>
+
+                                {/* View Bill / Receipt Button if invoiceId exists */}
+                                {v.invoiceId && (
+                                  <button
+                                    type="button"
+                                    className="btn-icon"
+                                    onClick={() => {
+                                      const inv = invoices.find((i) => i.id === v.invoiceId);
+                                      if (inv) setReceiptModalInv(inv);
+                                    }}
+                                    title="View Bill Receipt (બિલ રસીદ જુઓ / પ્રિન્ટ કરો)"
+                                    style={{
+                                      color: '#059669',
+                                      background: '#ecfdf5',
+                                      border: '1px solid #a7f3d0',
+                                      width: 30,
+                                      height: 30,
+                                      borderRadius: 6,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}
+                                  >
+                                    <Receipt size={13} />
+                                  </button>
+                                )}
+
+                                {/* Delete Button */}
                                 <button
                                   type="button"
                                   className="btn-icon danger"
-                                  onClick={() => setDeleteVoucherId(v.voucherId!)}
-                                  title="Delete Payment In Voucher (Reverts Balance)"
+                                  onClick={() => setDeletePaymentEntry(v)}
+                                  title="Delete Payment In (ડિલીટ કરો & બેલેન્સ રીવર્ટ કરો)"
+                                  style={{
+                                    color: '#dc2626',
+                                    background: '#fef2f2',
+                                    border: '1px solid #fecaca',
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: 6,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={13} />
                                 </button>
-                              ) : v.invoiceId ? (
-                                <Link
-                                  href="/admin/invoices"
-                                  className="btn-icon"
-                                  title="View Invoice in Sales"
-                                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                >
-                                  <Receipt size={14} />
-                                </Link>
-                              ) : (
-                                <span style={{ fontSize: 11, color: 'var(--muted)' }}>—</span>
-                              )}
+                              </div>
                             </td>
                           </motion.tr>
                         );
@@ -4687,6 +5078,196 @@ export default function ExpensesPage() {
             </div>
           )}
         </Modal>
+      )}
+
+      {/* Edit Payment In Entry Modal */}
+      {editPaymentEntry && (
+        <Modal
+          isOpen={!!editPaymentEntry}
+          onClose={() => setEditPaymentEntry(null)}
+          title={`✏️ Edit Payment In (${editPaymentEntry.docNo})`}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setEditPaymentEntry(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSaveEditPaymentEntry}
+                style={{ background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)', borderColor: '#059669' }}
+              >
+                Save Changes (સુધારો સાચવો)
+              </button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: 8,
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div>
+                <span style={{
+                  fontSize: 10.5,
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  background: editPaymentEntry.badgeBg,
+                  color: editPaymentEntry.badgeColor,
+                  border: `1px solid ${editPaymentEntry.badgeBorder}`,
+                }}>
+                  {editPaymentEntry.typeLabel}
+                </span>
+                <div style={{ fontWeight: 800, fontSize: 14, marginTop: 4 }}>
+                  {editPaymentEntry.docNo}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Current Amount</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#059669' }}>
+                  {money(editPaymentEntry.amount)}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+              <div className="form-group">
+                <label className="label" style={{ marginBottom: 4, fontSize: 12.5 }}>Amount Received (જમા રકમ ₹) *</label>
+                <input
+                  type="number"
+                  className="input"
+                  min="0"
+                  step="any"
+                  value={editEntryAmount}
+                  onChange={(e) => setEditEntryAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  placeholder="0.00"
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label" style={{ marginBottom: 4, fontSize: 12.5 }}>Payment Mode (ચુકવણી પદ્ધતિ) *</label>
+                <select
+                  className="input"
+                  value={editEntryMode}
+                  onChange={(e) => setEditEntryMode(e.target.value)}
+                >
+                  {paymentModes.map((m) => (
+                    <option key={m} value={m}>
+                      {m === 'Cash' ? '💵 Cash' : m.includes('UPI') || m.includes('GPay') || m.includes('PhonePe') ? `📱 ${m}` : m === 'Card' ? `💳 Card` : `🏦 ${m}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="label" style={{ marginBottom: 4, fontSize: 12.5 }}>Payment Date (તારીખ) *</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={editEntryDate}
+                  onChange={(e) => setEditEntryDate(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label" style={{ marginBottom: 4, fontSize: 12.5 }}>Customer Name (ગ્રાહકનું નામ)</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={editEntryPartyName}
+                  onChange={(e) => setEditEntryPartyName(e.target.value)}
+                  placeholder="Customer Name"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label" style={{ marginBottom: 4, fontSize: 12.5 }}>Customer Mobile (મોબાઈલ નંબર)</label>
+                <input
+                  type="tel"
+                  className="input"
+                  value={editEntryPartyMobile}
+                  onChange={(e) => setEditEntryPartyMobile(e.target.value)}
+                  placeholder="9876543210"
+                />
+              </div>
+
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="label" style={{ marginBottom: 4, fontSize: 12.5 }}>Notes / Remarks (નોંધ)</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={editEntryNotes}
+                  onChange={(e) => setEditEntryNotes(e.target.value)}
+                  placeholder="e.g. Paid via GPay / Advance for facial"
+                />
+              </div>
+            </div>
+
+            <div style={{
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              color: '#1e40af',
+              borderRadius: 8,
+              padding: '8px 12px',
+              fontSize: 11.5,
+            }}>
+              ℹ️ રકમ અથવા મોડ બદલવાથી કેશ ઇન હેન્ડ, બેંક બેલેન્સ અને ગ્રાહકનું બાકી લેણું આપોઆપ અપડેટ થશે.
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Payment In Entry Confirmation Modal */}
+      {deletePaymentEntry && (
+        <Modal
+          isOpen={!!deletePaymentEntry}
+          onClose={() => setDeletePaymentEntry(null)}
+          title="🗑️ Delete Payment In Entry?"
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeletePaymentEntry(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-danger" onClick={handleConfirmDeletePaymentEntry}>
+                Delete & Revert Balance
+              </button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ margin: 0, fontSize: 14 }}>
+              શું તમે ખરેખર <b>{deletePaymentEntry.partyName}</b> નું <b>{deletePaymentEntry.docNo}</b> ({deletePaymentEntry.typeLabel}) નું <b>{money(deletePaymentEntry.amount)}</b> ({deletePaymentEntry.mode}) નું Payment In ડિલીટ કરવા માંગો છો?
+            </p>
+
+            <div style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              color: '#991b1b',
+              borderRadius: 8,
+              padding: '10px 12px',
+              fontSize: 12,
+            }}>
+              ⚠️ <b>ચેતવણી:</b> આ પેમેન્ટ એન્ટ્રી ડિલીટ કરવાથી ગ્રાહકના ખાતામાં તેટલી રકમ ફરીથી બાકી (Pending Balance) થઈ જશે અને કેશ/બેંકમાંથી રકમ બાદ થશે.
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Invoice Receipt Modal */}
+      {receiptModalInv && (
+        <InvoiceReceiptModal
+          isOpen={!!receiptModalInv}
+          onClose={() => setReceiptModalInv(null)}
+          invoice={receiptModalInv}
+          salonData={data}
+        />
       )}
     </div>
   );

@@ -665,7 +665,7 @@ const OTHER_EVENT_OPTIONS = [
     });
 
     scheduleSave();
-    toast(`🧾 Bill ${invNo} generated! (${events.length} ticked function${events.length > 1 ? 's' : ''} added)`);
+    toast(`🧾 Bill ${invNo} generated for ${b.name}!`);
 
     // Auto-send WhatsApp PDF
     if (newInv.mobile) {
