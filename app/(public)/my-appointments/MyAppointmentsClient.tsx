@@ -47,7 +47,6 @@ function MyAppointmentsView() {
           customer: b.name,
           mobile: b.mobile,
           service: `👑 Bridal: ${b.packageName}`,
-          staff: 'Master Bridal Artist',
           advance: b.advance || 0,
           status: b.status || 'Confirmed',
           workStatus: b.status || 'Booked',
@@ -71,7 +70,6 @@ function MyAppointmentsView() {
                 customer: b.name,
                 mobile: b.mobile,
                 service: `👑 Bridal: ${b.packageName}`,
-                staff: 'Master Bridal Artist',
                 advance: b.advance || 0,
                 status: b.status || 'Confirmed',
                 workStatus: b.status || 'Booked',
@@ -320,10 +318,6 @@ function MyAppointmentsView() {
                         <Clock size={15} color="#05424A" />
                         <span><strong>Time:</strong> {appt.time}</span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <User size={15} color="#05424A" />
-                        <span><strong>Staff:</strong> {appt.staff || 'Studio Specialist'}</span>
-                      </div>
                       {Number(appt.advance || 0) > 0 && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <CheckCircle2 size={15} color="#16a34a" />
@@ -342,7 +336,6 @@ function MyAppointmentsView() {
                               service: appt.service || 'Salon Service',
                               date: appt.date,
                               time: appt.time,
-                              staff: appt.staff,
                               advance: appt.advance,
                               notes: appt.notes,
                               price: appt.price,

@@ -51,7 +51,6 @@ export default function PublicBookingPage() {
   const address = data?.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || [];
-  const staffList = data?.staff || [];
 
   useState(() => {
     if (typeof window !== 'undefined') {
@@ -77,7 +76,6 @@ export default function PublicBookingPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [bookingDate, setBookingDate] = useState(todayISO());
   const [selectedTime, setSelectedTime] = useState(() => getFirstFutureSlot(todayISO(), TIME_SLOTS) || TIME_SLOTS[0]);
-  const [selectedStaff, setSelectedStaff] = useState('');
 
   // Form State - Bridal Bookings
   const [selectedBridalPkgIds, setSelectedBridalPkgIds] = useState<string[]>([]);
@@ -204,7 +202,7 @@ export default function PublicBookingPage() {
           mobile: cleanMobile,
           email: customerEmail.trim() || undefined,
           service: selectedServices.join(', '),
-          staff: selectedStaff || 'Senior Beautician',
+          staff: 'Studio Specialist',
           advance: 0,
           status: 'Pending',
           workStatus: 'Booked',
@@ -664,7 +662,7 @@ export default function PublicBookingPage() {
                     } else if (confirmedAppt) {
                       downloadICS({
                         title: `💅 ${confirmedAppt.service} — ${salon}`,
-                        description: `Appointment for ${confirmedAppt.customer}\nService: ${confirmedAppt.service}\nStaff: ${confirmedAppt.staff || 'Studio Team'}`,
+                        description: `Appointment for ${confirmedAppt.customer}\nService: ${confirmedAppt.service}`,
                         location: address,
                         startDate: confirmedAppt.date,
                         startTime: confirmedAppt.time || '10:00',
@@ -889,62 +887,32 @@ export default function PublicBookingPage() {
                       <Calendar size={18} color="#05424a" /> 2. Select Date &amp; Time Slot *
                     </h3>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                      <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
-                          Booking Date:
-                        </label>
-                        <input
-                          type="date"
-                          min={todayISO()}
-                          value={bookingDate}
-                          onChange={(e) => {
-                            const newDate = e.target.value;
-                            setBookingDate(newDate);
-                            if (isPastTimeForDate(newDate, selectedTime)) {
-                              const nextValid = getFirstFutureSlot(newDate, TIME_SLOTS);
-                              if (nextValid) setSelectedTime(nextValid);
-                            }
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 10,
-                            border: `1.5px solid ${regularHolidayCheck.isBlocked ? '#f43f5e' : '#cbd5e1'}`,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            outline: 'none',
-                          }}
-                        />
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
-                          Select Beautician (Optional):
-                        </label>
-                        <select
-                          value={selectedStaff}
-                          onChange={(e) => setSelectedStaff(e.target.value)}
-                          disabled={regularHolidayCheck.isBlocked}
-                          style={{
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 10,
-                            border: '1.5px solid #cbd5e1',
-                            fontSize: 13,
-                            fontWeight: 600,
-                            outline: 'none',
-                            opacity: regularHolidayCheck.isBlocked ? 0.6 : 1,
-                          }}
-                        >
-                          <option value="">Any Senior Beautician</option>
-                          {staffList.map((st) => (
-                            <option key={st.id} value={st.name}>
-                              {st.name} ({st.role})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                        Booking Date:
+                      </label>
+                      <input
+                        type="date"
+                        min={todayISO()}
+                        value={bookingDate}
+                        onChange={(e) => {
+                          const newDate = e.target.value;
+                          setBookingDate(newDate);
+                          if (isPastTimeForDate(newDate, selectedTime)) {
+                            const nextValid = getFirstFutureSlot(newDate, TIME_SLOTS);
+                            if (nextValid) setSelectedTime(nextValid);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '9px 12px',
+                          borderRadius: 10,
+                          border: `1.5px solid ${regularHolidayCheck.isBlocked ? '#f43f5e' : '#cbd5e1'}`,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          outline: 'none',
+                        }}
+                      />
                     </div>
 
                     {regularHolidayCheck.isBlocked && (
@@ -1246,7 +1214,7 @@ export default function PublicBookingPage() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Pooja Patel"
+                      placeholder="e.g. Priya Patel"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       style={{
@@ -1293,7 +1261,7 @@ export default function PublicBookingPage() {
                     </label>
                     <input
                       type="email"
-                      placeholder="e.g. pooja.patel@gmail.com"
+                      placeholder="e.g. priya.patel@gmail.com"
                       value={customerEmail}
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       style={{

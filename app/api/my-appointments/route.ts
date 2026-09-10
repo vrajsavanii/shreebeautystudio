@@ -39,14 +39,22 @@ export async function GET(request: Request) {
     const allBridal: BridalBooking[] = salonData.bridal || [];
     const allCustomers: Customer[] = salonData.customers || [];
 
-    // Filter appointments matching mobile
+    // Filter appointments matching mobile (strip staff names for customer privacy)
     const matchedAppointments = allAppointments
       .filter((a) => (a.mobile || '').replace(/\D/g, '').slice(-10) === clean)
+      .map((a) => {
+        const { staff, ...rest } = a;
+        return rest;
+      })
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-    // Filter bridal bookings matching mobile
+    // Filter bridal bookings matching mobile (strip staff names for customer privacy)
     const matchedBridal = allBridal
       .filter((b) => (b.mobile || '').replace(/\D/g, '').slice(-10) === clean)
+      .map((b) => {
+        const { staff, assignedStaff, ...rest } = b as any;
+        return rest;
+      })
       .sort((a, b) => (b.weddingDate || b.date || '').localeCompare(a.weddingDate || a.date || ''));
 
     // Customer profile info

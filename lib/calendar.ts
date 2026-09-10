@@ -144,7 +144,6 @@ export function getAppointmentGoogleCalendarUrl(
     `👤 Customer: ${a.customer}`,
     a.mobile ? `📞 Mobile: +91 ${a.mobile}` : '',
     `💄 Service: ${a.service}`,
-    a.staff ? `👩‍💼 Beautician: ${a.staff}` : '',
     a.price ? `💰 Price: ₹${a.price}` : '',
     Number(a.advance || 0) > 0 ? `💵 Advance Paid: ₹${a.advance}` : '',
     a.notes ? `📝 Notes: ${a.notes}` : '',

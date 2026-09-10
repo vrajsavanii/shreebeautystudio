@@ -92,7 +92,7 @@ export async function POST(request: Request) {
           mobile,
           email: email || undefined,
           service: appointment.service,
-          staff: appointment.staff || 'Senior Beautician',
+          staff: 'Studio Specialist',
           advance: Number(appointment.advance) || 0,
           status: appointment.status || 'Pending',
           workStatus: appointment.workStatus || 'Booked',
@@ -249,7 +249,7 @@ export async function POST(request: Request) {
           type === 'bridal' && newBridal
             ? `👑 Bridal: ${newBridal.packageName || 'Bridal Package'}`
             : newAppointment.service || 'Salon Service';
-        const staffTitle = newAppointment.staff || 'Senior Beautician';
+        const staffTitle = 'Studio Specialist';
         const bookingDate = newAppointment.date || newBridal?.weddingDate || '';
         const bookingTime = newAppointment.time || '10:00 AM';
 

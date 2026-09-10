@@ -27,15 +27,8 @@ export async function GET() {
     }
 
     const data = rows[0].data;
-    // Only expose public-safe fields
-    const staff = (data.staff || []).map((s: any) => ({
-      id: s.id,
-      name: s.name,
-      role: s.role || 'Beautician',
-      services: s.services || '', // comma-separated service categories
-    }));
-
-    return NextResponse.json({ staff });
+    // Do not expose staff names on public web
+    return NextResponse.json({ staff: [] });
   } catch (err: any) {
     console.error('[Booking Staff API]', err?.message);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

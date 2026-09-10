@@ -34,7 +34,6 @@ export async function GET() {
       settings: cloudData.settings || DEFAULT_DATA.settings,
       services: cloudData.services && cloudData.services.length > 0 ? cloudData.services : DEFAULT_DATA.services,
       bridalPackages: cloudData.bridalPackages && cloudData.bridalPackages.length > 0 ? cloudData.bridalPackages : DEFAULT_BRIDAL_PACKAGES,
-      staff: cloudData.staff && cloudData.staff.length > 0 ? cloudData.staff : DEFAULT_DATA.staff,
     });
   } catch (err: any) {
     return NextResponse.json(

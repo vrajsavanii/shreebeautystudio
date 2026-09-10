@@ -210,8 +210,8 @@ export function renderAppointmentConfirmationHtml(props: AppointmentConfirmation
         <td class="val" style="color: ${BRAND_COLORS.primary};">${service}</td>
       </tr>
       <tr>
-        <td class="label">👩‍💼 Stylist / Specialist</td>
-        <td class="val">${staff}</td>
+        <td class="label">👩‍💼 Specialist</td>
+        <td class="val">Studio Specialist</td>
       </tr>
       ${price !== undefined ? `
       <tr>

@@ -128,7 +128,7 @@ We have received your online appointment booking request!
 📅 Date: ${fmtDate(a.date)}
 ⏰ Time: ${a.time}
 💄 Service: ${a.service}
-👩‍💼 Beautician: ${a.staff || 'Senior Beautician'}
+👩‍💼 Specialist: Studio Specialist
 📍 Location: ${address || 'Katargam, Surat'}
 
 📌 *Status:* ⏳ *PENDING SALON CONFIRMATION*
@@ -164,7 +164,7 @@ export function appointmentCustomerMessage(
   salon: string,
   address: string
 ): string {
-  const gcalUrl = getAppointmentGoogleCalendarUrl(a, salon, address);
+  const gcalUrl = getAppointmentGoogleCalendarUrl({ ...a, staff: undefined }, salon, address);
   return `✨ *APPOINTMENT CONFIRMED — ${salon}* ✨
 ────────────────────────────
 Dear ${a.customer},
@@ -173,7 +173,7 @@ Dear ${a.customer},
 📅 Date: ${fmtDate(a.date)}
 ⏰ Time: ${a.time}
 💄 Service: ${a.service}
-👩‍💼 Artist: ${a.staff || 'Senior Beautician'}
+👩‍💼 Specialist: Studio Specialist
 💵 Advance Paid: ${money(a.advance || 0)}
 📍 Address: ${address || 'Surat, Gujarat'}
 

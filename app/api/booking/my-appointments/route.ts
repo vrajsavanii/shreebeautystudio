@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
         date: a.date,
         time: a.time,
         service: a.service,
-        staff: a.staff,
         status: a.status,
         workStatus: a.workStatus || 'Booked',
       }))
