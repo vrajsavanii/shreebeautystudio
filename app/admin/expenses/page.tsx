@@ -33,6 +33,10 @@ import {
   User,
   ArrowRightLeft,
   Building2,
+  Sparkles,
+  Clock,
+  MessageCircle,
+  ExternalLink,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -75,6 +79,8 @@ export default function ExpensesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [bankExpanded, setBankExpanded] = useState(false);
   const [toCollectExpanded, setToCollectExpanded] = useState(false);
+  const [toCollectTab, setToCollectTab] = useState<'all' | 'invoice' | 'bridal' | 'appointment'>('all');
+  const [toCollectSearch, setToCollectSearch] = useState('');
   const [toPayExpanded, setToPayExpanded] = useState(false);
 
   // Bank Account Modal State
@@ -91,11 +97,11 @@ export default function ExpensesPage() {
   // Day Book Selected Date
   const [daybookDate, setDaybookDate] = useState(todayISO());
 
-  // Payment In (Customer & Bridal Collections) Modal State
+  // Payment In (Customer, Bridal & Appointment Collections) Modal State
   const [paymentInModalOpen, setPaymentInModalOpen] = useState(false);
   const [paymentInItem, setPaymentInItem] = useState<{
     id: string;
-    type: 'Invoice' | 'Bridal';
+    type: 'Invoice' | 'Bridal' | 'Appointment';
     no: string;
     name: string;
     mobile: string;
@@ -181,17 +187,36 @@ export default function ExpensesPage() {
       .filter((e) => e.date === today)
       .reduce((s, e) => s + Number(e.amount || 0), 0);
 
-    // ---- TO COLLECT (Pending from Customers / Sales + Bridal) ----
-    const toCollect =
-      invoices.reduce((s, i) => {
-        const paidAmt = Number(i.paid || 0) + Number(i.advance || 0);
-        const bal = Math.max(Number(i.balance || 0), Number(i.total || 0) - paidAmt);
-        return s + Math.max(0, bal);
-      }, 0) +
-      bridals.reduce((s, b) => {
+    // Set of bridal booking IDs already converted to invoices
+    const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
+
+    // ---- 1. INVOICES / BILLS BALANCE (બિલ બન્યા પછીના બાકી) ----
+    const invoicesPendingTotal = invoices.reduce((s, i) => {
+      const paidAmt = Number(i.paid || 0) + Number(i.advance || 0);
+      const bal = Math.max(Number(i.balance || 0), Number(i.total || 0) - paidAmt);
+      return s + Math.max(0, bal);
+    }, 0);
+
+    // ---- 2. BRIDAL BOOKINGS BALANCE (બ્રાઇડલ બુકિંગના બાકી) ----
+    const bridalPendingTotal = bridals
+      .filter((b) => b.status !== 'Cancelled' && !billedBridalIds.has(b.id))
+      .reduce((s, b) => {
         const bal = Math.max(Number(b.balance || 0), Number(b.package || 0) - Number(b.advance || 0));
         return s + Math.max(0, bal);
       }, 0);
+
+    // ---- 3. APPOINTMENTS BALANCE / ADVANCE (અપોઇન્ટમેન્ટ બુકિંગના બાકી) ----
+    const appointmentPendingTotal = appointments
+      .filter((a) => a.status !== 'Cancelled' && !a.invoiceId && a.workStatus !== 'Billed')
+      .reduce((s, a) => {
+        const price = Number(a.price || 0);
+        const adv = Number(a.advance || 0);
+        const bal = Math.max(0, price - adv);
+        return s + bal;
+      }, 0);
+
+    // ---- TOTAL TO COLLECT (Pending from Invoices + Bridal + Appointments) ----
+    const toCollect = invoicesPendingTotal + bridalPendingTotal + appointmentPendingTotal;
 
     // ---- TO PAY (Pending to Suppliers / Purchases) ----
     const toPay = purchases.reduce((s, p) => {
@@ -416,9 +441,6 @@ export default function ExpensesPage() {
     // ---- PROFIT/LOSS (Month) ----
     const monthProfit = monthSale - monthPurchase - monthExpenses;
 
-    // Set of bridal booking IDs already converted to invoices
-    const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
-
     // ---- 7-Day Sales Trend ----
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = subDays(new Date(), 6 - i);
@@ -526,6 +548,9 @@ export default function ExpensesPage() {
       monthExpenses,
       todayExpenses,
       toCollect,
+      invoicesPendingTotal,
+      bridalPendingTotal,
+      appointmentPendingTotal,
       toPay,
       cashInHand,
       monthProfit,
@@ -541,20 +566,26 @@ export default function ExpensesPage() {
     };
   }, [invoices, purchases, expenses, vouchers, bridals, appointments, bankAccounts, accountTransfers, today]);
 
-  // Pending Collections List (Customer Bills & Bridal Bookings with pending balance)
+  // Pending Collections List (Customer Bills, Bridal Bookings & Appointments with pending balance)
   const pendingCollections = useMemo(() => {
     const list: Array<{
       id: string;
-      type: 'Invoice' | 'Bridal';
+      type: 'Invoice' | 'Bridal' | 'Appointment';
       no: string;
       name: string;
       mobile: string;
       date: string;
+      time?: string;
+      staff?: string;
       total: number;
       paid: number;
       balance: number;
+      notes?: string;
     }> = [];
 
+    const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
+
+    // 1. INVOICES / BILLS (બિલ બન્યા પછીના બાકી)
     invoices.forEach((inv) => {
       const paidAmt = Number(inv.paid || 0) + Number(inv.advance || 0);
       const bal = Math.max(Number(inv.balance || 0), Number(inv.total || 0) - paidAmt);
@@ -569,29 +600,124 @@ export default function ExpensesPage() {
           total: Number(inv.total || 0),
           paid: paidAmt,
           balance: bal,
+          notes: inv.notes || '',
         });
       }
     });
 
+    // 2. BRIDAL BOOKINGS (બ્રાઇડલ બુકિંગના બાકી)
     bridals.forEach((b) => {
-      const bal = Math.max(Number(b.balance || 0), Number(b.package || 0) - Number(b.advance || 0));
-      if (bal > 0) {
-        list.push({
-          id: b.id,
-          type: 'Bridal',
-          no: b.packageName || 'Bridal Booking',
-          name: b.name || 'Bride',
-          mobile: b.mobile || '-',
-          date: b.date || b.weddingDate || '-',
-          total: Number(b.package || 0),
-          paid: Number(b.advance || 0),
-          balance: bal,
-        });
+      if (b.status !== 'Cancelled' && !billedBridalIds.has(b.id)) {
+        const bal = Math.max(Number(b.balance || 0), Number(b.package || 0) - Number(b.advance || 0));
+        if (bal > 0) {
+          list.push({
+            id: b.id,
+            type: 'Bridal',
+            no: b.packageName || 'Bridal Booking',
+            name: b.name || 'Bride',
+            mobile: b.mobile || '-',
+            date: b.date || b.weddingDate || '-',
+            total: Number(b.package || 0),
+            paid: Number(b.advance || 0),
+            balance: bal,
+            notes: b.notes || (b.venue ? `Venue: ${b.venue}` : ''),
+          });
+        }
+      }
+    });
+
+    // 3. APPOINTMENTS (અપોઇન્ટમેન્ટ બુકિંગ / એડવાન્સ બાકી)
+    appointments.forEach((a) => {
+      if (a.status !== 'Cancelled' && !a.invoiceId && a.workStatus !== 'Billed') {
+        const price = Number(a.price || 0);
+        const adv = Number(a.advance || 0);
+        const bal = Math.max(0, price - adv);
+        if (price > 0 && bal > 0) {
+          list.push({
+            id: a.id,
+            type: 'Appointment',
+            no: a.service || 'Appointment Service',
+            name: a.customer || 'Customer',
+            mobile: a.mobile || '-',
+            date: a.date,
+            time: a.time || '',
+            staff: a.staff || '',
+            total: price,
+            paid: adv,
+            balance: bal,
+            notes: a.notes || (a.time ? `Time: ${a.time}` : ''),
+          });
+        }
       }
     });
 
     return list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  }, [invoices, bridals]);
+  }, [invoices, bridals, appointments]);
+
+  // Breakdown statistics for To Collect sub-tabs
+  const collectionCounts = useMemo(() => {
+    const invList = pendingCollections.filter((i) => i.type === 'Invoice');
+    const bridalList = pendingCollections.filter((i) => i.type === 'Bridal');
+    const apptList = pendingCollections.filter((i) => i.type === 'Appointment');
+
+    const invTotal = invList.reduce((s, i) => s + i.balance, 0);
+    const bridalTotal = bridalList.reduce((s, i) => s + i.balance, 0);
+    const apptTotal = apptList.reduce((s, i) => s + i.balance, 0);
+    const allTotal = invTotal + bridalTotal + apptTotal;
+
+    return {
+      allCount: pendingCollections.length,
+      allTotal,
+      invCount: invList.length,
+      invTotal,
+      bridalCount: bridalList.length,
+      bridalTotal,
+      apptCount: apptList.length,
+      apptTotal,
+    };
+  }, [pendingCollections]);
+
+  // Filtered collections for search & tabs
+  const filteredCollections = useMemo(() => {
+    let result = pendingCollections;
+    if (toCollectTab === 'invoice') {
+      result = result.filter((item) => item.type === 'Invoice');
+    } else if (toCollectTab === 'bridal') {
+      result = result.filter((item) => item.type === 'Bridal');
+    } else if (toCollectTab === 'appointment') {
+      result = result.filter((item) => item.type === 'Appointment');
+    }
+
+    if (toCollectSearch.trim()) {
+      const q = toCollectSearch.toLowerCase().trim();
+      result = result.filter(
+        (item) =>
+          item.name.toLowerCase().includes(q) ||
+          item.mobile.toLowerCase().includes(q) ||
+          item.no.toLowerCase().includes(q) ||
+          (item.staff && item.staff.toLowerCase().includes(q)) ||
+          (item.notes && item.notes.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [pendingCollections, toCollectTab, toCollectSearch]);
+
+  const getWhatsAppReminderUrl = (item: (typeof pendingCollections)[0]) => {
+    if (!item.mobile || item.mobile === '-') return '';
+    const cleanMobile = item.mobile.replace(/\D/g, '');
+    const phone = cleanMobile.length === 10 ? `91${cleanMobile}` : cleanMobile;
+
+    let msg = '';
+    if (item.type === 'Invoice') {
+      msg = `નમસ્તે ${item.name},\nશ્રી બ્યુટી સ્ટુડિયો તરફથી આપનું બિલ #${item.no} (તારીખ: ${fmtDate(item.date)}) નું કુલ ₹${item.total} માંથી ₹${item.balance} નું પેમેન્ટ બાકી છે.\nકૃપા કરીને આ રકમ જમા કરાવવા વિનંતી છે.\nઆભાર! 🙏\nશ્રી બ્યુટી સ્ટુડિયો`;
+    } else if (item.type === 'Bridal') {
+      msg = `નમસ્તે ${item.name},\nશ્રી બ્યુટી સ્ટુડિયો તરફથી આપના બ્રાઇડલ પેકેજ (${item.no}) નું કુલ ₹${item.total} માંથી બાકી પેમેન્ટ ₹${item.balance} જમા કરાવવા વિનંતી છે.\nઆભાર! 🙏\nશ્રી બ્યુટી સ્ટુડિયો`;
+    } else {
+      msg = `નમસ્તે ${item.name},\nશ્રી બ્યુટી સ્ટુડિયો તરફથી આપની અપોઇન્ટમેન્ટ (${item.no} - ${fmtDate(item.date)}) નું બાકી પેમેન્ટ/એડવાન્સ ₹${item.balance} જમા કરાવવા વિનંતી છે.\nઆભાર! 🙏\nશ્રી બ્યુટી સ્ટુડિયો`;
+    }
+    return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  };
 
   // Pending Supplier Payments List
   const pendingPayments = useMemo(() => {
@@ -1307,6 +1433,24 @@ export default function ExpensesPage() {
           }
           return b;
         });
+
+        // Roll back appointment advance
+        let updatedAppointments = [...(d.appointments || [])].map((a) => {
+          if (a.id === v.partyId || (v.linkedDocNo && a.service === v.linkedDocNo)) {
+            const newAdv = Math.max(0, Number(a.advance || 0) - Number(v.amount || 0));
+            return { ...a, advance: newAdv };
+          }
+          return a;
+        });
+
+        return {
+          ...d,
+          vouchers: updatedVouchers,
+          invoices: updatedInvoices,
+          bridal: updatedBridals,
+          appointments: updatedAppointments,
+          purchases: updatedPurchases,
+        };
       } else if (v.type === 'Payment-Out') {
         // Roll back purchase payment
         updatedPurchases = updatedPurchases.map((p) => {
@@ -1357,7 +1501,15 @@ export default function ExpensesPage() {
     setPaymentInAmount(item.balance);
     setPaymentInMode('Cash');
     setPaymentInDate(todayISO());
-    setPaymentInNotes(`Payment received for ${item.type === 'Bridal' ? 'Bridal Package' : 'Invoice'} ${item.no}`);
+    setPaymentInNotes(
+      `Payment received for ${
+        item.type === 'Bridal'
+          ? 'Bridal Package ' + item.no
+          : item.type === 'Appointment'
+          ? 'Appointment (' + item.no + ')'
+          : 'Invoice ' + item.no
+      }`
+    );
     setPaymentInModalOpen(true);
   };
 
@@ -1402,6 +1554,7 @@ export default function ExpensesPage() {
 
       let updatedInvoices = [...(d.invoices || [])];
       let updatedBridals = [...(d.bridal || [])];
+      let updatedAppointments = [...(d.appointments || [])];
 
       if (paymentInItem.type === 'Invoice') {
         updatedInvoices = updatedInvoices.map((inv) => {
@@ -1445,6 +1598,18 @@ export default function ExpensesPage() {
           }
           return inv;
         });
+      } else if (paymentInItem.type === 'Appointment') {
+        updatedAppointments = updatedAppointments.map((a) => {
+          if (a.id === paymentInItem.id) {
+            const newAdv = Number(a.advance || 0) + amt;
+            return {
+              ...a,
+              advance: newAdv,
+              advanceMode: paymentInMode,
+            };
+          }
+          return a;
+        });
       }
 
       return {
@@ -1453,6 +1618,7 @@ export default function ExpensesPage() {
         voucherSeq: nextSeq,
         invoices: updatedInvoices,
         bridal: updatedBridals,
+        appointments: updatedAppointments,
       };
     });
 
@@ -1597,77 +1763,188 @@ export default function ExpensesPage() {
         {activeTab === 'dashboard' && (
           <motion.div key="vyapar-dash" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit">
 
-            {/* ---- ROW 1: KPI Cards (To Collect & To Pay) ---- */}
+            {/* ---- ROW 1: KPI Cards (To Collect: Bills, Bridal, Appointments + To Pay: Suppliers) ---- */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 14,
+              gap: 12,
               marginTop: 16,
             }}>
 
-              {/* To Collect */}
+              {/* 1. To Collect: Bills / Invoices */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                  background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
                   borderRadius: 14,
-                  padding: '20px 18px',
+                  padding: '18px 16px',
                   color: '#fff',
                   position: 'relative',
                   overflow: 'hidden',
-                  boxShadow: '0 4px 20px rgba(37,99,235,0.25)',
+                  boxShadow: '0 4px 18px rgba(37,99,235,0.25)',
                   cursor: 'pointer',
                   userSelect: 'none',
+                  border: toCollectExpanded && toCollectTab === 'invoice' ? '2px solid #fff' : '2px solid transparent',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 }}
-                onClick={() => setToCollectExpanded(!toCollectExpanded)}
+                onClick={() => {
+                  if (toCollectExpanded && toCollectTab === 'invoice') {
+                    setToCollectExpanded(false);
+                  } else {
+                    setToCollectExpanded(true);
+                    setToCollectTab('invoice');
+                  }
+                }}
               >
-                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 80 }}>📥</div>
+                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 75 }}>📄</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <ArrowDownLeft size={18} />
-                    <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>To Collect (લેવાના)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Receipt size={16} />
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.95 }}>
+                      Bills (બિલ બાકી)
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 20 }}>
-                    <span>{pendingCollections.length} parties</span>
-                    {toCollectExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.22)', padding: '2px 8px', borderRadius: 20 }}>
+                    <span>{collectionCounts.invCount} bills</span>
+                    {toCollectExpanded && toCollectTab === 'invoice' ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                   </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.toCollect)}</div>
-                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Pending from Customers + Bridal</span>
-                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>{toCollectExpanded ? 'Close Details ▲' : 'Click for Details ▼'}</span>
+                <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1 }}>{money(collectionCounts.invTotal)}</div>
+                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.9, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>બિલ બન્યા પછીના બાકી</span>
+                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>
+                    {toCollectExpanded && toCollectTab === 'invoice' ? 'Close ▲' : 'Details ▼'}
+                  </span>
                 </div>
               </div>
 
-              {/* To Pay */}
+              {/* 2. To Collect: Bridal Bookings */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #be185d 0%, #ec4899 100%)',
+                  borderRadius: 14,
+                  padding: '18px 16px',
+                  color: '#fff',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 18px rgba(190,24,93,0.25)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  border: toCollectExpanded && toCollectTab === 'bridal' ? '2px solid #fff' : '2px solid transparent',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                }}
+                onClick={() => {
+                  if (toCollectExpanded && toCollectTab === 'bridal') {
+                    setToCollectExpanded(false);
+                  } else {
+                    setToCollectExpanded(true);
+                    setToCollectTab('bridal');
+                  }
+                }}
+              >
+                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 75 }}>👑</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Sparkles size={16} />
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.95 }}>
+                      Bridal (બ્રાઇડલ બાકી)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.22)', padding: '2px 8px', borderRadius: 20 }}>
+                    <span>{collectionCounts.bridalCount} brides</span>
+                    {toCollectExpanded && toCollectTab === 'bridal' ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </div>
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1 }}>{money(collectionCounts.bridalTotal)}</div>
+                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.9, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>બ્રાઇડલ બુકિંગના બાકી</span>
+                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>
+                    {toCollectExpanded && toCollectTab === 'bridal' ? 'Close ▲' : 'Details ▼'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. To Collect: Appointment Bookings */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #0d9488 0%, #06b6d4 100%)',
+                  borderRadius: 14,
+                  padding: '18px 16px',
+                  color: '#fff',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 4px 18px rgba(13,148,136,0.25)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  border: toCollectExpanded && toCollectTab === 'appointment' ? '2px solid #fff' : '2px solid transparent',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                }}
+                onClick={() => {
+                  if (toCollectExpanded && toCollectTab === 'appointment') {
+                    setToCollectExpanded(false);
+                  } else {
+                    setToCollectExpanded(true);
+                    setToCollectTab('appointment');
+                  }
+                }}
+              >
+                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 75 }}>📅</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Calendar size={16} />
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.95 }}>
+                      Appt (અપોઇન્ટમેન્ટ બાકી)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.22)', padding: '2px 8px', borderRadius: 20 }}>
+                    <span>{collectionCounts.apptCount} appts</span>
+                    {toCollectExpanded && toCollectTab === 'appointment' ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </div>
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1 }}>{money(collectionCounts.apptTotal)}</div>
+                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.9, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>અપોઇન્ટમેન્ટ / એડવાન્સ બાકી</span>
+                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>
+                    {toCollectExpanded && toCollectTab === 'appointment' ? 'Close ▲' : 'Details ▼'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 4. To Pay: Suppliers */}
               <div
                 style={{
                   background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
                   borderRadius: 14,
-                  padding: '20px 18px',
+                  padding: '18px 16px',
                   color: '#fff',
                   position: 'relative',
                   overflow: 'hidden',
-                  boxShadow: '0 4px 20px rgba(124,58,237,0.25)',
+                  boxShadow: '0 4px 18px rgba(124,58,237,0.25)',
                   cursor: 'pointer',
                   userSelect: 'none',
+                  border: toPayExpanded ? '2px solid #fff' : '2px solid transparent',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                 }}
                 onClick={() => setToPayExpanded(!toPayExpanded)}
               >
-                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 80 }}>📤</div>
+                <div style={{ position: 'absolute', top: -8, right: -8, opacity: 0.12, fontSize: 75 }}>📤</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <ArrowUpRight size={18} />
-                    <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.9 }}>To Pay (આપવાના)</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ArrowUpRight size={16} />
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', opacity: 0.95 }}>
+                      To Pay (આપવાના)
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.22)', padding: '2px 8px', borderRadius: 20 }}>
                     <span>{pendingPayments.length} suppliers</span>
-                    {toPayExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    {toPayExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                   </div>
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.toPay)}</div>
-                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.85, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Pending to Suppliers</span>
-                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>{toPayExpanded ? 'Close Details ▲' : 'Click for Details ▼'}</span>
+                <div style={{ fontSize: 24, fontWeight: 900, lineHeight: 1.1 }}>{money(vyaparStats.toPay)}</div>
+                <div style={{ fontSize: 11, marginTop: 8, opacity: 0.9, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>સપ્લાયર્સને ચૂકવવાના બાકી</span>
+                  <span style={{ fontWeight: 800, textDecoration: 'underline' }}>
+                    {toPayExpanded ? 'Close ▲' : 'Details ▼'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1681,25 +1958,147 @@ export default function ExpensesPage() {
                   exit={{ opacity: 0, height: 0, marginTop: 0 }}
                   transition={{ duration: 0.25 }}
                   className="card"
-                  style={{ padding: 18, borderLeft: '4px solid #2563eb', overflow: 'hidden' }}
+                  style={{
+                    padding: 18,
+                    borderLeft: `4px solid ${
+                      toCollectTab === 'bridal'
+                        ? '#be185d'
+                        : toCollectTab === 'appointment'
+                        ? '#0d9488'
+                        : '#2563eb'
+                    }`,
+                    overflow: 'hidden',
+                  }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  {/* Header with Title and Total */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
                     <div>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span>📥 Customer & Bridal Pending Collections Details ({pendingCollections.length})</span>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>
+                          {toCollectTab === 'invoice' && '📄 Bills Balance Details (બિલ બન્યા પછીના બાકી)'}
+                          {toCollectTab === 'bridal' && '👑 Bridal Bookings Pending Details (બ્રાઇડલ બુકિંગના બાકી)'}
+                          {toCollectTab === 'appointment' && '📅 Appointments Advance / Booking Balance (અપોઇન્ટમેન્ટ બાકી)'}
+                          {toCollectTab === 'all' && '📥 All Receivables (તમામ બાકી લેવાના નાણાં)'}
+                        </span>
+                        <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 12, background: 'var(--bg-subtle, #f1f5f9)', color: 'var(--text)', fontWeight: 700 }}>
+                          {filteredCollections.length} Parties
+                        </span>
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                        નીચે તમામ ગ્રાહકો અને બ્રાઇડલ બુકિંગના બાકી નાણાંની યાદી છે
+                        નીચે ગ્રાહકોના બાકી નાણાંની વિગત છે • નાણાં જમા કરવા <b>"📥 Payment In"</b> અથવા WhatsApp રિમાઇન્ડર મોકલો
                       </div>
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: '#2563eb', background: '#dbeafe', padding: '4px 12px', borderRadius: 20 }}>
-                      Total Pending: {money(vyaparStats.toCollect)}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{
+                        fontSize: 13,
+                        fontWeight: 900,
+                        color: toCollectTab === 'bridal' ? '#be185d' : toCollectTab === 'appointment' ? '#0d9488' : '#2563eb',
+                        background: toCollectTab === 'bridal' ? '#fce7f3' : toCollectTab === 'appointment' ? '#ccfbf1' : '#dbeafe',
+                        padding: '5px 14px',
+                        borderRadius: 20,
+                      }}>
+                        Total: {toCollectTab === 'invoice' ? money(collectionCounts.invTotal) : toCollectTab === 'bridal' ? money(collectionCounts.bridalTotal) : toCollectTab === 'appointment' ? money(collectionCounts.apptTotal) : money(collectionCounts.allTotal)}
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => setToCollectExpanded(false)}
+                        style={{ padding: '4px 8px', fontSize: 12 }}
+                      >
+                        ✕ Close
+                      </button>
                     </div>
                   </div>
 
-                  {pendingCollections.length === 0 ? (
-                    <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '20px 0' }}>
-                      ✅ કોઈ બાકી નથી! બધા ગ્રાહકોનું Payment જમા થઈ ગયું છે. 🎉
+                  {/* Category Filter Tabs & Search Bar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{
+                          padding: '5px 12px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          borderRadius: 20,
+                          background: toCollectTab === 'all' ? '#2563eb' : 'var(--bg-subtle, #f1f5f9)',
+                          color: toCollectTab === 'all' ? '#fff' : 'var(--text)',
+                          border: toCollectTab === 'all' ? '1px solid #2563eb' : '1px solid var(--border)',
+                        }}
+                        onClick={() => setToCollectTab('all')}
+                      >
+                        🔲 All ({collectionCounts.allCount})
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{
+                          padding: '5px 12px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          borderRadius: 20,
+                          background: toCollectTab === 'invoice' ? '#1d4ed8' : 'var(--bg-subtle, #f1f5f9)',
+                          color: toCollectTab === 'invoice' ? '#fff' : '#1d4ed8',
+                          border: toCollectTab === 'invoice' ? '1px solid #1d4ed8' : '1px solid #bfdbfe',
+                        }}
+                        onClick={() => setToCollectTab('invoice')}
+                      >
+                        📄 Bills ({collectionCounts.invCount}) • {money(collectionCounts.invTotal)}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{
+                          padding: '5px 12px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          borderRadius: 20,
+                          background: toCollectTab === 'bridal' ? '#be185d' : 'var(--bg-subtle, #f1f5f9)',
+                          color: toCollectTab === 'bridal' ? '#fff' : '#be185d',
+                          border: toCollectTab === 'bridal' ? '1px solid #be185d' : '1px solid #fbcfe8',
+                        }}
+                        onClick={() => setToCollectTab('bridal')}
+                      >
+                        👑 Bridal ({collectionCounts.bridalCount}) • {money(collectionCounts.bridalTotal)}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        style={{
+                          padding: '5px 12px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          borderRadius: 20,
+                          background: toCollectTab === 'appointment' ? '#0d9488' : 'var(--bg-subtle, #f1f5f9)',
+                          color: toCollectTab === 'appointment' ? '#fff' : '#0d9488',
+                          border: toCollectTab === 'appointment' ? '1px solid #0d9488' : '1px solid #99f6e4',
+                        }}
+                        onClick={() => setToCollectTab('appointment')}
+                      >
+                        📅 Appt ({collectionCounts.apptCount}) • {money(collectionCounts.apptTotal)}
+                      </button>
+                    </div>
+
+                    <div className="search-wrap" style={{ minWidth: 200, maxWidth: 280 }}>
+                      <Search size={14} className="search-icon" />
+                      <input
+                        type="search"
+                        className="input"
+                        style={{ padding: '5px 10px 5px 30px', fontSize: 12 }}
+                        placeholder="Search Customer, Mobile…"
+                        value={toCollectSearch}
+                        onChange={(e) => setToCollectSearch(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {filteredCollections.length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: '24px 0' }}>
+                      ✅ આ કેટેગરીમાં કોઈ પેન્ડિંગ બેલેન્સ નથી! 🎉
                     </div>
                   ) : (
                     <div style={{ overflowX: 'auto' }}>
@@ -1707,20 +2106,20 @@ export default function ExpensesPage() {
                         <thead>
                           <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                             <th style={{ padding: '10px 12px' }}>Customer / Party</th>
-                            <th style={{ padding: '10px 12px' }}>Bill / Package</th>
+                            <th style={{ padding: '10px 12px' }}>Type & Details</th>
                             <th style={{ padding: '10px 12px' }}>Date</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Total Bill</th>
-                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Received</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Total Amount</th>
+                            <th style={{ padding: '10px 12px', textAlign: 'right' }}>Advance / Paid</th>
                             <th style={{ padding: '10px 12px', textAlign: 'right' }}>Pending Balance (લેવાના)</th>
                             <th style={{ padding: '10px 12px', textAlign: 'center' }}>Action (ક્રિયા)</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {pendingCollections.map((item) => (
+                          {filteredCollections.map((item) => (
                             <tr key={`${item.type}-${item.id}`} style={{ borderBottom: '1px dashed var(--border)', transition: 'background 0.15s' }}>
                               <td style={{ padding: '12px 12px', fontWeight: 700 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <User size={14} style={{ color: '#2563eb' }} />
+                                  <User size={14} style={{ color: item.type === 'Bridal' ? '#be185d' : item.type === 'Appointment' ? '#0d9488' : '#2563eb' }} />
                                   <span>{item.name}</span>
                                 </div>
                                 {item.mobile && item.mobile !== '-' && (
@@ -1739,35 +2138,89 @@ export default function ExpensesPage() {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
-                                  background: item.type === 'Bridal' ? '#fce7f3' : '#e0f2fe',
-                                  color: item.type === 'Bridal' ? '#be185d' : '#0369a1',
+                                  background: item.type === 'Bridal' ? '#fce7f3' : item.type === 'Appointment' ? '#ccfbf1' : '#e0f2fe',
+                                  color: item.type === 'Bridal' ? '#be185d' : item.type === 'Appointment' ? '#0f766e' : '#0369a1',
                                 }}>
-                                  {item.type === 'Bridal' ? '👑 Bridal' : '📄 Bill'}: {item.no}
+                                  {item.type === 'Bridal' ? '👑 Bridal' : item.type === 'Appointment' ? '📅 Appt' : '📄 Bill'}: {item.no}
                                 </span>
+                                {item.staff && (
+                                  <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 2 }}>Staff: {item.staff}</div>
+                                )}
                               </td>
-                              <td style={{ padding: '12px 12px', color: 'var(--muted)', fontSize: 12 }}>{fmtDate(item.date)}</td>
+                              <td style={{ padding: '12px 12px', color: 'var(--muted)', fontSize: 12 }}>
+                                <div>{fmtDate(item.date)}</div>
+                                {item.time && <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{item.time}</div>}
+                              </td>
                               <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 600 }}>{money(item.total)}</td>
                               <td style={{ padding: '12px 12px', textAlign: 'right', color: '#059669', fontWeight: 700 }}>{money(item.paid)}</td>
                               <td style={{ padding: '12px 12px', textAlign: 'right', fontWeight: 900, color: '#dc2626', fontSize: 14 }}>{money(item.balance)}</td>
                               <td style={{ padding: '12px 12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-primary"
-                                  style={{
-                                    padding: '5px 12px',
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 5,
-                                    background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                                    borderColor: '#059669',
-                                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
-                                  }}
-                                  onClick={() => openPaymentIn(item)}
-                                >
-                                  <ArrowDownLeft size={13} /> 📥 Payment In
-                                </button>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-primary"
+                                    style={{
+                                      padding: '5px 12px',
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 5,
+                                      background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                                      borderColor: '#059669',
+                                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                                    }}
+                                    onClick={() => openPaymentIn(item)}
+                                  >
+                                    <ArrowDownLeft size={13} /> 📥 Payment In
+                                  </button>
+
+                                  {getWhatsAppReminderUrl(item) && (
+                                    <a
+                                      href={getWhatsAppReminderUrl(item)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="btn btn-sm"
+                                      style={{
+                                        padding: '5px 9px',
+                                        fontSize: 11.5,
+                                        fontWeight: 700,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        background: '#25D366',
+                                        color: '#fff',
+                                        borderRadius: 6,
+                                        textDecoration: 'none',
+                                      }}
+                                      title="Send WhatsApp Reminder"
+                                    >
+                                      <MessageCircle size={13} /> WA
+                                    </a>
+                                  )}
+
+                                  {item.type === 'Appointment' && (
+                                    <Link
+                                      href={`/admin/billing?appointmentId=${item.id}`}
+                                      className="btn btn-sm"
+                                      style={{
+                                        padding: '5px 9px',
+                                        fontSize: 11.5,
+                                        fontWeight: 700,
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 4,
+                                        background: '#0284c7',
+                                        color: '#fff',
+                                        borderRadius: 6,
+                                        textDecoration: 'none',
+                                      }}
+                                      title="Create Bill"
+                                    >
+                                      <Receipt size={13} /> Bill
+                                    </Link>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -3797,10 +4250,10 @@ export default function ExpensesPage() {
                   borderRadius: 6,
                   fontSize: 11,
                   fontWeight: 800,
-                  background: paymentInItem.type === 'Bridal' ? '#fce7f3' : '#e0f2fe',
-                  color: paymentInItem.type === 'Bridal' ? '#be185d' : '#0369a1',
+                  background: paymentInItem.type === 'Bridal' ? '#fce7f3' : paymentInItem.type === 'Appointment' ? '#ccfbf1' : '#e0f2fe',
+                  color: paymentInItem.type === 'Bridal' ? '#be185d' : paymentInItem.type === 'Appointment' ? '#0f766e' : '#0369a1',
                 }}>
-                  {paymentInItem.type === 'Bridal' ? '👑 Bridal' : '📄 Bill'}: {paymentInItem.no}
+                  {paymentInItem.type === 'Bridal' ? '👑 Bridal' : paymentInItem.type === 'Appointment' ? '📅 Appt' : '📄 Bill'}: {paymentInItem.no}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
@@ -4128,15 +4581,98 @@ export default function ExpensesPage() {
               <div style={{ fontSize: 36, marginBottom: 8 }}>🎉</div>
               <h4 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 800 }}>કોઈ ગ્રાહકનું પેન્ડિંગ બેલેન્સ નથી!</h4>
               <p style={{ margin: 0, fontSize: 12.5, color: 'var(--muted)' }}>
-                તમામ ગ્રાહક બિલો અને બ્રાઇડલ બુકિંગના નાણાં સંપૂર્ણ ચૂકવાઈ ગયા છે.
+                તમામ ગ્રાહક બિલો, બ્રાઇડલ બુકિંગ અને અપોઇન્ટમેન્ટના નાણાં સંપૂર્ણ ચૂકવાઈ ગયા છે.
               </p>
             </div>
           ) : (
-            <div style={{ maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+            <div style={{ maxHeight: '65vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Category Pills inside Modal */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      borderRadius: 16,
+                      background: toCollectTab === 'all' ? '#2563eb' : 'var(--bg-subtle, #f1f5f9)',
+                      color: toCollectTab === 'all' ? '#fff' : 'var(--text)',
+                      border: toCollectTab === 'all' ? '1px solid #2563eb' : '1px solid var(--border)',
+                    }}
+                    onClick={() => setToCollectTab('all')}
+                  >
+                    All ({collectionCounts.allCount})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      borderRadius: 16,
+                      background: toCollectTab === 'invoice' ? '#1d4ed8' : 'var(--bg-subtle, #f1f5f9)',
+                      color: toCollectTab === 'invoice' ? '#fff' : '#1d4ed8',
+                      border: toCollectTab === 'invoice' ? '1px solid #1d4ed8' : '1px solid #bfdbfe',
+                    }}
+                    onClick={() => setToCollectTab('invoice')}
+                  >
+                    📄 Bills ({collectionCounts.invCount})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      borderRadius: 16,
+                      background: toCollectTab === 'bridal' ? '#be185d' : 'var(--bg-subtle, #f1f5f9)',
+                      color: toCollectTab === 'bridal' ? '#fff' : '#be185d',
+                      border: toCollectTab === 'bridal' ? '1px solid #be185d' : '1px solid #fbcfe8',
+                    }}
+                    onClick={() => setToCollectTab('bridal')}
+                  >
+                    👑 Bridal ({collectionCounts.bridalCount})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      borderRadius: 16,
+                      background: toCollectTab === 'appointment' ? '#0d9488' : 'var(--bg-subtle, #f1f5f9)',
+                      color: toCollectTab === 'appointment' ? '#fff' : '#0d9488',
+                      border: toCollectTab === 'appointment' ? '1px solid #0d9488' : '1px solid #99f6e4',
+                    }}
+                    onClick={() => setToCollectTab('appointment')}
+                  >
+                    📅 Appt ({collectionCounts.apptCount})
+                  </button>
+                </div>
+
+                <div className="search-wrap" style={{ flex: 1, minWidth: 160, maxWidth: 220 }}>
+                  <Search size={13} className="search-icon" />
+                  <input
+                    type="search"
+                    className="input"
+                    style={{ padding: '4px 8px 4px 28px', fontSize: 11.5 }}
+                    placeholder="Search name, phone…"
+                    value={toCollectSearch}
+                    onChange={(e) => setToCollectSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>
                 જે ગ્રાહક પાસેથી નાણાં જમા લેવાના હોય તે ગ્રાહક સામે <b>"📥 Collect"</b> બટન પર ક્લિક કરો:
               </div>
-              {pendingCollections.map((item) => (
+
+              {filteredCollections.map((item) => (
                 <div
                   key={`${item.type}-${item.id}`}
                   style={{
@@ -4153,22 +4689,22 @@ export default function ExpensesPage() {
                 >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13.5 }}>
-                      <User size={14} style={{ color: '#2563eb' }} />
+                      <User size={14} style={{ color: item.type === 'Bridal' ? '#be185d' : item.type === 'Appointment' ? '#0d9488' : '#2563eb' }} />
                       <span>{item.name}</span>
                       <span style={{
                         fontSize: 10.5,
                         padding: '1px 6px',
                         borderRadius: 4,
                         fontWeight: 800,
-                        background: item.type === 'Bridal' ? '#fce7f3' : '#e0f2fe',
-                        color: item.type === 'Bridal' ? '#be185d' : '#0369a1',
+                        background: item.type === 'Bridal' ? '#fce7f3' : item.type === 'Appointment' ? '#ccfbf1' : '#e0f2fe',
+                        color: item.type === 'Bridal' ? '#be185d' : item.type === 'Appointment' ? '#0f766e' : '#0369a1',
                       }}>
-                        {item.type === 'Bridal' ? '👑 Bridal' : `📄 ${item.no}`}
+                        {item.type === 'Bridal' ? '👑 Bridal' : item.type === 'Appointment' ? '📅 Appt' : `📄 ${item.no}`}
                       </span>
                     </div>
                     {item.mobile && item.mobile !== '-' && (
                       <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 2 }}>
-                        📞 {item.mobile} • {fmtDate(item.date)}
+                        📞 {item.mobile} • {fmtDate(item.date)} {item.time ? `• ${item.time}` : ''}
                       </div>
                     )}
                   </div>
