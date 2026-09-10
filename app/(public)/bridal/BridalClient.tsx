@@ -17,6 +17,21 @@ export default function PublicBridalPage() {
   const packages = data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES;
   const whatsapp = data?.settings?.whatsapp || '919824183769';
 
+  React.useEffect(() => {
+    fetch('/api/public-data')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.bridalPackages) {
+          useSalonStore.getState().setData({
+            services: json.services,
+            bridalPackages: json.bridalPackages,
+            settings: json.settings,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const bridal = packages.filter((p) => (p.type || '').toLowerCase().includes('bridal'));
   const siders = packages.filter((p) => (p.type || '').toLowerCase().includes('sider'));
   const makeup = packages.filter((p) => (p.type || '').toLowerCase().includes('makeup'));

@@ -42,12 +42,8 @@ function DashboardShell({ children }: { children: ReactNode }) {
       }
     }
 
-    // Auth guard & cloud sync on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        cloudSync().catch(() => {});
-      }
-    });
+    // Cloud sync on mount unconditionally to load latest live salon state
+    cloudSync().catch(() => {});
 
     // Initialize Supabase Realtime channel for live bookings
     const unsubscribeRealtime = initSupabaseRealtime((newAppt) => {

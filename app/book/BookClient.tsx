@@ -48,10 +48,27 @@ export default function PublicBookingPage() {
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
   const phone = data?.settings?.whatsapp || '9824183769';
-  const address = data?.settings?.address || 'Ring Road, Surat, Gujarat';
+  const address = data?.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || [];
   const staffList = data?.staff || [];
+
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      fetch('/api/public-data')
+        .then((res) => res.json())
+        .then((json) => {
+          if (json.success && json.services) {
+            useSalonStore.getState().setData({
+              services: json.services,
+              bridalPackages: json.bridalPackages,
+              settings: json.settings,
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  });
 
   // Booking Type: 'regular' | 'bridal'
   const [bookingMode, setBookingMode] = useState<'regular' | 'bridal'>('regular');

@@ -164,8 +164,8 @@ export default function WhatsAppHubPage() {
       customer: clientName,
       date: todayISO(),
       time: '04:00 PM',
-      service: 'Hydra Deep Cleanse Facial & Hair Spa',
-      staff: 'Pooja',
+      service: 'Hair Spa Treatment',
+      staff: 'Amita',
     };
     const inv = invoices.find((i) => i.id === selectedInvoiceId) ||
       invoices[0] || {
@@ -248,8 +248,8 @@ export default function WhatsAppHubPage() {
         customer: clientName,
         date: todayISO(),
         time: '04:00 PM',
-        service: 'Hydra Deep Cleanse Facial & Hair Spa',
-        staff: 'Pooja',
+        service: 'Hair Spa Treatment',
+        staff: 'Amita',
       };
       return appointmentCustomerMessage(appt as any, salon, address);
     }

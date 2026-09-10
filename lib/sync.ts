@@ -57,23 +57,22 @@ export async function cloudSave(): Promise<void> {
   const store = useSalonStore.getState();
   store.setCloudStatus('syncing');
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      store.setCloudStatus('idle');
-      return;
-    }
     const localData = store.data;
-    const stamp = new Date().toISOString();
-    const { error } = await supabase.from('salon_state').upsert(
-      { owner_id: user.id, data: localData, updated_at: stamp },
-      { onConflict: 'owner_id' }
-    );
-    if (error) throw error;
-    store.setCloudStatus('saved');
-    store.setLastSynced(stamp);
-  } catch {
+    const res = await fetch('/api/cloud/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: localData }),
+    });
+    if (!res.ok) throw new Error('Cloud save failed');
+    const json = await res.json();
+    if (json.success) {
+      store.setCloudStatus('saved');
+      if (json.updated_at) store.setLastSynced(json.updated_at);
+    } else {
+      store.setCloudStatus('error');
+    }
+  } catch (e) {
+    console.warn('[Sync] cloudSave failed:', e);
     store.setCloudStatus('error');
   }
 }
@@ -82,79 +81,47 @@ export async function cloudLoad(): Promise<void> {
   const store = useSalonStore.getState();
   store.setCloudStatus('syncing');
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      store.setCloudStatus('idle');
-      return;
-    }
-    const { data: row, error } = await supabase
-      .from('salon_state')
-      .select('data, updated_at')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-    if (error) throw error;
-    if (row?.data) {
-      const merged = mergeSalonData(row.data as SalonData, store.data);
+    const res = await fetch('/api/cloud/sync', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Cloud sync fetch failed');
+    const json = await res.json();
+    if (json.success && json.data) {
+      const merged = mergeSalonData(json.data as SalonData, store.data);
       store.setData(merged);
-      store.setLastSynced(row.updated_at);
+      if (json.updated_at) store.setLastSynced(json.updated_at);
+      store.setCloudStatus('saved');
+    } else {
+      store.setCloudStatus('idle');
     }
-    store.setCloudStatus('saved');
-  } catch {
+  } catch (e) {
+    console.warn('[Sync] cloudLoad failed:', e);
     store.setCloudStatus('error');
   }
 }
 
 export async function cloudSync(): Promise<void> {
-  const store = useSalonStore.getState();
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      store.setCloudStatus('idle');
-      return;
-    }
-    store.setCloudStatus('syncing');
-    const { data: row } = await supabase
-      .from('salon_state')
-      .select('data, updated_at')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-    if (row?.data) {
-      const merged = mergeSalonData(row.data as SalonData, store.data);
-      store.setData(merged);
-      store.setLastSynced(row.updated_at);
-      store.setCloudStatus('saved');
-    } else {
-      await cloudSave();
-    }
-  } catch {
-    store.setCloudStatus('error');
-  }
+  await cloudLoad();
 }
 
 export async function forceCloudReset(cleanData: SalonData): Promise<void> {
   const store = useSalonStore.getState();
   store.setCloudStatus('syncing');
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      store.setCloudStatus('idle');
-      return;
+    const res = await fetch('/api/cloud/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: cleanData }),
+    });
+    if (!res.ok) throw new Error('Cloud reset failed');
+    const json = await res.json();
+    if (json.success) {
+      store.setData(cleanData);
+      store.setCloudStatus('saved');
+      if (json.updated_at) store.setLastSynced(json.updated_at);
+    } else {
+      store.setCloudStatus('error');
     }
-    const stamp = new Date().toISOString();
-    const { error } = await supabase.from('salon_state').upsert(
-      { owner_id: user.id, data: cleanData, updated_at: stamp },
-      { onConflict: 'owner_id' }
-    );
-    if (error) throw error;
-    store.setCloudStatus('saved');
-    store.setLastSynced(stamp);
-  } catch {
+  } catch (e) {
+    console.warn('[Sync] forceCloudReset failed:', e);
     store.setCloudStatus('error');
   }
 }

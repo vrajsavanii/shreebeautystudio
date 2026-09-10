@@ -57,7 +57,7 @@ export default function AboutClient() {
     { number: '10+', label: 'Years of Experience' },
     { number: '5,000+', label: 'Happy Clients Served' },
     { number: '500+', label: 'Brides Styled' },
-    { number: '4.8 ★', label: 'Average Google Rating' },
+    { number: '4.9 ★', label: 'Average Google Rating (150+ Reviews)' },
   ];
 
   return (

@@ -179,10 +179,10 @@ function parseRuleEngine(prompt: string, context: any) {
         payload: {
           customer: name,
           mobile,
-          service: lower.includes('facial') ? 'Hydra Deep Cleanse Facial' : 'Layer Cut & Blowdry',
+          service: lower.includes('facial') ? 'Gold Radiance Facial' : 'Hair Cut & Style',
           date: today,
           time: '04:00 PM',
-          staff: 'Pooja',
+          staff: 'Amita',
         },
       },
       provider: 'Built-in Rule Engine',

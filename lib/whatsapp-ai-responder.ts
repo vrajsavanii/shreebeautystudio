@@ -76,7 +76,8 @@ export async function processWhatsAppAIMessage(
     lower.includes('બુક')
   ) {
     const parsed = parseWhatsAppBookingMessage(messageText, salonData.services || [], recipientName);
-    const replyText = `✨ *SHREE BEAUTY STUDIO — APPOINTMENT CONFIRMED* ✨\n\nDear ${recipientName},\nYour appointment for *${parsed.service}* has been scheduled:\n📅 Date: *${parsed.date}*\n⏰ Time: *${parsed.time}*\n💇‍♀️ Staff: *Pooja*\n📍 Location: Surat Studio\n\nThank you for choosing ${salonName}! See you soon.💖`;
+    const defaultStaff = salonData.staff?.[0]?.name || 'Amita';
+    const replyText = `✨ *SHREE BEAUTY STUDIO — APPOINTMENT CONFIRMED* ✨\n\nDear ${recipientName},\nYour appointment for *${parsed.service}* has been scheduled:\n📅 Date: *${parsed.date}*\n⏰ Time: *${parsed.time}*\n💇‍♀️ Staff: *${defaultStaff}*\n📍 Location: 22, Radhika Society, Katargam, Surat\n\nThank you for choosing ${salonName}! See you soon.💖`;
 
     // Send confirmation text via Meta Cloud API
     try {

@@ -219,6 +219,21 @@ export default function PublicHomePage() {
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES;
 
+  React.useEffect(() => {
+    fetch('/api/public-data')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.services) {
+          useSalonStore.getState().setData({
+            services: json.services,
+            bridalPackages: json.bridalPackages,
+            settings: json.settings,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const whatsapp = settings?.whatsapp || '919824183769';
@@ -316,7 +331,7 @@ export default function PublicHomePage() {
                 ))}
               </div>
               <span style={{ fontWeight: 700 }}>4.9/5 Rating</span>
-              <span style={{ opacity: 0.7 }}>(850+ Google Reviews)</span>
+              <span style={{ opacity: 0.7 }}>(150+ Google Reviews)</span>
             </div>
             <span>•</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

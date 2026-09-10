@@ -516,7 +516,7 @@ export default function StaffPage() {
         <div className="form-grid">
           <div className="form-group">
             <label className="label">Full Name *</label>
-            <input type="text" className={`input ${errors.name ? 'error' : ''}`} placeholder="e.g. Pooja Sharma" {...register('name', { required: 'Name is required' })} autoFocus />
+            <input type="text" className={`input ${errors.name ? 'error' : ''}`} placeholder="e.g. Bhavna Patel" {...register('name', { required: 'Name is required' })} autoFocus />
             {errors.name && <span className="error-msg">{errors.name.message}</span>}
           </div>
           <div className="form-group">

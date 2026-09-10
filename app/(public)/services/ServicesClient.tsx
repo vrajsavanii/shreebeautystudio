@@ -20,6 +20,21 @@ function ServicesView() {
   const { data } = useSalonStore();
   const services = data?.services || [];
 
+  React.useEffect(() => {
+    fetch('/api/public-data')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.services) {
+          useSalonStore.getState().setData({
+            services: json.services,
+            bridalPackages: json.bridalPackages,
+            settings: json.settings,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'default' | 'price-low' | 'price-high' | 'duration'>('default');
