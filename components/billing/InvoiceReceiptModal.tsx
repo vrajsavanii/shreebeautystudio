@@ -42,6 +42,7 @@ export default function InvoiceReceiptModal({
 }: InvoiceReceiptModalProps) {
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
+  const [downloadingFormat, setDownloadingFormat] = useState<'thermal' | 'a4' | null>(null);
   const [waResult, setWaResult] = useState<WAResult>({ status: 'idle', message: '' });
   const [emailResult, setEmailResult] = useState<EmailResult>({ status: 'idle', message: '' });
 
@@ -67,8 +68,6 @@ export default function InvoiceReceiptModal({
       ? invoice.balance
       : Math.max(0, totalAmt - advanceAmt - paymentPaid)
   );
-
-  const [downloadingFormat, setDownloadingFormat] = useState<'thermal' | 'a4' | null>(null);
 
   const handleDownloadPDF = async (formatType: 'thermal' | 'a4' = 'thermal') => {
     try {
