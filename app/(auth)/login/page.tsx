@@ -59,10 +59,11 @@ function LoginFormContent() {
     setError('');
     setLoading(true);
     try {
-      const trimmedEmail = email.trim().toLowerCase();
+      const trimmedEmail = (email || '').trim().toLowerCase();
+      const trimmedPass = (password || '').trim();
       // Match against stored users with exact password check
       const matchedUser = usersList.find(
-        (u) => u.email.toLowerCase() === trimmedEmail && u.password && u.password === password
+        (u) => (u?.email || '').toLowerCase() === trimmedEmail && u.password && u.password === trimmedPass
       );
 
       if (matchedUser) {

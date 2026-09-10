@@ -44,42 +44,59 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // 1. Check local session
-    const session = getAdminSession();
-    if (session && session.authenticated) {
-      setIsAuthenticated(true);
-      setAdminUser(session.username);
-      setRole(session.role || 'Admin');
-      if (!currentUser) {
-        const found = (data?.users || DEFAULT_USERS).find(
-          (u) => u.email.toLowerCase() === session.username.toLowerCase()
-        );
-        setCurrentUser(
-          found || {
-            id: 'admin-session',
-            name: session.username,
-            email: session.username,
-            role: session.role || 'Admin',
-          }
-        );
+    // Safety timer: NEVER stay on "Verifying Admin Access..." longer than 200ms
+    const safetyTimer = setTimeout(() => {
+      setChecking(false);
+    }, 200);
+
+    try {
+      // 1. Check local session
+      const session = getAdminSession();
+      if (session && session.authenticated) {
+        setIsAuthenticated(true);
+        const uname = session.username || 'admin';
+        setAdminUser(uname);
+        setRole(session.role || 'Admin');
+        if (!currentUser) {
+          const usersList = (data?.users && data.users.length > 0) ? data.users : DEFAULT_USERS;
+          const found = usersList.find(
+            (u) => (u?.email || '').toLowerCase() === uname.toLowerCase()
+          );
+          setCurrentUser(
+            found || {
+              id: 'admin-session',
+              name: uname,
+              email: uname,
+              role: session.role || 'Admin',
+            }
+          );
+        }
+        setChecking(false);
+        clearTimeout(safetyTimer);
+        return;
       }
+
+      // 2. Check store currentUser if already authenticated
+      if (currentUser) {
+        setIsAuthenticated(true);
+        const userEmail = currentUser.email || 'admin';
+        setAdminUser(userEmail);
+        setRole(currentUser.role || 'Admin');
+        setAdminSession(userEmail, currentUser.role || 'Admin');
+        setChecking(false);
+        clearTimeout(safetyTimer);
+        return;
+      }
+
+      // 3. Not authenticated -> Render login interface cleanly
+      setIsAuthenticated(false);
       setChecking(false);
-      return;
+    } catch {
+      setIsAuthenticated(false);
+      setChecking(false);
     }
 
-    // 2. Check store currentUser if already authenticated
-    if (currentUser) {
-      setIsAuthenticated(true);
-      setAdminUser(currentUser.email);
-      setRole(currentUser.role || 'Admin');
-      setAdminSession(currentUser.email, currentUser.role || 'Admin');
-      setChecking(false);
-      return;
-    }
-
-    // Not authenticated
-    setIsAuthenticated(false);
-    setChecking(false);
+    return () => clearTimeout(safetyTimer);
   }, [currentUser, data?.users, setCurrentUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -88,15 +105,16 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
     setLoading(true);
 
     try {
-      const normalizedUser = username.trim().toLowerCase();
-      const usersList = data?.users && data.users.length > 0 ? data.users : DEFAULT_USERS;
+      const normalizedUser = (username || '').trim().toLowerCase();
+      const trimmedPass = (password || '').trim();
+      const usersList = (data?.users && data.users.length > 0) ? data.users : DEFAULT_USERS;
 
       // 1. Try matching store users list with exact password check
       const matched = usersList.find(
         (u) =>
-          u.email.toLowerCase() === normalizedUser &&
+          (u?.email || '').toLowerCase() === normalizedUser &&
           u.password &&
-          u.password === password.trim()
+          u.password === trimmedPass
       );
 
       if (matched) {
@@ -110,19 +128,19 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
       }
 
       // 2. Try default credentials verification
-      const verifyRes = verifyAdminCredentials(normalizedUser, password);
+      const verifyRes = verifyAdminCredentials(normalizedUser, trimmedPass);
       if (verifyRes.valid) {
-        const role = verifyRes.role;
+        const userRole = verifyRes.role;
         const userObj: UserAccount = {
-          id: role === 'Admin' ? 'user-admin' : 'user-sales',
-          name: role === 'Admin' ? 'Studio Owner (Admin)' : 'Sales Executive',
+          id: userRole === 'Admin' ? 'user-admin' : 'user-sales',
+          name: userRole === 'Admin' ? 'Studio Owner (Admin)' : 'Sales Executive',
           email: normalizedUser,
-          role,
+          role: userRole,
         };
-        setAdminSession(normalizedUser, role);
+        setAdminSession(normalizedUser, userRole);
         setCurrentUser(userObj);
         setAdminUser(normalizedUser);
-        setRole(role);
+        setRole(userRole);
         setIsAuthenticated(true);
         setLoading(false);
         return;
