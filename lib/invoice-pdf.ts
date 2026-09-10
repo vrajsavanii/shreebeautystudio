@@ -14,7 +14,6 @@ export function formatIndianDate(dateStr: string): string {
   }
 }
 
-
 export function cleanServiceNameForBill(name: string): string {
   if (!name) return '';
   return name
@@ -26,20 +25,25 @@ export function cleanServiceNameForBill(name: string): string {
     .trim();
 }
 
-function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
+/**
+ * Builds Ultra-High-Definition Thermal Receipt HTML container (58mm / 80mm).
+ * Uses high-contrast typography, deep black text (#000000), crisp borders and high DPI layout.
+ */
+function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   const printer = salonData?.settings?.printer || '58';
   const container = document.createElement('div');
   container.id = 'temp-pdf-render-container';
   container.style.position = 'fixed';
   container.style.top = '-9999px';
   container.style.left = '-9999px';
-  container.style.width = printer === '58' ? '300px' : printer === '80' ? '360px' : '400px';
+  container.style.width = printer === '80' ? '560px' : '460px';
   container.style.background = '#ffffff';
   container.style.fontFamily =
-    "'Segoe UI Variable Display Light', 'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif";
+    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
   container.style.color = '#000000';
-  container.style.padding = printer === '58' ? '12px 8px' : printer === '80' ? '16px 12px' : '20px 16px';
+  container.style.padding = '22px 18px';
   container.style.boxSizing = 'border-box';
+  container.style.letterSpacing = '-0.01em';
 
   const salonAddress =
     salonData?.settings?.address ||
@@ -64,17 +68,18 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 
       return `
         <tr>
-          <td style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 300; text-align: left; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 13.5px; font-weight: 600; text-align: left; color: #000000; line-height: 1.35;">
             <div>${displayName}</div>
-            ${discAmt > 0 ? `<div style="font-size: 10px; color: #000; font-weight: 300;">(Disc: -₹${discAmt})</div>` : ''}
+            ${l.staff ? `<div style="font-size: 11.5px; color: #333333; font-weight: 500; margin-top: 2px;">Beautician: ${l.staff}</div>` : ''}
+            ${discAmt > 0 ? `<div style="font-size: 11.5px; color: #000000; font-weight: 600; margin-top: 2px;">(Disc: -₹${discAmt.toLocaleString('en-IN')})</div>` : ''}
           </td>
-          <td style="border: 1px solid #000; padding: 4px 2px; font-size: 10px; font-weight: 300; text-align: center; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 4px; font-size: 13.5px; font-weight: 600; text-align: center; color: #000000;">
             ${qty}
           </td>
-          <td style="border: 1px solid #000; padding: 4px 3px; font-size: 10px; font-weight: 300; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13.5px; font-weight: 600; text-align: right; color: #000000;">
             ${price.toLocaleString('en-IN')}
           </td>
-          <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 500; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
             ${lineTotal.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -92,61 +97,67 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   );
 
   container.innerHTML = `
-    <div style="width: 100%; text-align: center; margin-bottom: 8px;">
-      <!-- Official Logo -->
-      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: ${printer === '58' ? '175px' : printer === '80' ? '200px' : '220px'}; width: 100%; height: auto; object-fit: contain; margin: 0 auto 4px; display: block;" />
+    <div style="width: 100%; text-align: center; margin-bottom: 12px;">
+      <!-- Official High-Res Logo -->
+      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: 230px; width: 65%; height: auto; object-fit: contain; margin: 0 auto 6px; display: block;" />
       
       <!-- Studio Header Details -->
-      <div style="font-size: 10px; color: #000; line-height: 1.35; margin-bottom: 2px; max-width: 290px; margin-left: auto; margin-right: auto; font-weight: 300;">
+      <div style="font-size: 13px; color: #000000; line-height: 1.4; margin-bottom: 3px; max-width: 380px; margin-left: auto; margin-right: auto; font-weight: 500;">
         ${salonAddress}
       </div>
-      <div style="font-size: 10px; color: #000; line-height: 1.35; font-weight: 300;">
-        Email: ${salonEmail}
+      <div style="font-size: 12.5px; color: #000000; line-height: 1.4; font-weight: 500;">
+        Email: <b>${salonEmail}</b>
       </div>
-      <div style="font-size: 10px; color: #000; line-height: 1.35; font-weight: 500;">
-        Phone / WhatsApp: ${salonPhone}
+      <div style="font-size: 13px; color: #000000; line-height: 1.4; font-weight: 700; margin-top: 2px;">
+        Phone / WhatsApp: +91 ${salonPhone}
       </div>
     </div>
 
-    <!-- Dashed Line Divider -->
-    <div style="border-top: 1px dashed #000; margin: 6px 0 8px;"></div>
+    <!-- Solid Clear Divider -->
+    <div style="border-top: 2px dashed #000000; margin: 10px 0 12px;"></div>
 
     <!-- Key-Value Info Grid -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 10px;">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13.5px;">
       <tbody>
         <tr>
-          <td style="width: 80px; padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Inv. No :</td>
-          <td style="padding: 2px 0; font-weight: 300; color: #000; font-size: 10px;">${invNo}</td>
+          <td style="width: 90px; padding: 3px 0; font-weight: 700; color: #000000;">Inv. No :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #000000;">${invNo}</td>
         </tr>
         <tr>
-          <td style="padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Date :</td>
-          <td style="padding: 2px 0; font-weight: 300; color: #000; font-size: 10px;">${invDate}</td>
+          <td style="padding: 3px 0; font-weight: 700; color: #000000;">Date :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #000000;">${invDate}</td>
         </tr>
         <tr>
-          <td style="padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Name :</td>
-          <td style="padding: 2px 0; font-weight: 300; color: #000; text-transform: uppercase; font-size: 10px;">${inv.customer || 'Customer'}</td>
+          <td style="padding: 3px 0; font-weight: 700; color: #000000;">Name :</td>
+          <td style="padding: 3px 0; font-weight: 700; color: #000000; text-transform: uppercase;">${inv.customer || 'Customer'}</td>
         </tr>
         <tr>
-          <td style="padding: 2px 0; font-weight: 600; color: #000; font-size: 10px;">Phone :</td>
-          <td style="padding: 2px 0; font-weight: 300; color: #000; font-size: 10px;">${inv.mobile || '—'}</td>
+          <td style="padding: 3px 0; font-weight: 700; color: #000000;">Phone :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #000000;">${inv.mobile || '—'}</td>
         </tr>
+        ${inv.mode ? `
+        <tr>
+          <td style="padding: 3px 0; font-weight: 700; color: #000000;">Payment :</td>
+          <td style="padding: 3px 0; font-weight: 600; color: #000000;">${inv.mode}</td>
+        </tr>
+        ` : ''}
       </tbody>
     </table>
 
-    <!-- Single Unified Services & Totals Table -->
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; border: 1px solid #000; font-size: 10px;">
+    <!-- Services & Totals Table -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1.5px solid #000000; font-size: 13.5px;">
       <thead>
-        <tr style="background: #fdfefe;">
-          <th style="border: 1px solid #000; padding: 4px 3px; font-size: 10px; font-weight: 600; text-align: center; text-transform: uppercase; letter-spacing: 0.02em; color: #000;">
+        <tr style="background: #f1f5f9;">
+          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.03em; color: #000000;">
             SERVICE
           </th>
-          <th style="border: 1px solid #000; padding: 4px 2px; font-size: 10px; font-weight: 600; text-align: center; text-transform: uppercase; width: 35px; color: #000;">
+          <th style="border: 1.5px solid #000000; padding: 7px 4px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; width: 44px; color: #000000;">
             QTY
           </th>
-          <th style="border: 1px solid #000; padding: 4px 3px; font-size: 10px; font-weight: 600; text-align: center; text-transform: uppercase; width: 55px; color: #000;">
+          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; width: 75px; color: #000000;">
             PRICE
           </th>
-          <th style="border: 1px solid #000; padding: 4px 3px; font-size: 10px; font-weight: 600; text-align: center; text-transform: uppercase; width: 65px; color: #000;">
+          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; width: 90px; color: #000000;">
             TOTAL
           </th>
         </tr>
@@ -154,12 +165,12 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
       <tbody>
         ${linesHtml}
 
-        <!-- Total Rows aligned seamlessly with table columns -->
+        <!-- Total Rows -->
         <tr>
-          <td colspan="3" style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 600; text-align: left; color: #000;">
-            Total
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 800; text-align: left; color: #000000;">
+            Grand Total
           </td>
-          <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 600; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 15px; font-weight: 800; text-align: right; color: #000000;">
             ₹${totalAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -167,10 +178,10 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
           advanceAmt > 0
             ? `
         <tr>
-          <td colspan="3" style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 600; text-align: left; color: #000;">
-            Advance
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; color: #000000;">
+            Advance Received
           </td>
-          <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 600; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
             ₹${advanceAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -178,13 +189,13 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
             : ''
         }
         ${
-          advanceAmt === 0
+          paymentPaid > 0 && paymentPaid !== totalAmt
             ? `
         <tr>
-          <td colspan="3" style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 600; text-align: left; color: #000;">
-            Received / Paid
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; color: #000000;">
+            Paid Amount
           </td>
-          <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 600; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
             ₹${paymentPaid.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -192,25 +203,25 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
             : ''
         }
         ${
-          advanceAmt > 0 && Math.max(0, paymentPaid - advanceAmt) > 0
+          advanceAmt === 0 && paymentPaid >= totalAmt
             ? `
         <tr>
-          <td colspan="3" style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 600; text-align: left; color: #000;">
-            Paid Today
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; color: #000000;">
+            Received / Paid (${inv.mode || 'Cash'})
           </td>
-          <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 600; text-align: right; color: #000;">
-            ₹${Math.max(0, paymentPaid - advanceAmt).toLocaleString('en-IN')}
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
+            ₹${paymentPaid.toLocaleString('en-IN')}
           </td>
         </tr>
         `
             : ''
         }
-        <!-- Balance Due row - Always displayed on POS receipts -->
-        <tr style="${balanceDue > 0 ? 'background: #fff1f2;' : ''}">
-          <td colspan="3" style="border: 1px solid #000; padding: 4px 5px; font-size: 10px; font-weight: 600; text-align: left; color: #000;">
+        <!-- Balance Due row -->
+        <tr style="${balanceDue > 0 ? 'background: #fff1f2;' : 'background: #f0fdf4;'}">
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 800; text-align: left; color: #000000;">
             Balance Due
           </td>
-          <td style="border: 1px solid #000; padding: 4px 4px; font-size: 10px; font-weight: 600; text-align: right; color: #000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 15px; font-weight: 900; text-align: right; color: ${balanceDue > 0 ? '#b91c1c' : '#15803d'};">
             ₹${balanceDue.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -218,12 +229,12 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
     </table>
 
     <!-- Heartfelt Footer -->
-    <div style="text-align: center; margin-top: 8px;">
-      <div style="font-size: 10px; font-weight: 500; color: #000000; margin-bottom: 2px; text-align: center;">
-        Thank you for choosing us! 🙏
+    <div style="text-align: center; margin-top: 14px; border-top: 1.5px dashed #000000; padding-top: 10px;">
+      <div style="font-size: 13.5px; font-weight: 700; color: #000000; margin-bottom: 4px; text-align: center;">
+        Thank you for choosing Shree Beauty Studio! 🙏
       </div>
-      <div style="font-size: 10px; color: #000000; line-height: 1.45; max-width: 320px; margin: 0 auto; font-weight: 300;">
-        We truly value your trust and hope your experience was everything you imagined !!
+      <div style="font-size: 12px; color: #222222; line-height: 1.45; max-width: 380px; margin: 0 auto; font-weight: 500;">
+        We truly value your trust and hope your salon experience was wonderful. Visit again! ✨
       </div>
     </div>
   `;
@@ -232,74 +243,264 @@ function buildInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
 }
 
 /**
- * Generate PDF instance for download or dataUrl. Auto-cropped to bill height.
+ * Builds Ultra-High-Definition Standard A4 Full Page Invoice HTML container.
+ */
+function buildA4InvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
+  const container = document.createElement('div');
+  container.id = 'temp-pdf-render-container';
+  container.style.position = 'fixed';
+  container.style.top = '-9999px';
+  container.style.left = '-9999px';
+  container.style.width = '820px';
+  container.style.background = '#ffffff';
+  container.style.fontFamily =
+    "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+  container.style.color = '#0f172a';
+  container.style.padding = '40px 45px';
+  container.style.boxSizing = 'border-box';
+
+  const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
+  const salonAddress =
+    salonData?.settings?.address ||
+    '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
+  const salonEmail = 'shreebeauty.studio22@gmail.com';
+  const salonPhone = salonData?.settings?.whatsapp
+    ? `${salonData.settings.whatsapp}, 9825339924`
+    : '919824183769, 9825339924';
+
+  const invNo = inv.no.replace(/^INV-/, '');
+  const invDate = formatIndianDate(inv.date);
+
+  const totalAmt = Number(inv.total || 0);
+  const advanceAmt = Number(inv.advance || 0);
+  const paymentPaid = Number(inv.paid || 0);
+  const balanceDue = Number(
+    inv.balance !== undefined
+      ? inv.balance
+      : Math.max(0, totalAmt - advanceAmt - paymentPaid)
+  );
+
+  const linesHtml = (inv.lines || [])
+    .map((l, idx) => {
+      const qty = Number(l.qty) || 1;
+      const price = Number(l.price) || 0;
+      const gross = qty * price;
+      const disc = Number(l.discount || 0);
+      const discAmt = disc > 0 ? (l.discountType === '%' ? (gross * disc) / 100 : disc) : 0;
+      const lineTotal = Math.max(0, gross - discAmt);
+      const displayName = cleanServiceNameForBill(l.name);
+
+      return `
+        <tr style="border-bottom: 1px solid #e2e8f0; ${idx % 2 === 1 ? 'background: #f8fafc;' : ''}">
+          <td style="padding: 12px 14px; font-size: 13.5px; font-weight: 600; color: #64748b; text-align: center;">${idx + 1}</td>
+          <td style="padding: 12px 14px; font-size: 14px; font-weight: 700; color: #0f172a;">
+            <div>${displayName}</div>
+            ${l.staff ? `<div style="font-size: 12px; color: #0284c7; font-weight: 600; margin-top: 3px;">Staff: ${l.staff}</div>` : ''}
+          </td>
+          <td style="padding: 12px 14px; font-size: 14px; font-weight: 600; color: #0f172a; text-align: center;">${qty}</td>
+          <td style="padding: 12px 14px; font-size: 14px; font-weight: 600; color: #0f172a; text-align: right;">₹${price.toLocaleString('en-IN')}</td>
+          <td style="padding: 12px 14px; font-size: 13px; font-weight: 600; color: #b91c1c; text-align: right;">${discAmt > 0 ? `-₹${discAmt.toLocaleString('en-IN')}` : '—'}</td>
+          <td style="padding: 12px 14px; font-size: 14.5px; font-weight: 800; color: #0f172a; text-align: right;">₹${lineTotal.toLocaleString('en-IN')}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  container.innerHTML = `
+    <!-- Top Header & Branding -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; border-bottom: 2px solid #0284c7; padding-bottom: 24px;">
+      <div>
+        <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: 240px; height: auto; object-fit: contain; margin-bottom: 8px; display: block;" />
+        <div style="font-size: 13px; color: #475569; max-width: 380px; line-height: 1.45; font-weight: 500;">
+          ${salonAddress}
+        </div>
+        <div style="font-size: 13px; color: #475569; margin-top: 4px; font-weight: 500;">
+          Email: <b>${salonEmail}</b> | Phone: <b>+91 ${salonPhone}</b>
+        </div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 26px; font-weight: 900; color: #0284c7; letter-spacing: -0.02em; text-transform: uppercase;">TAX INVOICE</div>
+        <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 6px;">Invoice No: <span style="color: #0284c7;">#${invNo}</span></div>
+        <div style="font-size: 13.5px; color: #64748b; font-weight: 600; margin-top: 3px;">Date: ${invDate}</div>
+        <div style="font-size: 13px; color: #15803d; font-weight: 700; margin-top: 4px; background: #dcfce7; padding: 3px 10px; border-radius: 6px; display: inline-block;">Payment: ${inv.mode || 'Cash / UPI'}</div>
+      </div>
+    </div>
+
+    <!-- Bill To Card -->
+    <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 11.5px; font-weight: 800; color: #0284c7; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">BILLED TO (CUSTOMER):</div>
+        <div style="font-size: 17px; font-weight: 800; color: #0f172a; text-transform: uppercase;">${inv.customer || 'Customer'}</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 11.5px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">CONTACT NUMBER:</div>
+        <div style="font-size: 15px; font-weight: 700; color: #0f172a;">+91 ${inv.mobile || '—'}</div>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+      <thead>
+        <tr style="background: #0f172a; color: #ffffff;">
+          <th style="padding: 12px 14px; font-size: 12.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 45px;">#</th>
+          <th style="padding: 12px 14px; font-size: 12.5px; font-weight: 800; text-align: left; text-transform: uppercase;">Service / Item Description</th>
+          <th style="padding: 12px 14px; font-size: 12.5px; font-weight: 800; text-align: center; text-transform: uppercase; width: 60px;">Qty</th>
+          <th style="padding: 12px 14px; font-size: 12.5px; font-weight: 800; text-align: right; text-transform: uppercase; width: 110px;">Rate</th>
+          <th style="padding: 12px 14px; font-size: 12.5px; font-weight: 800; text-align: right; text-transform: uppercase; width: 95px;">Discount</th>
+          <th style="padding: 12px 14px; font-size: 12.5px; font-weight: 800; text-align: right; text-transform: uppercase; width: 120px;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${linesHtml}
+      </tbody>
+    </table>
+
+    <!-- Financial Summary Box -->
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 30px;">
+      <div style="width: 320px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; color: #475569; margin-bottom: 8px;">
+          <span>Subtotal:</span>
+          <span>₹${totalAmt.toLocaleString('en-IN')}</span>
+        </div>
+        ${advanceAmt > 0 ? `
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; color: #0284c7; margin-bottom: 8px;">
+          <span>Advance Paid:</span>
+          <span>-₹${advanceAmt.toLocaleString('en-IN')}</span>
+        </div>
+        ` : ''}
+        ${paymentPaid > 0 && paymentPaid !== totalAmt ? `
+        <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; color: #15803d; margin-bottom: 8px;">
+          <span>Paid Today:</span>
+          <span>-₹${paymentPaid.toLocaleString('en-IN')}</span>
+        </div>
+        ` : ''}
+        <div style="border-top: 2px solid #cbd5e1; margin: 10px 0; padding-top: 10px; display: flex; justify-content: space-between; font-size: 17px; font-weight: 900; color: #0f172a;">
+          <span>Total Amount:</span>
+          <span>₹${totalAmt.toLocaleString('en-IN')}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: ${balanceDue > 0 ? '#b91c1c' : '#15803d'}; background: ${balanceDue > 0 ? '#fee2e2' : '#dcfce7'}; padding: 8px 12px; border-radius: 6px; margin-top: 6px;">
+          <span>${balanceDue > 0 ? 'Balance Due:' : 'Status: Fully Paid'}</span>
+          <span>₹${balanceDue.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer & Terms -->
+    <div style="border-top: 1.5px solid #e2e8f0; padding-top: 18px; display: flex; justify-content: space-between; align-items: flex-end;">
+      <div>
+        <div style="font-size: 12.5px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">Terms & Conditions:</div>
+        <div style="font-size: 11.5px; color: #64748b; line-height: 1.45;">
+          1. Goods / Services once rendered are non-refundable.<br />
+          2. Please preserve this invoice for bridal advance receipts & reward points.<br />
+          3. Thank you for your business!
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <div style="font-size: 13px; font-weight: 800; color: #0f172a;">${salon}</div>
+        <div style="font-size: 11px; color: #64748b; margin-top: 24px; border-top: 1px dashed #94a3b8; padding-top: 4px;">Authorized Signature</div>
+      </div>
+    </div>
+  `;
+
+  return container;
+}
+
+/**
+ * Generate Ultra-HD PDF instance for download or WhatsApp dispatch.
+ * Uses high-scale rasterization (scale: 3.5) with lossless PNG compression for 100% razor-sharp clarity!
  */
 export async function generateInvoicePDFBlob(
   inv: Invoice,
-  salonData?: SalonData
+  salonData?: SalonData,
+  formatType: 'thermal' | 'a4' = 'thermal'
 ): Promise<{ pdf: jsPDF; filename: string }> {
-  const container = buildInvoiceHtml(inv, salonData);
+  const isA4 = formatType === 'a4' || salonData?.settings?.printer === 'a4';
+  const container = isA4 ? buildA4InvoiceHtml(inv, salonData) : buildThermalInvoiceHtml(inv, salonData);
   document.body.appendChild(container);
 
   try {
+    const scaleFactor = isA4 ? 3.0 : 3.5;
     const canvas = await html2canvas(container, {
-      scale: 2,
+      scale: scaleFactor,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
+      imageTimeout: 15000,
     });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    // Lossless PNG for razor-sharp text with zero JPEG compression blur
+    const imgData = canvas.toDataURL('image/png');
 
-    const printer = salonData?.settings?.printer || '58';
-    const pdfWidth = printer === '58' ? 58 : printer === '80' ? 80 : 100;
-    const margin = printer === '58' ? 2 : printer === '80' ? 3 : 5;
-    const contentWidth = pdfWidth - margin * 2;
-    const contentHeight = (canvas.height * contentWidth) / canvas.width;
-    const pdfHeight = contentHeight + margin * 2;
+    let pdf: jsPDF;
+    if (isA4) {
+      pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const contentHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(pdfHeight, contentHeight), undefined, 'FAST');
+    } else {
+      const printer = salonData?.settings?.printer || '58';
+      const pdfWidth = printer === '80' ? 80 : 58;
+      const margin = printer === '80' ? 2 : 1.5;
+      const contentWidth = pdfWidth - margin * 2;
+      const contentHeight = (canvas.height * contentWidth) / canvas.width;
+      const pdfHeight = contentHeight + margin * 2;
 
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: [pdfWidth, pdfHeight],
-    });
+      pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [pdfWidth, pdfHeight],
+      });
 
-    pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, contentHeight);
+      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight, undefined, 'FAST');
+    }
 
     const safeCustomer = (inv.customer || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
     const filename = `Invoice_${inv.no}_${safeCustomer}.pdf`;
 
     return { pdf, filename };
   } finally {
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   }
 }
 
 /**
- * Generate and download high-res PDF invoice.
+ * Download razor-sharp PDF invoice (Thermal or A4 format).
  */
 export async function downloadInvoicePDF(
   inv: Invoice,
   salonData?: SalonData,
-  fileName?: string
+  fileName?: string,
+  formatType: 'thermal' | 'a4' = 'thermal'
 ): Promise<void> {
-  const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData);
+  const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData, formatType);
   pdf.save(fileName || filename);
 }
 
 /**
- * Send the PDF Invoice to a customer's WhatsApp via Meta Cloud API.
- *
- * ✅ Calls backend endpoint which reads credentials from server env vars.
- * ✅ NO WhatsApp Web redirect, NO wa.me, NO openWA() fallback.
- * ✅ Returns a structured result: { success, method, message }.
- *
- * If the API is not configured → returns { success: false, notConfigured: true }.
- * Caller is responsible for showing the appropriate UI message.
+ * Download High-Definition A4 Full Page PDF.
+ */
+export async function downloadA4InvoicePDF(
+  inv: Invoice,
+  salonData?: SalonData,
+  fileName?: string
+): Promise<void> {
+  return downloadInvoicePDF(inv, salonData, fileName, 'a4');
+}
+
+/**
+ * Send the crystal-clear PDF Invoice to a customer's WhatsApp via Meta Cloud API.
  */
 export async function sendInvoicePDFViaWhatsApp(
   inv: Invoice,
-  salonData?: SalonData
+  salonData?: SalonData,
+  formatType: 'thermal' | 'a4' = 'thermal'
 ): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean }> {
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
   const cleanMobile = (inv.mobile || '').replace(/\D/g, '');
@@ -312,12 +513,12 @@ export async function sendInvoicePDFViaWhatsApp(
     };
   }
 
-  // ── Generate the PDF ──────────────────────────────────────────────────────
+  // ── Generate the High-Res PDF ──────────────────────────────────────────────
   let pdfBase64 = '';
   let pdfFilename = `Invoice_${inv.no}_${(inv.customer || 'Client').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
 
   try {
-    const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData);
+    const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData, formatType);
     pdfBase64 = pdf.output('datauristring');
     pdfFilename = filename;
   } catch (genErr) {
@@ -329,11 +530,9 @@ export async function sendInvoicePDFViaWhatsApp(
     };
   }
 
-  // ── Call backend — backend reads Meta credentials from env vars ───────────
-  // Do NOT send whatsappPhoneId or whatsappAccessToken in the body.
-  // The server reads those from META_WHATSAPP_PHONE_NUMBER_ID and META_WHATSAPP_ACCESS_TOKEN.
+  // ── Call backend Meta Cloud API endpoint ──────────────────────────────────
   try {
-    const caption = `✨ *${salon.toUpperCase()} — Invoice Receipt #${inv.no}* ✨\nDear ${inv.customer || 'Customer'}, thank you for choosing us! 💖\nYour official PDF bill receipt is attached below.`;
+    const caption = `✨ *${salon.toUpperCase()} — Official Invoice #${inv.no}* ✨\nDear ${inv.customer || 'Customer'}, thank you for visiting ${salon}! 💖\nYour official receipt is attached below.`;
 
     const res = await fetch('/api/whatsapp/send-pdf', {
       method: 'POST',
@@ -362,11 +561,10 @@ export async function sendInvoicePDFViaWhatsApp(
       return {
         success: true,
         method: 'cloud_api',
-        message: '✅ PDF Bill sent directly to customer via WhatsApp Business API! 🚀',
+        message: '✅ High-Res PDF Bill sent directly to customer via WhatsApp Business API! 🚀',
       };
     }
 
-    // API returned a failure with a user-friendly error message
     return {
       success: false,
       method: 'api_error',
@@ -381,4 +579,3 @@ export async function sendInvoicePDFViaWhatsApp(
     };
   }
 }
-
