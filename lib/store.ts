@@ -18,6 +18,10 @@ export const DEFAULT_BRIDAL_PACKAGES: BridalPackage[] = [
   { id: 'bridal-hourglass', type: 'Bridal Package', name: 'Hourglass', price: 55000, sessions: 3, includes: 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping' },
   { id: 'bridal-charlotte', type: 'Bridal Package', name: 'Charlotte Tilbury', price: 60000, sessions: 3, includes: 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping' },
   { id: 'bridal-valentino', type: 'Bridal Package', name: 'Very Valentino', price: 80200, sessions: 3, includes: 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping' },
+  // Makeup Packages (Custom Sessions)
+  { id: 'makeup-hd-party', type: 'Makeup Package', name: 'HD Party & Occasion Makeup', price: 3500, sessions: 1, includes: 'HD Makeup, Hairstyle, Draping & Eyelashes' },
+  { id: 'makeup-engagement-sangeet', type: 'Makeup Package', name: 'Engagement & Sangeet Makeup', price: 15000, sessions: 2, includes: '2 Sessions Makeup, Hairstyle, Jewellery Setting & Draping' },
+  { id: 'makeup-airbrush-bridal', type: 'Makeup Package', name: 'Airbrush HD Bridal Makeup', price: 35000, sessions: 3, includes: '3 Sessions Airbrush HD Makeup, Hairstyling, Lenses & Draping' },
 ];
 
 export const DEFAULT_MEMBERSHIP_PLANS: MembershipPlan[] = [

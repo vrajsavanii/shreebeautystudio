@@ -19,6 +19,7 @@ export default function PublicBridalPage() {
 
   const bridal = packages.filter((p) => (p.type || '').toLowerCase().includes('bridal'));
   const siders = packages.filter((p) => (p.type || '').toLowerCase().includes('sider'));
+  const makeup = packages.filter((p) => (p.type || '').toLowerCase().includes('makeup'));
 
   return (
     <div style={{ paddingBottom: 80 }}>
@@ -293,6 +294,119 @@ export default function PublicBridalPage() {
           ))}
         </div>
       </section>
+
+      {/* ─── MAKEUP PACKAGES (CUSTOM SESSIONS) ───────────────── */}
+      {makeup.length > 0 && (
+        <section style={{ maxWidth: 1280, margin: '80px auto 0', padding: '0 20px' }}>
+          <div className="cust-section-header">
+            <span className="cust-section-badge" style={{ background: '#fdf4ff', color: '#c026d3', border: '1px solid #f0abfc' }}>
+              Makeup &amp; Occasions
+            </span>
+            <h2>Custom Makeup Packages (1 to Multi-Session)</h2>
+            <p>
+              Tailored occasion, engagement, reception, and party HD makeup with flexible session options.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 20,
+            }}
+          >
+            {makeup.map((pkg) => (
+              <motion.div
+                key={pkg.id}
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 20,
+                  border: '1px solid #f0abfc',
+                  padding: 22,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  boxShadow: '0 4px 14px rgba(192,38,211,0.06)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span
+                    style={{
+                      background: '#fdf4ff',
+                      color: '#c026d3',
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: '3px 10px',
+                      borderRadius: 99,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {pkg.sessions || 1} {(pkg.sessions || 1) === 1 ? 'Session' : 'Sessions'}
+                  </span>
+                </div>
+
+                <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+                  {pkg.name}
+                </h3>
+
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#05424A', margin: '8px 0 12px' }}>
+                  ₹{pkg.price.toLocaleString('en-IN')}{' '}
+                  <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>/ package</span>
+                </div>
+
+                <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b', flex: 1, lineHeight: 1.5 }}>
+                  {pkg.includes}
+                </p>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Link
+                    href={`/book?bridal=${encodeURIComponent(pkg.name)}`}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <Calendar size={13} />
+                    <span>Book Makeup</span>
+                  </Link>
+                  <a
+                    href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hi Shree Beauty Studio, I'm interested in the Makeup Package: ${pkg.name} (${pkg.sessions} sessions). Can we discuss availability?`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      background: '#25D366',
+                      color: '#053320',
+                      textDecoration: 'none',
+                    }}
+                    title="Inquire on WhatsApp"
+                  >
+                    <MessageCircle size={16} />
+                  </a>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

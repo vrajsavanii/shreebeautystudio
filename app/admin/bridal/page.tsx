@@ -46,15 +46,17 @@ export default function BridalPage() {
     includes: 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping',
   });
 
-  const openNewPackage = (type: 'Bridal Package' | 'Siders Package' = 'Bridal Package') => {
+  const openNewPackage = (type: 'Bridal Package' | 'Siders Package' | 'Makeup Package' = 'Makeup Package') => {
     setEditPackageId(null);
     setPackageForm({
       type,
       name: '',
-      price: type === 'Bridal Package' ? 25000 : 5000,
-      sessions: type === 'Bridal Package' ? 3 : 1,
+      price: type === 'Bridal Package' ? 25000 : type === 'Makeup Package' ? 12000 : 5000,
+      sessions: type === 'Bridal Package' ? 3 : type === 'Makeup Package' ? 2 : 1,
       includes: type === 'Bridal Package'
         ? 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping'
+        : type === 'Makeup Package'
+        ? 'Makeup, hairstyle, draping, eyelashes and lenses'
         : 'Makeup, hairstyle and draping',
     });
     setPackageModalOpen(true);
@@ -724,7 +726,7 @@ const OTHER_EVENT_OPTIONS = [
           onClick={() => setActiveMainTab('packages')}
         >
           <Crown size={14} />
-          <span>13 Luxury Packages Catalog</span>
+          <span>{bridalPackages.length} Luxury Packages Catalog</span>
           <span className="tab-badge gold">{bridalPackages.length}</span>
         </button>
       </div>
@@ -1002,6 +1004,71 @@ const OTHER_EVENT_OPTIONS = [
                   <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4 }}>{pkg.includes}</div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Makeup Packages (Custom Sessions) */}
+          <div>
+            <div className="section-header" style={{ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  💄 Makeup Packages (Custom Sessions / સેશન નક્કી કરો)
+                </h2>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  Customizable session packages (1, 2, 3, 4+ sessions) with HD makeup, hair styling, lenses and draping.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => openNewPackage('Makeup Package')}
+                style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }}
+              >
+                + Add Makeup Package
+              </button>
+            </div>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+              {(data?.bridalPackages || []).filter((p) => p.type === 'Makeup Package').length === 0 ? (
+                <div style={{ gridColumn: '1 / -1', padding: 20, textAlign: 'center', background: '#f8fafc', borderRadius: 10, border: '1px dashed #cbd5e1', color: 'var(--muted)', fontSize: 13 }}>
+                  No makeup packages added yet. Click <b>+ Add Makeup Package</b> to create one with custom sessions.
+                </div>
+              ) : (
+                (data?.bridalPackages || []).filter((p) => p.type === 'Makeup Package').map((pkg) => (
+                  <div key={pkg.id || pkg.name} className="stat-card" style={{ border: '1.5px solid #cbd5e1', padding: 16, background: '#ffffff', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--teal)' }}>{pkg.name}</div>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#fdf4ff', color: '#c026d3', border: '1px solid #f0abfc', display: 'inline-block', marginTop: 4 }}>
+                          {pkg.sessions || 1} {(pkg.sessions || 1) === 1 ? 'Session' : 'Sessions'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          type="button"
+                          className="btn-icon edit"
+                          onClick={() => openEditPackage(pkg)}
+                          title="Edit Package & Price"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-icon danger"
+                          onClick={() => setDeletePackageId(pkg.id)}
+                          title="Delete Package"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: '8px 0 4px', fontFamily: 'monospace' }}>
+                      {money(pkg.price)}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4 }}>{pkg.includes}</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -1453,7 +1520,7 @@ const OTHER_EVENT_OPTIONS = [
         {/* Step 2: Package Catalog & Advance */}
         {tab === 2 && (
           <div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
               <button
                 type="button"
                 className={`btn btn-sm ${form.packageType === 'Bridal Package' ? 'btn-primary' : 'btn-ghost'}`}
@@ -1467,6 +1534,13 @@ const OTHER_EVENT_OPTIONS = [
                 onClick={() => set('packageType', 'Siders Package')}
               >
                 ✨ Siders Packages (1 Session)
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${form.packageType === 'Makeup Package' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => set('packageType', 'Makeup Package')}
+              >
+                💄 Makeup Packages (Custom Sessions)
               </button>
             </div>
 
@@ -1637,19 +1711,22 @@ const OTHER_EVENT_OPTIONS = [
                 className="input"
                 value={packageForm.type}
                 onChange={(e) => {
-                  const t = e.target.value as 'Bridal Package' | 'Siders Package';
+                  const t = e.target.value as 'Bridal Package' | 'Siders Package' | 'Makeup Package';
                   setPackageForm((prev) => ({
                     ...prev,
                     type: t,
-                    sessions: t === 'Bridal Package' ? 3 : 1,
+                    sessions: t === 'Bridal Package' ? 3 : t === 'Makeup Package' ? (prev.sessions || 2) : 1,
                     includes: t === 'Bridal Package'
                       ? 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping'
+                      : t === 'Makeup Package'
+                      ? 'HD Makeup, hairstyle, draping, eyelashes and lenses'
                       : 'Makeup, hairstyle and draping',
                   }));
                 }}
               >
                 <option value="Bridal Package">👰 Bridal Package (3 Sessions)</option>
                 <option value="Siders Package">✨ Siders Package (1 Session)</option>
+                <option value="Makeup Package">💄 Makeup Package (Custom Sessions / સેશન નક્કી કરો)</option>
               </select>
             </div>
 
@@ -1658,7 +1735,7 @@ const OTHER_EVENT_OPTIONS = [
               <input
                 type="text"
                 className="input"
-                placeholder="e.g. Mac | Forever, Hourglass, Charlotte Tilbury"
+                placeholder="e.g. Mac | Forever, HD Party Look, Charlotte Tilbury"
                 value={packageForm.name || ''}
                 onChange={(e) => setPackageForm((prev) => ({ ...prev, name: e.target.value }))}
               />
@@ -1679,14 +1756,37 @@ const OTHER_EVENT_OPTIONS = [
               </div>
 
               <div className="form-group">
-                <label className="label">Number of Sessions</label>
+                <label className="label">Number of Sessions (સેશન સંખ્યા) *</label>
                 <input
                   type="number"
                   min={1}
+                  max={20}
                   className="input"
-                  value={packageForm.sessions || 1}
-                  onChange={(e) => setPackageForm((prev) => ({ ...prev, sessions: Number(e.target.value) }))}
+                  value={packageForm.sessions ?? 1}
+                  onChange={(e) => setPackageForm((prev) => ({ ...prev, sessions: Math.max(1, Number(e.target.value)) }))}
+                  style={{ fontFamily: 'monospace', fontWeight: 700 }}
                 />
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setPackageForm((prev) => ({ ...prev, sessions: num }))}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: packageForm.sessions === num ? '1.5px solid var(--teal)' : '1px solid var(--border)',
+                        background: packageForm.sessions === num ? 'var(--teal)' : '#ffffff',
+                        color: packageForm.sessions === num ? '#ffffff' : 'var(--text)',
+                        fontWeight: packageForm.sessions === num ? 700 : 500,
+                        fontSize: 11,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {num} {num === 1 ? 'Session' : 'Sessions'}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

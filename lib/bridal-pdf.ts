@@ -156,7 +156,77 @@ function buildBridalPageHtml(bridalList: BridalPackage[], salonName: string): HT
 }
 
 /**
- * Dynamically Generate 2-Page High-Res PDF Blob for Updated Prices
+ * Build Page 3: Makeup Packages HTML Container for Dynamic PDF Generation
+ */
+function buildMakeupPageHtml(makeupList: BridalPackage[], salonName: string): HTMLElement {
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.top = '-9999px';
+  container.style.left = '-9999px';
+  container.style.width = '600px';
+  container.style.height = '850px';
+  container.style.background = 'linear-gradient(180deg, #053C43 0%, #032A30 100%)';
+  container.style.color = '#ffffff';
+  container.style.fontFamily = "'Montserrat', 'Segoe UI', Arial, sans-serif";
+  container.style.padding = '40px 36px';
+  container.style.boxSizing = 'border-box';
+
+  const rowsHtml = makeupList
+    .map(
+      (s) => `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; font-size: 19px;">
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-weight: 500; letter-spacing: 0.2px; white-space: nowrap; font-size: 18px;">${s.name}</span>
+          <span style="font-size: 11.5px; color: #80EEEE; margin-top: 2px;">${s.sessions || 1} ${(s.sessions || 1) === 1 ? 'Session' : 'Sessions'} · ${s.includes || 'HD Makeup & Styling'}</span>
+        </div>
+        <span style="flex: 1; border-bottom: 2px dashed rgba(255,255,255,0.4); margin: 0 12px; height: 12px;"></span>
+        <span style="font-weight: 800; font-size: 20px; white-space: nowrap; font-family: monospace;">${s.price}/-</span>
+      </div>
+    `
+    )
+    .join('');
+
+  container.innerHTML = `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <!-- Logo Circle -->
+      <img src="${SHREE_ONLY_LOGO_BASE64}" alt="${salonName}" style="width: 84px; height: 84px; border-radius: 50%; border: 3px solid #EABA38; margin: 0 auto 10px; display: block; box-shadow: 0 6px 18px rgba(0,0,0,0.3);" />
+      
+      <!-- Cursive Studio Title -->
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 32px; color: #ffffff; letter-spacing: 1px; margin-bottom: 8px;">
+        Shree Beauty Studio
+      </div>
+      
+      <!-- Section Title -->
+      <div style="font-size: 22px; font-weight: 800; color: #80EEEE; letter-spacing: 0.5px; margin-bottom: 4px;">
+        The Glamour Lounge
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">
+        Makeup Packages
+      </div>
+      <div style="width: 220px; height: 2px; background: rgba(255,255,255,0.3); margin: 16px auto;"></div>
+    </div>
+
+    <!-- Tagline -->
+    <div style="text-align: center; font-size: 14.5px; color: #e0f2fe; margin-bottom: 30px; font-weight: 400; line-height: 1.5; padding: 0 10px;">
+      Special occasion, engagement &amp; HD party makeup with customized sessions.
+    </div>
+
+    <!-- Package Dotted Price List -->
+    <div style="max-width: 520px; margin: 0 auto;">
+      ${rowsHtml}
+    </div>
+
+    <!-- Footer Note -->
+    <div style="position: absolute; bottom: 24px; left: 0; right: 0; text-align: center; font-size: 11px; color: rgba(255,255,255,0.6);">
+      ✨ Shree Beauty Studio · Premium Bridal & Event Lounge
+    </div>
+  `;
+
+  return container;
+}
+
+/**
+ * Dynamically Generate High-Res PDF Blob for Updated Prices
  */
 export async function generateBridalRateCardPDFBlob(
   packagesList: BridalPackage[],
@@ -167,12 +237,15 @@ export async function generateBridalRateCardPDFBlob(
 
   const sidersList = packagesList.filter((p) => p.type === 'Siders Package');
   const bridalList = packagesList.filter((p) => p.type === 'Bridal Package');
+  const makeupList = packagesList.filter((p) => p.type === 'Makeup Package');
 
   const sidersContainer = buildSidersPageHtml(sidersList, salonName);
   const bridalContainer = buildBridalPageHtml(bridalList, salonName);
+  const makeupContainer = makeupList.length > 0 ? buildMakeupPageHtml(makeupList, salonName) : null;
 
   document.body.appendChild(sidersContainer);
   document.body.appendChild(bridalContainer);
+  if (makeupContainer) document.body.appendChild(makeupContainer);
 
   try {
     const canvas1 = await html2canvas(sidersContainer, {
@@ -208,10 +281,24 @@ export async function generateBridalRateCardPDFBlob(
     pdf.addPage();
     pdf.addImage(imgData2, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
+    // Add Page 3 (Makeup) if present
+    if (makeupContainer) {
+      const canvas3 = await html2canvas(makeupContainer, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#053C43',
+      });
+      const imgData3 = canvas3.toDataURL('image/jpeg', 0.95);
+      pdf.addPage();
+      pdf.addImage(imgData3, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    }
+
     return { pdf, filename };
   } finally {
     document.body.removeChild(sidersContainer);
     document.body.removeChild(bridalContainer);
+    if (makeupContainer) document.body.removeChild(makeupContainer);
   }
 }
 

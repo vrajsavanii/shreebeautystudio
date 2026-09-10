@@ -330,7 +330,7 @@ export interface Expense {
 
 export interface BridalPackage {
   id: string;
-  type: 'Bridal Package' | 'Siders Package';
+  type: 'Bridal Package' | 'Siders Package' | 'Makeup Package' | string;
   name: string;
   sessions: number;
   includes: string;
