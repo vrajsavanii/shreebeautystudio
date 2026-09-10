@@ -856,6 +856,7 @@ interface SalonStore {
   data: SalonData;
   setData: (data: Partial<SalonData>) => void;
   updateData: (updater: (d: SalonData) => SalonData) => void;
+  clearAllData: (mode?: 'transactions_only' | 'factory_reset') => void;
   cloudStatus: 'idle' | 'syncing' | 'saved' | 'error' | 'offline';
   setCloudStatus: (s: 'idle' | 'syncing' | 'saved' | 'error' | 'offline') => void;
   lastSynced: string | null;
@@ -871,6 +872,52 @@ export const useSalonStore = create<SalonStore>()(
       data: DEFAULT_DATA,
       setData: (incoming) => set({ data: mergeWithDefaults(incoming) }),
       updateData: (updater) => set((s) => ({ data: mergeWithDefaults(updater(s.data)) })),
+      clearAllData: (mode = 'transactions_only') => {
+        if (mode === 'factory_reset') {
+          set({ data: DEFAULT_DATA });
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.removeItem('shreeSalonV1');
+            } catch (e) {
+              console.error(e);
+            }
+          }
+        } else {
+          set((state) => {
+            const cleanInventory = (state.data.inventory || DEFAULT_DATA.inventory).map((item) => ({
+              ...item,
+              stock: 10,
+            }));
+
+            const cleanData: SalonData = {
+              ...state.data,
+              customers: [],
+              appointments: [],
+              invoices: [],
+              invoiceSeq: 1001,
+              bridal: [],
+              vouchers: [],
+              voucherSeq: 1001,
+              expenses: [],
+              expenseSeq: 1001,
+              purchases: [],
+              purchaseSeq: 1001,
+              inventory: cleanInventory,
+              inventoryTx: [],
+              adjustments: [],
+              loyaltyTx: [],
+              walletTx: [],
+              customerMemberships: [],
+              attendance: [],
+              bankAccounts: [],
+              accountTransfers: [],
+              transferSeq: 1001,
+              holidays: [],
+            };
+            return { data: cleanData };
+          });
+        }
+      },
       cloudStatus: 'idle',
       setCloudStatus: (s) => set({ cloudStatus: s }),
       lastSynced: null,

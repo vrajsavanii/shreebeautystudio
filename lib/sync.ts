@@ -134,3 +134,28 @@ export async function cloudSync(): Promise<void> {
     store.setCloudStatus('error');
   }
 }
+
+export async function forceCloudReset(cleanData: SalonData): Promise<void> {
+  const store = useSalonStore.getState();
+  store.setCloudStatus('syncing');
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      store.setCloudStatus('idle');
+      return;
+    }
+    const stamp = new Date().toISOString();
+    const { error } = await supabase.from('salon_state').upsert(
+      { owner_id: user.id, data: cleanData, updated_at: stamp },
+      { onConflict: 'owner_id' }
+    );
+    if (error) throw error;
+    store.setCloudStatus('saved');
+    store.setLastSynced(stamp);
+  } catch {
+    store.setCloudStatus('error');
+  }
+}
+

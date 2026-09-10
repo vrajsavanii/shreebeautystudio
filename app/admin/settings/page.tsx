@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
-  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles, Calendar, CheckCircle2
+  Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles, Calendar, CheckCircle2,
+  AlertTriangle, Download, Upload, RotateCcw, ShieldAlert, Check, Users, Receipt, Wallet, ShoppingBag, Heart, Package
 } from 'lucide-react';
-import { useSalonStore } from '@/lib/store';
-import { scheduleSave, cloudSync } from '@/lib/sync';
+import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
+import { scheduleSave, cloudSync, forceCloudReset } from '@/lib/sync';
 import { uid, money } from '@/lib/utils';
 import { Service } from '@/types/salon';
 import { useToast } from '@/components/ui/Toast';
@@ -17,7 +18,7 @@ import { supabase } from '@/lib/supabase';
 import { fadeSlideUp, staggerContainer } from '@/variants';
 import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 
-type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'cloud';
+type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'cloud' | 'reset';
 
 export default function SettingsPage() {
   const { data, updateData, cloudStatus, lastSynced } = useSalonStore();
@@ -219,6 +220,83 @@ export default function SettingsPage() {
     toast('Signed out from cloud', 'info');
   };
 
+  // Data Reset States & Handlers
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetMode, setResetMode] = useState<'transactions_only' | 'factory_reset' | null>(null);
+  const [confirmInput, setConfirmInput] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleExportBackup = () => {
+    try {
+      const jsonStr = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().split('T')[0];
+      a.href = url;
+      a.download = `shree_beauty_studio_backup_${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('✅ Data backup downloaded successfully (JSON)!');
+    } catch (err: any) {
+      toast('Failed to export backup: ' + err.message, 'error');
+    }
+  };
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('Invalid JSON structure');
+        }
+        useSalonStore.getState().setData(parsed);
+        await forceCloudReset(useSalonStore.getState().data);
+        toast('✅ Backup data restored successfully!');
+      } catch (err: any) {
+        toast('Failed to restore backup: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleTriggerReset = (mode: 'transactions_only' | 'factory_reset') => {
+    setResetMode(mode);
+    setConfirmInput('');
+    setResetModalOpen(true);
+  };
+
+  const handleExecuteReset = async () => {
+    if (!resetMode) return;
+    setIsResetting(true);
+    try {
+      if (resetMode === 'factory_reset') {
+        useSalonStore.getState().clearAllData('factory_reset');
+        await forceCloudReset(DEFAULT_DATA);
+        toast('⚡ Factory reset complete! Restarting salon app…');
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 1200);
+      } else {
+        useSalonStore.getState().clearAllData('transactions_only');
+        await forceCloudReset(useSalonStore.getState().data);
+        toast('🧹 All trial bills, customers & records cleared! App is fresh for live business.');
+        setResetModalOpen(false);
+        setResetMode(null);
+        setConfirmInput('');
+      }
+    } catch (err: any) {
+      toast('Error during data reset: ' + err.message, 'error');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const tabs: { id: SettingsTab; label: string; icon: any }[] = [
     { id: 'profile', label: 'Salon Profile', icon: Store },
     { id: 'services', label: 'Services & Pricing', icon: Scissors },
@@ -229,6 +307,7 @@ export default function SettingsPage() {
     { id: 'email', label: 'Email & Resend', icon: Mail },
     { id: 'calendar', label: 'Google Calendar (Auto Sync)', icon: Calendar },
     { id: 'cloud', label: 'Cloud Database', icon: CloudCog },
+    { id: 'reset', label: '🗑️ Data Reset & Start Fresh', icon: Trash2 },
   ];
 
   return (
@@ -1298,6 +1377,206 @@ export default function SettingsPage() {
             </div>
           </motion.div>
         )}
+
+        {/* Data Reset & Start Fresh Tab */}
+        {activeTab === 'reset' && (
+          <motion.div key="reset" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
+            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18, borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e11d48' }}>
+                  <Trash2 size={22} color="#e11d48" /> 🗑️ Salon Data Reset & Start Fresh (નવી શરૂઆત)
+                </h2>
+                <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+                  ટેસ્ટિંગ / ટ્રાયલ પૂર્ણ થઈ ગયા પછી રિયલ બિઝનેસ શરૂ કરવા માટે બધા ટેસ્ટ બિલો & ગ્રાહકો સાફ કરો, અથવા સંપૂર્ણ ફેક્ટરી રીસેટ કરો.
+                </p>
+              </div>
+            </div>
+
+            {/* Current Data Overview Stats */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10, color: 'var(--text)' }}>
+                📊 Current Stored Data Summary (હાલમાં એપમાં રહેલો ડેટા):
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9f1239' }}>🧾 Invoices (બિલો)</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#e11d48' }}>{data?.invoices?.length || 0}</div>
+                </div>
+                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9f1239' }}>👥 Customers (ગ્રાહકો)</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#e11d48' }}>{data?.customers?.length || 0}</div>
+                </div>
+                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9f1239' }}>📅 Appointments</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#e11d48' }}>{data?.appointments?.length || 0}</div>
+                </div>
+                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9f1239' }}>💸 Expenses / રોજમેળ</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#e11d48' }}>{data?.expenses?.length || 0}</div>
+                </div>
+                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9f1239' }}>🛍️ Purchases</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#e11d48' }}>{data?.purchases?.length || 0}</div>
+                </div>
+                <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9f1239' }}>💍 Bridal Bookings</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#e11d48' }}>{data?.bridal?.length || 0}</div>
+                </div>
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#065f46' }}>🛡️ Safe Products</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#059669' }}>{data?.inventory?.length || 56}</div>
+                </div>
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#065f46' }}>🛡️ Safe Services</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#059669' }}>{data?.services?.length || 10}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+              {/* Card 1: Clear Trial Data (Recommended) */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(254, 242, 242, 0.7) 0%, rgba(255, 241, 242, 0.95) 100%)',
+                border: '2px solid #f87171',
+                borderRadius: 14,
+                padding: '20px 22px',
+                position: 'relative'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 22 }}>🧹</span>
+                    <div>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: '#991b1b' }}>
+                        ઓપ્શન ૧: બધા ટેસ્ટ બિલો & ગ્રાહકો સાફ કરો (Clear Trial Data & Start Real Salon)
+                      </div>
+                      <div style={{ fontSize: 12.5, color: '#7f1d1d', fontWeight: 500 }}>
+                        નવી શરૂઆત કરવા માટે સૌથી ઉત્તમ (Recommended) - કેટલોગ & પ્રોડક્ટ્સ સુરક્ષિત રહેશે!
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{ background: '#fee2e2', color: '#b91c1c', fontSize: 11.5, fontWeight: 800, padding: '4px 10px', borderRadius: 20, border: '1px solid #fca5a5' }}>
+                    RECOMMENDED
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16, fontSize: 12.5, background: '#fff', padding: 14, borderRadius: 10, border: '1px solid #fecdd3' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: 6 }}>❌ નીચેનો તમામ ટેસ્ટ ડેટા સાફ થઈ જશે:</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7, color: '#4b5563' }}>
+                      <li>બધા ઇન્વોઇસ & સેલ્સ બિલો (નંબર ફરી <b>#1001</b> થી શરૂ થશે)</li>
+                      <li>બધા ટેસ્ટ કસ્ટમર્સ & મોબાઈલ નંબરો</li>
+                      <li>બધા એપોઇન્ટમેન્ટ્સ & કેલેન્ડર બુકિંગ</li>
+                      <li>બધા બ્રાઇડલ પેકેજ બુકિંગ</li>
+                      <li>બધા દૈનિક ખર્ચ & રોજમેળ (Expenses & Rojmel)</li>
+                      <li>બધા સપ્લાયર પરચેઝ બિલ & સ્ટોક ઓડિટ લોગ</li>
+                      <li>ગિફ્ટ વાઉચર્સ, લોયલ્ટી પોઇન્ટ્સ & વોલેટ ટ્રાન્ઝેક્શન</li>
+                      <li>સ્ટાફ હાજરી & બેંક ટ્રાન્સફર એન્ટ્રીઓ</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#16a34a', marginBottom: 6 }}>✅ નીચેની તમામ વિગતો 100% સુરક્ષિત રહેશે:</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7, color: '#4b5563' }}>
+                      <li>બધી <b>56 બ્રાન્ડેડ પ્રોડક્ટ્સ</b> (સ્ટોક રીસેટ થઈને 10 થશે)</li>
+                      <li>બધા <b>સલૂન સર્વિસ રેટ કાર્ડ</b> (Layer Cut, Facial, વગેરે)</li>
+                      <li>બધા <b>16 બ્રાઇડલ & મેકઅપ પેકેજીસ</b></li>
+                      <li>તમામ <b>સ્ટાફ સભ્યો</b> (Neha, Pooja, વગેરે)</li>
+                      <li>તમારું <b>સલૂન નામ, સરનામું, WhatsApp & એડમિન પાસવર્ડ</b></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <motion.button
+                    className="btn"
+                    style={{ background: '#e11d48', color: '#fff', fontWeight: 700, padding: '10px 20px', borderRadius: 8, boxShadow: '0 4px 12px rgba(225,29,72,0.3)' }}
+                    onClick={() => handleTriggerReset('transactions_only')}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    <Trash2 size={16} /> 🧹 બધો ટેસ્ટ ડેટા સાફ કરો (Clear Trial Data)
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* Card 2: 100% Complete Factory Reset */}
+              <div style={{
+                background: '#fff',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: 14,
+                padding: '20px 22px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 20 }}>⚡</span>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b' }}>
+                        ઓપ્શન ૨: સંપૂર્ણ ફેક્ટરી રીસેટ (100% Factory Reset)
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        એપને બિલકુલ નવી ઇન્સ્ટોલેશન જેવી મૂળભૂત (Default) સ્થિતિમાં ફેરવો.
+                      </div>
+                    </div>
+                  </div>
+                  <span style={{ background: '#f1f5f9', color: '#475569', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>
+                    ADVANCED
+                  </span>
+                </div>
+                <p style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.6, marginBottom: 14 }}>
+                  ⚠️ આનાથી તમારા તમામ કસ્ટમ ફેરફારો, નવા ઉમેરેલા સ્ટાફ કે સર્વિસ સહિત બધું જ ડિલીટ થઈ જશે અને એપ ડિફોલ્ટ ઓરિજિનલ સ્થિતિમાં રીલોડ થઈ જશે.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <motion.button
+                    className="btn btn-ghost"
+                    style={{ color: '#b91c1c', border: '1px solid #fca5a5', fontWeight: 600 }}
+                    onClick={() => handleTriggerReset('factory_reset')}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    <RotateCcw size={15} /> ⚡ સંપૂર્ણ ફેક્ટરી રીસેટ (Factory Reset)
+                  </motion.button>
+                </div>
+              </div>
+
+              {/* Card 3: Backup & Restore */}
+              <div style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 14,
+                padding: '18px 20px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Download size={16} color="var(--gold)" /> 💾 ડેટા બેકઅપ ડાઉનલોડ & રિસ્ટોર (Backup & Restore)
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                      ડેટા સાફ કરતા પહેલા જો તમારે બેકઅપ ફાઈલ સેવ કરવી હોય તો ડાઉનલોડ કરી શકો છો.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <motion.button
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleExportBackup}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <Download size={14} /> Download Backup (.json)
+                    </motion.button>
+                    <label className="btn btn-ghost btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                      <Upload size={14} /> Restore Backup
+                      <input
+                        type="file"
+                        accept=".json"
+                        style={{ display: 'none' }}
+                        onChange={handleImportBackup}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* Service Edit Modal */}
@@ -1336,6 +1615,87 @@ export default function SettingsPage() {
               type="number" min="15" step="15" className="input" placeholder="Minutes (e.g. 45)" value={svcForm.duration || ''}
               onChange={(e) => setSvcForm((f) => ({ ...f, duration: Number(e.target.value) }))}
             />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Reset Confirmation Modal */}
+      <Modal
+        isOpen={resetModalOpen}
+        onClose={() => { if (!isResetting) setResetModalOpen(false); }}
+        title={
+          resetMode === 'factory_reset'
+            ? '⚡ કન્ફર્મ: ૧૦૦% સંપૂર્ણ ફેક્ટરી રીસેટ?'
+            : '🧹 કન્ફર્મ: બધા ટેસ્ટ બિલો & ગ્રાહકો સાફ કરવા છે?'
+        }
+        footer={
+          <>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setResetModalOpen(false)}
+              disabled={isResetting}
+            >
+              Cancel (રદ કરો)
+            </button>
+            <motion.button
+              className="btn"
+              style={{
+                background: resetMode === 'factory_reset' ? '#7f1d1d' : '#e11d48',
+                color: '#fff',
+                fontWeight: 800,
+                minWidth: 160
+              }}
+              onClick={handleExecuteReset}
+              disabled={isResetting}
+              whileTap={{ scale: 0.97 }}
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> ડેટા સાફ થઈ રહ્યો છે…
+                </>
+              ) : (
+                <>
+                  <Check size={16} /> હા, ડેટા સાફ કરો (Yes, Clear Data)
+                </>
+              )}
+            </motion.button>
+          </>
+        }
+      >
+        <div style={{ padding: '8px 0' }}>
+          <div style={{
+            background: '#fee2e2',
+            border: '1px solid #f87171',
+            borderRadius: 10,
+            padding: '14px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            gap: 12,
+            alignItems: 'flex-start'
+          }}>
+            <AlertTriangle size={24} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <div style={{ fontWeight: 800, color: '#991b1b', fontSize: 14 }}>
+                {resetMode === 'factory_reset'
+                  ? 'ચેતવણી: આનાથી તમામ કસ્ટમ સેટિંગ્સ અને ડેટા ફેક્ટરી ડીફોલ્ટ પર રીસેટ થશે!'
+                  : 'ચેતવણી: તમામ ટેસ્ટિંગ ઇન્વોઇસ, કસ્ટમર્સ અને રોજમેળ કાયમ માટે સાફ થઈ જશે!'}
+              </div>
+              <div style={{ fontSize: 12.5, color: '#7f1d1d', marginTop: 4, lineHeight: 1.5 }}>
+                આ પ્રક્રિયા પછી તમે નવેસરથી તમારા રિયલ ગ્રાહકો અને બિલો (Invoice #1001 થી) બનાવી શકશો.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>
+            {resetMode === 'factory_reset' ? (
+              <p>
+                તમામ લોકલ ડેટા અને કસ્ટમ ફેરફારો ક્લીન થઈને એપ <b>ઓરિજિનલ ફ્રેશ સ્થિતિમાં</b> રીસ્ટાર્ટ થશે.
+              </p>
+            ) : (
+              <p>
+                તમારો તમામ <b>પ્રોડક્ટ સ્ટોક (56 આઈટમ)</b>, <b>સર્વિસ રેટ કાર્ડ</b> અને <b>બ્રાઇડલ પેકેજ</b> સંપૂર્ણ સલામત રહેશે. માત્ર ટેસ્ટ બિલો, એપોઇન્ટમેન્ટ્સ અને ગ્રાહકો સાફ થશે.
+              </p>
+            )}
           </div>
         </div>
       </Modal>
