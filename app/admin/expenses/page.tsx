@@ -2683,59 +2683,6 @@ export default function ExpensesPage() {
         {/* ======== PAYMENT IN (ALL CUSTOMER COLLECTIONS) TAB ======== */}
         {activeTab === 'payment-in' && (
           <motion.div key="payment-in-list" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit">
-            {/* Top Metrics Cards */}
-            <motion.div
-              className="stats-grid"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-              style={{ marginTop: 16 }}
-            >
-              <motion.div className="stat-card" variants={fadeSlideUp}>
-                <div className="stat-card-icon" style={{ background: 'rgba(5,150,105,.12)', color: '#059669' }}>
-                  <ArrowDownLeft size={20} />
-                </div>
-                <div className="stat-card-label">Total Payment In (કુલ જમા)</div>
-                <div className="stat-card-value" style={{ color: '#059669' }}>
-                  {money(paymentInStats.totalIn)}
-                </div>
-                <div className="stat-card-sub">{allPaymentInEntries.length} Total Entries (Bills + Advances + Vouchers)</div>
-              </motion.div>
-
-              <motion.div className="stat-card" variants={fadeSlideUp}>
-                <div className="stat-card-icon" style={{ background: 'rgba(37,99,235,.12)', color: '#2563eb' }}>
-                  <Calendar size={20} />
-                </div>
-                <div className="stat-card-label">Today's Collection (આજનું કલેક્શન)</div>
-                <div className="stat-card-value" style={{ color: '#2563eb' }}>
-                  {money(paymentInStats.todayIn)}
-                </div>
-                <div className="stat-card-sub">{paymentInStats.todayCount} Received on {fmtDate(today)}</div>
-              </motion.div>
-
-              <motion.div className="stat-card" variants={fadeSlideUp}>
-                <div className="stat-card-icon" style={{ background: 'rgba(13,148,136,.12)', color: '#0d9488' }}>
-                  <TrendingUp size={20} />
-                </div>
-                <div className="stat-card-label">This Month's Inflow (આ મહિને)</div>
-                <div className="stat-card-value" style={{ color: '#0d9488' }}>
-                  {money(paymentInStats.monthIn)}
-                </div>
-                <div className="stat-card-sub">Customer Bills, Bridal & Vouchers</div>
-              </motion.div>
-
-              <motion.div className="stat-card" variants={fadeSlideUp}>
-                <div className="stat-card-icon" style={{ background: 'rgba(217,119,6,.12)', color: '#d97706' }}>
-                  <BadgeIndianRupee size={20} />
-                </div>
-                <div className="stat-card-label">Pending Receivables (બાકી લેવાના)</div>
-                <div className="stat-card-value" style={{ color: vyaparStats.toCollect > 0 ? '#d97706' : '#059669' }}>
-                  {money(vyaparStats.toCollect)}
-                </div>
-                <div className="stat-card-sub">{pendingCollections.length} Pending Customers / Bridal</div>
-              </motion.div>
-            </motion.div>
-
             {/* Main Toolbar */}
             <div className="toolbar" style={{ justifyContent: 'space-between', marginTop: 16, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', gap: 10, flex: 1, minWidth: 320, flexWrap: 'wrap', alignItems: 'center' }}>
