@@ -202,24 +202,63 @@ export default function ExpensesPage() {
     // Set of bridal booking IDs already converted to invoices
     const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
 
-    // ---- 1. INVOICES / BILLS BALANCE (બિલ બન્યા પછીના બાકી) ----
-    const invoicesPendingTotal = invoices.reduce((s, i) => {
-      const paidAmt = Number(i.paid || 0) + Number(i.advance || 0);
-      const bal = Math.max(Number(i.balance || 0), Number(i.total || 0) - paidAmt);
-      return s + Math.max(0, bal);
-    }, 0);
+    // Helper functions to identify bridal transactions
+    const isBridalInvoiceItem = (inv: (typeof invoices)[0]) => {
+      if (inv.bridalBookingId) return true;
+      if ((inv.notes || '').toLowerCase().includes('bridal')) return true;
+      return (inv.lines || []).some((l) => {
+        const n = (l.name || '').toLowerCase();
+        return (
+          n.includes('bridal') ||
+          n.includes('sider') ||
+          n.includes('bride') ||
+          n.includes('makeup package') ||
+          n.includes('siders package') ||
+          n.includes('bridal package')
+        );
+      });
+    };
 
-    // ---- 2. BRIDAL BOOKINGS BALANCE (બ્રાઇડલ બુકિંગના બાકી) ----
-    const bridalPendingTotal = bridals
+    const isBridalAppointmentItem = (appt: (typeof appointments)[0]) => {
+      const s = (appt.service || '').toLowerCase();
+      const n = (appt.notes || '').toLowerCase();
+      return (
+        s.includes('bridal') ||
+        s.includes('sider') ||
+        s.includes('bride') ||
+        s.includes('makeup package') ||
+        s.includes('siders package') ||
+        n.includes('bridal')
+      );
+    };
+
+    // ---- 1. INVOICES / BILLS BALANCE (સામાન્ય બિલ બન્યા પછીના બાકી) ----
+    const invoicesPendingTotal = invoices
+      .filter((i) => !isBridalInvoiceItem(i))
+      .reduce((s, i) => {
+        const paidAmt = Number(i.paid || 0) + Number(i.advance || 0);
+        const bal = Math.max(Number(i.balance || 0), Number(i.total || 0) - paidAmt);
+        return s + Math.max(0, bal);
+      }, 0);
+
+    // ---- 2. BRIDAL BALANCE (બ્રાઇડલ બુકિંગ + બ્રાઇડલ બિલ + બ્રાઇડલ અપોઇન્ટમેન્ટના બાકી) ----
+    const unbilledBridalTotal = bridals
       .filter((b) => b.status !== 'Cancelled' && !billedBridalIds.has(b.id))
       .reduce((s, b) => {
         const bal = Math.max(Number(b.balance || 0), Number(b.package || 0) - Number(b.advance || 0));
         return s + Math.max(0, bal);
       }, 0);
 
-    // ---- 3. APPOINTMENTS BALANCE / ADVANCE (અપોઇન્ટમેન્ટ બુકિંગના બાકી) ----
-    const appointmentPendingTotal = appointments
-      .filter((a) => a.status !== 'Cancelled' && !a.invoiceId && a.workStatus !== 'Billed')
+    const bridalInvoicesTotal = invoices
+      .filter((i) => isBridalInvoiceItem(i))
+      .reduce((s, i) => {
+        const paidAmt = Number(i.paid || 0) + Number(i.advance || 0);
+        const bal = Math.max(Number(i.balance || 0), Number(i.total || 0) - paidAmt);
+        return s + Math.max(0, bal);
+      }, 0);
+
+    const bridalAppointmentsTotal = appointments
+      .filter((a) => a.status !== 'Cancelled' && !a.invoiceId && a.workStatus !== 'Billed' && isBridalAppointmentItem(a))
       .reduce((s, a) => {
         const price = Number(a.price || 0);
         const adv = Number(a.advance || 0);
@@ -227,7 +266,19 @@ export default function ExpensesPage() {
         return s + bal;
       }, 0);
 
-    // ---- TOTAL TO COLLECT (Pending from Invoices + Bridal + Appointments) ----
+    const bridalPendingTotal = unbilledBridalTotal + bridalInvoicesTotal + bridalAppointmentsTotal;
+
+    // ---- 3. APPOINTMENTS BALANCE / ADVANCE (સામાન્ય અપોઇન્ટમેન્ટ બુકિંગના બાકી) ----
+    const appointmentPendingTotal = appointments
+      .filter((a) => a.status !== 'Cancelled' && !a.invoiceId && a.workStatus !== 'Billed' && !isBridalAppointmentItem(a))
+      .reduce((s, a) => {
+        const price = Number(a.price || 0);
+        const adv = Number(a.advance || 0);
+        const bal = Math.max(0, price - adv);
+        return s + bal;
+      }, 0);
+
+    // ---- TOTAL TO COLLECT (Pending from Regular Invoices + All Bridal + Regular Appointments) ----
     const toCollect = invoicesPendingTotal + bridalPendingTotal + appointmentPendingTotal;
 
     // ---- TO PAY (Pending to Suppliers / Purchases) ----
@@ -593,26 +644,64 @@ export default function ExpensesPage() {
       paid: number;
       balance: number;
       notes?: string;
+      isBilledBridal?: boolean;
+      isBridalAppt?: boolean;
+      bridalBookingId?: string;
+      rawInvoiceId?: string;
     }> = [];
 
     const billedBridalIds = new Set(invoices.map((i) => i.bridalBookingId).filter(Boolean));
 
-    // 1. INVOICES / BILLS (બિલ બન્યા પછીના બાકી)
+    // Helper functions to identify bridal transactions
+    const isBridalInvoiceItem = (inv: (typeof invoices)[0]) => {
+      if (inv.bridalBookingId) return true;
+      if ((inv.notes || '').toLowerCase().includes('bridal')) return true;
+      return (inv.lines || []).some((l) => {
+        const n = (l.name || '').toLowerCase();
+        return (
+          n.includes('bridal') ||
+          n.includes('sider') ||
+          n.includes('bride') ||
+          n.includes('makeup package') ||
+          n.includes('siders package') ||
+          n.includes('bridal package')
+        );
+      });
+    };
+
+    const isBridalAppointmentItem = (appt: (typeof appointments)[0]) => {
+      const s = (appt.service || '').toLowerCase();
+      const n = (appt.notes || '').toLowerCase();
+      return (
+        s.includes('bridal') ||
+        s.includes('sider') ||
+        s.includes('bride') ||
+        s.includes('makeup package') ||
+        s.includes('siders package') ||
+        n.includes('bridal')
+      );
+    };
+
+    // 1. INVOICES / BILLS (સામાન્ય બિલ તથા બ્રાઇડલ બિલના બાકી)
     invoices.forEach((inv) => {
       const paidAmt = Number(inv.paid || 0) + Number(inv.advance || 0);
       const bal = Math.max(Number(inv.balance || 0), Number(inv.total || 0) - paidAmt);
       if (bal > 0) {
+        const isBridal = isBridalInvoiceItem(inv);
         list.push({
           id: inv.id,
-          type: 'Invoice',
-          no: inv.no || 'INV',
-          name: inv.customer || 'Walk-in Customer',
+          type: isBridal ? 'Bridal' : 'Invoice',
+          no: isBridal ? (inv.no ? `Bill: ${inv.no}` : 'Bridal Bill') : (inv.no || 'INV'),
+          name: inv.customer || 'Customer',
           mobile: inv.mobile || '-',
           date: inv.date,
           total: Number(inv.total || 0),
           paid: paidAmt,
           balance: bal,
-          notes: inv.notes || '',
+          notes: inv.notes || (isBridal ? 'Bridal Bill' : ''),
+          isBilledBridal: isBridal,
+          bridalBookingId: inv.bridalBookingId,
+          rawInvoiceId: inv.id,
         });
       }
     });
@@ -633,6 +722,8 @@ export default function ExpensesPage() {
             paid: Number(b.advance || 0),
             balance: bal,
             notes: b.notes || (b.venue ? `Venue: ${b.venue}` : ''),
+            isBilledBridal: false,
+            bridalBookingId: b.id,
           });
         }
       }
@@ -645,10 +736,11 @@ export default function ExpensesPage() {
         const adv = Number(a.advance || 0);
         const bal = Math.max(0, price - adv);
         if (price > 0 && bal > 0) {
+          const isBridal = isBridalAppointmentItem(a);
           list.push({
             id: a.id,
-            type: 'Appointment',
-            no: a.service || 'Appointment Service',
+            type: isBridal ? 'Bridal' : 'Appointment',
+            no: a.service || (isBridal ? 'Bridal Appt' : 'Appointment Service'),
             name: a.customer || 'Customer',
             mobile: a.mobile || '-',
             date: a.date,
@@ -658,6 +750,7 @@ export default function ExpensesPage() {
             paid: adv,
             balance: bal,
             notes: a.notes || (a.time ? `Time: ${a.time}` : ''),
+            isBridalAppt: isBridal,
           });
         }
       }
@@ -1700,6 +1793,7 @@ export default function ExpensesPage() {
       let updatedAppointments = [...(d.appointments || [])];
 
       if (paymentInItem.type === 'Invoice') {
+        const targetInv = updatedInvoices.find((inv) => inv.id === paymentInItem.id);
         updatedInvoices = updatedInvoices.map((inv) => {
           if (inv.id === paymentInItem.id) {
             const newPaid = Number(inv.paid || 0) + amt;
@@ -1713,23 +1807,50 @@ export default function ExpensesPage() {
           }
           return inv;
         });
-      } else if (paymentInItem.type === 'Bridal') {
-        updatedBridals = updatedBridals.map((b) => {
-          if (b.id === paymentInItem.id) {
-            const newAdv = Number(b.advance || 0) + amt;
-            const newBal = Math.max(0, Number(b.package || 0) - newAdv);
-            return {
-              ...b,
-              advance: newAdv,
-              balance: newBal,
-            };
-          }
-          return b;
-        });
 
-        // Also update any invoice created for this bridal booking
+        if (targetInv?.bridalBookingId) {
+          updatedBridals = updatedBridals.map((b) => {
+            if (b.id === targetInv.bridalBookingId) {
+              const newAdv = Number(b.advance || 0) + amt;
+              const newBal = Math.max(0, Number(b.package || 0) - newAdv);
+              return {
+                ...b,
+                advance: newAdv,
+                balance: newBal,
+              };
+            }
+            return b;
+          });
+        }
+      } else if (paymentInItem.type === 'Bridal') {
+        const rawInvoiceId = (paymentInItem as any).rawInvoiceId;
+        const bridalBookingId =
+          (paymentInItem as any).bridalBookingId ||
+          (rawInvoiceId ? updatedInvoices.find((i) => i.id === rawInvoiceId)?.bridalBookingId : paymentInItem.id);
+
+        // 1. Update bridal booking record if linked or direct
+        if (bridalBookingId) {
+          updatedBridals = updatedBridals.map((b) => {
+            if (b.id === bridalBookingId || b.id === paymentInItem.id) {
+              const newAdv = Number(b.advance || 0) + amt;
+              const newBal = Math.max(0, Number(b.package || 0) - newAdv);
+              return {
+                ...b,
+                advance: newAdv,
+                balance: newBal,
+              };
+            }
+            return b;
+          });
+        }
+
+        // 2. Update invoice record if it was a billed bridal invoice
         updatedInvoices = updatedInvoices.map((inv) => {
-          if (inv.bridalBookingId === paymentInItem.id) {
+          if (
+            inv.id === rawInvoiceId ||
+            inv.id === paymentInItem.id ||
+            (bridalBookingId && inv.bridalBookingId === bridalBookingId)
+          ) {
             const newPaid = Number(inv.paid || 0) + amt;
             const totalPaid = newPaid + Number(inv.advance || 0);
             const newBal = Math.max(0, Number(inv.total || 0) - totalPaid);
@@ -1741,6 +1862,21 @@ export default function ExpensesPage() {
           }
           return inv;
         });
+
+        // 3. If it was a bridal appointment
+        if ((paymentInItem as any).isBridalAppt) {
+          updatedAppointments = updatedAppointments.map((a) => {
+            if (a.id === paymentInItem.id) {
+              const newAdv = Number(a.advance || 0) + amt;
+              return {
+                ...a,
+                advance: newAdv,
+                advanceMode: paymentInMode,
+              };
+            }
+            return a;
+          });
+        }
       } else if (paymentInItem.type === 'Appointment') {
         updatedAppointments = updatedAppointments.map((a) => {
           if (a.id === paymentInItem.id) {

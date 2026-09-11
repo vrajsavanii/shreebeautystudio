@@ -935,9 +935,22 @@ function BillingContent() {
         return i;
       });
 
+      let updatedBridals = [...(d.bridal || [])];
+      if (settleInvoice.bridalBookingId) {
+        updatedBridals = updatedBridals.map((b) => {
+          if (b.id === settleInvoice.bridalBookingId) {
+            const newAdv = Number(b.advance || 0) + numPaid;
+            const newBal = Math.max(0, Number(b.package || 0) - newAdv);
+            return { ...b, advance: newAdv, balance: newBal };
+          }
+          return b;
+        });
+      }
+
       return {
         ...d,
         invoices: updatedInvoices,
+        bridal: updatedBridals,
         vouchers: [newVoucher, ...(d.vouchers || [])],
         voucherSeq: voucherSeq + 1,
       };
