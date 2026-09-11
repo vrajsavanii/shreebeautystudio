@@ -26,7 +26,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
-import { scheduleSave } from '@/lib/sync';
+import { scheduleSave, cloudSave } from '@/lib/sync';
 import { uid, todayISO, money, fmtDate, formatCustomerContactName } from '@/lib/utils';
 import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransaction, BridalBooking } from '@/types/salon';
 import Badge from '@/components/ui/Badge';
@@ -217,6 +217,7 @@ function BillingContent() {
     });
 
     scheduleSave();
+    cloudSave().catch(() => {});
     toast(`Invoice ${inv.no} & linked Bridal Booking deleted and stock restored!`, 'info');
     setDeleteInvoiceId(null);
   };

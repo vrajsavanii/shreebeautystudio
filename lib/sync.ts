@@ -108,8 +108,8 @@ export async function cloudLoad(): Promise<void> {
     if (!res.ok) throw new Error('Cloud sync fetch failed');
     const json = await res.json();
     if (json.success && json.data) {
-      const merged = mergeSalonData(json.data as SalonData, store.data);
-      store.setData(merged);
+      // Adopt cloud state directly so additions, updates, and deletions stay 100% in sync
+      store.setData(json.data as SalonData);
       if (json.updated_at) store.setLastSynced(json.updated_at);
       store.setCloudStatus('saved');
     } else {
