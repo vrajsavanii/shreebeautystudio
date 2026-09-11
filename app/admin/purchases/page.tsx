@@ -383,7 +383,7 @@ export default function PurchasesPage() {
 
         return {
           ...d,
-          inventory,
+          inventory: updatedInventory,
           purchases,
           inventoryTx: [...remainingTx, ...newTxs],
         };
