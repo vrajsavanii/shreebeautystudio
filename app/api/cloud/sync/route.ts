@@ -64,6 +64,12 @@ export async function POST(req: NextRequest) {
         i.id !== 'p1' && i.id !== 'p2' && i.id !== 'p3' && !String(i.barcode || '').startsWith('843')
       );
     }
+    if (Array.isArray(data.invoices)) {
+      data.invoices = data.invoices.filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025');
+    }
+    if (Array.isArray(data.bridal)) {
+      data.bridal = data.bridal.filter((b: any) => b.id !== 'mtvk1se1xiypt');
+    }
 
     const stamp = new Date().toISOString();
 

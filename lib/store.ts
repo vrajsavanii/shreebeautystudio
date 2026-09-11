@@ -1010,7 +1010,10 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     })(),
     customers: Array.isArray(incoming.customers) ? incoming.customers : DEFAULT_DATA.customers,
     appointments: Array.isArray(incoming.appointments) ? incoming.appointments : [],
-    invoices: Array.isArray(incoming.invoices) ? incoming.invoices : [],
+    invoices: (() => {
+      const inc = Array.isArray(incoming.invoices) ? incoming.invoices : [];
+      return inc.filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025');
+    })(),
     inventory: (() => {
       const incomingList = Array.isArray(incoming.inventory) ? incoming.inventory : [];
       const itemMap = new Map<string, any>();
@@ -1044,7 +1047,10 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     expenses: Array.isArray(incoming.expenses) ? incoming.expenses : [],
     expenseSeq: typeof incoming.expenseSeq === 'number' ? incoming.expenseSeq : 1001,
     bridalPackages: Array.isArray(incoming.bridalPackages) && incoming.bridalPackages.length ? incoming.bridalPackages : DEFAULT_BRIDAL_PACKAGES,
-    bridal: Array.isArray(incoming.bridal) ? incoming.bridal : [],
+    bridal: (() => {
+      const inc = Array.isArray(incoming.bridal) ? incoming.bridal : [];
+      return inc.filter((b: any) => b.id !== 'mtvk1se1xiypt');
+    })(),
     invoiceSeq: typeof incoming.invoiceSeq === 'number' ? incoming.invoiceSeq : 1001,
     // New collections
     loyaltyTx: Array.isArray(incoming.loyaltyTx) ? incoming.loyaltyTx : [],
