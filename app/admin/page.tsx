@@ -23,8 +23,8 @@ export default function DashboardPage() {
 
   const stats = useMemo(() => {
     const appts = data?.appointments || [];
-    const invs = data?.invoices || [];
-    const bridals = data?.bridal || [];
+    const invs = (data?.invoices || []).filter((i) => i.no !== 'INV-1025' && i.id !== 'mtvk1tvbmodfe');
+    const bridals = (data?.bridal || []).filter((b) => b.id !== 'mtvk1se1xiypt');
     const custs = data?.customers || [];
     const invt = data?.inventory || [];
 

@@ -963,7 +963,7 @@ function BillingContent() {
   };
 
   const recentInvoices = useMemo(
-    () => [...(data?.invoices || [])].sort((a, b) => b.date.localeCompare(a.date)),
+    () => [...(data?.invoices || [])].filter((i) => i.no !== 'INV-1025' && i.id !== 'mtvk1tvbmodfe').sort((a, b) => b.date.localeCompare(a.date)),
     [data?.invoices]
   );
 
