@@ -41,15 +41,38 @@ export function mergeSalonData(cloud: SalonData, local: SalonData): SalonData {
     }
   });
 
+  // Helper to merge arrays by item ID (local changes take priority, keeping both cloud and local unique items)
+  const mergeById = <T extends { id?: string }>(cloudArr: T[] = [], localArr: T[] = []): T[] => {
+    const map = new Map<string, T>();
+    (cloudArr || []).forEach((item) => {
+      if (item && item.id) map.set(item.id, item);
+    });
+    (localArr || []).forEach((item) => {
+      if (item && item.id) map.set(item.id, item);
+    });
+    return Array.from(map.values());
+  };
+
   return {
     ...cloud,
     ...local,
     settings: { ...(cloud.settings || {}), ...(local.settings || {}) },
     inventory: Array.from(invMap.values()),
-    customers: (local.customers || []).length >= (cloud.customers || []).length ? local.customers : cloud.customers,
-    appointments: (local.appointments || []).length >= (cloud.appointments || []).length ? local.appointments : cloud.appointments,
-    invoices: (local.invoices || []).length >= (cloud.invoices || []).length ? local.invoices : cloud.invoices,
-    bridal: (local.bridal || []).length >= (cloud.bridal || []).length ? local.bridal : cloud.bridal,
+    customers: mergeById(cloud.customers, local.customers),
+    appointments: mergeById(cloud.appointments, local.appointments),
+    invoices: mergeById(cloud.invoices, local.invoices),
+    bridal: mergeById(cloud.bridal, local.bridal),
+    expenses: mergeById(cloud.expenses, local.expenses),
+    purchases: mergeById(cloud.purchases, local.purchases),
+    vouchers: mergeById(cloud.vouchers, local.vouchers),
+    suppliers: mergeById(cloud.suppliers, local.suppliers),
+    bankAccounts: mergeById(cloud.bankAccounts, local.bankAccounts),
+    accountTransfers: mergeById(cloud.accountTransfers, local.accountTransfers),
+    staff: (local.staff || []).length > 0 ? local.staff : cloud.staff || [],
+    services: (local.services || []).length > 0 ? local.services : cloud.services || [],
+    bridalPackages: (local.bridalPackages || []).length > 0 ? local.bridalPackages : cloud.bridalPackages || [],
+    membershipPlans: (local.membershipPlans || []).length > 0 ? local.membershipPlans : cloud.membershipPlans || [],
+    users: (local.users || []).length > 0 ? local.users : cloud.users || [],
   };
 }
 
