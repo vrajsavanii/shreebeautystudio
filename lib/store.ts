@@ -288,58 +288,8 @@ export const DEFAULT_DATA: SalonData = {
     },
   ],
   appointments: [],
-  invoices: [
-    {
-      id: 'mtvk1tvbmodfe',
-      no: 'INV-1025',
-      date: '2026-09-10',
-      customer: 'niti',
-      mobile: '9316531885',
-      mode: 'Cash',
-      subtotal: 35000,
-      discount: 0,
-      total: 35000,
-      advance: 500,
-      paid: 500,
-      balance: 34500,
-      advanceMode: 'Cash',
-      bridalBookingId: 'mtvk1se1xiypt',
-      lines: [
-        {
-          qty: 1,
-          name: 'Make-up (Makeup Package)',
-          type: 'S',
-          price: 35000,
-          discount: 0,
-          discountType: '₹',
-        },
-      ],
-    },
-  ],
-  bridal: [
-    {
-      id: 'mtvk1se1xiypt',
-      name: 'niti',
-      mobile: '9316531885',
-      date: '2026-12-14',
-      package: 35000,
-      packageName: 'Make-up',
-      packageType: 'Makeup Package',
-      advance: 500,
-      balance: 34500,
-      advanceAccount: 'Cash',
-      weddingDate: '2026-12-14',
-      weddingTime: '16:00',
-      includeWedding: true,
-      musicDate: '2026-09-11',
-      musicTime: '19:00',
-      includeMusic: true,
-      selectedEvents: [
-        'Wedding (14 Dec 2026 16:00)',
-        'Music / Sangeet (11 Sep 2026 19:00)',
-      ],
-    },
-  ],
+  invoices: [],
+  bridal: [],
   inventory: [
   {
     "id": "prod_1",
@@ -1058,9 +1008,9 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
       }
       return inc;
     })(),
-    customers: Array.isArray(incoming.customers) && incoming.customers.length ? incoming.customers : DEFAULT_DATA.customers,
-    appointments: Array.isArray(incoming.appointments) ? incoming.appointments : DEFAULT_DATA.appointments,
-    invoices: Array.isArray(incoming.invoices) && incoming.invoices.length ? incoming.invoices : DEFAULT_DATA.invoices,
+    customers: Array.isArray(incoming.customers) ? incoming.customers : DEFAULT_DATA.customers,
+    appointments: Array.isArray(incoming.appointments) ? incoming.appointments : [],
+    invoices: Array.isArray(incoming.invoices) ? incoming.invoices : [],
     inventory: (() => {
       const incomingList = Array.isArray(incoming.inventory) ? incoming.inventory : [];
       const itemMap = new Map<string, any>();
@@ -1084,31 +1034,31 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
 
       return Array.from(itemMap.values());
     })(),
-    inventoryTx: Array.isArray(incoming.inventoryTx) ? incoming.inventoryTx : DEFAULT_DATA.inventoryTx,
-    adjustments: Array.isArray(incoming.adjustments) ? incoming.adjustments : DEFAULT_DATA.adjustments,
-    suppliers: Array.isArray(incoming.suppliers) ? incoming.suppliers : DEFAULT_DATA.suppliers,
-    purchases: Array.isArray(incoming.purchases) ? incoming.purchases : DEFAULT_DATA.purchases,
-    purchaseSeq: typeof incoming.purchaseSeq === 'number' ? incoming.purchaseSeq : DEFAULT_DATA.purchaseSeq,
-    vouchers: Array.isArray(incoming.vouchers) ? incoming.vouchers : DEFAULT_DATA.vouchers,
-    voucherSeq: typeof incoming.voucherSeq === 'number' ? incoming.voucherSeq : DEFAULT_DATA.voucherSeq,
-    expenses: Array.isArray(incoming.expenses) ? incoming.expenses : DEFAULT_DATA.expenses,
-    expenseSeq: typeof incoming.expenseSeq === 'number' ? incoming.expenseSeq : DEFAULT_DATA.expenseSeq,
+    inventoryTx: Array.isArray(incoming.inventoryTx) ? incoming.inventoryTx : [],
+    adjustments: Array.isArray(incoming.adjustments) ? incoming.adjustments : [],
+    suppliers: Array.isArray(incoming.suppliers) ? incoming.suppliers : [],
+    purchases: Array.isArray(incoming.purchases) ? incoming.purchases : [],
+    purchaseSeq: typeof incoming.purchaseSeq === 'number' ? incoming.purchaseSeq : 1001,
+    vouchers: Array.isArray(incoming.vouchers) ? incoming.vouchers : [],
+    voucherSeq: typeof incoming.voucherSeq === 'number' ? incoming.voucherSeq : 1001,
+    expenses: Array.isArray(incoming.expenses) ? incoming.expenses : [],
+    expenseSeq: typeof incoming.expenseSeq === 'number' ? incoming.expenseSeq : 1001,
     bridalPackages: Array.isArray(incoming.bridalPackages) && incoming.bridalPackages.length ? incoming.bridalPackages : DEFAULT_BRIDAL_PACKAGES,
-    bridal: Array.isArray(incoming.bridal) ? incoming.bridal : DEFAULT_DATA.bridal,
-    invoiceSeq: typeof incoming.invoiceSeq === 'number' ? incoming.invoiceSeq : DEFAULT_DATA.invoiceSeq,
+    bridal: Array.isArray(incoming.bridal) ? incoming.bridal : [],
+    invoiceSeq: typeof incoming.invoiceSeq === 'number' ? incoming.invoiceSeq : 1001,
     // New collections
-    loyaltyTx: Array.isArray(incoming.loyaltyTx) ? incoming.loyaltyTx : DEFAULT_DATA.loyaltyTx,
-    walletTx: Array.isArray(incoming.walletTx) ? incoming.walletTx : DEFAULT_DATA.walletTx,
+    loyaltyTx: Array.isArray(incoming.loyaltyTx) ? incoming.loyaltyTx : [],
+    walletTx: Array.isArray(incoming.walletTx) ? incoming.walletTx : [],
     memberships: Array.isArray(incoming.memberships) && incoming.memberships.length ? incoming.memberships : DEFAULT_MEMBERSHIP_PLANS,
-    customerMemberships: Array.isArray(incoming.customerMemberships) ? incoming.customerMemberships : DEFAULT_DATA.customerMemberships,
-    attendance: Array.isArray(incoming.attendance) ? incoming.attendance : DEFAULT_DATA.attendance,
+    customerMemberships: Array.isArray(incoming.customerMemberships) ? incoming.customerMemberships : [],
+    attendance: Array.isArray(incoming.attendance) ? incoming.attendance : [],
     users: Array.isArray(incoming.users) && incoming.users.length ? incoming.users : DEFAULT_USERS,
     // Bank & Transfers
-    bankAccounts: Array.isArray(incoming.bankAccounts) ? incoming.bankAccounts : DEFAULT_DATA.bankAccounts,
-    accountTransfers: Array.isArray(incoming.accountTransfers) ? incoming.accountTransfers : DEFAULT_DATA.accountTransfers,
-    transferSeq: typeof incoming.transferSeq === 'number' ? incoming.transferSeq : DEFAULT_DATA.transferSeq,
+    bankAccounts: Array.isArray(incoming.bankAccounts) ? incoming.bankAccounts : [],
+    accountTransfers: Array.isArray(incoming.accountTransfers) ? incoming.accountTransfers : [],
+    transferSeq: typeof incoming.transferSeq === 'number' ? incoming.transferSeq : 1001,
     // Studio Holidays & Blocked Dates
-    holidays: Array.isArray(incoming.holidays) ? incoming.holidays : (DEFAULT_DATA.holidays || []),
+    holidays: Array.isArray(incoming.holidays) ? incoming.holidays : [],
   };
 }
 

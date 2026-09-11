@@ -71,7 +71,7 @@ export function mergeSalonData(cloud: SalonData, local: SalonData): SalonData {
     staff: (local.staff || []).length > 0 ? local.staff : cloud.staff || [],
     services: (local.services || []).length > 0 ? local.services : cloud.services || [],
     bridalPackages: (local.bridalPackages || []).length > 0 ? local.bridalPackages : cloud.bridalPackages || [],
-    membershipPlans: (local.membershipPlans || []).length > 0 ? local.membershipPlans : cloud.membershipPlans || [],
+    memberships: (local.memberships || []).length > 0 ? local.memberships : cloud.memberships || [],
     users: (local.users || []).length > 0 ? local.users : cloud.users || [],
   };
 }
