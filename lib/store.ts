@@ -1108,7 +1108,7 @@ export const useSalonStore = create<SalonStore>()(
           set((state) => {
             const cleanInventory = (state.data.inventory || DEFAULT_DATA.inventory).map((item) => ({
               ...item,
-              stock: 10,
+              stock: 0,
             }));
 
             const cleanData: SalonData = {
@@ -1149,7 +1149,7 @@ export const useSalonStore = create<SalonStore>()(
       logoutUser: () => set({ currentUser: null }),
     }),
     {
-      name: 'shreeSalonV1',
+      name: 'shreeSalonV2',
       merge: (persistedState: any, currentState) => ({
         ...currentState,
         ...persistedState,
@@ -1159,3 +1159,4 @@ export const useSalonStore = create<SalonStore>()(
     }
   )
 );
+

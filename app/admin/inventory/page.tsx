@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
@@ -30,7 +30,7 @@ import {
   List,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
-import { scheduleSave, cloudSave } from '@/lib/sync';
+import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
 import { uid, fmtDate, money, todayISO } from '@/lib/utils';
 import { InventoryItem, InventoryTx, Supplier, StockAdjustment, AdjustmentReason } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
@@ -71,11 +71,11 @@ const SALON_PRESET_PRODUCT_PACKAGES = [
     category: 'Hair Care & Shampoo',
     brand: "L'Oreal Professionnel",
     products: [
-      { name: "L'Oreal Vitamino Color Shampoo 1500ml", barcode: '89012345001', stock: 10, buy: 1250, sell: 1650, mrp: 1850, unit: 'Pcs' },
-      { name: 'Matrix Biolage Hair Spa Cream 500g', barcode: '89012345002', stock: 15, buy: 650, sell: 850, mrp: 950, unit: 'Pcs' },
-      { name: 'Schwarzkopf Smooth Intense Keratin 1000ml', barcode: '89012345003', stock: 6, buy: 2800, sell: 3800, mrp: 4200, unit: 'Pcs' },
-      { name: 'Streax Professional Gloss Hair Serum 100ml', barcode: '89012345004', stock: 25, buy: 180, sell: 260, mrp: 310, unit: 'Pcs' },
-      { name: "L'Oreal Majirel Hair Color Shade Tube 50ml", barcode: '89012345005', stock: 30, buy: 240, sell: 320, mrp: 380, unit: 'Pcs' },
+      { name: "L'Oreal Vitamino Color Shampoo 1500ml", barcode: '89012345001', stock: 0, buy: 1250, sell: 1650, mrp: 1850, unit: 'Pcs' },
+      { name: 'Matrix Biolage Hair Spa Cream 500g', barcode: '89012345002', stock: 0, buy: 650, sell: 850, mrp: 950, unit: 'Pcs' },
+      { name: 'Schwarzkopf Smooth Intense Keratin 1000ml', barcode: '89012345003', stock: 0, buy: 2800, sell: 3800, mrp: 4200, unit: 'Pcs' },
+      { name: 'Streax Professional Gloss Hair Serum 100ml', barcode: '89012345004', stock: 0, buy: 180, sell: 260, mrp: 310, unit: 'Pcs' },
+      { name: "L'Oreal Majirel Hair Color Shade Tube 50ml", barcode: '89012345005', stock: 0, buy: 240, sell: 320, mrp: 380, unit: 'Pcs' },
     ],
   },
   {
@@ -83,10 +83,10 @@ const SALON_PRESET_PRODUCT_PACKAGES = [
     category: 'Skin Care & Facials',
     brand: 'O3+ Professional',
     products: [
-      { name: 'O3+ Gold Radiance Facial Kit 500g', barcode: '89012346001', stock: 8, buy: 1800, sell: 2400, mrp: 2800, unit: 'Kits' },
-      { name: 'Lotus Herbals Fruit Facial Kit Pack', barcode: '89012346002', stock: 10, buy: 480, sell: 750, mrp: 850, unit: 'Kits' },
-      { name: 'Raaga Professional D-Tan Removal Pack 500g', barcode: '89012346003', stock: 15, buy: 620, sell: 950, mrp: 1100, unit: 'Pcs' },
-      { name: 'VLCC Insta-Glow Facial Bleach Cream 1kg', barcode: '89012346004', stock: 10, buy: 380, sell: 550, mrp: 650, unit: 'Pcs' },
+      { name: 'O3+ Gold Radiance Facial Kit 500g', barcode: '89012346001', stock: 0, buy: 1800, sell: 2400, mrp: 2800, unit: 'Kits' },
+      { name: 'Lotus Herbals Fruit Facial Kit Pack', barcode: '89012346002', stock: 0, buy: 480, sell: 750, mrp: 850, unit: 'Kits' },
+      { name: 'Raaga Professional D-Tan Removal Pack 500g', barcode: '89012346003', stock: 0, buy: 620, sell: 950, mrp: 1100, unit: 'Pcs' },
+      { name: 'VLCC Insta-Glow Facial Bleach Cream 1kg', barcode: '89012346004', stock: 0, buy: 380, sell: 550, mrp: 650, unit: 'Pcs' },
     ],
   },
   {
@@ -94,10 +94,10 @@ const SALON_PRESET_PRODUCT_PACKAGES = [
     category: 'Salon Consumables',
     brand: 'Rica Professional',
     products: [
-      { name: 'Rica White Chocolate Liposoluble Wax 800g', barcode: '89012347001', stock: 20, buy: 520, sell: 750, mrp: 850, unit: 'Tins' },
-      { name: 'Honey Wax Tin Container 800g', barcode: '89012347002', stock: 25, buy: 180, sell: 320, mrp: 380, unit: 'Tins' },
-      { name: 'Non-woven Hair Removal Wax Strips (100 Strips)', barcode: '89012347003', stock: 50, buy: 65, sell: 120, mrp: 150, unit: 'Packs' },
-      { name: 'Disposable Facial Tissue Box (200 Sheets)', barcode: '89012347004', stock: 30, buy: 85, sell: 140, mrp: 160, unit: 'Boxes' },
+      { name: 'Rica White Chocolate Liposoluble Wax 800g', barcode: '89012347001', stock: 0, buy: 520, sell: 750, mrp: 850, unit: 'Tins' },
+      { name: 'Honey Wax Tin Container 800g', barcode: '89012347002', stock: 0, buy: 180, sell: 320, mrp: 380, unit: 'Tins' },
+      { name: 'Non-woven Hair Removal Wax Strips (100 Strips)', barcode: '89012347003', stock: 0, buy: 65, sell: 120, mrp: 150, unit: 'Packs' },
+      { name: 'Disposable Facial Tissue Box (200 Sheets)', barcode: '89012347004', stock: 0, buy: 85, sell: 140, mrp: 160, unit: 'Boxes' },
     ],
   },
   {
@@ -105,9 +105,9 @@ const SALON_PRESET_PRODUCT_PACKAGES = [
     category: 'Bridal & Nail Art',
     brand: 'Generic / In-house',
     products: [
-      { name: 'UV Gel Nail Polish Color Set (12 Shade Bottles)', barcode: '89012348001', stock: 5, buy: 1400, sell: 2200, mrp: 2600, unit: 'Sets' },
-      { name: 'Pure Acetone Nail Polish Remover 500ml', barcode: '89012348002', stock: 15, buy: 120, sell: 200, mrp: 240, unit: 'Bottles' },
-      { name: 'Nail Primer & Base Top Coat Combo', barcode: '89012348003', stock: 10, buy: 350, sell: 550, mrp: 650, unit: 'Pcs' },
+      { name: 'UV Gel Nail Polish Color Set (12 Shade Bottles)', barcode: '89012348001', stock: 0, buy: 1400, sell: 2200, mrp: 2600, unit: 'Sets' },
+      { name: 'Pure Acetone Nail Polish Remover 500ml', barcode: '89012348002', stock: 0, buy: 120, sell: 200, mrp: 240, unit: 'Bottles' },
+      { name: 'Nail Primer & Base Top Coat Combo', barcode: '89012348003', stock: 0, buy: 350, sell: 550, mrp: 650, unit: 'Pcs' },
     ],
   },
 ];
@@ -125,6 +125,11 @@ const ADJUSTMENT_REASONS: AdjustmentReason[] = [
 export default function InventoryPage() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Reconcile live inventory with Supabase cloud on page mount
+    cloudSync().catch(() => {});
+  }, []);
 
   const [activeTab, setActiveTab] = useState<InventoryTab>('products');
   const [search, setSearch] = useState('');
@@ -168,9 +173,9 @@ export default function InventoryPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [bulkProductRows, setBulkProductRows] = useState<Array<{ id: string; barcode: string; name: string; brand: string; category: string; stock: number | ''; buy: number | ''; sell: number | ''; mrp: number | ''; expiry: string }>>([
-    { id: '1', barcode: '', name: '', brand: SAMPLE_BRANDS[0], category: SAMPLE_CATEGORIES[0], stock: 10, buy: 500, sell: 750, mrp: 850, expiry: '' },
-    { id: '2', barcode: '', name: '', brand: SAMPLE_BRANDS[1], category: SAMPLE_CATEGORIES[1], stock: 12, buy: 650, sell: 850, mrp: 950, expiry: '' },
-    { id: '3', barcode: '', name: '', brand: SAMPLE_BRANDS[3], category: SAMPLE_CATEGORIES[2], stock: 8, buy: 1800, sell: 2400, mrp: 2800, expiry: '' },
+    { id: '1', barcode: '', name: '', brand: SAMPLE_BRANDS[0], category: SAMPLE_CATEGORIES[0], stock: 0, buy: 500, sell: 750, mrp: 850, expiry: '' },
+    { id: '2', barcode: '', name: '', brand: SAMPLE_BRANDS[1], category: SAMPLE_CATEGORIES[1], stock: 0, buy: 650, sell: 850, mrp: 950, expiry: '' },
+    { id: '3', barcode: '', name: '', brand: SAMPLE_BRANDS[3], category: SAMPLE_CATEGORIES[2], stock: 0, buy: 1800, sell: 2400, mrp: 2800, expiry: '' },
   ]);
   const [selectedPresetProducts, setSelectedPresetProducts] = useState<Record<string, boolean>>({});
   const [pasteInput, setPasteInput] = useState('');
