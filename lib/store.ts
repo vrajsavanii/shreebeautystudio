@@ -1018,10 +1018,10 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
       const incomingList = Array.isArray(incoming.inventory) ? incoming.inventory : [];
       const itemMap = new Map<string, any>();
       
-      // 1. Put all default products (all 56 items) first
+      // 1. Put all default products (all 56 items) first with stock: 0
       DEFAULT_DATA.inventory.forEach((item) => {
         const key = (item.barcode || item.name || '').toLowerCase().trim();
-        if (key) itemMap.set(key, item);
+        if (key) itemMap.set(key, { ...item, stock: 0 });
       });
 
       // 2. Overlay incoming list (user stock modifications or custom added products)
@@ -1029,7 +1029,13 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
         const key = (item.barcode || item.name || '').toLowerCase().trim();
         if (key) {
           const defaultItem = itemMap.get(key);
-          itemMap.set(key, { ...(defaultItem || {}), ...item });
+          if (defaultItem) {
+            // If item in localStorage has old demo stock of 10, sanitize it to 0 (nil)
+            const stockVal = Number(item.stock) === 10 ? 0 : Number(item.stock || 0);
+            itemMap.set(key, { ...defaultItem, ...item, stock: stockVal });
+          } else {
+            itemMap.set(key, item);
+          }
         } else if (item.id) {
           itemMap.set(item.id, item);
         }

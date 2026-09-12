@@ -1016,6 +1016,25 @@ export default function InventoryPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            style={{ color: '#05424A', background: '#f0fdf4', border: '1px solid #bbf7d0', fontWeight: 700 }}
+            onClick={() => {
+              if (window.confirm('Are you sure you want to set all product stock levels to Nil (0)?')) {
+                updateData((d) => ({
+                  ...d,
+                  inventory: (d.inventory || []).map((i) => ({ ...i, stock: 0 })),
+                }));
+                scheduleSave();
+                cloudSave().catch(() => {});
+                toast('✅ All product stocks reset to Nil (0)!');
+              }
+            }}
+            title="Set all product stock levels to 0 (Nil)"
+          >
+            <Scale size={14} /> Reset to Nil (0) Stock
+          </button>
           <button className="btn btn-ghost btn-sm" onClick={() => openAdjustment()} title="Stock Adjustment & Internal Salon Usage">
             <Scale size={14} /> Stock Adjustment
           </button>
