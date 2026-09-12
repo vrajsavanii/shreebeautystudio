@@ -1,38 +1,46 @@
 // app/api/copilot/route.ts
 //
-// AI Copilot API Route for Shree Beauty Studio Management System
-// Live Multi-Provider Smart Fallback Chain:
-// 1. Groq API (qwen/qwen3.8-27b / groq/compound)
+// AI Copilot & Voice Assistant API Route for Shree Beauty Studio Management System
+// Multi-Provider Fallback Chain:
+// 1. Groq API (qwen/qwen-2.5-32b-instruct / llama-3.3-70b-versatile)
 // 2. NVIDIA NIM API (meta/llama-3.2-11b-vision-instruct)
 // 3. Google Gemini API (gemini-2.0-flash)
-// 4. Built-in Natural Language Rule Engine (Offline / Zero-Key Fallback)
+// 4. Built-in Conversational Rule & Slot-Filling Engine (Offline / Zero-Key Fallback)
 
 import { NextRequest, NextResponse } from 'next/server';
 
 const SYSTEM_PROMPT = `
-You are the Intelligent AI Operator Copilot for "Shree Beauty Studio Management System".
-Your job is to assist the salon receptionist/operator by understanding their instructions in English, Gujarati, or Hinglish, and translating them into software ACTIONS and friendly responses.
+તમે "શ્રી બ્યુટી સ્ટુડિયો" (કતારગામ, સુરત) ના ઇન્ટેલિજન્ટ AI વોઇસ અને સલૂન ઓપરેટર આસિસ્ટન્ટ છો.
+તમારું કામ સલૂન ઓનર/રિસેપ્શનિસ્ટ સાથે ગુજરાતી, હિન્દી અથવા અંગ્રેજીમાં સહજ, નમ્ર અને મિત્રતાભર્યો બે-તરફી સંવાદ (two-way human-like interaction) કરવાનો છે અને સોફ્ટવેરમાં જરૂરી કાર્યો (actions) એક્ઝિક્યુટ કરવાનો છે.
 
-Current Date: ${new Date().toISOString().slice(0, 10)}
-Available Routes: /billing, /customers, /services, /inventory, /bridal, /whatsapp, /settings, /expenses, /reports
+મહત્વપૂર્ણ નિયમો:
+1. હંમેશા શુદ્ધ અને સુંદર ગુજરાતી ભાષામાં ("નમસ્તે!", "ચોક્કસ!", "હાજી!", "હું કરી દઉં છું") જવાબ આપો.
+2. કાઉન્ટર પ્રશ્ન પૂછો (Ask Counter Questions): જો યુઝર કોઈ કામ કરવા કહે પણ જરૂરી વિગતો અધૂરી હોય (જેમ કે માત્ર "બિલ બનાવો" કે "એપોઇન્ટમેન્ટ બુક કરો" કહે), તો અનુમાન ન લગાવો. "action": "NONE" રાખીને નમ્રતાથી વિગતો પૂછો (જેમ કે: "ચોક્કસ! કોના નામે એપોઇન્ટમેન્ટ બુક કરવી છે અને કઈ સર્વિસ લેવી છે?").
+3. જ્યારે વિગતો પૂરી હોય, ત્યારે તરત જ યોગ્ય Action JSON સાથે જવાબ આપો.
 
-You MUST respond ONLY with valid raw JSON (no conversational text outside the JSON):
+ઉપલબ્ધ Actions:
+- CREATE_APPOINTMENT: payload = { customer, mobile, service, date (YYYY-MM-DD), time (HH:MM AM/PM), staff, advance, notes }
+- UPDATE_APPOINTMENT_STATUS: payload = { customer, status ("Confirmed"|"Cancelled"|"Completed"), date, time }
+- CREATE_INVOICE: payload = { customer, mobile, lines: [{ name, price, qty }], paymentMode ("Cash"|"GPay UPI"|"PhonePe UPI"|"Card"), discount, paid }
+- ADD_CUSTOMER: payload = { name, mobile, address, birthday, anniversary, openingBalance }
+- RECORD_EXPENSE: payload = { category ("Rent"|"Electricity & Utilities"|"Staff Tea & Refreshments"|"Housekeeping & Cleaning"|"Marketing & Ads"|"Salon Maintenance"|"Staff Bonus / Incentives"|"Other Expense"), amount, mode ("Cash"|"GPay UPI"), notes }
+- ADD_INVENTORY: payload = { name, category, brand, stock, buy, sell, barcode }
+- UPDATE_STOCK: payload = { productName, qty, type ("Add"|"Reduce") }
+- CREATE_BRIDAL_BOOKING: payload = { name, mobile, weddingDate, sagaiDate, packageName, price, advance, venue }
+- UPDATE_BRIDAL_PRICE: payload = { packageName, price }
+- ADD_SERVICE: payload = { name, price, duration, category }
+- UPDATE_SERVICE_PRICE: payload = { serviceName, price }
+- SEND_WHATSAPP_PDF: payload = { recipientMobile, recipientName, documentType ("bridal_rate_card"|"invoice") }
+- NAVIGATE: payload = { path ("/admin/billing"|"/admin/appointments"|"/admin/customers"|"/admin/inventory"|"/admin/bridal"|"/admin/expenses"|"/admin/reports"|"/admin/services"|"/admin/settings"|"/admin/whatsapp") }
+- TRIGGER_CLOUD_SYNC: payload = {}
+- NONE: payload = {}
+
+હંમેશા માત્ર RAW JSON માં જ જવાબ આપો (કોઈ વધારાનું માર્કડાઉન નહીં):
 {
-  "replyText": "Friendly Gujarati/English response explaining what was done or answered",
-  "action": "CREATE_APPOINTMENT | CREATE_INVOICE | ADD_INVENTORY | UPDATE_BRIDAL_PRICE | SEND_WHATSAPP_PDF | NAVIGATE | FILTER_CUSTOMERS | GET_REVENUE_STATS | NONE",
+  "replyText": "નમસ્તે! પૂજા પટેલ માટે આજે સાંજે 4 વાગ્યે હેર કટ ની એપોઇન્ટમેન્ટ બુક કરી દીધી છે.",
+  "action": "CREATE_APPOINTMENT",
   "payload": { ... }
 }
-
-Action Specs:
-1. CREATE_APPOINTMENT: payload = { customer, mobile, service, date (YYYY-MM-DD), time (HH:MM AM/PM), staff, notes }
-2. CREATE_INVOICE: payload = { customer, mobile, lines: [{ name, price, qty }], paymentMode ("Cash"|"GPay UPI"|"PhonePe UPI"|"Card"), discount }
-3. ADD_INVENTORY: payload = { name, category, brand, stock, buy, sell, barcode }
-4. UPDATE_BRIDAL_PRICE: payload = { packageName, price, type ("Bridal Package"|"Siders Package") }
-5. SEND_WHATSAPP_PDF: payload = { recipientMobile, recipientName, documentType ("invoice"|"bridal_rate_card"), invoiceNo }
-6. NAVIGATE: payload = { path }
-7. FILTER_CUSTOMERS: payload = { filterType ("vip"|"inactive"|"dues"|"birthdays") }
-8. GET_REVENUE_STATS: payload = {}
-9. NONE: payload = {}
 `;
 
 // Helper: Clean JSON response from LLM markdown codeblocks
@@ -41,9 +49,24 @@ function cleanAndParseJSON(text: string) {
   return JSON.parse(cleaned);
 }
 
-// Helper 1: Try Groq API (qwen/qwen3.8-27b)
-async function callGroq(prompt: string, contextSummary: string, apiKey: string) {
+// Helper 1: Try Groq API
+async function callGroq(
+  prompt: string,
+  contextSummary: string,
+  history: Array<{ role: string; content: string }>,
+  apiKey: string
+) {
   const url = 'https://api.groq.com/openai/v1/chat/completions';
+  const messages: any[] = [{ role: 'system', content: `${SYSTEM_PROMPT}\n\nSALON SYSTEM REAL-TIME DATA:\n${contextSummary}` }];
+
+  // Add conversation history
+  if (Array.isArray(history) && history.length > 0) {
+    history.slice(-6).forEach((h) => {
+      messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content });
+    });
+  }
+  messages.push({ role: 'user', content: prompt });
+
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -52,12 +75,10 @@ async function callGroq(prompt: string, contextSummary: string, apiKey: string) 
     },
     body: JSON.stringify({
       model: 'qwen/qwen3.8-27b',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `SALON SYSTEM CONTEXT:\n${contextSummary}\n\nUSER REQUEST: ${prompt}` },
-      ],
-      temperature: 0.2,
+      messages,
+      temperature: 0.3,
       max_tokens: 1000,
+      response_format: { type: 'json_object' },
     }),
   });
 
@@ -68,12 +89,26 @@ async function callGroq(prompt: string, contextSummary: string, apiKey: string) 
   const json = await res.json();
   const text = json.choices?.[0]?.message?.content || '';
   const parsed = cleanAndParseJSON(text);
-  return { json: parsed, provider: 'Groq API (qwen-3.8-27b)' };
+  return { json: parsed, provider: 'Groq (Qwen-3.8-27B)' };
 }
 
-// Helper 2: Try NVIDIA NIM API (meta/llama-3.2-11b-vision-instruct)
-async function callNvidiaNim(prompt: string, contextSummary: string, apiKey: string) {
+// Helper 2: Try NVIDIA NIM API
+async function callNvidiaNim(
+  prompt: string,
+  contextSummary: string,
+  history: Array<{ role: string; content: string }>,
+  apiKey: string
+) {
   const url = 'https://integrate.api.nvidia.com/v1/chat/completions';
+  const messages: any[] = [{ role: 'system', content: `${SYSTEM_PROMPT}\n\nSALON SYSTEM REAL-TIME DATA:\n${contextSummary}` }];
+
+  if (Array.isArray(history) && history.length > 0) {
+    history.slice(-6).forEach((h) => {
+      messages.push({ role: h.role === 'user' ? 'user' : 'assistant', content: h.content });
+    });
+  }
+  messages.push({ role: 'user', content: prompt });
+
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -82,11 +117,8 @@ async function callNvidiaNim(prompt: string, contextSummary: string, apiKey: str
     },
     body: JSON.stringify({
       model: 'meta/llama-3.2-11b-vision-instruct',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `SALON SYSTEM CONTEXT:\n${contextSummary}\n\nUSER REQUEST: ${prompt}` },
-      ],
-      temperature: 0.2,
+      messages,
+      temperature: 0.3,
       max_tokens: 1000,
     }),
   });
@@ -98,27 +130,49 @@ async function callNvidiaNim(prompt: string, contextSummary: string, apiKey: str
   const json = await res.json();
   const text = json.choices?.[0]?.message?.content || '';
   const parsed = cleanAndParseJSON(text);
-  return { json: parsed, provider: 'NVIDIA NIM API (llama-3.2-11b)' };
+  return { json: parsed, provider: 'NVIDIA NIM (Llama-3.2-11B)' };
 }
 
 // Helper 3: Try Google Gemini API
-async function callGemini(prompt: string, contextSummary: string, apiKey: string) {
+async function callGemini(
+  prompt: string,
+  contextSummary: string,
+  history: Array<{ role: string; content: string }>,
+  apiKey: string
+) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const contents: any[] = [
+    {
+      role: 'user',
+      parts: [{ text: `${SYSTEM_PROMPT}\n\nSALON SYSTEM REAL-TIME DATA:\n${contextSummary}` }],
+    },
+    {
+      role: 'model',
+      parts: [{ text: JSON.stringify({ replyText: 'નમસ્તે! હું તમારી શું સેવા કરી શકું?', action: 'NONE', payload: {} }) }],
+    },
+  ];
+
+  if (Array.isArray(history) && history.length > 0) {
+    history.slice(-6).forEach((h) => {
+      contents.push({
+        role: h.role === 'user' ? 'user' : 'model',
+        parts: [{ text: h.content }],
+      });
+    });
+  }
+  contents.push({
+    role: 'user',
+    parts: [{ text: prompt }],
+  });
+
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: SYSTEM_PROMPT },
-            { text: `SALON SYSTEM CONTEXT:\n${contextSummary}\n\nUSER REQUEST: ${prompt}` },
-          ],
-        },
-      ],
+      contents,
       generationConfig: {
         responseMimeType: 'application/json',
-        temperature: 0.2,
+        temperature: 0.3,
       },
     }),
   });
@@ -133,112 +187,152 @@ async function callGemini(prompt: string, contextSummary: string, apiKey: string
   return { json: parsed, provider: 'Google Gemini 2.0' };
 }
 
-// Helper 4: Built-in Rule Engine (Offline / Zero Key Fallback)
-function parseRuleEngine(prompt: string, context: any) {
+// Helper 4: Built-in Conversational Rule & Slot-Filling Engine
+function parseRuleEngine(prompt: string, history: Array<{ role: string; content: string }> = []) {
   const lower = prompt.toLowerCase();
   const today = new Date().toISOString().slice(0, 10);
 
-  // 1. Navigation intent
-  if (lower.includes('billing') || lower.includes('pos') || lower.includes('bill banavo') || lower.includes('bill page')) {
+  // Check last question asked by assistant if waiting for answer
+  const lastAssistantMsg = [...history].reverse().find((h) => h.role === 'assistant')?.content.toLowerCase() || '';
+
+  // 1. Navigation
+  if (lower.includes('billing') || lower.includes('pos') || lower.includes('bill page') || lower.includes('બિલિંગ પેજ')) {
     return {
-      json: { replyText: 'ઓપરેટર! બિલિંગ (POS) પેજ ઓપન કરી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/billing' } },
-      provider: 'Built-in Rule Engine',
+      json: { replyText: 'હાજી! બિલિંગ (POS) પેજ ઓપન કરી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/admin/billing' } },
+      provider: 'Built-in Voice Rule Engine',
     };
   }
-  if (lower.includes('bridal') || lower.includes('wedding') || lower.includes('siders') || lower.includes('rate card')) {
+  if (lower.includes('appointment') || lower.includes('એપોઇન્ટમેન્ટ પેજ')) {
     return {
-      json: { replyText: 'ઓપરેટર! બ્રાઇડલ & ઈવેન્ટ સ્ટુડિયો પેજ ઓપન કરી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/bridal' } },
-      provider: 'Built-in Rule Engine',
+      json: { replyText: 'હાજી! એપોઇન્ટમેન્ટ્સ મેનેજમેન્ટ પેજ ખોલી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/admin/appointments' } },
+      provider: 'Built-in Voice Rule Engine',
     };
   }
-  if (lower.includes('inventory') || lower.includes('stock') || lower.includes('product')) {
+  if (lower.includes('bridal') || lower.includes('બ્રાઇડલ')) {
     return {
-      json: { replyText: 'ઓપરેટર! ઈન્વેન્ટરી & સ્ટોક મેનેજમેન્ટ પેજ ઓપન કરી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/inventory' } },
-      provider: 'Built-in Rule Engine',
+      json: { replyText: 'હાજી! બ્રાઇડલ અને ઇવેન્ટ સ્ટુડિયો પેજ ખોલી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/admin/bridal' } },
+      provider: 'Built-in Voice Rule Engine',
     };
   }
-  if (lower.includes('customer') || lower.includes('client')) {
+  if (lower.includes('inventory') || lower.includes('stock') || lower.includes('સ્ટોક') || lower.includes('સામાન')) {
     return {
-      json: { replyText: 'ઓપરેટર! કસ્ટમર્સ લિસ્ટ પેજ ઓપન કરી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/customers' } },
-      provider: 'Built-in Rule Engine',
+      json: { replyText: 'હાજી! ઇન્વેન્ટરી અને સ્ટોક લિસ્ટ ખોલી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/admin/inventory' } },
+      provider: 'Built-in Voice Rule Engine',
     };
+  }
+  if (lower.includes('expense') || lower.includes('ખર્ચ') || lower.includes('ખર્ચો')) {
+    // If asking to open page
+    if (lower.includes('page') || lower.includes('પેજ') || lower.includes('બતાવો') || lower.includes('ખોલો')) {
+      return {
+        json: { replyText: 'હાજી! ખર્ચ અને પેમેન્ટ્સ પેજ ખોલી રહ્યું છું.', action: 'NAVIGATE', payload: { path: '/admin/expenses' } },
+        provider: 'Built-in Voice Rule Engine',
+      };
+    }
+    // If recording expense
+    const amtMatch = prompt.match(/\d+/);
+    if (amtMatch) {
+      const amount = Number(amtMatch[0]);
+      let category = 'Staff Tea & Refreshments';
+      if (lower.includes('light') || lower.includes('લાઈટ') || lower.includes('electric')) category = 'Electricity & Utilities';
+      if (lower.includes('rent') || lower.includes('ભાડું')) category = 'Rent';
+      return {
+        json: {
+          replyText: `હાજી! ${category} માટે ₹${amount} નો ખર્ચ નોંધી લીધો છે.`,
+          action: 'RECORD_EXPENSE',
+          payload: { category, amount, mode: 'Cash', notes: prompt },
+        },
+        provider: 'Built-in Voice Rule Engine',
+      };
+    } else {
+      return {
+        json: {
+          replyText: 'ખર્ચ નોંધવા માટે કૃપા કરીને રકમ (રૂપિયા) અને ખર્ચની વિગત જણાવો, જેમ કે "ચા નાસ્તો 150 રૂપિયા".',
+          action: 'NONE',
+          payload: {},
+        },
+        provider: 'Built-in Voice Rule Engine',
+      };
+    }
   }
 
-  // 2. Appointment Booking intent
+  // 2. Appointment Booking Slot-Filling & Counter-Questions
   if (lower.includes('book') || lower.includes('appointment') || lower.includes('એપોઇન્ટમેન્ટ')) {
     const mobMatch = prompt.match(/[6-9]\d{9}/);
-    const mobile = mobMatch ? mobMatch[0] : '9898012345';
-    let name = 'Valued Client';
-    if (lower.includes('priya')) name = 'Priya Patel';
-    else if (lower.includes('pooja')) name = 'Pooja Shah';
+    const hasName = prompt.match(/[A-Z][a-z]+/);
+    const customer = hasName ? hasName[0] : (prompt.split(' ')[0] || '');
 
-    return {
-      json: {
-        replyText: `ઓપરેટર! ${name} માટે એપોઇન્ટમેન્ટ બુક થઈ ગઈ છે.`,
-        action: 'CREATE_APPOINTMENT',
-        payload: {
-          customer: name,
-          mobile,
-          service: lower.includes('facial') ? 'Gold Radiance Facial' : 'Hair Cut & Style',
-          date: today,
-          time: '04:00 PM',
-          staff: 'Amita',
+    if (customer.length > 2 && (lower.includes('hair') || lower.includes('facial') || lower.includes('મેકઅપ') || lower.includes('સ્પા'))) {
+      return {
+        json: {
+          replyText: `ચોક્કસ! ${customer} માટે એપોઇન્ટમેન્ટ બુક કરી દીધી છે.`,
+          action: 'CREATE_APPOINTMENT',
+          payload: {
+            customer,
+            mobile: mobMatch ? mobMatch[0] : '9898012345',
+            service: lower.includes('facial') ? 'Hydra Facial' : 'Hair Cut & Style',
+            date: today,
+            time: '04:00 PM',
+          },
         },
-      },
-      provider: 'Built-in Rule Engine',
-    };
+        provider: 'Built-in Voice Rule Engine',
+      };
+    } else {
+      return {
+        json: {
+          replyText: 'ચોક્કસ! કોના નામે એપોઇન્ટમેન્ટ બુક કરવી છે અને કઈ સર્વિસ લેવી છે તે જણાવો.',
+          action: 'NONE',
+          payload: {},
+        },
+        provider: 'Built-in Voice Rule Engine',
+      };
+    }
   }
 
-  // 3. Invoice Generation intent
-  if (lower.includes('create invoice') || lower.includes('make bill') || lower.includes('બિલ બનાવો')) {
-    return {
-      json: {
-        replyText: 'ઓપરેટર! નવું બિલ જનરેટ કરી રહ્યું છું.',
-        action: 'CREATE_INVOICE',
-        payload: {
-          customer: 'Walk-in Client',
-          mobile: '9898012345',
-          lines: [{ name: 'Hydra Deep Cleanse Facial', price: 2500, qty: 1 }],
-          paymentMode: 'GPay UPI',
+  // 3. Billing & Counter-Questions
+  if (lower.includes('bill') || lower.includes('બિલ')) {
+    const amtMatch = prompt.match(/\d+/);
+    if (amtMatch) {
+      const price = Number(amtMatch[0]);
+      return {
+        json: {
+          replyText: `હાજી! ₹${price} નું નવું બિલ બનાવી દીધું છે.`,
+          action: 'CREATE_INVOICE',
+          payload: {
+            customer: 'Walk-in Client',
+            mobile: '9898012345',
+            lines: [{ name: 'Salon Service', price, qty: 1 }],
+            paymentMode: 'GPay UPI',
+          },
         },
-      },
-      provider: 'Built-in Rule Engine',
-    };
+        provider: 'Built-in Voice Rule Engine',
+      };
+    } else {
+      return {
+        json: {
+          replyText: 'ચોક્કસ! કોના નામે બિલ બનાવવું છે અને કઈ સર્વિસ કે પ્રોડક્ટ ઉમેરવી છે?',
+          action: 'NONE',
+          payload: {},
+        },
+        provider: 'Built-in Voice Rule Engine',
+      };
+    }
   }
 
-  // 4. WhatsApp Rate Card PDF intent
-  if (lower.includes('send pdf') || lower.includes('whatsapp pdf') || lower.includes('rate card pdf')) {
-    const mobMatch = prompt.match(/[6-9]\d{9}/);
-    const mobile = mobMatch ? mobMatch[0] : '9898012345';
-    return {
-      json: {
-        replyText: `ઓપરેટર! ${mobile} પર બ્રાઇડલ રેટ કાર્ડ PDF મોકલી રહ્યું છું.`,
-        action: 'SEND_WHATSAPP_PDF',
-        payload: {
-          recipientMobile: mobile,
-          recipientName: 'Client',
-          documentType: 'bridal_rate_card',
-        },
-      },
-      provider: 'Built-in Rule Engine',
-    };
-  }
-
-  // 5. Default Response
+  // 4. Default Interactive Response
   return {
     json: {
-      replyText: 'ઓપરેટર! હું તમને એપોઇન્ટમેન્ટ બુકિંગ, બિલિંગ, ઈન્વેન્ટરી ઉમેરવામાં અને વોટ્સએપ PDF મોકલવામાં મદદ કરી શકું છું.',
+      replyText: 'નમસ્તે! હું શ્રી બ્યુટી સ્ટુડિયોનો AI આસિસ્ટન્ટ છું. તમે મને એપોઇન્ટમેન્ટ બુક કરવા, બિલ બનાવવા, સ્ટોક તપાસવા કે ખર્ચ નોંધવા માટે કંઈપણ કહી શકો છો!',
       action: 'NONE',
       payload: {},
     },
-    provider: 'Built-in Rule Engine',
+    provider: 'Built-in Voice Rule Engine',
   };
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, contextSummary } = body;
+    const { prompt, contextSummary, history } = body;
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
       return NextResponse.json({ success: false, error: 'Prompt is required.' }, { status: 400 });
@@ -254,39 +348,39 @@ export async function POST(req: NextRequest) {
     // Attempt 1: Groq API
     if (groqKey && !groqKey.startsWith('PASTE_')) {
       try {
-        result = await callGroq(prompt, contextSummary || '', groqKey);
+        result = await callGroq(prompt, contextSummary || '', history || [], groqKey);
       } catch (err: any) {
         errors.push(`Groq Error: ${err?.message}`);
       }
     }
 
-    // Attempt 2: NVIDIA NIM API (Fallback if Groq unavailable)
+    // Attempt 2: NVIDIA NIM API
     if (!result && nvidiaKey && !nvidiaKey.startsWith('PASTE_')) {
       try {
-        result = await callNvidiaNim(prompt, contextSummary || '', nvidiaKey);
+        result = await callNvidiaNim(prompt, contextSummary || '', history || [], nvidiaKey);
       } catch (err: any) {
         errors.push(`NVIDIA NIM Error: ${err?.message}`);
       }
     }
 
-    // Attempt 3: Google Gemini API (Fallback if Groq & NVIDIA unavailable)
+    // Attempt 3: Google Gemini API
     if (!result && geminiKey && !geminiKey.startsWith('PASTE_')) {
       try {
-        result = await callGemini(prompt, contextSummary || '', geminiKey);
+        result = await callGemini(prompt, contextSummary || '', history || [], geminiKey);
       } catch (err: any) {
         errors.push(`Gemini Error: ${err?.message}`);
       }
     }
 
-    // Attempt 4: Built-in Rule Engine (Zero key fallback)
+    // Attempt 4: Built-in Conversational Rule Engine
     if (!result) {
-      result = parseRuleEngine(prompt, contextSummary);
+      result = parseRuleEngine(prompt, history || []);
     }
 
     return NextResponse.json({
       success: true,
       provider: result.provider,
-      replyText: result.json?.replyText || 'Task processed successfully.',
+      replyText: result.json?.replyText || 'હાજી, વિગત પ્રોસેસ થઈ ગઈ છે.',
       action: result.json?.action || 'NONE',
       payload: result.json?.payload || {},
       errorsHandled: errors,
@@ -295,7 +389,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: err?.message || 'Error processing AI Copilot task.',
+        error: err?.message || 'Error processing AI Voice Assistant task.',
       },
       { status: 500 }
     );

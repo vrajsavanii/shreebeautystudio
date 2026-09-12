@@ -1913,3 +1913,82 @@ a, button, input, select, textarea {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────
+   AI Salon Copilot & 2-Way Voice Assistant (Compact & Modern)
+   ───────────────────────────────────────────────────────────── */
+.copilot-drawer-window {
+  width: 330px !important;
+  max-width: calc(100vw - 32px) !important;
+  height: 520px !important;
+  max-height: calc(100vh - 120px) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 16px 40px -8px rgba(3, 43, 48, 0.35), 0 0 0 1px rgba(234, 186, 56, 0.25) !important;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+/* Floating Minimized Voice Pill */
+.copilot-voice-pill {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: linear-gradient(135deg, #032b30 0%, #05424a 100%);
+  color: #ffffff;
+  border: 1.5px solid rgba(234, 186, 56, 0.5);
+  border-radius: 99px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 30px rgba(3, 43, 48, 0.45);
+  cursor: pointer;
+  user-select: none;
+}
+
+.copilot-voice-pill.pulse-active {
+  box-shadow: 0 0 0 4px rgba(234, 186, 56, 0.25), 0 10px 30px rgba(3, 43, 48, 0.5);
+  animation: pill-glow 2s infinite ease-in-out;
+}
+
+@keyframes pill-glow {
+  0%, 100% { border-color: rgba(234, 186, 56, 0.5); }
+  50% { border-color: #fef08a; }
+}
+
+/* Audio Waveform Bars */
+.voice-bars {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 18px;
+}
+
+.voice-bar {
+  width: 3px;
+  background: #EABA38;
+  border-radius: 3px;
+  animation: voice-wave 1.2s ease-in-out infinite alternate;
+}
+
+.voice-bar:nth-child(1) { height: 6px; animation-delay: 0.1s; }
+.voice-bar:nth-child(2) { height: 14px; animation-delay: 0.3s; }
+.voice-bar:nth-child(3) { height: 18px; animation-delay: 0.15s; }
+.voice-bar:nth-child(4) { height: 10px; animation-delay: 0.4s; }
+.voice-bar:nth-child(5) { height: 5px; animation-delay: 0.2s; }
+
+@keyframes voice-wave {
+  0% { transform: scaleY(0.4); }
+  100% { transform: scaleY(1.4); }
+}
+
+/* Pulsing Mic Button */
+.mic-pulsing {
+  animation: mic-ripple 1.5s infinite;
+}
+
+@keyframes mic-ripple {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+  70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+
