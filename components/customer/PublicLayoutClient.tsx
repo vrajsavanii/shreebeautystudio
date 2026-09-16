@@ -8,7 +8,7 @@ import { useSalonStore } from '@/lib/store';
 
 export default function PublicLayoutClient({ children }: { children: React.ReactNode }) {
   const { data, updateData } = useSalonStore();
-  const whatsapp = data?.settings?.whatsapp || '919824183769';
+  const whatsapp = data?.settings?.whatsapp || '919773240010';
 
   useEffect(() => {
     fetch('/api/public-data')

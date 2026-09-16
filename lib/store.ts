@@ -54,7 +54,7 @@ export const DEFAULT_USERS: UserAccount[] = [
 export const DEFAULT_DATA: SalonData = {
   settings: {
     salon: 'Shree Beauty Studio',
-    whatsapp: '919824183769',
+    whatsapp: '919773240010',
     open: '10:00',
     close: '19:00',
     address: '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004',
@@ -72,6 +72,8 @@ export const DEFAULT_DATA: SalonData = {
     walletEnabled: true,
     // WhatsApp defaults
     whatsappMode: 'web',
+    whatsappPhoneId: '1313759075154191',
+    whatsappBusinessAccountId: '3350176545369989',
     autoSendPdfWhatsApp: true,
     googleCalendarOwnerEmail: 'bhalanisandip@gmail.com',
   },

@@ -374,7 +374,7 @@ export async function sendBridalRateCardPDFViaWhatsApp(
     }
 
     const recipientName = targetName || 'Valued Client';
-    const messageCaption = `👑 *SHREE BEAUTY STUDIO — BRIDAL & SIDERS PACKAGES* 👑\n\nDear ${recipientName},\nAttached is our official Bridal & Siders Package Price List.\n\n✨ *Bridal Packages* include Makeup, Hairstyle, Jewellery, Lenses, Extensions, Eyelashes & Draping.\n✨ *Siders Packages* include Makeup, Hairstyle & Draping.\n\n📞 Booking WhatsApp: +${salonData?.settings?.whatsapp || '919824183769'}\n💖 *Thank you for choosing ${salon}!*`;
+    const messageCaption = `👑 *SHREE BEAUTY STUDIO — BRIDAL & SIDERS PACKAGES* 👑\n\nDear ${recipientName},\nAttached is our official Bridal & Siders Package Price List.\n\n✨ *Bridal Packages* include Makeup, Hairstyle, Jewellery, Lenses, Extensions, Eyelashes & Draping.\n✨ *Siders Packages* include Makeup, Hairstyle & Draping.\n\n📞 Booking WhatsApp: +${salonData?.settings?.whatsapp || '919773240010'}\n💖 *Thank you for choosing ${salon}!*`;
 
     const res = await fetch('/api/whatsapp/send-pdf', {
       method: 'POST',

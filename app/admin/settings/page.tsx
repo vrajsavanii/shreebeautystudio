@@ -25,7 +25,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const s = data?.settings || {
     salon: 'Shree Beauty Studio',
-    whatsapp: '919824183769',
+    whatsapp: '919773240010',
     open: '10:00',
     close: '19:00',
     address: '',
@@ -360,7 +360,7 @@ export default function SettingsPage() {
                 <input
                   type="tel" className="input" value={s.whatsapp}
                   onChange={(e) => update('whatsapp', e.target.value)}
-                  placeholder="919824183769"
+                  placeholder="919773240010"
                 />
               </div>
               <div className="form-group">
@@ -773,7 +773,7 @@ export default function SettingsPage() {
                     <input
                       type="tel"
                       className="input"
-                      placeholder="Enter 10-digit mobile (e.g. 9824183769)"
+                      placeholder="Enter 10-digit mobile (e.g. 9773240010)"
                       value={testWaMobile}
                       onChange={(e) => setTestWaMobile(e.target.value)}
                       style={{ maxWidth: 280 }}

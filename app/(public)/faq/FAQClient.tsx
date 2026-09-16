@@ -218,7 +218,7 @@ export default function FAQClient() {
                 We couldn&apos;t find any questions matching &ldquo;{search}&rdquo;. Feel free to message us on WhatsApp!
               </p>
               <a
-                href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20have%20a%20question."
+                href="https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20have%20a%20question."
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -357,7 +357,7 @@ export default function FAQClient() {
             }}
           >
             <a
-              href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20have%20a%20question%20about%20your%20services."
+              href="https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20have%20a%20question%20about%20your%20services."
               target="_blank"
               rel="noopener noreferrer"
               style={{

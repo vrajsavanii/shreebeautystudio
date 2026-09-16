@@ -24,8 +24,8 @@ export async function sendDirectWhatsAppMessage(
   try {
     // Server-side execution (API routes, Webhooks)
     if (typeof window === 'undefined') {
-      const phoneId = settings?.whatsappPhoneId || process.env.META_WHATSAPP_PHONE_NUMBER_ID || '1321601881035337';
-      const accessToken = settings?.whatsappAccessToken || process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+      const phoneId = settings?.whatsappPhoneId || process.env.META_WHATSAPP_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || '1313759075154191';
+      const accessToken = settings?.whatsappAccessToken || process.env.META_WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '';
 
       if (!accessToken || accessToken.startsWith('LLM_')) {
         return { success: false, method: 'none', message: 'WhatsApp API access token not configured.' };

@@ -428,7 +428,7 @@ export default function AboutClient() {
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <Phone size={18} style={{ color: '#fef08a', flexShrink: 0 }} />
                 <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)' }}>
-                  +91 98241 83769
+                  +91 97732 40010
                 </span>
               </div>
             </div>
@@ -453,7 +453,7 @@ export default function AboutClient() {
                 <span>Book Appointment Online</span>
               </Link>
               <a
-                href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20know%20more%20about%20your%20studio."
+                href="https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20know%20more%20about%20your%20studio."
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

@@ -1024,7 +1024,7 @@ function BillingContent() {
               Email: shreebeauty.studio22@gmail.com
             </div>
             <div style={{ fontSize: 11, color: '#4b5563', lineHeight: 1.4 }}>
-              Phone / WhatsApp: {data?.settings?.whatsapp ? `${data.settings.whatsapp}, 9825339924` : '9824183769, 9825339924'}
+              Phone / WhatsApp: {data?.settings?.whatsapp ? `${data.settings.whatsapp}, 9825339924` : '9773240010, 9825339924'}
             </div>
           </div>
 

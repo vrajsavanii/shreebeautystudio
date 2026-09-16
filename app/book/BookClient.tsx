@@ -47,7 +47,7 @@ export default function PublicBookingPage() {
   const { data, updateData } = useSalonStore();
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
-  const phone = data?.settings?.whatsapp || '9824183769';
+  const phone = data?.settings?.whatsapp || '9773240010';
   const address = data?.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || [];

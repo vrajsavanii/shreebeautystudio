@@ -51,7 +51,7 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
   const salonEmail = 'shreebeauty.studio22@gmail.com';
   const salonPhone = salonData?.settings?.whatsapp
     ? `${salonData.settings.whatsapp}, 9825339924`
-    : '919824183769, 9825339924';
+    : '919773240010, 9825339924';
 
   const invNo = inv.no.replace(/^INV-/, '');
   const invDate = formatIndianDate(inv.date);
@@ -266,7 +266,7 @@ function buildA4InvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
   const salonEmail = 'shreebeauty.studio22@gmail.com';
   const salonPhone = salonData?.settings?.whatsapp
     ? `${salonData.settings.whatsapp}, 9825339924`
-    : '919824183769, 9825339924';
+    : '919773240010, 9825339924';
 
   const invNo = inv.no.replace(/^INV-/, '');
   const invDate = formatIndianDate(inv.date);

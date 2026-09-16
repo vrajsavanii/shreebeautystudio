@@ -29,7 +29,7 @@ export const FAQ_DATA: FAQEntry[] = [
     category: 'booking',
     question: 'How can I book an appointment?',
     answer:
-      'You can easily book online through our website booking portal by selecting your services, preferred date, and available time slot. You can also message or call us on WhatsApp at +91 98241 83769 for instant booking assistance.',
+      'You can easily book online through our website booking portal by selecting your services, preferred date, and available time slot. You can also message or call us on WhatsApp at +91 97732 40010 for instant booking assistance.',
   },
   {
     category: 'booking',

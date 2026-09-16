@@ -109,7 +109,7 @@ Follow this battle-tested checklist created by the bridal coordinators at **Shre
 
 ### Stage 1: 3 to 6 Months Before (Date Reservation)
 - Finalize your wedding, reception, and haldi timings with your family and astrologer.
-- Contact **Shree Beauty Studio** via WhatsApp (+91 98241 83769) or our online portal to check slot availability.
+- Contact **Shree Beauty Studio** via WhatsApp (+91 97732 40010) or our online portal to check slot availability.
 - Pay your booking deposit to legally lock in your morning or evening date.
 
 ### Stage 2: 2 Months Before (The Style Consultation)
@@ -216,7 +216,7 @@ At **Shree Beauty Studio** in Katargam, Surat, we have welcomed thousands of cli
 ## Convenient Location & Contact
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Operating Hours:** Open 7 Days a Week from 10:00 AM to 7:00 PM
-- **Contact:** WhatsApp / Phone: +91 98241 83769
+- **Contact:** WhatsApp / Phone: +91 97732 40010
     `,
     faq: [
       {

@@ -94,7 +94,7 @@ export default function WhatsAppHubPage() {
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
   const address = data?.settings?.address || 'Surat, Gujarat';
-  const salonPhone = data?.settings?.whatsapp || '919824183769';
+  const salonPhone = data?.settings?.whatsapp || '919773240010';
 
   const customers = data?.customers || [];
   const appointments = data?.appointments || [];
@@ -283,7 +283,7 @@ export default function WhatsAppHubPage() {
 
     if (selectedTemplate === 'payment') {
       const due = Number(templateContext.due.replace(/[^0-9]/g, '')) || 1200;
-      return paymentReminderMessage(clientName, due, salon, '9824183769@okaxis');
+      return paymentReminderMessage(clientName, due, salon, '9773240010@okaxis');
     }
 
     if (selectedTemplate === 'loyalty') {

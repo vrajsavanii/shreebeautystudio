@@ -12,7 +12,7 @@ export default function CustomerFooter() {
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-  const whatsapp = settings?.whatsapp || '919824183769';
+  const whatsapp = settings?.whatsapp || '919773240010';
   const openTime = settings?.open || '10:00';
   const closeTime = settings?.close || '19:00';
 
@@ -29,43 +29,34 @@ export default function CustomerFooter() {
       <div
         className="cust-footer-inner"
         style={{
-          maxWidth: 1280,
+          maxWidth: 1200,
           margin: '0 auto',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
           gap: 40,
-          paddingBottom: 40,
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          marginBottom: 40,
         }}
       >
-        {/* Column 1: Brand */}
+        {/* Column 1: Brand & Bio */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <img
-              src={SHREE_ONLY_LOGO_BASE64}
-              alt={salonName}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '1.5px solid #EABA38',
-              }}
-            />
-            <div>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#ffffff' }}>{salonName}</h3>
-              <p style={{ margin: 0, fontSize: 12, color: '#EABA38', fontWeight: 600 }}>
-                Premium Beauty &amp; Wellness
-              </p>
-            </div>
-          </div>
-          <p style={{ fontSize: 13.5, color: '#94a3b8', lineHeight: 1.6, margin: '0 0 16px' }}>
-            Your destination for luxury bridal makeovers, rejuvenating skin therapies, hair aesthetics, and
-            wellness treatments in Katargam, Surat.
+          <h3
+            style={{
+              fontSize: 20,
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              color: '#ffffff',
+              margin: '0 0 12px',
+              textTransform: 'uppercase',
+            }}
+          >
+            {salonName}
+          </h3>
+          <p style={{ fontSize: 13.5, color: '#94a3b8', lineHeight: 1.7, margin: '0 0 20px' }}>
+            Katargam’s premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 10+ years.
           </p>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <a
-              href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!`}
+              href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20book%20an%20appointment.`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -73,7 +64,7 @@ export default function CustomerFooter() {
                 alignItems: 'center',
                 gap: 6,
                 background: '#25D366',
-                color: '#053320',
+                color: '#ffffff',
                 fontWeight: 700,
                 fontSize: 12.5,
                 padding: '7px 14px',
@@ -85,7 +76,7 @@ export default function CustomerFooter() {
               WhatsApp Us
             </a>
             <a
-              href="tel:+919824183769"
+              href="tel:+919773240010"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -172,8 +163,8 @@ export default function CustomerFooter() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
               <Phone size={16} color="#EABA38" style={{ flexShrink: 0 }} />
-              <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
-                +91 98241 83769
+              <a href="tel:+919773240010" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+                +91 97732 40010
               </a>
             </div>
           </div>

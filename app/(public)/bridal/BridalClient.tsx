@@ -15,7 +15,7 @@ const fadeUp = {
 export default function PublicBridalPage() {
   const { data } = useSalonStore();
   const packages = data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES;
-  const whatsapp = data?.settings?.whatsapp || '919824183769';
+  const whatsapp = data?.settings?.whatsapp || '919773240010';
 
   React.useEffect(() => {
     fetch('/api/public-data')

@@ -148,7 +148,7 @@ export function getAppointmentGoogleCalendarUrl(
     Number(a.advance || 0) > 0 ? `💵 Advance Paid: ₹${a.advance}` : '',
     a.notes ? `📝 Notes: ${a.notes}` : '',
     `\n📍 Studio Address:\n${address}`,
-    `📞 Salon Helpline: +91 9824183769`,
+    `📞 Salon Helpline: +91 97732 40010`,
   ].filter(Boolean).join('\n');
 
   return getGoogleCalendarUrl({
@@ -191,7 +191,7 @@ export function getBridalGoogleCalendarUrl(
     b.venue ? `📍 Venue: ${b.venue}` : `📍 Studio: ${address}`,
     b.totalAmount ? `💰 Package Total: ₹${b.totalAmount}` : '',
     Number(b.advance || 0) > 0 ? `💵 Advance Paid: ₹${b.advance}` : '',
-    `\n📞 Studio Contact: +91 9824183769`,
+    `\n📞 Studio Contact: +91 97732 40010`,
   ].filter(Boolean).join('\n');
 
   return getGoogleCalendarUrl({

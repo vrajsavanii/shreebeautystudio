@@ -36,7 +36,7 @@ export async function processWhatsAppAIMessage(
     lower.includes('package price') ||
     lower.includes('wedding')
   ) {
-    const replyText = `👑 *SHREE BEAUTY STUDIO — BRIDAL RATE CARD* 👑\n\nDear ${recipientName},\nHere is our official 2-Page Bridal & Siders Rate Card PDF.\n\n✨ *Bridal Packages* include Makeup, Hairstyle, Jewellery, Lenses, Extensions & Draping.\n✨ *Siders Packages* include Makeup, Hairstyle & Draping.\n\n📞 Booking WhatsApp: +${salonData.settings?.whatsapp || '919824183769'}\n💖 *Thank you for choosing ${salonName}!*`;
+    const replyText = `👑 *SHREE BEAUTY STUDIO — BRIDAL RATE CARD* 👑\n\nDear ${recipientName},\nHere is our official 2-Page Bridal & Siders Rate Card PDF.\n\n✨ *Bridal Packages* include Makeup, Hairstyle, Jewellery, Lenses, Extensions & Draping.\n✨ *Siders Packages* include Makeup, Hairstyle & Draping.\n\n📞 Booking WhatsApp: +${salonData.settings?.whatsapp || '919773240010'}\n💖 *Thank you for choosing ${salonName}!*`;
 
     let pdfSent = false;
 
@@ -103,7 +103,7 @@ export async function processWhatsAppAIMessage(
   // 3. General AI Response for Salon Inquiries
   let aiReplyText = '';
   if (lower.includes('time') || lower.includes('hour') || lower.includes('open') || lower.includes('સમય')) {
-    aiReplyText = `🌸 *${salonName} Hours* 🌸\nWe are open Monday to Sunday: 09:00 AM – 08:30 PM.\n📞 For instant bookings: +${salonData.settings?.whatsapp || '919824183769'}`;
+    aiReplyText = `🌸 *${salonName} Hours* 🌸\nWe are open Monday to Sunday: 09:00 AM – 08:30 PM.\n📞 For instant bookings: +${salonData.settings?.whatsapp || '919773240010'}`;
   } else if (lower.includes('address') || lower.includes('location') || lower.includes('સરનામું')) {
     aiReplyText = `📍 *${salonName} Location* 📍\nShree Beauty Studio & Bridal Lounge, Ring Road, Surat, Gujarat.\nMap: https://maps.google.com`;
   } else {

@@ -179,7 +179,7 @@ export function buildAppointmentEventPayload(
     a.advance ? `💵 Advance Paid: ₹${a.advance}` : '',
     a.notes ? `📝 Special Notes: ${a.notes}` : '',
     `📍 Location: ${address}`,
-    `📞 Studio Contact: +91 ${settings?.whatsapp || '9824183769'}`,
+    `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
   ].filter(Boolean);
 
   const attendees: Array<{ email: string; displayName?: string }> = [];
@@ -231,7 +231,7 @@ export function buildBridalEventPayload(
     `💰 Total Package: ₹${b.package || 0}`,
     b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
     b.notes ? `📝 Notes: ${b.notes}` : '',
-    `📞 Studio Contact: +91 ${settings?.whatsapp || '9824183769'}`,
+    `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
   ].filter(Boolean);
 
   const attendees: Array<{ email: string; displayName?: string }> = [];

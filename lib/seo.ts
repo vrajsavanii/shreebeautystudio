@@ -11,8 +11,8 @@ const BASE_URL = 'https://shree-beauty-studio.vercel.app';
 export const BUSINESS = {
   name: 'Shree Beauty Studio',
   url: BASE_URL,
-  telephone: '+91-98241-83769',
-  whatsapp: '919824183769',
+  telephone: '+91-97732-40010',
+  whatsapp: '919773240010',
   address: {
     streetAddress: '22, Radhika Society, Opp. Cancer Hospital',
     addressLocality: 'Katargam',

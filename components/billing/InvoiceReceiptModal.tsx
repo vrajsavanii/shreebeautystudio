@@ -54,7 +54,7 @@ export default function InvoiceReceiptModal({
     '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const salonPhone = salonData?.settings?.whatsapp
     ? `${salonData.settings.whatsapp}, 9825339924`
-    : '919824183769, 9825339924';
+    : '919773240010, 9825339924';
   const salonEmail = 'shreebeauty.studio22@gmail.com';
 
   const invNo = invoice.no.replace(/^INV-/, '');
