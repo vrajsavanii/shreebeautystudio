@@ -3,9 +3,11 @@ import BridalClient from './BridalClient';
 import { getBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Luxury Bridal Makeup Packages in Surat — Shree Beauty Studio',
+  title: {
+    absolute: 'Luxury Bridal Makeup Packages | Shree Beauty Studio, Surat',
+  },
   description:
-    'Experience bespoke bridal makeovers in Katargam, Surat. HD bridal makeup, airbrush techniques, luxury saree draping, hair styling, and sider packages. Reserve your wedding date today.',
+    'Bespoke bridal makeovers in Katargam, Surat: HD & Airbrush makeup, Panetar saree draping, and pre-bridal packages. 2,500+ happy Gujarati brides styled.',
   alternates: {
     canonical: '/bridal',
   },

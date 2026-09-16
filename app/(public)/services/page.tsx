@@ -3,9 +3,11 @@ import ServicesClient from './ServicesClient';
 import { getBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Beauty Services & Transparent Pricing — Shree Beauty Studio, Katargam Surat',
+  title: {
+    absolute: 'Beauty Services & Pricing | Shree Beauty Studio, Katargam Surat',
+  },
   description:
-    'Explore 50+ luxury salon services in Katargam, Surat: hair Botox, smoothing, keratin, bridal & party makeup, herbal & Hydra facials, waxing, and pedicures. Transparent prices, book online.',
+    'Explore 50+ luxury salon services in Katargam, Surat: hair Botox, smoothing, bridal makeup, Hydra facials, and Rica waxing. Transparent pricing, book online.',
   alternates: {
     canonical: '/services',
   },

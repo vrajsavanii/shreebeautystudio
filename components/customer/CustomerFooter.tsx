@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Phone, MessageCircle, Heart, Lock, ShieldCheck } from 'lucide-react';
+import { MapPin, Clock, Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram } from 'lucide-react';
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 import { useSalonStore } from '@/lib/store';
 
@@ -9,6 +10,13 @@ export default function CustomerFooter() {
   const currentYear = new Date().getFullYear();
   const { data } = useSalonStore();
   const settings = data?.settings;
+  const [showTop, setShowTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 500);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
@@ -20,12 +28,17 @@ export default function CustomerFooter() {
     <footer
       className="cust-footer"
       style={{
-        background: '#021e22',
+        background: 'linear-gradient(180deg, #021e22 0%, #011619 100%)',
         color: '#ffffff',
-        borderTop: '1px solid rgba(234, 186, 56, 0.2)',
+        borderTop: '2px solid transparent',
+        backgroundImage: 'linear-gradient(180deg, #021e22 0%, #011619 100%)',
+        backgroundClip: 'padding-box',
+        position: 'relative',
         padding: '56px 20px 24px',
       }}
     >
+      {/* Gold top accent line */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent 0%, #EABA38 30%, #f5d87a 50%, #EABA38 70%, transparent 100%)' }} />
       <div
         className="cust-footer-inner"
         style={{
@@ -44,17 +57,21 @@ export default function CustomerFooter() {
               fontSize: 20,
               fontWeight: 800,
               letterSpacing: '0.04em',
-              color: '#ffffff',
               margin: '0 0 12px',
               textTransform: 'uppercase',
+              background: 'linear-gradient(135deg, #EABA38 0%, #f5d87a 50%, #D49B1F 100%)',
+              backgroundSize: '200% 200%',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
             }}
           >
             {salonName}
           </h3>
           <p style={{ fontSize: 13.5, color: '#94a3b8', lineHeight: 1.7, margin: '0 0 20px' }}>
-            Katargam’s premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 10+ years.
+            Katargam's premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 10+ years.
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
             <a
               href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20book%20an%20appointment.`}
               target="_blank"
@@ -63,13 +80,15 @@ export default function CustomerFooter() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                background: '#25D366',
+                background: 'linear-gradient(135deg, #25D366 0%, #1fbe5a 100%)',
                 color: '#ffffff',
                 fontWeight: 700,
                 fontSize: 12.5,
-                padding: '7px 14px',
+                padding: '8px 16px',
                 borderRadius: 99,
                 textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(37,211,102,0.3)',
+                border: '1px solid rgba(255,255,255,0.15)',
               }}
             >
               <MessageCircle size={14} />
@@ -93,6 +112,33 @@ export default function CustomerFooter() {
               <Phone size={14} />
               Call Studio
             </a>
+          </div>
+          {/* Social Media */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <a
+              href="https://www.instagram.com/shreebeautystudio_surat/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Shree Beauty Studio on Instagram"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                color: '#ffffff',
+                textDecoration: 'none',
+                boxShadow: '0 4px 12px rgba(220, 39, 67, 0.35)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px) scale(1.1)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+            >
+              <Instagram size={16} />
+            </a>
+            <span style={{ fontSize: 12, color: '#64748b' }}>@shreebeautystudio_surat</span>
           </div>
         </div>
 
@@ -170,6 +216,38 @@ export default function CustomerFooter() {
           </div>
         </div>
       </div>
+
+      {/* Back to Top */}
+      {showTop && (
+        <button
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Back to top"
+          style={{
+            position: 'fixed',
+            bottom: 90,
+            right: 28,
+            zIndex: 998,
+            width: 42,
+            height: 42,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #05424A 0%, #07505a 100%)',
+            color: '#EABA38',
+            border: '1px solid rgba(234,186,56,0.35)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(5,66,74,0.4)',
+            transition: 'all 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+            animation: 'slide-in-up 0.3s ease',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px) scale(1.08)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+        >
+          <ChevronUp size={18} />
+        </button>
+      )}
 
       {/* Bottom Bar: Copyright & Discreet Staff Portal Link */}
       <div

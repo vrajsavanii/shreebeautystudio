@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Search, Clock, ChevronRight, Sparkles, Filter, Calendar } from 'lucide-react';
-import { getCategoryIcon, getServiceImage } from '@/lib/customer-images';
+import { Search, Clock, Sparkles, Filter, Calendar, ArrowRight } from 'lucide-react';
+import { getCategoryIcon, getServiceImage, getUniqueServiceImageMap } from '@/lib/customer-images';
 import { useSalonStore } from '@/lib/store';
+import { Service } from '@/types/salon';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -18,7 +19,7 @@ function ServicesView() {
   const initialCategory = searchParams.get('category') || 'all';
 
   const { data } = useSalonStore();
-  const services = data?.services || [];
+  const services: Service[] = data?.services || [];
 
   React.useEffect(() => {
     fetch('/api/public-data')
@@ -38,14 +39,26 @@ function ServicesView() {
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'default' | 'price-low' | 'price-high' | 'duration'>('default');
+  const [showStickyBar, setShowStickyBar] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowStickyBar(window.scrollY > 320);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Guaranteed 100% Unique non-repeating image map for all rendered services
+  const serviceImageMap = useMemo(() => {
+    return getUniqueServiceImageMap(services);
+  }, [services]);
 
   const categories = useMemo(() => {
-    return Array.from(new Set(services.map((s) => s.category || 'Special Treatments')));
+    return Array.from(new Set(services.map((s: Service) => s.category || 'Special Treatments')));
   }, [services]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    let list = services.filter((s) => {
+    let list = services.filter((s: Service) => {
       const matchSearch =
         !q ||
         s.name.toLowerCase().includes(q) ||
@@ -55,9 +68,9 @@ function ServicesView() {
       return matchSearch && matchCategory;
     });
 
-    if (sortBy === 'price-low') list.sort((a, b) => a.price - b.price);
-    else if (sortBy === 'price-high') list.sort((a, b) => b.price - a.price);
-    else if (sortBy === 'duration') list.sort((a, b) => a.duration - b.duration);
+    if (sortBy === 'price-low') list.sort((a: Service, b: Service) => a.price - b.price);
+    else if (sortBy === 'price-high') list.sort((a: Service, b: Service) => b.price - a.price);
+    else if (sortBy === 'duration') list.sort((a: Service, b: Service) => a.duration - b.duration);
 
     return list;
   }, [services, search, activeCategory, sortBy]);
@@ -65,27 +78,33 @@ function ServicesView() {
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto', padding: '40px 20px 80px' }}>
       {/* Page Header */}
-      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        style={{ textAlign: 'center', marginBottom: 40 }}
+      >
         <span className="cust-section-badge">
-          <Sparkles size={13} /> Complete Service Menu
+          <Sparkles size={13} style={{ display: 'inline' }} /> Complete Service Menu
         </span>
-        <h1 style={{ fontSize: 'clamp(28px, 5vw, 42px)', fontWeight: 800, color: '#0f172a', margin: '8px 0 12px' }}>
+        <h1 className="display-font" style={{ fontSize: 'clamp(28px, 5vw, 46px)', fontWeight: 700, color: '#0f172a', margin: '8px 0 12px', fontStyle: 'italic' }}>
+          <span style={{ display: 'block', fontSize: '0.55em', fontWeight: 800, color: '#05424A', letterSpacing: '0.02em', fontStyle: 'normal', fontFamily: 'Plus Jakarta Sans, sans-serif', textTransform: 'uppercase', marginBottom: 4 }}>Shree Beauty Studio</span>
           Salon Services &amp; Transparent Pricing
         </h1>
-        <p style={{ fontSize: 15, color: '#64748b', maxWidth: 600, margin: '0 auto' }}>
+        <p style={{ fontSize: 15, color: '#64748b', maxWidth: 600, margin: '0 auto', lineHeight: 1.65 }}>
           Explore our complete collection of {services.length} signature therapies with upfront pricing and duration.
         </p>
-      </div>
+      </motion.div>
 
       {/* Filter Bar */}
       <div
         style={{
           background: '#ffffff',
           borderRadius: 20,
-          border: '1px solid #e2e8f0',
-          padding: '16px 20px',
+          border: '1px solid rgba(5,66,74,0.1)',
+          padding: '18px 20px',
           marginBottom: 32,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+          boxShadow: '0 4px 24px rgba(5,66,74,0.05), 0 1px 4px rgba(0,0,0,0.03)',
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
@@ -155,8 +174,8 @@ function ServicesView() {
           >
             All Services ({services.length})
           </button>
-          {categories.map((cat) => {
-            const count = services.filter((s) => (s.category || 'Special Treatments') === cat).length;
+          {categories.map((cat: string) => {
+            const count = services.filter((s: Service) => (s.category || 'Special Treatments') === cat).length;
             const icon = getCategoryIcon(cat);
             const isAct = activeCategory === cat;
             return (
@@ -216,45 +235,50 @@ function ServicesView() {
             gap: 20,
           }}
         >
-          {filtered.map((s) => {
-            const img = getServiceImage(s.name, s.category);
+          {filtered.map((s: Service) => {
+            const img = serviceImageMap.get(s.id) || getServiceImage(s.name, s.category);
             return (
               <motion.div
                 key={s.id}
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
+                whileHover={{ y: -6, boxShadow: '0 18px 36px rgba(5,66,74,0.1)' }}
+                transition={{ duration: 0.2 }}
                 style={{
                   background: '#ffffff',
-                  borderRadius: 18,
-                  border: '1px solid #e2e8f0',
+                  borderRadius: 20,
+                  border: '1px solid rgba(234, 186, 56, 0.2)',
                   overflow: 'hidden',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  position: 'relative',
                 }}
               >
                 <div style={{ display: 'flex', gap: 16, padding: 18, flex: 1 }}>
-                  <img
-                    src={img}
-                    alt={s.name}
-                    style={{
-                      width: 80,
-                      height: 80,
-                      borderRadius: 14,
-                      objectFit: 'cover',
-                      flexShrink: 0,
-                    }}
-                  />
+                  <div style={{ width: 84, height: 84, borderRadius: 16, overflow: 'hidden', flexShrink: 0, border: '1px solid #f1f5f9' }}>
+                    <img
+                      src={img}
+                      alt={s.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transition: 'transform 0.4s ease',
+                      }}
+                    />
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span
                       style={{
                         fontSize: 11,
-                        fontWeight: 700,
-                        color: '#05424A',
+                        fontWeight: 800,
+                        color: '#b45309',
                         textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
+                        letterSpacing: '0.06em',
+                        display: 'inline-block',
+                        marginBottom: 2,
                       }}
                     >
                       {s.category || 'Special Treatment'}
@@ -265,14 +289,14 @@ function ServicesView() {
                         fontSize: 16,
                         fontWeight: 700,
                         color: '#0f172a',
-                        lineHeight: 1.3,
+                        lineHeight: 1.35,
                       }}
                     >
                       {s.name}
                     </h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#64748b' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={13} /> {s.duration || 30} mins
+                        <Clock size={13} style={{ color: '#05424A' }} /> {s.duration || 30} mins
                       </span>
                     </div>
                   </div>
@@ -280,45 +304,62 @@ function ServicesView() {
 
                 <div
                   style={{
-                    padding: '12px 18px',
-                    background: '#f8fafc',
-                    borderTop: '1px solid #f1f5f9',
+                    padding: '14px 18px',
+                    background: 'linear-gradient(180deg, #fafaf9 0%, #f4f7f6 100%)',
+                    borderTop: '1px solid rgba(234, 186, 56, 0.15)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, display: 'block' }}>
+                    <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em', display: 'block' }}>
                       Price
                     </span>
-                    <span style={{ fontSize: 18, fontWeight: 800, color: '#05424A' }}>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: '#05424A' }}>
                       ₹{s.price.toLocaleString('en-IN')}
                     </span>
                   </div>
 
                   <Link
                     href={`/book?service=${encodeURIComponent(s.name)}`}
+                    className="btn-glow"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 6,
-                      background: '#05424A',
+                      background: 'linear-gradient(135deg, #05424A 0%, #032b30 100%)',
                       color: '#ffffff',
                       fontWeight: 700,
                       fontSize: 12.5,
-                      padding: '8px 16px',
+                      padding: '9px 18px',
                       borderRadius: 99,
                       textDecoration: 'none',
+                      boxShadow: '0 4px 12px rgba(5,66,74,0.25)',
                     }}
                   >
-                    <Calendar size={13} />
-                    <span>Book Slot</span>
+                    <span>Book Now</span>
+                    <ArrowRight size={13} />
                   </Link>
                 </div>
               </motion.div>
             );
           })}
+        </div>
+      )}
+
+      {/* ─── Sticky Bottom Book Bar ─── */}
+      {showStickyBar && (
+        <div className="sticky-book-bar">
+          <p>
+            <strong>{filtered.length}</strong> services available
+            {activeCategory !== 'all' && <> in <strong>{activeCategory}</strong></>}
+            {search && <> matching &ldquo;<strong>{search}</strong>&rdquo;</>}
+          </p>
+          <Link href="/book" className="cust-btn-primary" style={{ fontSize: 13, padding: '10px 22px' }}>
+            <Calendar size={14} />
+            <span>Book Appointment</span>
+          </Link>
         </div>
       )}
     </div>

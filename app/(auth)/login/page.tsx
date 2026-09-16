@@ -110,68 +110,67 @@ function LoginFormContent() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: 'clamp(24px, 4vw, 48px) 16px',
-        background: 'radial-gradient(ellipse at center, #05424A 0%, #021a1d 100%)',
+        background: 'radial-gradient(ellipse at center, #064d57 0%, #03252a 60%, #011619 100%)',
         position: 'relative',
         overflow: 'hidden',
         boxSizing: 'border-box',
         fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
       }}
     >
-      {/* Decorative ambient circles */}
+      {/* Decorative ambient floating orbs */}
       <div
+        className="floating-orb"
         style={{
-          position: 'absolute',
-          top: '10%',
-          left: '6%',
-          width: 220,
-          height: 220,
-          borderRadius: '50%',
-          border: '1px solid rgba(234, 186, 56, 0.18)',
+          top: '5%',
+          left: '8%',
+          width: 380,
+          height: 380,
+          background: 'radial-gradient(circle, rgba(234, 186, 56, 0.15) 0%, transparent 70%)',
           pointerEvents: 'none',
         }}
       />
       <div
+        className="floating-orb floating-orb-2"
         style={{
-          position: 'absolute',
-          bottom: '12%',
+          bottom: '5%',
           right: '8%',
-          width: 160,
-          height: 160,
-          borderRadius: '50%',
-          border: '1px solid rgba(234, 186, 56, 0.12)',
+          width: 440,
+          height: 440,
+          background: 'radial-gradient(circle, rgba(5, 66, 74, 0.5) 0%, transparent 70%)',
           pointerEvents: 'none',
         }}
       />
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        initial={{ opacity: 0, scale: 0.94, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: 'easeOut' }}
+        transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="auth-card"
         style={{
           width: '100%',
-          maxWidth: 440,
+          maxWidth: 450,
           margin: '0 auto',
-          background: 'rgba(255, 255, 255, 0.98)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: 24,
-          padding: 'clamp(28px, 5vw, 40px) clamp(22px, 5vw, 36px)',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(234, 186, 56, 0.25)',
+          background: 'rgba(255, 255, 255, 0.96)',
+          backdropFilter: 'blur(28px)',
+          WebkitBackdropFilter: 'blur(28px)',
+          borderRadius: 28,
+          padding: 'clamp(32px, 5vw, 44px) clamp(24px, 5vw, 38px)',
+          boxShadow: '0 30px 70px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(234, 186, 56, 0.3)',
           position: 'relative',
           zIndex: 10,
           boxSizing: 'border-box',
         }}
       >
         {/* Logo & Header */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ textAlign: 'center', marginBottom: 26 }}>
           <div
+            className="logo-img-wrap"
             style={{
-              width: 76,
-              height: 76,
+              width: 82,
+              height: 82,
               borderRadius: '50%',
-              margin: '0 auto 12px',
-              boxShadow: '0 8px 24px rgba(5, 66, 74, 0.25)',
-              border: '3px solid #EABA38',
+              margin: '0 auto 14px',
+              boxShadow: '0 10px 28px rgba(5, 66, 74, 0.3), 0 0 0 3px #EABA38',
               overflow: 'hidden',
               background: '#ffffff',
               display: 'flex',
@@ -190,17 +189,18 @@ function LoginFormContent() {
             />
           </div>
           <h1
+            className="display-font"
             style={{
-              fontSize: 23,
-              fontWeight: 800,
-              color: '#0f172a',
+              fontSize: 27,
+              fontWeight: 700,
+              color: '#05424A',
               letterSpacing: '-.4px',
               marginBottom: 4,
             }}
           >
             Shree Beauty Studio
           </h1>
-          <p style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>
+          <p style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
             Management Console · Account Sign In
           </p>
         </div>
@@ -210,56 +210,57 @@ function LoginFormContent() {
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: 6,
-            marginBottom: 20,
+            gap: 8,
+            marginBottom: 24,
             background: '#f1f5f9',
-            padding: 4,
-            borderRadius: 12,
+            padding: 5,
+            borderRadius: 14,
+            border: '1px solid #e2e8f0',
           }}
         >
           <button
             type="button"
             onClick={() => handleRoleSelect('Admin')}
             style={{
-              padding: '9px 12px',
-              borderRadius: 9,
+              padding: '10px 14px',
+              borderRadius: 10,
               border: 'none',
-              background: selectedRole === 'Admin' ? '#05424a' : 'transparent',
+              background: selectedRole === 'Admin' ? 'linear-gradient(135deg, #05424a 0%, #032b30 100%)' : 'transparent',
               color: selectedRole === 'Admin' ? '#ffffff' : '#64748b',
-              fontWeight: selectedRole === 'Admin' ? 700 : 500,
-              fontSize: 12.5,
+              fontWeight: selectedRole === 'Admin' ? 700 : 600,
+              fontSize: 13,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
-              boxShadow: selectedRole === 'Admin' ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.15s ease',
+              boxShadow: selectedRole === 'Admin' ? '0 4px 12px rgba(5,66,74,0.25)' : 'none',
+              transition: 'all 0.2s ease',
             }}
           >
-            <ShieldCheck size={15} /> 👑 Admin
+            <ShieldCheck size={16} style={{ color: selectedRole === 'Admin' ? '#eaba38' : 'currentColor' }} /> 👑 Admin
           </button>
           <button
             type="button"
             onClick={() => handleRoleSelect('Salesperson')}
             style={{
-              padding: '9px 12px',
-              borderRadius: 9,
+              padding: '10px 14px',
+              borderRadius: 10,
               border: 'none',
-              background: selectedRole === 'Salesperson' ? '#16a34a' : 'transparent',
+              background: selectedRole === 'Salesperson' ? 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)' : 'transparent',
               color: selectedRole === 'Salesperson' ? '#ffffff' : '#64748b',
-              fontWeight: selectedRole === 'Salesperson' ? 700 : 500,
-              fontSize: 12.5,
+              fontWeight: selectedRole === 'Salesperson' ? 700 : 600,
+              fontSize: 13,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 6,
-              boxShadow: selectedRole === 'Salesperson' ? '0 2px 6px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.15s ease',
+              boxShadow: selectedRole === 'Salesperson' ? '0 4px 12px rgba(22,163,74,0.25)' : 'none',
+              transition: 'all 0.2s ease',
             }}
           >
-            <UserCheck size={15} /> 👤 Salesperson
+            <UserCheck size={16} /> 👤 Salesperson
           </button>
         </div>
 
@@ -273,11 +274,11 @@ function LoginFormContent() {
                 background: '#fef2f2',
                 border: '1px solid #fecaca',
                 color: '#b91c1c',
-                borderRadius: 10,
-                padding: '10px 14px',
-                fontSize: 12.5,
+                borderRadius: 12,
+                padding: '12px 16px',
+                fontSize: 13,
                 fontWeight: 600,
-                marginBottom: 16,
+                marginBottom: 18,
               }}
             >
               {error}
@@ -309,10 +310,10 @@ function LoginFormContent() {
               autoFocus
               style={{
                 width: '100%',
-                padding: '11px 14px',
+                padding: '12px 16px',
                 fontSize: 14,
                 border: '1.5px solid #cbd5e1',
-                borderRadius: 10,
+                borderRadius: 12,
                 background: '#ffffff',
                 color: '#0f172a',
                 outline: 'none',
@@ -322,7 +323,7 @@ function LoginFormContent() {
             />
           </div>
 
-          <div style={{ marginBottom: 22 }}>
+          <div style={{ marginBottom: 24 }}>
             <label
               style={{
                 display: 'block',
@@ -345,10 +346,10 @@ function LoginFormContent() {
                 required
                 style={{
                   width: '100%',
-                  padding: '11px 42px 11px 14px',
+                  padding: '12px 44px 12px 16px',
                   fontSize: 14,
                   border: '1.5px solid #cbd5e1',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   background: '#ffffff',
                   color: '#0f172a',
                   outline: 'none',
@@ -362,7 +363,7 @@ function LoginFormContent() {
                 aria-label={showPass ? 'Hide password' : 'Show password'}
                 style={{
                   position: 'absolute',
-                  right: 12,
+                  right: 14,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'none',
@@ -374,24 +375,25 @@ function LoginFormContent() {
                   padding: 0,
                 }}
               >
-                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
           </div>
 
           <motion.button
             type="submit"
+            className="btn-glow"
             style={{
               width: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              padding: '12px 20px',
+              padding: '13px 22px',
               fontSize: 14.5,
-              fontWeight: 700,
+              fontWeight: 800,
               color: '#ffffff',
-              borderRadius: 12,
+              borderRadius: 14,
               border: 'none',
               background:
                 selectedRole === 'Salesperson'
@@ -399,8 +401,8 @@ function LoginFormContent() {
                   : 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
               boxShadow:
                 selectedRole === 'Salesperson'
-                  ? '0 8px 20px rgba(22, 163, 74, 0.25)'
-                  : '0 8px 20px rgba(5, 66, 74, 0.25)',
+                  ? '0 8px 24px rgba(22, 163, 74, 0.35)'
+                  : '0 8px 24px rgba(5, 66, 74, 0.35)',
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.75 : 1,
               transition: 'all 0.2s ease',

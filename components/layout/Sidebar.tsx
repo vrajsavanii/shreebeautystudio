@@ -55,18 +55,19 @@ export default function Sidebar() {
     <nav className="sidebar no-print">
       {/* Logo */}
       <div className="sidebar-logo">
-        <img
-          src={SHREE_ONLY_LOGO_BASE64}
-          alt={salonName}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: '50%',
-            objectFit: 'cover',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            border: '2px solid rgba(234,186,56,.4)',
-          }}
-        />
+        <div className="logo-img-wrap sidebar-avatar-glow">
+          <img
+            src={SHREE_ONLY_LOGO_BASE64}
+            alt={salonName}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        </div>
         <div>
           <div className="sidebar-logo-title">{salonName}</div>
           <div className="sidebar-logo-sub">
@@ -79,14 +80,16 @@ export default function Sidebar() {
       <div
         style={{
           margin: '0 12px 12px',
-          padding: '8px 12px',
-          borderRadius: 8,
-          background: isSalesperson ? 'rgba(22, 163, 74, 0.15)' : 'rgba(234, 186, 56, 0.15)',
-          border: isSalesperson ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(234, 186, 56, 0.3)',
+          padding: '10px 12px',
+          borderRadius: 12,
+          background: isSalesperson ? 'rgba(22, 163, 74, 0.12)' : 'linear-gradient(135deg, rgba(234,186,56,0.18) 0%, rgba(234,186,56,0.08) 100%)',
+          border: isSalesperson ? '1px solid rgba(34, 197, 94, 0.3)' : '1px solid rgba(234, 186, 56, 0.35)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           color: '#fff',
+          backdropFilter: 'blur(8px)',
+          boxShadow: isSalesperson ? 'none' : '0 2px 12px rgba(234,186,56,0.08)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -96,10 +99,10 @@ export default function Sidebar() {
             <ShieldCheck size={16} color="#fde047" />
           )}
           <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.01em' }}>
               {currentUser?.name || 'Studio Owner'}
             </div>
-            <div style={{ fontSize: 10, opacity: 0.8, color: isSalesperson ? '#4ade80' : '#fde047' }}>
+            <div style={{ fontSize: 10, opacity: 0.85, color: isSalesperson ? '#4ade80' : '#fde047', marginTop: 1 }}>
               {isSalesperson ? '👤 Salesperson' : '👑 Admin / Owner'}
             </div>
           </div>
@@ -109,16 +112,20 @@ export default function Sidebar() {
           onClick={handleLogout}
           title="Sign Out / Lock Admin"
           style={{
-            background: 'none',
-            border: 'none',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 6,
             color: 'rgba(255,255,255,0.7)',
             cursor: 'pointer',
-            padding: 4,
+            padding: '4px 6px',
             display: 'flex',
             alignItems: 'center',
+            transition: 'all 0.15s ease',
           }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(220,38,38,0.25)'; (e.currentTarget as HTMLButtonElement).style.color = '#f87171'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)'; }}
         >
-          <LogOut size={14} />
+          <LogOut size={13} />
         </button>
       </div>
 

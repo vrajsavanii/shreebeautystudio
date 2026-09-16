@@ -4,9 +4,11 @@ import { FAQ_DATA } from './faq-data';
 import { getFAQSchema, getBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Frequently Asked Questions (FAQ) — Shree Beauty Studio Katargam Surat',
+  title: {
+    absolute: 'Frequently Asked Questions (FAQ) | Shree Beauty Studio, Surat',
+  },
   description:
-    'Got questions about salon timings, bridal packages, hair Botox, keratin treatments, skin facials, or booking policies in Katargam, Surat? Read our comprehensive FAQ.',
+    'Questions about salon timings, bridal packages, hair Botox, facials, or booking policies in Katargam, Surat? Read our comprehensive client FAQ guide.',
   alternates: {
     canonical: '/faq',
   },

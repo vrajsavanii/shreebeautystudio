@@ -38,11 +38,11 @@ export default function PublicBridalPage() {
 
   return (
     <div style={{ paddingBottom: 80 }}>
-      {/* ─── HERO ──────────────────────────────────────────────── */}
+      {/* ─── HERO ────────────────────────────────────────── */}
       <section
         style={{
           position: 'relative',
-          minHeight: '55vh',
+          minHeight: '60vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -51,45 +51,70 @@ export default function PublicBridalPage() {
           backgroundPosition: 'center',
           color: '#ffffff',
           padding: '60px 20px',
+          overflow: 'hidden',
         }}
       >
+        {/* Floating orbs */}
+        <div className="floating-orb floating-orb-gold" style={{ width: 500, height: 500, top: '-20%', right: '-10%' }} />
+        <div className="floating-orb floating-orb-white" style={{ width: 300, height: 300, bottom: '10%', left: '-5%' }} />
+
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(135deg, rgba(3, 43, 48, 0.94) 0%, rgba(5, 66, 74, 0.88) 50%, rgba(10, 14, 17, 0.92) 100%)',
+            background: 'linear-gradient(135deg, rgba(3, 43, 48, 0.95) 0%, rgba(5, 66, 74, 0.88) 50%, rgba(10, 14, 17, 0.92) 100%)',
           }}
         />
         <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 760, margin: '0 auto' }}>
-          <div
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              background: 'rgba(234, 186, 56, 0.2)',
-              border: '1px solid rgba(234, 186, 56, 0.4)',
-              padding: '6px 16px',
+              background: 'rgba(234, 186, 56, 0.18)',
+              border: '1px solid rgba(234, 186, 56, 0.45)',
+              padding: '6px 18px',
               borderRadius: 99,
               color: '#fef08a',
               fontSize: 13,
               fontWeight: 700,
-              marginBottom: 16,
+              marginBottom: 20,
+              backdropFilter: 'blur(8px)',
             }}
           >
             <Sparkles size={14} />
             <span>Couture Bridal Lounge · Katargam, Surat</span>
-          </div>
+          </motion.div>
 
-          <h1 style={{ fontSize: 'clamp(32px, 5vw, 50px)', fontWeight: 800, margin: '0 0 16px', letterSpacing: '-0.5px' }}>
-            Bridal &amp; Siders Makeover Packages
-          </h1>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.88)', lineHeight: 1.6, margin: '0 auto 28px' }}>
+          <motion.h1
+            className="display-font"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+            style={{ fontSize: 'clamp(32px, 5vw, 54px)', fontWeight: 700, margin: '0 0 16px', fontStyle: 'italic' }}
+          >
+            <span className="gradient-text">Bridal &amp; Siders</span> Makeover Packages
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            style={{ fontSize: 16, color: 'rgba(255,255,255,0.88)', lineHeight: 1.65, margin: '0 auto 32px', maxWidth: 580 }}
+          >
             Transform into the bride of your dreams with bespoke luxury cosmetics, certified hair stylists,
             and flawless draping that stays radiant all day.
-          </p>
+          </motion.p>
 
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/book" className="cust-btn-primary">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+            style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}
+          >
+            <Link href="/book" className="cust-btn-primary btn-glow">
               <Calendar size={15} />
               <span>Book Bridal Consultation</span>
             </Link>
@@ -101,15 +126,15 @@ export default function PublicBridalPage() {
               <Download size={15} />
               <span>Download Official PDF Rate Card</span>
             </a>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* ─── BRIDAL PACKAGES ──────────────────────────────────── */}
+      {/* ─── BRIDAL PACKAGES ─────────────────────────────── */}
       <section style={{ maxWidth: 1280, margin: '60px auto 0', padding: '0 20px' }}>
         <div className="cust-section-header">
           <span className="cust-section-badge">Bridal Packages</span>
-          <h2>For The Bride (Full Multi-Session Couture)</h2>
+          <h2 className="display-font" style={{ fontStyle: 'italic' }}>For The Bride (Full Multi-Session Couture)</h2>
           <p>
             Includes full HD/Airbrush makeup, signature hairstyling, premium jewelry set matching, colored lenses,
             hair extensions, false eyelashes, fresh hair decor &amp; designer saree/lehenga draping.
@@ -130,48 +155,53 @@ export default function PublicBridalPage() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
+              whileHover={{ y: -8, boxShadow: '0 24px 45px rgba(5,66,74,0.15)' }}
+              transition={{ duration: 0.25 }}
               style={{
                 background: '#ffffff',
-                borderRadius: 22,
-                border: '1.5px solid #e2e8f0',
-                padding: 26,
+                borderRadius: 24,
+                border: '1.5px solid rgba(234, 186, 56, 0.35)',
+                padding: 28,
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
                 position: 'relative',
+                overflow: 'hidden',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span
                   style={{
-                    background: 'rgba(5,66,74,0.08)',
-                    color: '#05424A',
+                    background: 'rgba(234, 186, 56, 0.15)',
+                    color: '#b45309',
                     fontSize: 12,
-                    fontWeight: 700,
-                    padding: '4px 12px',
+                    fontWeight: 800,
+                    padding: '5px 14px',
                     borderRadius: 99,
                     textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    border: '1px solid rgba(234, 186, 56, 0.3)',
                   }}
                 >
-                  {pkg.sessions} Sessions Included
+                  ✨ {pkg.sessions} Sessions Included
                 </span>
-                <Heart size={16} color="#EABA38" fill="#EABA38" />
+                <Heart size={18} color="#EABA38" fill="#EABA38" />
               </div>
 
-              <h3 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>
+              <h3 className="display-font" style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: '#05424A' }}>
                 {pkg.name}
               </h3>
 
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#05424A', margin: '10px 0 16px' }}>
-                ₹{pkg.price.toLocaleString('en-IN')}{' '}
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#05424A', margin: '10px 0 16px' }}>
+                <span className="gold-text-shimmer">₹{pkg.price.toLocaleString('en-IN')}</span>{' '}
                 <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>/ {pkg.sessions} sessions</span>
               </div>
 
-              <div style={{ flex: 1, marginBottom: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8 }}>
+              <div style={{ flex: 1, marginBottom: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 8, letterSpacing: '0.04em' }}>
                   Package Inclusions:
                 </div>
-                <p style={{ margin: 0, fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>
+                <p style={{ margin: 0, fontSize: 13.5, color: '#475569', lineHeight: 1.65 }}>
                   {pkg.includes}
                 </p>
               </div>
@@ -179,6 +209,7 @@ export default function PublicBridalPage() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <Link
                   href={`/book?bridal=${encodeURIComponent(pkg.name)}`}
+                  className="btn-glow"
                   style={{
                     flex: 1,
                     display: 'flex',
@@ -188,15 +219,16 @@ export default function PublicBridalPage() {
                     background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
                     color: '#ffffff',
                     fontWeight: 700,
-                    fontSize: 13.5,
-                    padding: '11px 16px',
-                    borderRadius: 12,
+                    fontSize: 14,
+                    padding: '12px 18px',
+                    borderRadius: 14,
                     textDecoration: 'none',
                     textAlign: 'center',
+                    boxShadow: '0 4px 14px rgba(5,66,74,0.25)',
                   }}
                 >
-                  <Calendar size={14} />
-                  <span>Book Now</span>
+                  <Calendar size={15} />
+                  <span>Book Consultation</span>
                 </Link>
                 <a
                   href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hi Shree Beauty Studio, I'm interested in the Bridal Package: ${pkg.name}. Can we discuss availability?`)}`}
@@ -206,11 +238,12 @@ export default function PublicBridalPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '11px 14px',
-                    borderRadius: 12,
+                    padding: '12px 16px',
+                    borderRadius: 14,
                     background: '#25D366',
-                    color: '#053320',
+                    color: '#ffffff',
                     textDecoration: 'none',
+                    boxShadow: '0 4px 14px rgba(37,211,102,0.25)',
                   }}
                   title="Inquire on WhatsApp"
                 >
@@ -236,7 +269,7 @@ export default function PublicBridalPage() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 20,
+            gap: 22,
           }}
         >
           {siders.map((pkg) => (
@@ -246,42 +279,47 @@ export default function PublicBridalPage() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
+              whileHover={{ y: -6, boxShadow: '0 16px 32px rgba(5,66,74,0.1)' }}
+              transition={{ duration: 0.2 }}
               style={{
                 background: '#ffffff',
                 borderRadius: 20,
-                border: '1px solid #e2e8f0',
-                padding: 22,
+                border: '1.5px solid rgba(234, 186, 56, 0.25)',
+                padding: 24,
                 display: 'flex',
                 flexDirection: 'column',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.03)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+                transition: 'all 0.2s ease',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span
                   style={{
                     background: 'rgba(234,186,56,0.15)',
-                    color: '#c49821',
+                    color: '#b45309',
                     fontSize: 11,
-                    fontWeight: 700,
-                    padding: '3px 10px',
+                    fontWeight: 800,
+                    padding: '4px 12px',
                     borderRadius: 99,
                     textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    border: '1px solid rgba(234,186,56,0.3)',
                   }}
                 >
                   Siders Single Session
                 </span>
               </div>
 
-              <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: 19, fontWeight: 800, color: '#0f172a' }}>
                 {pkg.name}
               </h3>
 
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#05424A', margin: '8px 0 12px' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#05424A', margin: '8px 0 12px' }}>
                 ₹{pkg.price.toLocaleString('en-IN')}{' '}
                 <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>/ person</span>
               </div>
 
-              <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b', flex: 1, lineHeight: 1.5 }}>
+              <p style={{ margin: '0 0 18px', fontSize: 13, color: '#64748b', flex: 1, lineHeight: 1.55 }}>
                 {pkg.includes}
               </p>
 
@@ -292,17 +330,19 @@ export default function PublicBridalPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  background: '#f1f5f9',
+                  background: 'linear-gradient(135deg, rgba(5,66,74,0.08) 0%, rgba(234,186,56,0.12) 100%)',
                   color: '#05424A',
                   fontWeight: 700,
                   fontSize: 13,
-                  padding: '9px 14px',
-                  borderRadius: 10,
+                  padding: '11px 16px',
+                  borderRadius: 12,
                   textDecoration: 'none',
                   textAlign: 'center',
+                  border: '1px solid rgba(5,66,74,0.15)',
+                  transition: 'all 0.2s ease',
                 }}
               >
-                <Calendar size={13} />
+                <Calendar size={14} />
                 <span>Book This Sider Look</span>
               </Link>
             </motion.div>

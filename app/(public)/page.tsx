@@ -3,9 +3,11 @@ import HomePageClient from './HomePageClient';
 import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Shree Beauty Studio — Luxury Salon & Bridal Makeup in Katargam, Surat',
+  title: {
+    absolute: 'Shree Beauty Studio — Luxury Salon & Bridal Makeup in Katargam, Surat',
+  },
   description:
-    'Surat’s premier ladies beauty salon & bridal makeup studio in Katargam. 10+ years of trusted excellence in bridal makeovers, HD & airbrush makeup, hair Botox, keratin, and customized skincare facials. Book online or visit us today.',
+    'Surat’s premier ladies beauty salon & bridal studio in Katargam. 10+ years excellence in HD bridal makeup, hair Botox, and facials. 100% ladies-only sanctuary.',
   alternates: {
     canonical: '/',
   },

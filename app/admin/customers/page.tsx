@@ -400,7 +400,7 @@ export default function CustomersPage() {
           >
             <Mail size={14} /> Email Campaign
           </button>
-          <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
+          <motion.button className="btn btn-primary btn-glow" onClick={openNew} whileTap={{ scale: 0.97 }}>
             <Plus size={15} /> Add Customer
           </motion.button>
         </div>

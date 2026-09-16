@@ -7,8 +7,8 @@ import {
   Calendar, Clock, MapPin, Phone, Star, ChevronRight, Award,
   ShieldCheck, Heart, Sparkles, MessageCircle, Gem, ArrowRight
 } from 'lucide-react';
-import { customerImages, getServiceImage, getCategoryIcon } from '@/lib/customer-images';
-import { useSalonStore, DEFAULT_BRIDAL_PACKAGES } from '@/lib/store';
+import { customerImages, getServiceImage, getCategoryIcon, getCategoryImage } from '@/lib/customer-images';
+import { useSalonStore, DEFAULT_BRIDAL_PACKAGES, DEFAULT_DATA } from '@/lib/store';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -213,11 +213,31 @@ const GOOGLE_REVIEWS = [
   },
 ];
 
+// Category Descriptions & Taglines
+const CATEGORY_META: Record<string, { tagline: string; description: string }> = {
+  'Hair Care & Styling': {
+    tagline: 'Couture Styling & Repair',
+    description: 'Precision haircuts, restorative hair spas, Keratin smoothing, and Nanoplastia treatments tailored for Surat weather.',
+  },
+  'Skin Care & Facials': {
+    tagline: 'Dermatological Radiance',
+    description: 'Herbal cleanups, Hydra Facials, Gold & Diamond glow therapies that reverse humidity dullness and sun tan.',
+  },
+  'Waxing & Threading': {
+    tagline: 'Gentle & Painless Grooming',
+    description: 'Ultra-gentle Italian Rica peel-off wax, natural honey wax, and painless threading by senior estheticians.',
+  },
+  'Hands, Feet & Nails': {
+    tagline: 'Luxury Podiatry & Nail Art',
+    description: 'Relaxing rose petal pedicures, French manicures, and lasting builder gel nail extensions with custom art.',
+  },
+};
+
 export default function PublicHomePage() {
   const { data } = useSalonStore();
   const settings = data?.settings;
-  const services = data?.services || [];
-  const bridalPackages = data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES;
+  const services = (data?.services && data.services.length > 0) ? data.services : DEFAULT_DATA.services;
+  const bridalPackages = (data?.bridalPackages && data.bridalPackages.length > 0) ? data.bridalPackages : DEFAULT_BRIDAL_PACKAGES;
 
   React.useEffect(() => {
     fetch('/api/public-data')
@@ -248,25 +268,35 @@ export default function PublicHomePage() {
       {/* ─── HERO SECTION ────────────────────────────────────────── */}
       <section
         className="cust-hero"
-        style={{
-          backgroundImage: `url(${customerImages.hero.main})`,
-        }}
+        style={{ backgroundImage: `url(${customerImages.hero.main})` }}
       >
+        {/* Floating decorative orbs */}
+        <div className="floating-orb floating-orb-gold" style={{ width: 400, height: 400, top: '-10%', left: '-5%' }} />
+        <div className="floating-orb floating-orb-teal" style={{ width: 500, height: 500, bottom: '-15%', right: '-10%' }} />
+        <div className="floating-orb floating-orb-white" style={{ width: 300, height: 300, top: '30%', right: '15%' }} />
+
         <div className="cust-hero-overlay" />
         <div className="cust-hero-content">
           <motion.div
             initial="hidden"
             animate="visible"
             variants={fadeUp}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(234, 186, 56, 0.2)', border: '1px solid rgba(234, 186, 56, 0.4)', padding: '6px 16px', borderRadius: 99, color: '#fef08a', fontSize: 13, fontWeight: 700, marginBottom: 12 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(234, 186, 56, 0.18)', border: '1px solid rgba(234, 186, 56, 0.45)', padding: '6px 18px', borderRadius: 99, color: '#fef08a', fontSize: 13, fontWeight: 700, marginBottom: 16, backdropFilter: 'blur(8px)' }}
           >
             <Sparkles size={14} />
             <span>Katargam, Surat · Luxury Salon &amp; Bridal Studio</span>
           </motion.div>
 
-          <motion.h1 initial="hidden" animate="visible" variants={fadeUp}>
-            Where Elegance Meets Excellence
-            <span style={{ display: 'block', fontSize: 'clamp(1rem, 2.2vw, 1.35rem)', fontWeight: 500, color: 'rgba(255,255,255,0.9)', marginTop: 8, letterSpacing: '0.01em', textTransform: 'none' }}>
+          <motion.h1
+            className="display-font"
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            style={{ fontWeight: 700, fontSize: 'clamp(36px, 6vw, 68px)' }}
+          >
+            <span className="gradient-text">Where Elegance</span>
+            {' '}Meets Excellence
+            <span style={{ display: 'block', fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 'clamp(1rem, 2.2vw, 1.35rem)', fontWeight: 500, color: 'rgba(255,255,255,0.88)', marginTop: 10, letterSpacing: '0.01em', textTransform: 'none' }}>
               Premier Beauty Salon &amp; Bridal Makeup Studio in Katargam, Surat
             </span>
           </motion.h1>
@@ -277,7 +307,7 @@ export default function PublicHomePage() {
           </motion.p>
 
           <motion.div className="cust-hero-actions" initial="hidden" animate="visible" variants={fadeUp}>
-            <Link href="/book" className="cust-btn-primary">
+            <Link href="/book" className="cust-btn-primary btn-glow">
               <Calendar size={16} />
               <span>Book Appointment Online</span>
             </Link>
@@ -293,14 +323,15 @@ export default function PublicHomePage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 8,
-                background: '#25D366',
+                background: 'linear-gradient(135deg, #25D366 0%, #1fbe5a 100%)',
                 color: '#053320',
                 fontWeight: 700,
                 fontSize: 14.5,
                 padding: '13px 22px',
                 borderRadius: 99,
                 textDecoration: 'none',
-                boxShadow: '0 8px 24px rgba(37, 211, 102, 0.35)',
+                boxShadow: '0 8px 24px rgba(37, 211, 102, 0.4)',
+                border: '1px solid rgba(255,255,255,0.2)',
               }}
             >
               <MessageCircle size={16} />
@@ -312,9 +343,9 @@ export default function PublicHomePage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
             style={{
-              marginTop: 36,
+              marginTop: 40,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -324,57 +355,56 @@ export default function PublicHomePage() {
               color: 'rgba(255,255,255,0.85)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
               <div style={{ display: 'flex', color: '#EABA38' }}>
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={14} fill="#EABA38" />
+                  <Star key={i} size={12} fill="#EABA38" />
                 ))}
               </div>
-              <span style={{ fontWeight: 700 }}>4.9/5 Rating</span>
-              <span style={{ opacity: 0.7 }}>(150+ Google Reviews)</span>
+              <span style={{ fontWeight: 700 }}>4.9 Google Rating</span>
             </div>
-            <span>•</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Award size={15} color="#EABA38" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
+              <Award size={13} color="#EABA38" />
               <span>10+ Years Experience</span>
             </div>
-            <span>•</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ShieldCheck size={15} color="#EABA38" />
-              <span>100% Genuine Luxury Products</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
+              <ShieldCheck size={13} color="#EABA38" />
+              <span>Genuine Luxury Products</span>
             </div>
           </motion.div>
+        </div>
+
+        {/* Scroll down cue */}
+        <div className="cust-hero-scroll-cue">
+          <span>Scroll</span>
+          <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }} />
         </div>
       </section>
 
       {/* ─── STATS & TRUST STRIP ─────────────────────────────────── */}
-      <div style={{ background: '#021e22', color: '#ffffff', borderBottom: '1px solid rgba(234, 186, 56, 0.2)' }}>
-        <div
-          style={{
-            maxWidth: 1280,
-            margin: '0 auto',
-            padding: '24px 20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 20,
-            textAlign: 'center',
-          }}
-        >
+      <div className="cust-stats-strip">
+        <div className="cust-stat-item">
           <div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#EABA38' }}>5,000+</div>
-            <div style={{ fontSize: 12.5, color: '#94a3b8', fontWeight: 600 }}>Happy Brides &amp; Clients</div>
+            <div className="cust-stat-number">5,000+</div>
+            <div className="cust-stat-label">Happy Brides &amp; Clients</div>
           </div>
+        </div>
+        <div className="cust-stat-item">
           <div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#EABA38' }}>10+</div>
-            <div style={{ fontSize: 12.5, color: '#94a3b8', fontWeight: 600 }}>Years of Aesthetic Mastery</div>
+            <div className="cust-stat-number">10+</div>
+            <div className="cust-stat-label">Years of Aesthetic Mastery</div>
           </div>
+        </div>
+        <div className="cust-stat-item">
           <div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#EABA38' }}>50+</div>
-            <div style={{ fontSize: 12.5, color: '#94a3b8', fontWeight: 600 }}>Signature Salon Treatments</div>
+            <div className="cust-stat-number">4.9★</div>
+            <div className="cust-stat-label">Google Rating</div>
           </div>
+        </div>
+        <div className="cust-stat-item">
           <div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#EABA38' }}>100%</div>
-            <div style={{ fontSize: 12.5, color: '#94a3b8', fontWeight: 600 }}>Hygienic &amp; Sterilized Equipment</div>
+            <div className="cust-stat-number">50+</div>
+            <div className="cust-stat-label">Signature Treatments</div>
           </div>
         </div>
       </div>
@@ -382,8 +412,10 @@ export default function PublicHomePage() {
       {/* ─── FEATURED SERVICES BENTO GRID ───────────────────────── */}
       <section className="cust-section">
         <div className="cust-section-header">
-          <span className="cust-section-badge">Signature Menu</span>
-          <h2>Luxury Beauty &amp; Wellness Services</h2>
+          <span className="cust-section-badge">
+            <Sparkles size={12} style={{ display: 'inline' }} /> Signature Menu
+          </span>
+          <h2 className="display-font" style={{ fontStyle: 'italic' }}>Luxury Beauty &amp; Wellness Services</h2>
           <p>
             From advanced skin rejuvenation to couture hair aesthetics, every treatment is tailored to
             your individual beauty goals.
@@ -391,7 +423,7 @@ export default function PublicHomePage() {
         </div>
 
         <motion.div
-          className="cust-bento-grid"
+          className="cust-bento-grid-v2"
           variants={stagger}
           initial="hidden"
           whileInView="visible"
@@ -399,73 +431,70 @@ export default function PublicHomePage() {
         >
           {categories.map((cat) => {
             const catServices = services.filter((s) => (s.category || 'Special Treatments') === cat);
-            const sample = catServices[0];
             const icon = getCategoryIcon(cat);
-            const img = getServiceImage(sample?.name || cat, cat);
+            const img = getCategoryImage(cat);
+            const minPrice = catServices.reduce((min, s) => (s.price < min ? s.price : min), catServices[0]?.price || 299);
+            const meta = CATEGORY_META[cat] || {
+              tagline: 'Signature Treatment',
+              description: 'Professional salon therapies tailored to your unique hair and skin profile in Surat.',
+            };
 
             return (
-              <motion.div key={cat} className="cust-bento-card" variants={fadeUp}>
-                <div style={{ position: 'relative' }}>
-                  <img src={img} alt={cat} className="cust-bento-img" loading="lazy" />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 14,
-                      left: 14,
-                      background: 'rgba(3, 43, 48, 0.85)',
-                      backdropFilter: 'blur(8px)',
-                      color: '#ffffff',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      padding: '4px 12px',
-                      borderRadius: 99,
-                      border: '1px solid rgba(234, 186, 56, 0.4)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                    }}
-                  >
+              <motion.div
+                key={cat}
+                className="cust-bento-card-v2"
+                variants={fadeUp}
+              >
+                {/* 1. Media Area */}
+                <div className="card-media-box">
+                  <img src={img} alt={cat} loading="lazy" />
+                  <div className="card-media-overlay" />
+                  <div className="card-cat-badge">
                     <span>{icon}</span>
                     <span>{cat}</span>
                   </div>
+                  <div className="card-price-badge">
+                    Starts ₹{minPrice.toLocaleString('en-IN')}
+                  </div>
                 </div>
 
-                <div className="cust-bento-body">
-                  <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#0f172a' }}>
-                    {cat}
-                  </h3>
-                  <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b', lineHeight: 1.5, flex: 1 }}>
-                    {sample?.description || `Professional ${cat.toLowerCase()} personalized for your skin & hair type.`}
-                  </p>
+                {/* 2. Content Area */}
+                <div className="card-content-box">
+                  <div className="card-header-meta">
+                    <div className="card-tagline">{meta.tagline}</div>
+                    <h3 className="card-title">{cat}</h3>
+                    <p className="card-description">{meta.description}</p>
+                  </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
-                    <div>
-                      <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600, display: 'block' }}>
-                        Starts from
-                      </span>
-                      <span style={{ fontSize: 17, fontWeight: 800, color: '#05424A' }}>
-                        ₹{sample?.price ? sample.price.toLocaleString('en-IN') : '299'}
-                      </span>
-                    </div>
+                  {/* 3. Top Popular Treatments List */}
+                  <div className="card-service-items">
+                    {catServices.slice(0, 3).map((s) => (
+                      <div key={s.id || s.name} className="card-service-row">
+                        <div className="service-name">
+                          <span className="dot">✦</span>
+                          <span title={s.name}>{s.name}</span>
+                        </div>
+                        <span className="service-price">₹{s.price.toLocaleString('en-IN')}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 4. Action Bar */}
+                  <div className="card-action-bar">
+                    <Link
+                      href={`/services?category=${encodeURIComponent(cat)}`}
+                      className="view-all-link"
+                    >
+                      <span>{catServices.length > 3 ? `+${catServices.length - 3} More` : 'View Menu'}</span>
+                      <ArrowRight size={13} />
+                    </Link>
 
                     <Link
-                      href={`/book?service=${encodeURIComponent(sample?.name || cat)}`}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        background: '#05424A',
-                        color: '#ffffff',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        padding: '7px 14px',
-                        borderRadius: 99,
-                        textDecoration: 'none',
-                        transition: 'background 0.15s ease',
-                      }}
+                      href={`/book?service=${encodeURIComponent(catServices[0]?.name || cat)}`}
+                      className="book-service-btn btn-glow"
                     >
-                      <span>Book</span>
-                      <ChevronRight size={14} />
+                      <Calendar size={13} />
+                      <span>Book Now</span>
                     </Link>
                   </div>
                 </div>
@@ -502,17 +531,21 @@ export default function PublicHomePage() {
             }}
           >
             {bridalPackages.slice(0, 4).map((pkg) => (
-              <div
+              <motion.div
                 key={pkg.id}
+                className="bridal-card-3d"
+                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 24 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  backdropFilter: 'blur(12px)',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  backdropFilter: 'blur(16px)',
                   border: '1px solid rgba(234, 186, 56, 0.3)',
                   borderRadius: 20,
                   padding: 24,
                   display: 'flex',
                   flexDirection: 'column',
-                  transition: 'transform 0.2s ease, border-color 0.2s ease',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -569,7 +602,7 @@ export default function PublicHomePage() {
                   <Heart size={14} />
                   <span>Book This Package</span>
                 </Link>
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -601,145 +634,62 @@ export default function PublicHomePage() {
       <section className="cust-section">
         <div className="cust-section-header">
           <span className="cust-section-badge">The Shree Difference</span>
-          <h2>Why Surat Chooses Shree Beauty Studio</h2>
+          <h2 className="display-font" style={{ fontStyle: 'italic' }}>Why Surat Chooses Shree Beauty Studio</h2>
           <p>Uncompromising standards of quality, certified hygiene, and customized beauty therapies.</p>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: 24,
-          }}
+        <motion.div
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24 }}
+          variants={stagger}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
         >
-          <div
-            style={{
-              padding: 28,
-              borderRadius: 20,
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-            }}
-          >
-            <div
+          {[
+            { icon: <Award size={24} />, bg: 'rgba(5,66,74,0.08)', color: '#05424A', title: 'Certified Master Artists', text: 'Our team undergoes continuous masterclass training in modern bridal and hair aesthetics techniques.' },
+            { icon: <Gem size={24} />, bg: 'rgba(234,186,56,0.15)', color: '#c49821', title: '100% Genuine Luxury Brands', text: "We exclusively use authentic formulations from Jeannot Professional, L'Oréal, Huda Beauty, MAC, and Charlotte Tilbury." },
+            { icon: <ShieldCheck size={24} />, bg: 'rgba(22,163,74,0.08)', color: '#16a34a', title: 'Medical-Grade Hygiene', text: 'Disinfected instruments, disposable towels, sanitized stations, and pristine salon private rooms.' },
+            { icon: <Heart size={24} />, bg: 'rgba(219,39,119,0.08)', color: '#db2777', title: 'Personalized Consultations', text: 'Every session begins with an in-depth skin and hair analysis to select the perfect shade and care regimen.' },
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              variants={fadeUp}
+              whileHover={{ y: -6, boxShadow: '0 20px 48px rgba(5,66,74,0.10)' }}
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: 'rgba(5,66,74,0.08)',
-                color: '#05424A',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
+                padding: 28,
+                borderRadius: 20,
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+                transition: 'border-color 0.2s ease',
+                cursor: 'default',
               }}
             >
-              <Award size={24} />
-            </div>
-            <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
-              Certified Master Artists
-            </h3>
-            <p style={{ margin: 0, fontSize: 13.5, color: '#64748b', lineHeight: 1.6 }}>
-              Our team of beauticians and hair specialists undergo continuous masterclass training in modern bridal techniques.
-            </p>
-          </div>
-
-          <div
-            style={{
-              padding: 28,
-              borderRadius: 20,
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: 'rgba(234,186,56,0.15)',
-                color: '#c49821',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-              }}
-            >
-              <Gem size={24} />
-            </div>
-            <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
-              100% Genuine Luxury Brands
-            </h3>
-            <p style={{ margin: 0, fontSize: 13.5, color: '#64748b', lineHeight: 1.6 }}>
-              We exclusively use authentic international formulations from Jeannot Professional, L'Oréal, Huda Beauty, MAC, and Charlotte Tilbury.
-            </p>
-          </div>
-
-          <div
-            style={{
-              padding: 28,
-              borderRadius: 20,
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: 'rgba(22,163,74,0.08)',
-                color: '#16a34a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-              }}
-            >
-              <ShieldCheck size={24} />
-            </div>
-            <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
-              Rigorous Medical-Grade Hygiene
-            </h3>
-            <p style={{ margin: 0, fontSize: 13.5, color: '#64748b', lineHeight: 1.6 }}>
-              Disinfected instruments, disposable towels, sanitized stations, and pristine salon private rooms.
-            </p>
-          </div>
-
-          <div
-            style={{
-              padding: 28,
-              borderRadius: 20,
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 14,
-                background: 'rgba(219,39,119,0.08)',
-                color: '#db2777',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 16,
-              }}
-            >
-              <Heart size={24} />
-            </div>
-            <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
-              Personalized Consultations
-            </h3>
-            <p style={{ margin: 0, fontSize: 13.5, color: '#64748b', lineHeight: 1.6 }}>
-              Every bridal and hair session begins with an in-depth skin and hair analysis to select the exact shade and care regimen.
-            </p>
-          </div>
-        </div>
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: 16,
+                  background: item.bg,
+                  color: item.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 18,
+                  boxShadow: `0 4px 12px ${item.bg}`,
+                }}
+              >
+                {item.icon}
+              </div>
+              <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
+                {item.title}
+              </h3>
+              <p style={{ margin: 0, fontSize: 13.5, color: '#64748b', lineHeight: 1.65 }}>
+                {item.text}
+              </p>
+            </motion.div>
+          ))}
+        </motion.div>
       </section>
 
       {/* ─── CLIENT TESTIMONIALS ─────────────────────────────────── */}
@@ -764,29 +714,29 @@ export default function PublicHomePage() {
           <div className="reviews-marquee reviews-marquee-fwd">
             {[...GOOGLE_REVIEWS, ...GOOGLE_REVIEWS].map((t, idx) => (
               <div key={idx} className="reviews-card">
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <div style={{ marginBottom: 14, position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10 }}>
                     {[...Array(t.rating)].map((_, i) => (
                       <Star key={i} size={13} fill="#EABA38" color="#EABA38" />
                     ))}
-                    <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 2 }}>Google</span>
+                    <span style={{ fontSize: 10.5, color: '#94a3b8', marginLeft: 4, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Google</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: 13.5, color: '#334155', lineHeight: 1.65, fontStyle: 'italic' }}>
-                    &ldquo;{t.text}&rdquo;
+                  <p style={{ margin: 0, fontSize: 13.5, color: '#334155', lineHeight: 1.7, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {t.text}
                   </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14, borderTop: '1px solid #f0f5f9' }}>
                   <img
                     src={t.avatar}
                     alt={t.name}
-                    width={38}
-                    height={38}
-                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                    width={40}
+                    height={40}
+                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(234,186,56,0.4)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
                     referrerPolicy="no-referrer"
                   />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{t.name}</div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{t.role}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{t.role}</div>
                   </div>
                 </div>
               </div>
@@ -833,30 +783,156 @@ export default function PublicHomePage() {
         </div>
 
         {/* Google rating summary badge */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
-          <a
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 36 }}>
+          <motion.a
             href="https://www.google.com/maps/place/Shree+Beauty+Studio/@21.2156,72.8258,17z"
             target="_blank"
             rel="noopener noreferrer"
+            whileHover={{ scale: 1.03, y: -2 }}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 10,
+              gap: 12,
               background: '#fff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid rgba(234,186,56,0.3)',
               borderRadius: 99,
-              padding: '10px 20px',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              padding: '12px 24px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
               textDecoration: 'none',
               color: '#0f172a',
               fontSize: 14,
               fontWeight: 600,
+              transition: 'box-shadow 0.2s ease',
             }}
           >
             <img src="https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_28dp.png" alt="Google" width={20} height={20} />
             <span>4.9★ on Google Maps · 150+ Reviews</span>
             <ChevronRight size={14} color="#94a3b8" />
-          </a>
+          </motion.a>
+        </div>
+      </section>
+      {/* ─── PREMIUM CTA BAND ─────────────────────────────────────── */}
+      <section
+        style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, #021e22 0%, #05424A 40%, #07505a 70%, #032b30 100%)',
+          padding: 'clamp(56px, 8vw, 96px) 20px',
+          overflow: 'hidden',
+          textAlign: 'center',
+        }}
+      >
+        {/* Floating decorative orbs */}
+        <div className="floating-orb floating-orb-gold" style={{ width: 600, height: 600, top: '-40%', left: '-15%', opacity: 0.6 }} />
+        <div className="floating-orb floating-orb-white" style={{ width: 400, height: 400, bottom: '-30%', right: '-10%', opacity: 0.4 }} />
+
+        <div style={{ position: 'relative', zIndex: 2, maxWidth: 780, margin: '0 auto' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'rgba(234,186,56,0.18)',
+                border: '1px solid rgba(234,186,56,0.45)',
+                padding: '5px 16px',
+                borderRadius: 99,
+                color: '#fef08a',
+                fontSize: 12.5,
+                fontWeight: 700,
+                marginBottom: 20,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}
+            >
+              <Sparkles size={13} />
+              Book Your Glow-Up Today
+            </span>
+
+            <h2
+              className="display-font"
+              style={{
+                fontSize: 'clamp(30px, 5vw, 52px)',
+                fontWeight: 700,
+                color: '#ffffff',
+                margin: '0 0 16px',
+                lineHeight: 1.15,
+                fontStyle: 'italic',
+              }}
+            >
+              Ready to Feel{' '}
+              <span className="gradient-text">Absolutely Radiant?</span>
+            </h2>
+
+            <p
+              style={{
+                fontSize: 'clamp(15px, 2vw, 17px)',
+                color: 'rgba(255,255,255,0.82)',
+                lineHeight: 1.65,
+                maxWidth: 620,
+                margin: '0 auto 36px',
+              }}
+            >
+              From everyday glam to once-in-a-lifetime bridal transformations — our team at Shree
+              Beauty Studio is ready to make you look and feel extraordinary. Book your appointment
+              online or connect with us on WhatsApp.
+            </p>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 14,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Link href="/book" className="cust-btn-primary btn-glow">
+                <Calendar size={16} />
+                <span>Book Your Appointment</span>
+              </Link>
+              <a
+                href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%27d%20like%20to%20know%20more%20about%20your%20services.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cust-btn-secondary"
+              >
+                <MessageCircle size={16} />
+                <span>Chat on WhatsApp</span>
+              </a>
+            </div>
+
+            {/* Trust indicators */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 24,
+                marginTop: 32,
+                flexWrap: 'wrap',
+                fontSize: 13,
+                color: 'rgba(255,255,255,0.65)',
+              }}
+            >
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ShieldCheck size={14} color="#EABA38" />
+                No advance payment required
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Heart size={14} color="#EABA38" />
+                Free consultation included
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Gem size={14} color="#EABA38" />
+                100% genuine luxury products
+              </span>
+            </div>
+          </motion.div>
         </div>
       </section>
 

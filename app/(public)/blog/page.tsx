@@ -4,16 +4,18 @@ import { ALL_BLOG_POSTS, getAllBlogCategories } from '@/lib/blog-data';
 import { getBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Beauty & Bridal Journal: 50+ Expert Guides — Shree Beauty Studio Surat',
+  title: {
+    absolute: 'Beauty & Bridal Journal: 150+ Guides | Shree Beauty Studio, Surat',
+  },
   description:
-    'Explore 50+ in-depth guides on bridal makeup (HD vs Airbrush), hair Botox, keratin smoothing, skincare facials, waxing, and beauty tips in Katargam, Surat.',
+    'Explore 150+ guides on bridal makeup, hair Botox, Nanoplastia, Hydra facials, and beauty tips in Katargam, Surat. Expert advice for Gujarat women.',
   alternates: {
     canonical: '/blog',
   },
   openGraph: {
-    title: 'Beauty & Bridal Journal | Shree Beauty Studio Katargam Surat',
+    title: 'Beauty & Bridal Journal | 150+ Guides | Shree Beauty Studio Surat',
     description:
-      '50+ professional beauty articles and salon guides crafted by master aestheticians and bridal stylists in Surat. Expert skincare, hair care, and wedding advice.',
+      '150+ professional beauty articles and salon guides crafted by master aestheticians and bridal stylists in Surat. Expert skincare, hair care, and Gujarati wedding advice.',
     url: 'https://shree-beauty-studio.vercel.app/blog',
     type: 'website',
     images: [

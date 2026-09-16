@@ -3,9 +3,11 @@ import AboutClient from './AboutClient';
 import { getBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'About Us — 10+ Years of Beauty Excellence in Katargam, Surat | Shree Beauty Studio',
+  title: {
+    absolute: 'About Us — 10+ Years of Excellence | Shree Beauty Studio, Surat',
+  },
   description:
-    'Discover the story behind Shree Beauty Studio. Over 10 years delivering premier bridal makeovers, luxury hair transformations, and skincare in Katargam, Surat. 100% authentic international brands.',
+    'Over 10 years of bridal makeovers, luxury hair care, and skincare in Katargam, Surat. 100% ladies-only sanctuary using sealed international brands.',
   alternates: {
     canonical: '/about',
   },

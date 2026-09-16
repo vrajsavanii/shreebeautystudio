@@ -125,23 +125,23 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* KPI Bar */}
-      <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{
+      <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 0,
       }}>
         {[
-          { label: 'Month Revenue', value: money(stats.monthRevenue), icon: <BarChart2 size={15} />, color: '#05424A' },
-          { label: 'Avg Ticket Size', value: money(stats.avgTicket), icon: <Award size={15} />, color: '#c49821' },
-          { label: 'Top Service', value: stats.top3Services[0]?.name || '—', icon: <Zap size={15} />, color: '#9333ea' },
-          { label: '2nd Top Service', value: stats.top3Services[1]?.name || '—', icon: <Zap size={15} />, color: '#3b6ff5' },
-          { label: '3rd Top Service', value: stats.top3Services[2]?.name || '—', icon: <Zap size={15} />, color: '#e69a22' },
+          { label: 'Month Revenue', value: money(stats.monthRevenue), icon: <BarChart2 size={16} />, color: '#05424A', bg: 'rgba(5,66,74,0.08)' },
+          { label: 'Avg Ticket Size', value: money(stats.avgTicket), icon: <Award size={16} />, color: '#c49821', bg: 'rgba(196,152,33,0.10)' },
+          { label: 'Top Service', value: stats.top3Services[0]?.name || '—', icon: <Zap size={16} />, color: '#9333ea', bg: 'rgba(147,51,234,0.08)' },
+          { label: '2nd Service', value: stats.top3Services[1]?.name || '—', icon: <Zap size={16} />, color: '#3b6ff5', bg: 'rgba(59,111,245,0.08)' },
+          { label: '3rd Service', value: stats.top3Services[2]?.name || '—', icon: <Zap size={16} />, color: '#e69a22', bg: 'rgba(230,154,34,0.08)' },
         ].map((k) => (
-          <div key={k.label} className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 0 }}>
-            <div style={{ color: k.color }}>{k.icon}</div>
-            <div>
-              <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: k.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>{k.value}</div>
+          <motion.div key={k.label} variants={fadeSlideUp} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 0, borderTop: `3px solid ${k.color}20` }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: k.bg, color: k.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{k.icon}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }}>{k.label}</div>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: k.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.value}</div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </motion.div>
 
@@ -163,13 +163,15 @@ export default function DashboardPage() {
                 const isToday = d.date === format(new Date(), 'EEE');
                 return (
                   <div key={d.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ fontSize: 9.5, color: 'var(--muted)', fontWeight: 600 }}>{d.total > 0 ? `₹${Math.round(d.total / 1000)}k` : ''}</div>
+                    <div style={{ fontSize: 9.5, color: 'var(--muted)', fontWeight: 700 }}>{d.total > 0 ? `₹${Math.round(d.total / 1000)}k` : ''}</div>
                     <div style={{
-                      width: '100%', borderRadius: '4px 4px 0 0',
-                      background: isToday ? 'var(--teal)' : 'var(--teal-subtle)',
-                      border: isToday ? '2px solid var(--teal)' : 'none',
+                      width: '100%', borderRadius: '6px 6px 0 0',
+                      background: isToday
+                        ? 'linear-gradient(180deg, #05424A 0%, #032b30 100%)'
+                        : 'linear-gradient(180deg, rgba(5,66,74,0.3) 0%, rgba(5,66,74,0.12) 100%)',
+                      boxShadow: isToday ? '0 -2px 8px rgba(5,66,74,0.25)' : 'none',
                       height: `${Math.max(pct * 60, d.total > 0 ? 8 : 2)}px`,
-                      transition: 'height 0.5s',
+                      transition: 'height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     }} />
                     <div style={{ fontSize: 10, fontWeight: isToday ? 800 : 500, color: isToday ? 'var(--teal)' : 'var(--muted)' }}>{d.date}</div>
                   </div>

@@ -41,14 +41,18 @@ export default function CustomerNavbar() {
     };
   }, [menuOpen]);
 
-  const navStyle = {
-    background: scrolled
-      ? 'rgba(3, 43, 48, 0.96)'
-      : 'rgba(3, 43, 48, 0.88)',
+  const navStyle = scrolled ? {
+    background: 'rgba(3, 43, 48, 0.97)',
+    backdropFilter: 'blur(24px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+    borderBottom: '1px solid rgba(234, 186, 56, 0.28)',
+    boxShadow: '0 4px 32px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(234,186,56,0.08) inset',
+  } : {
+    background: 'rgba(3, 43, 48, 0.85)',
     backdropFilter: 'blur(16px)',
     WebkitBackdropFilter: 'blur(16px)',
-    borderBottom: '1px solid rgba(234, 186, 56, 0.22)',
-    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.25)',
+    borderBottom: '1px solid rgba(234, 186, 56, 0.15)',
+    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.18)',
   };
 
   return (
@@ -77,7 +81,6 @@ export default function CustomerNavbar() {
             gap: 16,
           }}
         >
-          {/* Logo & Branding */}
           <Link
             href="/"
             className="cust-navbar-logo"
@@ -89,19 +92,19 @@ export default function CustomerNavbar() {
               minWidth: 0,
             }}
           >
-            <img
-              src={SHREE_ONLY_LOGO_BASE64}
-              alt={salonName}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '1.5px solid #EABA38',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                flexShrink: 0,
-              }}
-            />
+            <div className="logo-img-wrap" style={{ flexShrink: 0, boxShadow: '0 0 0 2px rgba(234,186,56,0.4), 0 2px 10px rgba(0,0,0,0.2)', borderRadius: '50%' }}>
+              <img
+                src={SHREE_ONLY_LOGO_BASE64}
+                alt={salonName}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            </div>
             <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <span
                 className="cust-navbar-brand"
@@ -128,6 +131,8 @@ export default function CustomerNavbar() {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   display: 'block',
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
                 }}
               >
                 Katargam, Surat
@@ -151,12 +156,14 @@ export default function CustomerNavbar() {
                   key={link.href}
                   href={link.href}
                   style={{
-                    color: isActive ? '#EABA38' : 'rgba(255, 255, 255, 0.88)',
+                    color: isActive ? '#EABA38' : 'rgba(255, 255, 255, 0.85)',
                     textDecoration: 'none',
                     fontSize: 13.5,
                     fontWeight: isActive ? 700 : 500,
                     transition: 'color 0.15s ease',
                     position: 'relative',
+                    paddingBottom: 2,
+                    letterSpacing: '0.01em',
                   }}
                 >
                   {link.label}
@@ -168,8 +175,9 @@ export default function CustomerNavbar() {
                         left: 0,
                         right: 0,
                         height: 2,
-                        background: '#EABA38',
+                        background: 'linear-gradient(90deg, #EABA38 0%, #f5d87a 100%)',
                         borderRadius: 2,
+                        boxShadow: '0 1px 4px rgba(234,186,56,0.4)',
                       }}
                     />
                   )}

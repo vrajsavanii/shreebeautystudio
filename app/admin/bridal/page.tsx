@@ -694,7 +694,7 @@ const OTHER_EVENT_OPTIONS = [
       {/* Header Toolbar */}
       <div className="toolbar">
         <div className="toolbar-title">Bridal & Event Studio</div>
-        <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>
+        <motion.button className="btn btn-primary btn-glow" onClick={openNew} whileTap={{ scale: 0.97 }}>
           <Plus size={15} /> New Bridal Booking
         </motion.button>
       </div>

@@ -13,6 +13,11 @@ import {
   CheckCircle2,
   ChevronRight,
   HelpCircle,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Navigation,
+  Award,
 } from 'lucide-react';
 import { BlogPost } from '@/types/blog';
 
@@ -37,13 +42,28 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
     }
   };
 
-  // Simple, robust markdown converter for paragraphs, h2s, bullet points, and tables
+  // Simple, robust markdown converter for paragraphs, h2s, h3s, bullet points, tables, images, and callouts
   const renderMarkdown = (text: string) => {
     const lines = text.split('\n');
     const elements: React.ReactNode[] = [];
     let listItems: string[] = [];
     let tableLines: string[] = [];
     let inTable = false;
+
+    const formatInline = (str: string): React.ReactNode => {
+      // Split by bold **text**
+      const parts = str.split(/(\*\*.*?\*\*)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <strong key={i} style={{ color: '#0f172a', fontWeight: 700 }}>
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        return part;
+      });
+    };
 
     const flushList = () => {
       if (listItems.length > 0) {
@@ -52,17 +72,17 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
             key={`list-${elements.length}`}
             style={{
               paddingLeft: 24,
-              marginBottom: 20,
+              marginBottom: 22,
               display: 'flex',
               flexDirection: 'column',
-              gap: 8,
+              gap: 10,
               color: '#334155',
               fontSize: 15.5,
-              lineHeight: 1.7,
+              lineHeight: 1.75,
             }}
           >
             {listItems.map((item, i) => (
-              <li key={i}>{item}</li>
+              <li key={i}>{formatInline(item)}</li>
             ))}
           </ul>
         );
@@ -86,9 +106,10 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
             key={`table-${elements.length}`}
             style={{
               overflowX: 'auto',
-              marginBottom: 24,
-              borderRadius: 12,
-              border: '1px solid #e2e8f0',
+              margin: '28px 0',
+              borderRadius: 14,
+              border: '1px solid rgba(234, 186, 56, 0.3)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
             }}
           >
             <table
@@ -100,15 +121,16 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               }}
             >
               <thead>
-                <tr style={{ background: '#f1f5f9' }}>
+                <tr style={{ background: 'linear-gradient(135deg, #05424A 0%, #032b30 100%)', color: '#ffffff' }}>
                   {headers.map((h, i) => (
                     <th
                       key={i}
                       style={{
-                        padding: '12px 16px',
+                        padding: '13px 18px',
                         fontWeight: 700,
-                        color: '#0f172a',
-                        borderBottom: '1px solid #cbd5e1',
+                        color: '#fef08a',
+                        borderBottom: '1px solid rgba(234, 186, 56, 0.3)',
+                        fontSize: 13.5,
                       }}
                     >
                       {h}
@@ -122,18 +144,19 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
                     key={rIdx}
                     style={{
                       borderBottom: '1px solid #f1f5f9',
-                      background: rIdx % 2 === 0 ? '#ffffff' : '#fafafa',
+                      background: rIdx % 2 === 0 ? '#ffffff' : '#fafaf9',
                     }}
                   >
                     {row.map((cell, cIdx) => (
                       <td
                         key={cIdx}
                         style={{
-                          padding: '12px 16px',
+                          padding: '12px 18px',
                           color: '#475569',
+                          lineHeight: 1.6,
                         }}
                       >
-                        {cell}
+                        {formatInline(cell)}
                       </td>
                     ))}
                   </tr>
@@ -158,22 +181,98 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
         flushTable();
       }
 
-      if (trimmed.startsWith('- ') || trimmed.startsWith('1. ') || trimmed.startsWith('2. ') || trimmed.startsWith('3. ') || trimmed.startsWith('4. ') || trimmed.startsWith('5. ')) {
+      if (
+        trimmed.startsWith('- ') ||
+        trimmed.startsWith('1. ') ||
+        trimmed.startsWith('2. ') ||
+        trimmed.startsWith('3. ') ||
+        trimmed.startsWith('4. ') ||
+        trimmed.startsWith('5. ')
+      ) {
         listItems.push(trimmed.replace(/^[-*]|\d+\.\s*/, ''));
         return;
       } else {
         flushList();
       }
 
+      if (trimmed.startsWith('![') && trimmed.includes('](')) {
+        const match = trimmed.match(/!\[(.*?)\]\((.*?)\)/);
+        if (match) {
+          const [, alt, src] = match;
+          elements.push(
+            <figure
+              key={idx}
+              style={{
+                margin: '32px 0',
+                borderRadius: 20,
+                overflow: 'hidden',
+                boxShadow: '0 12px 32px rgba(5,66,74,0.12)',
+                border: '1.5px solid rgba(234, 186, 56, 0.25)',
+              }}
+            >
+              <img
+                src={src}
+                alt={alt || post.title}
+                style={{
+                  width: '100%',
+                  maxHeight: 460,
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+              {alt && (
+                <figcaption
+                  style={{
+                    fontSize: 13,
+                    color: '#64748b',
+                    textAlign: 'center',
+                    padding: '10px 16px',
+                    background: '#fafaf9',
+                    fontStyle: 'italic',
+                    borderTop: '1px solid #f1f5f9',
+                  }}
+                >
+                  📸 {alt}
+                </figcaption>
+              )}
+            </figure>
+          );
+          return;
+        }
+      }
+
+      if (trimmed.startsWith('> ')) {
+        elements.push(
+          <div
+            key={idx}
+            style={{
+              margin: '24px 0',
+              padding: '18px 22px',
+              borderRadius: 16,
+              background: 'linear-gradient(135deg, rgba(5, 66, 74, 0.05) 0%, rgba(234, 186, 56, 0.1) 100%)',
+              borderLeft: '4px solid #eaba38',
+              color: '#0f172a',
+              fontSize: 15,
+              lineHeight: 1.7,
+              fontStyle: 'italic',
+            }}
+          >
+            {formatInline(trimmed.replace(/^>\s*/, ''))}
+          </div>
+        );
+        return;
+      }
+
       if (trimmed.startsWith('## ')) {
         elements.push(
           <h2
             key={idx}
+            className="display-font"
             style={{
-              fontSize: 'clamp(1.4rem, 2.5vw, 1.75rem)',
-              fontWeight: 800,
-              color: '#0f172a',
-              marginTop: 36,
+              fontSize: 'clamp(1.5rem, 2.8vw, 1.95rem)',
+              fontWeight: 700,
+              color: '#05424A',
+              marginTop: 40,
               marginBottom: 16,
               lineHeight: 1.3,
             }}
@@ -186,10 +285,10 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
           <h3
             key={idx}
             style={{
-              fontSize: 'clamp(1.15rem, 2vw, 1.35rem)',
+              fontSize: 'clamp(1.2rem, 2.2vw, 1.45rem)',
               fontWeight: 700,
-              color: '#05424A',
-              marginTop: 24,
+              color: '#0f172a',
+              marginTop: 26,
               marginBottom: 12,
               lineHeight: 1.35,
             }}
@@ -203,8 +302,8 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
             key={idx}
             style={{
               border: 'none',
-              borderTop: '1px solid #e2e8f0',
-              margin: '32px 0',
+              borderTop: '1px solid rgba(234, 186, 56, 0.25)',
+              margin: '36px 0',
             }}
           />
         );
@@ -214,12 +313,12 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
             key={idx}
             style={{
               fontSize: 16,
-              lineHeight: 1.8,
+              lineHeight: 1.85,
               color: '#334155',
-              marginBottom: 18,
+              marginBottom: 20,
             }}
           >
-            {trimmed}
+            {formatInline(trimmed)}
           </p>
         );
       }
@@ -470,6 +569,297 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               #{tag}
             </span>
           ))}
+        </div>
+
+        {/* ─── SURAT & SOUTH GUJARAT LOCAL STUDIO EXPERIENCE ─────────── */}
+        <div
+          style={{
+            marginTop: 48,
+            background: 'linear-gradient(145deg, #f8fbfb 0%, #eef6f6 100%)',
+            borderRadius: 22,
+            border: '1.5px solid rgba(5, 66, 74, 0.15)',
+            padding: '36px 30px',
+            boxShadow: '0 8px 28px rgba(5, 66, 74, 0.05)',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: 'rgba(5, 66, 74, 0.08)',
+              color: '#05424A',
+              padding: '6px 14px',
+              borderRadius: 99,
+              fontSize: 12.5,
+              fontWeight: 700,
+              marginBottom: 16,
+              letterSpacing: '0.02em',
+            }}
+          >
+            <MapPin size={15} style={{ color: '#05424A' }} />
+            <span>VISIT OUR SURAT STUDIO • 100% LADIES-ONLY SANCTUARY</span>
+          </div>
+
+          <h3
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: '#05424A',
+              marginBottom: 10,
+              lineHeight: 1.35,
+            }}
+          >
+            Experience Professional Aesthetic Care in Katargam, Surat
+          </h3>
+
+          <p
+            style={{
+              color: '#475569',
+              fontSize: 14.5,
+              lineHeight: 1.65,
+              marginBottom: 24,
+              maxWidth: 720,
+            }}
+          >
+            Interested in treatments discussed in this guide? Shree Beauty Studio provides dedicated private consultation cabins, medical-grade sanitization, and specialized formulas formulated specifically for Surat’s humid climate and water characteristics.
+          </p>
+
+          {/* 4 Trust Highlights Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 16,
+              marginBottom: 28,
+            }}
+          >
+            <div
+              style={{
+                background: '#ffffff',
+                padding: '16px 18px',
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+              }}
+            >
+              <ShieldCheck size={20} style={{ color: '#05424A', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <strong style={{ fontSize: 13.5, color: '#0f172a', display: 'block', marginBottom: 2 }}>
+                  100% Ladies Only
+                </strong>
+                <span style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.4 }}>
+                  Zero male presence. Complete comfort, privacy & dignity for every Gujarati woman.
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#ffffff',
+                padding: '16px 18px',
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+              }}
+            >
+              <Award size={20} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <strong style={{ fontSize: 13.5, color: '#0f172a', display: 'block', marginBottom: 2 }}>
+                  10+ Years & 2,500+ Brides
+                </strong>
+                <span style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.4 }}>
+                  Trusted legacy across Surat, Navsari, Bardoli, Ankleshwar, and Ahmedabad.
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#ffffff',
+                padding: '16px 18px',
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+              }}
+            >
+              <Sparkles size={20} style={{ color: '#05424A', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <strong style={{ fontSize: 13.5, color: '#0f172a', display: 'block', marginBottom: 2 }}>
+                  Authentic International Brands
+                </strong>
+                <span style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.4 }}>
+                  100% sealed genuine tubes: L’Oréal, O3+, Rica, Kryolan, and Lotus Professional.
+                </span>
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: '#ffffff',
+                padding: '16px 18px',
+                borderRadius: 14,
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+              }}
+            >
+              <CheckCircle2 size={20} style={{ color: '#16a34a', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <strong style={{ fontSize: 13.5, color: '#0f172a', display: 'block', marginBottom: 2 }}>
+                  Climate-Tuned Protocols
+                </strong>
+                <span style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.4 }}>
+                  Hard water chelating shampoos & 16-hour sweat-proof bridal makeup sealers.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Neighborhoods Served */}
+          <div
+            style={{
+              padding: '16px 20px',
+              background: '#ffffff',
+              borderRadius: 14,
+              border: '1px dashed #cbd5e1',
+              marginBottom: 28,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>
+              Neighborhoods & Regions Welcomed Daily at Our Katargam Studio:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[
+                'Katargam (Host Studio)',
+                'Varachha',
+                'Mota Varachha',
+                'Adajan',
+                'Pal & Gaurav Path',
+                'Vesu',
+                'City Light',
+                'Piplod',
+                'Ghod Dod Road',
+                'Amroli',
+                'Rander',
+                'Jahangirpura',
+                'Navsari',
+                'Bardoli',
+                'Ankleshwar',
+              ].map((locality) => (
+                <span
+                  key={locality}
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#334155',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                  }}
+                >
+                  {locality}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Studio Address & CTAs */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 18,
+              paddingTop: 16,
+              borderTop: '1px solid rgba(5, 66, 74, 0.12)',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: '#0f172a', fontWeight: 700 }}>
+                <MapPin size={16} style={{ color: '#05424A' }} />
+                <span>22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat 395004</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#64748b' }}>
+                <Clock size={14} />
+                <span>Monday – Sunday: 10:00 AM – 7:00 PM • Prior appointment recommended</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <a
+                href="https://maps.google.com/?q=Radhika+Society+Katargam+Surat"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#ffffff',
+                  color: '#05424A',
+                  border: '1.5px solid #05424A',
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <Navigation size={14} />
+                <span>Get Directions</span>
+              </a>
+
+              <Link
+                href="/book"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#05424A',
+                  color: '#ffffff',
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <Calendar size={14} />
+                <span>Book Appointment</span>
+              </Link>
+
+              <a
+                href={`https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20am%20reading%20"${encodeURIComponent(
+                  post.title
+                )}"%20and%20want%20to%20consult%20about%20availability%20in%20Katargam,%20Surat.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: '#25D366',
+                  color: '#053320',
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <MessageCircle size={14} />
+                <span>WhatsApp Inquiry</span>
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* ─── EMBEDDED FAQ SECTION ───────────────────────────────── */}
