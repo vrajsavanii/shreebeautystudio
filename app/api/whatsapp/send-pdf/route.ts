@@ -64,12 +64,13 @@ function normalizePhone(raw: string): { valid: boolean; e164: string } {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { to, caption, filename, pdfBase64, pdfUrl } = body;
+    const { caption, filename, pdfBase64, pdfUrl } = body;
+    const to = (body.to || body.mobile || '').trim();
 
     // ── 1. Validate phone number ──────────────────────────────────────────────
-    if (!to || typeof to !== 'string' || to.trim() === '') {
+    if (!to) {
       return NextResponse.json(
-        { success: false, error: 'This invoice has no mobile number for the customer.' },
+        { success: false, error: 'Recipient mobile number is missing.' },
         { status: 400 }
       );
     }
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
 
     if (pdfBase64 && !pdfUrl) {
       try {
-        const base64Data = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
+        const base64Data = pdfBase64.includes('base64,') ? pdfBase64.split('base64,')[1] : pdfBase64;
         const buffer = Buffer.from(base64Data, 'base64');
         const blob = new Blob([buffer], { type: 'application/pdf' });
 

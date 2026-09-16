@@ -480,7 +480,7 @@ export default function WhatsAppHubPage() {
 
     const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
     toast(`⏳ Sending WhatsApp message to ${targetName || targetPhone} via Meta Cloud API…`);
-    const res = await sendDirectWhatsAppMessage(targetPhone, messageToSend);
+    const res = await sendDirectWhatsAppMessage(targetPhone, messageToSend, data?.settings);
     if (res.success) {
       toast(`✅ WhatsApp message sent directly to ${targetName || targetPhone} via Meta Cloud API!`);
       setPdfSentStatus(`✅ Message Sent via Meta API!`);
@@ -1329,7 +1329,7 @@ export default function WhatsAppHubPage() {
                 </div>
               </div>
 
-              {/* Mock Chat Input Footer */}
+              {/* Live Meta Chat Input Footer */}
               <div
                 style={{
                   background: '#f0f2f5',
@@ -1359,7 +1359,7 @@ export default function WhatsAppHubPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  <Send size={13} /> Click to Open &amp; Send in Web WhatsApp
+                  <Send size={13} /> Send via Meta WhatsApp Cloud API
                 </button>
               </div>
             </div>

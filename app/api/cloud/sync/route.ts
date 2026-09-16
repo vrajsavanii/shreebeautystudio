@@ -55,9 +55,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'No data provided to save' }, { status: 400 });
     }
 
-    // Clean out obsolete fake staff (st1/st2) and fake product data if sent by cached sessions
+    // Clean out obsolete mock staff (Neha/Pooja) if sent by cached sessions
     if (Array.isArray(data.staff)) {
-      data.staff = data.staff.filter((s: any) => s.id !== 'st1' && s.id !== 'st2');
+      data.staff = data.staff.filter((s: any) => s.name !== 'Neha' && s.name !== 'Pooja');
     }
     if (Array.isArray(data.inventory)) {
       data.inventory = data.inventory.filter((i: any) =>

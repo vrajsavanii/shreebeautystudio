@@ -380,10 +380,13 @@ export async function sendBridalRateCardPDFViaWhatsApp(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        to: cleanMobile,
         mobile: cleanMobile,
         pdfBase64,
         filename: 'Shree_Beauty_Studio_Bridal_Rate_Card.pdf',
         caption: messageCaption,
+        whatsappPhoneId: salonData?.settings?.whatsappPhoneId,
+        whatsappAccessToken: salonData?.settings?.whatsappAccessToken,
       }),
     });
 

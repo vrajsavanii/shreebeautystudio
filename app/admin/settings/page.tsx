@@ -48,6 +48,35 @@ export default function SettingsPage() {
   const [testWaMobile, setTestWaMobile] = useState('');
   const [testingWa, setTestingWa] = useState(false);
   const [testWaResult, setTestWaResult] = useState<{ success: boolean; msg: string } | null>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [statusResult, setStatusResult] = useState<{ connected: boolean; msg: string } | null>(null);
+
+  const handleCheckStatus = async () => {
+    setCheckingStatus(true);
+    setStatusResult(null);
+    try {
+      const res = await fetch('/api/whatsapp/status');
+      const json = await res.json();
+      if (json.connected) {
+        setStatusResult({
+          connected: true,
+          msg: `🟢 Live & Verified! Business: "${json.verifiedName || 'Shree Beauty Studio'}", Number: ${json.displayPhoneNumber || '+91 97732 40010'}, Quality: ${json.qualityRating || 'GREEN'}`
+        });
+        toast('🟢 Meta WhatsApp Cloud API is connected and verified!', 'success');
+      } else {
+        setStatusResult({
+          connected: false,
+          msg: `🔴 Disconnected: ${json.error || 'Token invalid or expired. Please paste permanent System User Access Token.'}`
+        });
+        toast(json.error || 'Meta API not connected', 'error');
+      }
+    } catch (err: any) {
+      setStatusResult({ connected: false, msg: `Network error: ${err.message}` });
+      toast('Failed to check status', 'error');
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
 
   const handleTestWhatsApp = async () => {
     const clean = testWaMobile.replace(/\D/g, '').slice(-10);
@@ -64,6 +93,8 @@ export default function SettingsPage() {
         body: JSON.stringify({
           to: clean,
           message: 'Hello! ✨ This is an official live test message from Shree Beauty Studio WhatsApp Cloud API. Welcome!',
+          whatsappPhoneId: s.whatsappPhoneId,
+          whatsappAccessToken: s.whatsappAccessToken,
         }),
       });
       const json = await res.json();
@@ -759,6 +790,55 @@ export default function SettingsPage() {
                       onChange={(e) => update('whatsappAccessToken', e.target.value)}
                     />
                   </div>
+                </div>
+
+                {/* Connection Status Checker */}
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #bbf7d0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                    <div>
+                      <label className="label" style={{ color: '#166534', margin: 0, fontWeight: 800 }}>
+                        🔍 Check Meta Cloud API Connection
+                      </label>
+                      <p style={{ fontSize: 11.5, color: '#15803d', margin: '2px 0 0' }}>
+                        Verifies your Phone Number ID and Permanent Access Token with Meta Graph API in real-time.
+                      </p>
+                    </div>
+                    <motion.button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={handleCheckStatus}
+                      disabled={checkingStatus}
+                      whileTap={{ scale: 0.97 }}
+                      style={{ background: '#ffffff', borderColor: '#16a34a', color: '#166534', fontWeight: 700 }}
+                    >
+                      {checkingStatus ? (
+                        <>
+                          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                          Verifying…
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={14} /> Verify Meta Connection
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+
+                  {statusResult && (
+                    <div
+                      style={{
+                        padding: '10px 14px',
+                        borderRadius: 8,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        background: statusResult.connected ? '#dcfce7' : '#fef2f2',
+                        color: statusResult.connected ? '#166534' : '#b91c1c',
+                        border: `1px solid ${statusResult.connected ? '#86efac' : '#fecaca'}`,
+                      }}
+                    >
+                      {statusResult.msg}
+                    </div>
+                  )}
                 </div>
 
                 {/* Live Test WhatsApp Message Dispatcher */}

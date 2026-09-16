@@ -539,9 +539,12 @@ export async function sendInvoicePDFViaWhatsApp(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         to: cleanMobile,
+        mobile: cleanMobile,
         caption,
         filename: pdfFilename,
         pdfBase64,
+        whatsappPhoneId: salonData?.settings?.whatsappPhoneId,
+        whatsappAccessToken: salonData?.settings?.whatsappAccessToken,
       }),
     });
 

@@ -67,6 +67,8 @@ export async function sendDirectWhatsAppMessage(
       body: JSON.stringify({
         to: recipient,
         message,
+        whatsappPhoneId: settings?.whatsappPhoneId,
+        whatsappAccessToken: settings?.whatsappAccessToken,
       }),
     });
 
