@@ -86,31 +86,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── 2. Read credentials from server env, request body, or database fallback ────
-    let phoneId = process.env.META_WHATSAPP_PHONE_NUMBER_ID || '';
-    let accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || '';
+    // ── 2. Read credentials from request body, database fallback, or server env ────
+    let phoneId = '';
+    let accessToken = '';
 
     // Check request body
     const bodyAny = body as any;
     if (bodyAny.whatsappPhoneId) phoneId = bodyAny.whatsappPhoneId;
     if (bodyAny.whatsappAccessToken) accessToken = bodyAny.whatsappAccessToken;
 
-    // Fallback: Check salon_state in database if credentials are not in env or are placeholders
+    // Check salon_state in database if credentials are not in body
     if (!accessToken || accessToken.startsWith('LLM_') || !phoneId) {
       try {
         const supabase = getSupabaseAdmin();
         if (supabase) {
           const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
-          if (row?.data?.settings?.whatsappAccessToken) {
+          if (!accessToken && row?.data?.settings?.whatsappAccessToken) {
             accessToken = row.data.settings.whatsappAccessToken;
           }
-          if (row?.data?.settings?.whatsappPhoneId) {
+          if (!phoneId && row?.data?.settings?.whatsappPhoneId) {
             phoneId = row.data.settings.whatsappPhoneId;
           }
         }
       } catch (err) {
         console.warn('Could not read whatsapp credentials from salon_state in send-pdf:', err);
       }
+    }
+
+    // Fall back to server env or verified salon default
+    if (!phoneId) {
+      phoneId =
+        process.env.META_WHATSAPP_PHONE_NUMBER_ID ||
+        process.env.WHATSAPP_PHONE_NUMBER_ID ||
+        '1313759075154191';
+    }
+
+    if (!accessToken || accessToken.startsWith('LLM_')) {
+      accessToken =
+        process.env.META_WHATSAPP_ACCESS_TOKEN ||
+        process.env.WHATSAPP_ACCESS_TOKEN ||
+        '';
     }
 
     if (!phoneId || !accessToken || phoneId.startsWith('PASTE_') || accessToken.startsWith('PASTE_') || accessToken.startsWith('LLM_')) {

@@ -3,40 +3,45 @@ import { getSupabaseAdmin } from '@/lib/supabase-server';
 
 export async function GET(req: NextRequest) {
   try {
-    let phoneId =
-      process.env.META_WHATSAPP_PHONE_NUMBER_ID ||
-      process.env.WHATSAPP_PHONE_NUMBER_ID ||
-      '';
+    let phoneId = '';
+    let accessToken = '';
+    let wabaId = '';
 
-    let accessToken =
-      process.env.META_WHATSAPP_ACCESS_TOKEN ||
-      process.env.WHATSAPP_ACCESS_TOKEN ||
-      '';
-
-    let wabaId =
-      process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID ||
-      process.env.WHATSAPP_BUSINESS_ACCOUNT_ID ||
-      '';
-
-    // Fallback: Check salon_state in database
-    if (!accessToken || !phoneId) {
-      try {
-        const supabase = getSupabaseAdmin();
-        if (supabase) {
-          const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
-          if (row?.data?.settings?.whatsappAccessToken) {
-            accessToken = row.data.settings.whatsappAccessToken;
-          }
-          if (row?.data?.settings?.whatsappPhoneId) {
-            phoneId = row.data.settings.whatsappPhoneId;
-          }
-          if (row?.data?.settings?.whatsappBusinessAccountId) {
-            wabaId = row.data.settings.whatsappBusinessAccountId;
-          }
+    // Check salon_state in database first
+    try {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
+        if (row?.data?.settings) {
+          phoneId = row.data.settings.whatsappPhoneId || '';
+          accessToken = row.data.settings.whatsappAccessToken || '';
+          wabaId = row.data.settings.whatsappBusinessAccountId || '';
         }
-      } catch (err) {
-        console.warn('Could not read whatsapp credentials from salon_state:', err);
       }
+    } catch (err) {
+      console.warn('Could not read whatsapp credentials from salon_state:', err);
+    }
+
+    // Fall back to server environment variables or official salon defaults
+    if (!phoneId) {
+      phoneId =
+        process.env.META_WHATSAPP_PHONE_NUMBER_ID ||
+        process.env.WHATSAPP_PHONE_NUMBER_ID ||
+        '1313759075154191';
+    }
+
+    if (!accessToken) {
+      accessToken =
+        process.env.META_WHATSAPP_ACCESS_TOKEN ||
+        process.env.WHATSAPP_ACCESS_TOKEN ||
+        '';
+    }
+
+    if (!wabaId) {
+      wabaId =
+        process.env.META_WHATSAPP_BUSINESS_ACCOUNT_ID ||
+        process.env.WHATSAPP_BUSINESS_ACCOUNT_ID ||
+        '3350176545369989';
     }
 
     if (!phoneId || !accessToken) {
