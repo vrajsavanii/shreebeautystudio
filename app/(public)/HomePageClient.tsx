@@ -525,9 +525,12 @@ export default function PublicHomePage() {
 
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
               gap: 24,
+              maxWidth: 1240,
+              margin: '0 auto',
             }}
           >
             {bridalPackages.slice(0, 4).map((pkg) => (
@@ -546,6 +549,10 @@ export default function PublicHomePage() {
                   padding: 24,
                   display: 'flex',
                   flexDirection: 'column',
+                  flex: '0 1 280px',
+                  maxWidth: 300,
+                  minWidth: 260,
+                  width: '100%',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -639,7 +646,14 @@ export default function PublicHomePage() {
         </div>
 
         <motion.div
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24 }}
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            gap: 24,
+            maxWidth: 1240,
+            margin: '0 auto',
+          }}
           variants={stagger}
           initial="hidden"
           whileInView="visible"
@@ -663,6 +677,10 @@ export default function PublicHomePage() {
                 boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
                 transition: 'border-color 0.2s ease',
                 cursor: 'default',
+                flex: '0 1 270px',
+                maxWidth: 300,
+                minWidth: 250,
+                width: '100%',
               }}
             >
               <div

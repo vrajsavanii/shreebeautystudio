@@ -1753,11 +1753,16 @@ a, button, input, select, textarea {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* Bento Services Grid */
+/* Bento Services Grid (Centered) */
 .cust-bento-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
   gap: 24px;
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .cust-bento-card {
@@ -1769,6 +1774,10 @@ a, button, input, select, textarea {
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
+  flex: 0 1 360px;
+  max-width: 380px;
+  min-width: 290px;
+  width: 100%;
 }
 
 .cust-bento-card:hover {
@@ -2264,25 +2273,16 @@ a, button, input, select, textarea {
   .cust-stat-item:nth-last-child(-n+2) { border-bottom: none; }
 }
 
-/* ─── Signature Menu Showcase Cards ───────────────────────────────────── */
+/* ─── Signature Menu Showcase Cards (Centered & Responsive) ───────────── */
 .cust-bento-grid-v2 {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
   gap: 24px;
-}
-
-@media (max-width: 1100px) {
-  .cust-bento-grid-v2 {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-}
-
-@media (max-width: 640px) {
-  .cust-bento-grid-v2 {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .cust-bento-card-v2 {
@@ -2295,6 +2295,45 @@ a, button, input, select, textarea {
   display: flex;
   flex-direction: column;
   position: relative;
+  flex: 0 1 360px;
+  width: 100%;
+  max-width: 380px;
+  min-width: 290px;
+}
+
+@media (max-width: 1100px) {
+  .cust-bento-grid-v2 {
+    gap: 20px;
+  }
+  .cust-bento-card-v2 {
+    flex: 0 1 340px;
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cust-bento-grid-v2 {
+    gap: 18px;
+    padding: 0 8px;
+  }
+  .cust-bento-card-v2 {
+    flex: 0 1 100%;
+    max-width: 440px;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .cust-bento-grid-v2 {
+    gap: 16px;
+    padding: 0;
+  }
+  .cust-bento-card-v2 {
+    flex: 1 1 100%;
+    max-width: 100%;
+    min-width: 0;
+    border-radius: 16px;
+  }
 }
 
 .cust-bento-card-v2:hover {

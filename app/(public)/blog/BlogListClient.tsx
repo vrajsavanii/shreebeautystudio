@@ -288,9 +288,12 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
         ) : (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
               gap: 24,
+              maxWidth: 1240,
+              margin: '0 auto',
             }}
           >
             {filteredPosts.map((post) => (
@@ -305,6 +308,10 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
                   flexDirection: 'column',
                   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                   boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+                  flex: '0 1 360px',
+                  maxWidth: 380,
+                  minWidth: 290,
+                  width: '100%',
                 }}
               >
                 {/* Image */}

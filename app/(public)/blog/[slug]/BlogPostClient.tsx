@@ -1006,8 +1006,9 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
             </h3>
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
                 gap: 20,
               }}
             >
@@ -1024,6 +1025,10 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
                     display: 'flex',
                     flexDirection: 'column',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+                    flex: '0 1 280px',
+                    maxWidth: 320,
+                    minWidth: 240,
+                    width: '100%',
                   }}
                 >
                   <img

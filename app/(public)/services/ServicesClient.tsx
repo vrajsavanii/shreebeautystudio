@@ -230,9 +230,12 @@ function ServicesView() {
       ) : (
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
             gap: 20,
+            maxWidth: 1240,
+            margin: '0 auto',
           }}
         >
           {filtered.map((s: Service) => {
@@ -254,6 +257,10 @@ function ServicesView() {
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
+                  flex: '0 1 360px',
+                  maxWidth: 380,
+                  minWidth: 290,
+                  width: '100%',
                 }}
               >
                 <div style={{ display: 'flex', gap: 16, padding: 18, flex: 1 }}>

@@ -396,9 +396,12 @@ export default function AboutClient() {
 
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
             gap: 28,
+            maxWidth: 1200,
+            margin: '0 auto',
           }}
         >
           {pillars.map((item, idx) => {
@@ -420,6 +423,10 @@ export default function AboutClient() {
                   transition: 'all 0.3s ease',
                   position: 'relative',
                   overflow: 'hidden',
+                  flex: '0 1 260px',
+                  maxWidth: 290,
+                  minWidth: 240,
+                  width: '100%',
                 }}
               >
                 <div

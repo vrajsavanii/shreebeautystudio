@@ -143,9 +143,12 @@ export default function PublicBridalPage() {
 
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
             gap: 24,
+            maxWidth: 1240,
+            margin: '0 auto',
           }}
         >
           {bridal.map((pkg) => (
@@ -167,6 +170,10 @@ export default function PublicBridalPage() {
                 boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
                 position: 'relative',
                 overflow: 'hidden',
+                flex: '0 1 360px',
+                maxWidth: 380,
+                minWidth: 290,
+                width: '100%',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -267,9 +274,12 @@ export default function PublicBridalPage() {
 
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            display: 'flex',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
             gap: 22,
+            maxWidth: 1240,
+            margin: '0 auto',
           }}
         >
           {siders.map((pkg) => (
@@ -290,6 +300,10 @@ export default function PublicBridalPage() {
                 flexDirection: 'column',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
                 transition: 'all 0.2s ease',
+                flex: '0 1 360px',
+                maxWidth: 380,
+                minWidth: 290,
+                width: '100%',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -365,9 +379,12 @@ export default function PublicBridalPage() {
 
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
               gap: 20,
+              maxWidth: 1240,
+              margin: '0 auto',
             }}
           >
             {makeup.map((pkg) => (
@@ -385,6 +402,10 @@ export default function PublicBridalPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   boxShadow: '0 4px 14px rgba(192,38,211,0.06)',
+                  flex: '0 1 340px',
+                  maxWidth: 380,
+                  minWidth: 280,
+                  width: '100%',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
