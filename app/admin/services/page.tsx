@@ -591,64 +591,6 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <motion.div
-        className="stats-grid"
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
-      >
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(5, 66, 74, 0.1)', color: 'var(--teal)' }}>
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <div className="stat-card-label">Active Services</div>
-            <div className="stat-card-value" style={{ color: 'var(--teal)' }}>
-              {stats.totalCount}
-            </div>
-            <div className="stat-card-sub">In salon treatment menu</div>
-          </div>
-        </motion.div>
-
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(234, 186, 56, 0.15)', color: '#b45309' }}>
-            <Layers size={20} />
-          </div>
-          <div>
-            <div className="stat-card-label">Service Categories</div>
-            <div className="stat-card-value">{stats.categoriesCount}</div>
-            <div className="stat-card-sub">Hair, skin, makeup, nails, spa</div>
-          </div>
-        </motion.div>
-
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(22, 163, 74, 0.1)', color: 'var(--green)' }}>
-            <DollarSign size={20} />
-          </div>
-          <div>
-            <div className="stat-card-label">Average Price</div>
-            <div className="stat-card-value" style={{ color: 'var(--green)' }}>
-              {money(stats.avgPrice)}
-            </div>
-            <div className="stat-card-sub">Per treatment session</div>
-          </div>
-        </motion.div>
-
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--blue)' }}>
-            <Clock size={20} />
-          </div>
-          <div>
-            <div className="stat-card-label">Express Treatments</div>
-            <div className="stat-card-value" style={{ color: 'var(--blue)' }}>
-              {stats.expressCount}
-            </div>
-            <div className="stat-card-sub">Quick 15–30 min services</div>
-          </div>
-        </motion.div>
-      </motion.div>
-
       {/* Search & Category Filter Bar */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <div className="search-wrap" style={{ flex: 1, minWidth: 260 }}>
