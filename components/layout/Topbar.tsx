@@ -97,41 +97,20 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <Menu size={18} />
       </button>
 
-      {/* Left: Page Title & Breadcrumb Subtitle */}
+      {/* Left: Page Title */}
       <div
         className="topbar-title-wrap"
         style={{
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          gap: 2,
+          alignItems: 'center',
+          gap: 8,
           minWidth: 'fit-content',
           flexShrink: 0,
         }}
       >
-        <h1 className="topbar-title" style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+        <h1 className="topbar-title" style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1, whiteSpace: 'nowrap' }}>
           {pageInfo.title}
         </h1>
-        <div
-          className="topbar-subtitle"
-          style={{
-            fontSize: 11.5,
-            color: 'var(--muted)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            whiteSpace: 'nowrap',
-            lineHeight: 1.3,
-          }}
-        >
-          <span style={{ fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>
-            {data?.settings?.salon || 'Shree Beauty Studio'}
-          </span>
-          <span style={{ color: '#cbd5e1' }}>•</span>
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
-            {pageInfo.subtitle}
-          </span>
-        </div>
       </div>
 
       {/* Center / Right: Live Date & Time + Alert Pills + Quick Actions */}
