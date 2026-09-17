@@ -82,19 +82,20 @@ export async function sendDirectWhatsAppMessage(
   }
 }
 
-// Backward compatibility helper wrappers (all redirect to Meta API with NO web popups)
-export function openWA(mobile: string, message: string) {
-  sendDirectWhatsAppMessage(mobile, message);
+// Backward compatibility helper wrappers (all route to Meta API with NO browser redirects)
+export function openWA(mobile: string, message: string, settings?: any) {
+  return sendDirectWhatsAppMessage(mobile, message, settings);
 }
 
-export function openWAWeb(mobile?: string, message?: string) {
+export function openWAWeb(mobile?: string, message?: string, settings?: any) {
   if (mobile && message) {
-    sendDirectWhatsAppMessage(mobile, message);
+    return sendDirectWhatsAppMessage(mobile, message, settings);
   }
+  return Promise.resolve({ success: false, method: 'none', message: 'Missing recipient or message' });
 }
 
-export function openWAApp(mobile: string, message: string) {
-  sendDirectWhatsAppMessage(mobile, message);
+export function openWAApp(mobile: string, message: string, settings?: any) {
+  return sendDirectWhatsAppMessage(mobile, message, settings);
 }
 
 export function appointmentStaffMessage(a: Appointment, salon: string): string {
