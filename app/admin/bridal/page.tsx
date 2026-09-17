@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/Toast';
 import { openWA, openWAWeb, bridalMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
+import { getBridalGoogleCalendarUrl } from '@/lib/calendar';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { subDays, format, parseISO } from 'date-fns';
@@ -792,6 +793,36 @@ const OTHER_EVENT_OPTIONS = [
                               <Receipt size={12} /> Bill
                             </button>
                             <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit"><Pencil size={13} /></button>
+                            <a
+                              href={getBridalGoogleCalendarUrl(
+                                {
+                                  name: b.name,
+                                  mobile: b.mobile,
+                                  packageName: b.packageName,
+                                  weddingDate: b.weddingDate || b.date,
+                                  venue: b.venue,
+                                  advance: Number(b.advance || 0),
+                                  totalAmount: Number(b.package || 0),
+                                  event: eventSummary(b),
+                                },
+                                data?.settings?.salon,
+                                data?.settings?.address
+                              )}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-icon"
+                              title="📅 Save & Remind in Google Calendar"
+                              style={{
+                                background: '#eff6ff',
+                                color: '#2563eb',
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Calendar size={13} />
+                            </a>
                             <button
                               className="btn-icon wa"
                               title="Send WhatsApp message via Meta API"
@@ -1079,11 +1110,46 @@ const OTHER_EVENT_OPTIONS = [
         wide
         footer={
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {tab > 0 && (
                 <motion.button className="btn btn-ghost btn-sm" onClick={() => setTab((t) => t - 1)} whileTap={{ scale: 0.97 }}>
                   <ChevronLeft size={14} /> Back
                 </motion.button>
+              )}
+              {(form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate) && (
+                <a
+                  href={getBridalGoogleCalendarUrl(
+                    {
+                      name: form.name || 'Bride',
+                      mobile: form.mobile,
+                      packageName: form.packageName,
+                      weddingDate: form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate,
+                      venue: form.venue,
+                      advance: Number(form.advance || 0),
+                      totalAmount: Number(form.package || 0),
+                      event: eventSummary(form as any),
+                    },
+                    data?.settings?.salon,
+                    data?.settings?.address
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost btn-sm"
+                  style={{
+                    color: '#2563eb',
+                    borderColor: '#bfdbfe',
+                    background: '#eff6ff',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    fontSize: 11.5,
+                  }}
+                  title="Open Google Calendar to save bridal event with automatic reminders"
+                >
+                  <Calendar size={13} /> 📅 Google Calendar
+                </a>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
