@@ -18,7 +18,7 @@ const MAIN_NAV = [
 ];
 
 const MORE_NAV = [
-  { href: '/admin/expenses',    label: 'Expenses & Rojmel', icon: Wallet },
+  { href: '/admin/finance',     label: 'Finance & Rojmel', icon: Wallet },
   { href: '/admin/customers',   label: 'Customers',        icon: Users },
   { href: '/admin/services',    label: 'Services',         icon: Sparkles },
   { href: '/admin/whatsapp',    label: 'WhatsApp',         icon: MessageCircle },

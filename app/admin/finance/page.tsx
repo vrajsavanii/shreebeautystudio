@@ -922,7 +922,7 @@ export default function FinanceAccountingPage() {
                   letterSpacing: '-0.02em',
                 }}
               >
-                Finance &amp; Accounting
+                Finance &amp; Rojmel (નાણાં અને રોજમેળ)
               </h1>
               <span
                 style={{
@@ -935,11 +935,11 @@ export default function FinanceAccountingPage() {
                   border: '1px solid #bbf7d0',
                 }}
               >
-                Vyapar Pro
+                Vyapar All-in-One
               </span>
             </div>
             <p style={{ margin: '3px 0 0', fontSize: 13, color: '#64748b' }}>
-              Sales Invoices, Purchases, Operating Expenses, Ledger Book &amp; Daily Cashbook.
+              Sales Invoices, Purchases, Operating Expenses, Party Khata (ખાતાવહી) &amp; Daily Cashbook (રોજમેળ).
             </p>
           </div>
         </div>

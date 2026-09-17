@@ -29,6 +29,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/admin/customers':    { title: 'Customer Directory', subtitle: 'Client records, birthdays & spend history' },
   '/admin/services':     { title: 'Services & Rate Card', subtitle: 'Salon menu, treatment rates & duration' },
   '/admin/billing':      { title: 'Billing POS Checkout', subtitle: 'Invoices, barcode billing & receipts' },
+  '/admin/finance':      { title: 'Finance & Rojmel Hub', subtitle: 'Vyapar ledger, party khata, cashbook & daily rojmel' },
   '/admin/inventory':    { title: 'Inventory & Products', subtitle: 'Retail stock, audit logs & batch expiry' },
   '/admin/purchases':    { title: 'Product Purchases', subtitle: 'Vendor invoices & inward stock orders' },
   '/admin/suppliers':    { title: 'Supplier Management', subtitle: 'Vendor ledgers, GSTIN & payments' },
