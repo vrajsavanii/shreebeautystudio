@@ -304,43 +304,32 @@ export async function generateBridalRateCardPDFBlob(
 
 /**
  * Download Bridal & Siders Rate Card PDF:
- * - If prices are unchanged: Downloads the 100% exact original uploaded PDF file.
- * - If prices are updated: Dynamically generates the PDF with updated prices.
+ * Always downloads the 100% exact original uploaded PDF file.
  */
 export async function downloadBridalRateCardPDF(
   packagesList?: BridalPackage[],
   salonData?: SalonData
 ): Promise<void> {
-  const isCustom = isBridalPackagesCustomized(packagesList);
-
-  if (!isCustom) {
-    // Exact 100% original uploaded PDF file
-    const link = document.createElement('a');
-    link.href = '/shree-bridal-rate-card.pdf';
-    link.download = 'Shree_Beauty_Studio_Bridal_Rate_Card.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } else {
-    // Prices modified by user: Dynamically generate PDF with new prices
-    const { pdf, filename } = await generateBridalRateCardPDFBlob(packagesList || [], salonData);
-    pdf.save(filename);
-  }
+  const link = document.createElement('a');
+  link.href = '/shree-bridal-rate-card.pdf';
+  link.download = 'Shree_Beauty_Studio_Bridal_Rate_Card.pdf';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 /**
  * Send the Bridal Rate Card PDF to a customer's WhatsApp via Meta Cloud API:
- * - If prices are unchanged: Sends the 100% exact original uploaded PDF file.
- * - If prices are updated: Dynamically generates the PDF with new prices and sends that.
+ * Always sends the 100% exact original uploaded PDF file (/shree-bridal-rate-card.pdf).
  */
 export async function sendBridalRateCardPDFViaWhatsApp(
-  packagesList: BridalPackage[],
-  targetMobile: string,
+  packagesList?: BridalPackage[],
+  targetMobile: string = '',
   targetName?: string,
   salonData?: SalonData
 ): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean }> {
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
-  const cleanMobile = (targetMobile || '').replace(/\D/g, '');
+  const cleanMobile = (targetMobile || '').replace(/\D/g, '').slice(-10);
 
   if (!cleanMobile) {
     return {
@@ -351,27 +340,21 @@ export async function sendBridalRateCardPDFViaWhatsApp(
   }
 
   try {
-    let pdfBase64 = '';
-    const isCustom = isBridalPackagesCustomized(packagesList);
-
-    if (!isCustom) {
-      // Fetch exact 100% original uploaded PDF file
-      const resPdf = await fetch('/shree-bridal-rate-card.pdf');
-      if (!resPdf.ok) {
-        throw new Error(`Failed to load original PDF file (${resPdf.status})`);
-      }
-      const blob = await resPdf.blob();
-      pdfBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } else {
-      // Dynamic PDF generation with updated prices
-      const { pdf } = await generateBridalRateCardPDFBlob(packagesList, salonData);
-      pdfBase64 = pdf.output('datauristring').split(',')[1];
+    // Fetch exact 100% original uploaded PDF file
+    const resPdf = await fetch('/shree-bridal-rate-card.pdf');
+    if (!resPdf.ok) {
+      throw new Error(`Failed to load original PDF file (${resPdf.status})`);
     }
+    const blob = await resPdf.blob();
+    const pdfBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result as string;
+        resolve(res.includes(',') ? res.split(',')[1] : res);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
 
     const recipientName = targetName || 'Valued Client';
     const messageCaption = `👑 *SHREE BEAUTY STUDIO — BRIDAL & SIDERS PACKAGES* 👑\n\nDear ${recipientName},\nAttached is our official Bridal & Siders Package Price List.\n\n✨ *Bridal Packages* include Makeup, Hairstyle, Jewellery, Lenses, Extensions, Eyelashes & Draping.\n✨ *Siders Packages* include Makeup, Hairstyle & Draping.\n\n📞 Booking WhatsApp: +${salonData?.settings?.whatsapp || '919773240010'}\n💖 *Thank you for choosing ${salon}!*`;
