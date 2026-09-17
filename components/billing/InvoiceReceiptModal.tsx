@@ -15,6 +15,8 @@ import {
   Loader2,
   AlertCircle,
   Mail,
+  Send,
+  Copy,
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -45,6 +47,14 @@ export default function InvoiceReceiptModal({
   const [downloadingFormat, setDownloadingFormat] = useState<'thermal' | 'a4' | null>(null);
   const [waResult, setWaResult] = useState<WAResult>({ status: 'idle', message: '' });
   const [emailResult, setEmailResult] = useState<EmailResult>({ status: 'idle', message: '' });
+  const [emailFallback, setEmailFallback] = useState<{
+    targetEmail: string;
+    gmailUrl: string;
+    mailtoUrl: string;
+    subject: string;
+    body: string;
+    isDomainRestriction?: boolean;
+  } | null>(null);
 
   if (!isOpen || !invoice) return null;
 
@@ -190,6 +200,8 @@ Have a wonderful day! 🙏✨`;
     setEmailResult({ status: 'sending', message: 'Sending invoice email…' });
     const invoiceEmailSubject = `📄 Invoice #${invoice.no} from ${salon}`;
     const invoiceSummaryText = buildRichInvoiceMessage();
+    const defaultGmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
+    const defaultMailtoUrl = `mailto:${encodeURIComponent(targetEmail)}?subject=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
 
     try {
       const res = await fetch('/api/email/send', {
@@ -215,31 +227,47 @@ Have a wonderful day! 🙏✨`;
 
       const data = await res.json();
       if (res.ok && data.success) {
-        setEmailResult({ status: 'sent', message: `Sent to ${targetEmail}!` });
-        toast(`✅ Invoice emailed to ${targetEmail}!`);
+        setEmailResult({ status: 'sent', message: `Sent via Resend to ${targetEmail}!` });
+        setEmailFallback(null);
+        toast(`✅ Invoice emailed to ${targetEmail} via Resend!`);
         setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
-      } else if (data.fallback?.gmailUrl || data.isDomainRestriction) {
-        // Resend sandbox or domain restriction: seamlessly open Gmail Web compose!
-        const gmailUrl =
-          data.fallback?.gmailUrl ||
-          `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
-        window.open(gmailUrl, '_blank');
-        setEmailResult({ status: 'sent', message: `Opened in Gmail for ${targetEmail}!` });
-        toast('✉️ Opening in Gmail to send invoice! (Tip: verify domain in Resend for automated cloud delivery)', 'info');
-        setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 6000);
       } else {
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
-        window.open(gmailUrl, '_blank');
-        setEmailResult({ status: 'sent', message: `Opened in Gmail for ${targetEmail}!` });
-        toast('✉️ Opening in Gmail compose window...', 'info');
-        setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
+        const isDomainRestr = data.isDomainRestriction || data.error?.toLowerCase()?.includes('testing email') || data.error?.toLowerCase()?.includes('verify a domain');
+        const finalGmailUrl = data.fallback?.gmailUrl || defaultGmailUrl;
+        const finalMailtoUrl = data.fallback?.mailtoUrl || defaultMailtoUrl;
+
+        setEmailFallback({
+          targetEmail,
+          gmailUrl: finalGmailUrl,
+          mailtoUrl: finalMailtoUrl,
+          subject: invoiceEmailSubject,
+          body: invoiceSummaryText,
+          isDomainRestriction: isDomainRestr,
+        });
+
+        // Attempt direct open in case browser popup blocker permits it
+        try {
+          window.open(finalGmailUrl, '_blank');
+        } catch {}
+
+        setEmailResult({ status: 'idle', message: '' });
+        if (isDomainRestr) {
+          toast('⚠️ Resend Sandbox Mode: Click the red "Open in Gmail" button below to dispatch.', 'info');
+        } else {
+          toast('Click below to dispatch invoice via Gmail or Mail app.', 'info');
+        }
       }
     } catch {
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
-      window.open(gmailUrl, '_blank');
-      setEmailResult({ status: 'sent', message: `Opened in Gmail for ${targetEmail}!` });
-      toast('✉️ Opening in Gmail compose window...', 'info');
-      setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
+      setEmailFallback({
+        targetEmail,
+        gmailUrl: defaultGmailUrl,
+        mailtoUrl: defaultMailtoUrl,
+        subject: invoiceEmailSubject,
+        body: invoiceSummaryText,
+        isDomainRestriction: false,
+      });
+      setEmailResult({ status: 'idle', message: '' });
+      toast('Click below to open Gmail or your default email app to dispatch.', 'info');
     }
   };
 
@@ -968,6 +996,128 @@ Have a wonderful day! 🙏✨`;
               }}
             >
               {waResult.message || emailResult.message}
+            </div>
+          )}
+
+          {/* Email Fallback Card for Resend Sandbox / Unblockable Dispatch */}
+          {emailFallback && (
+            <div
+              style={{
+                background: '#FEF2F2',
+                border: '1.5px solid #FECACA',
+                borderRadius: 10,
+                padding: '12px 14px',
+                marginBottom: 10,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#991B1B' }}>
+                  <AlertCircle size={15} color="#DC2626" />
+                  <span>
+                    {emailFallback.isDomainRestriction
+                      ? 'Resend Testing Sandbox Mode'
+                      : 'Dispatch Invoice via Email'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEmailFallback(null)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    color: '#991B1B',
+                    padding: 2,
+                  }}
+                  title="Dismiss"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div style={{ fontSize: 11.5, color: '#7F1D1D', lineHeight: 1.45 }}>
+                {emailFallback.isDomainRestriction ? (
+                  <>
+                    In Resend free testing mode, automated cloud emails are only sent to the account owner.
+                    To deliver to all customers automatically, verify your domain at <b>resend.com/domains</b>.
+                    In the meantime, 1-click dispatch to <b>{emailFallback.targetEmail}</b> below:
+                  </>
+                ) : (
+                  <>
+                    Send pre-formatted official invoice receipt directly to <b>{emailFallback.targetEmail}</b>:
+                  </>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                <a
+                  href={emailFallback.gmailUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-sm"
+                  style={{
+                    background: '#EA4335',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <Mail size={13} /> Open in Gmail Compose
+                </a>
+
+                <a
+                  href={emailFallback.mailtoUrl}
+                  className="btn btn-sm"
+                  style={{
+                    background: '#05424A',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <Send size={13} /> Open Mail App
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(emailFallback.body);
+                    toast('📋 Invoice email body copied to clipboard!');
+                  }}
+                  className="btn btn-sm"
+                  style={{
+                    background: '#ffffff',
+                    color: '#374151',
+                    border: '1px solid #D1D5DB',
+                    fontWeight: 600,
+                    fontSize: 11.5,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <Copy size={13} /> Copy Email Body
+                </button>
+              </div>
             </div>
           )}
 

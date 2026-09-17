@@ -258,9 +258,17 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage(updatedAppt, salon, address);
-      sendDirectWhatsAppMessage(appt.mobile, msg).then((res) => {
+      sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings).then((res) => {
         if (res.success) {
           toast('✅ WhatsApp confirmation sent to customer!');
+        } else {
+          const is24h = (res as any).is24HourWindow;
+          if (is24h) {
+            toast('📱 Customer outside 24h Meta window. Opening WhatsApp Web/App...', 'info');
+            window.open(`https://wa.me/91${appt.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
+          } else {
+            toast(res.message || 'Could not send WhatsApp confirmation', 'error');
+          }
         }
       });
     }
@@ -283,8 +291,19 @@ export default function AppointmentsPage() {
             address: data?.settings?.address,
             salonName: data?.settings?.salon,
           },
+          apiKey: data?.settings?.resendApiKey,
+          fromEmail: data?.settings?.resendFromEmail,
         }),
-      }).catch(() => {});
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.success) {
+            toast(`📧 Confirmation email delivered to ${cleanEmail} via Resend!`);
+          } else if (res.isDomainRestriction) {
+            toast('ℹ️ Resend Sandbox: External emails require domain verification at resend.com/domains', 'info');
+          }
+        })
+        .catch(() => {});
     }
 
     // 3. Auto-save to Google Calendar in cloud
@@ -320,7 +339,7 @@ export default function AppointmentsPage() {
     if (appt.mobile) {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const rejectMsg = `❌ *Appointment Request Update — ${salon}*\n\nNamaste *${appt.customer}*,\n\nWe regret to inform you that your booking request for *${appt.service}* on *${fmtDate(appt.date)}* at *${appt.time}* could not be confirmed at this time due to slot unavailability.\n\nPlease contact us directly to reschedule: 📞 ${data?.settings?.whatsapp || ''}\n\nThank you! ✨`;
-      sendDirectWhatsAppMessage(appt.mobile, rejectMsg);
+      sendDirectWhatsAppMessage(appt.mobile, rejectMsg, data?.settings);
     }
   };
 
@@ -498,9 +517,15 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
-      sendDirectWhatsAppMessage(form.mobile, msg).then((res) => {
+      sendDirectWhatsAppMessage(form.mobile, msg, data?.settings).then((res) => {
         if (res.success) {
           toast('✅ WhatsApp confirmation sent to customer!');
+        } else {
+          const is24h = (res as any).is24HourWindow;
+          if (is24h) {
+            toast('📱 Customer outside 24h Meta window. Opening WhatsApp...', 'info');
+            window.open(`https://wa.me/91${form.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
+          }
         }
       });
     }
@@ -523,12 +548,16 @@ export default function AppointmentsPage() {
             address: data?.settings?.address,
             salonName: data?.settings?.salon,
           },
+          apiKey: data?.settings?.resendApiKey,
+          fromEmail: data?.settings?.resendFromEmail,
         }),
       })
         .then((res) => res.json())
         .then((res) => {
           if (res.success) {
-            toast('📧 Email confirmation sent to customer via Resend!');
+            toast(`📧 Confirmation email sent to ${cleanEmail} via Resend!`);
+          } else if (res.isDomainRestriction) {
+            toast('ℹ️ Resend Sandbox: External emails require domain verification at resend.com/domains', 'info');
           }
         })
         .catch(() => {});

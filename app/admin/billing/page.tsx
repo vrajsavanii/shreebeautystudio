@@ -870,16 +870,46 @@ function BillingContent() {
     setUseWallet(0);
     setSelectedCustomerObj(null);
 
-    // Auto-send WhatsApp PDF receipt to customer
+    // Auto-send WhatsApp A4 PDF receipt to customer
     if (inv.mobile) {
-      sendInvoicePDFViaWhatsApp(inv, data).then((res) => {
+      sendInvoicePDFViaWhatsApp(inv, data, 'a4').then((res) => {
         if (res.success) {
-          toast('✅ PDF Bill sent directly to customer WhatsApp!');
+          toast('✅ High-Res A4 PDF Bill sent directly to customer WhatsApp!');
         } else if (!res.notConfigured) {
-          // Only show error toast if it's a real failure (not just "not configured yet")
           toast(res.message, 'error');
         }
       });
+    }
+
+    // Auto-send Email receipt to customer via Resend if email is on file
+    const custEmail = (data?.customers || []).find((c: any) => c.mobile === inv.mobile)?.email;
+    if (custEmail && custEmail.includes('@')) {
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'invoice',
+          to: custEmail.trim(),
+          data: {
+            customerName: inv.customer,
+            invoiceNo: inv.no,
+            date: inv.date,
+            total: inv.total,
+            mode: inv.mode,
+            lines: inv.lines,
+            salonName: data?.settings?.salon || 'Shree Beauty Studio',
+          },
+          apiKey: data?.settings?.resendApiKey,
+          fromEmail: data?.settings?.resendFromEmail,
+        }),
+      })
+        .then((r) => r.json())
+        .then((emailRes) => {
+          if (emailRes.success) {
+            toast(`📧 Invoice emailed to ${custEmail}!`);
+          }
+        })
+        .catch(() => {});
     }
 
     // Open sample layout modal with instant PDF download & print

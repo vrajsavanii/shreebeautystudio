@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
   Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles, Calendar, CheckCircle2,
-  AlertTriangle, Download, Upload, RotateCcw, ShieldAlert, Check, Users, Receipt, Wallet, ShoppingBag, Heart, Package
+  AlertTriangle, AlertCircle, Download, Upload, RotateCcw, ShieldAlert, Check, Users, Receipt, Wallet, ShoppingBag, Heart, Package
 } from 'lucide-react';
 import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
 import { scheduleSave, cloudSync, forceCloudReset } from '@/lib/sync';
@@ -137,7 +137,15 @@ export default function SettingsPage() {
       if (res.ok && data.success) {
         toast(`✅ Test email delivered to ${testEmailTo}!`, 'success');
       } else {
-        toast(`❌ ${data.error || 'Failed to send test email'}`, 'error');
+        const errLower = (data.error || '').toLowerCase();
+        if (errLower.includes('only send testing emails') || errLower.includes('verify a domain')) {
+          toast(
+            '⚠️ Resend Sandbox Restriction: Testing sender can only send to ku2407u702@karnavatiuniversity.edu.in. Verify a domain at resend.com/domains to send to any address.',
+            'error'
+          );
+        } else {
+          toast(`❌ ${data.error || 'Failed to send test email'}`, 'error');
+        }
       }
     } catch {
       toast('Network error sending test email', 'error');
@@ -1046,6 +1054,42 @@ export default function SettingsPage() {
                 <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
                   Format: <code>Salon Name &lt;email@domain.com&gt;</code>. Use <code>onboarding@resend.dev</code> for testing, or your custom verified domain in production.
                 </span>
+              </div>
+
+              {/* Notice regarding Resend Domain Verification */}
+              <div
+                style={{
+                  background: '#FFFBEB',
+                  border: '1.5px solid #FCD34D',
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  gap: 12,
+                  alignItems: 'flex-start',
+                }}
+              >
+                <AlertCircle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                <div style={{ fontSize: 12.5, color: '#92400E', lineHeight: 1.5 }}>
+                  <strong>Important Notice for Automated Cloud Email Delivery:</strong>
+                  <div style={{ marginTop: 4 }}>
+                    • In Resend&apos;s free sandbox testing mode (using <code>onboarding@resend.dev</code>), Resend <strong>only</strong> delivers emails to the registered account email (<code>ku2407u702@karnavatiuniversity.edu.in</code>).
+                  </div>
+                  <div style={{ marginTop: 3 }}>
+                    • To enable automated background cloud email delivery to <strong>all customer emails</strong> (like @gmail.com), add and verify your studio domain at{' '}
+                    <a
+                      href="https://resend.com/domains"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#05424A', fontWeight: 700, textDecoration: 'underline' }}
+                    >
+                      resend.com/domains
+                    </a>{' '}
+                    and update the <em>Sender Email Address (From)</em> above to match your domain (e.g. <code>Shree Beauty Studio &lt;info@shreebeautystudio.com&gt;</code>).
+                  </div>
+                  <div style={{ marginTop: 3 }}>
+                    • For bills &amp; invoices during testing mode, the system also provides a 1-click <em>Open in Gmail Compose</em> button with pre-filled details!
+                  </div>
+                </div>
               </div>
             </div>
 
