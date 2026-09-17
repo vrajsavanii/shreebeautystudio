@@ -692,82 +692,35 @@ export default function PublicBookingPage() {
                       textAlign: 'left',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                       <div
                         style={{
-                          width: 38,
-                          height: 38,
+                          width: 40,
+                          height: 40,
                           borderRadius: '50%',
-                          background: '#25D366',
+                          background: '#16a34a',
                           color: '#ffffff',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
-                          boxShadow: '0 4px 10px rgba(37,211,102,0.3)',
+                          boxShadow: '0 4px 10px rgba(22,163,74,0.3)',
                         }}
                       >
-                        <MessageCircle size={22} />
+                        <CheckCircle2 size={22} />
                       </div>
                       <div>
                         <div style={{ fontWeight: 900, fontSize: 15, color: '#064e3b' }}>
-                          📲 Instant WhatsApp Booking Pass
+                          ✅ WhatsApp &amp; Email Confirmation Dispatched
                         </div>
-                        <div style={{ fontSize: 12, color: '#047857' }}>
-                          Receive complete appointment details &amp; calendar reminder on WhatsApp
+                        <div style={{ fontSize: 12.5, color: '#047857', marginTop: 2 }}>
+                          Automated booking pass sent directly to <b>+91 {customerNum}</b> via Studio WhatsApp API
                         </div>
                       </div>
                     </div>
 
                     <div style={{ display: 'grid', gap: 10 }}>
-                      {/* Button 1: Send directly to Customer's WhatsApp */}
-                      <a
-                        href={`https://wa.me/91${customerNum}?text=${encodeURIComponent(fullPassText)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 10,
-                          background: '#25D366',
-                          color: '#ffffff',
-                          fontWeight: 800,
-                          fontSize: 14,
-                          padding: '13px 18px',
-                          borderRadius: 12,
-                          textDecoration: 'none',
-                          boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
-                        }}
-                      >
-                        <MessageCircle size={18} />
-                        <span>📲 Send Booking Details to My WhatsApp</span>
-                      </a>
-
-                      {/* Button 2: Message the Salon (Opens 24h Meta Window) */}
-                      <a
-                        href={`https://wa.me/${phone}?text=${encodeURIComponent(salonGreeting)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 10,
-                          background: '#ffffff',
-                          color: '#065f46',
-                          border: '1.5px solid #a7f3d0',
-                          fontWeight: 700,
-                          fontSize: 13,
-                          padding: '11px 16px',
-                          borderRadius: 12,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        <span>💬 Message Studio (+91 97732 40010)</span>
-                      </a>
-
-                      {/* Button 3: Copy Booking Details */}
+                      {/* Copy Booking Details */}
                       <button
                         type="button"
                         onClick={() => {

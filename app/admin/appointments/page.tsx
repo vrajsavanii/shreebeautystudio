@@ -258,17 +258,16 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage(updatedAppt, salon, address);
-      const cleanDigits = appt.mobile.replace(/\D/g, '').slice(-10);
-
-      // Auto-open WhatsApp Web / App directly for guaranteed instant customer delivery
-      if (cleanDigits.length === 10) {
-        try {
-          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(msg)}`, '_blank');
-        } catch {}
-      }
-
-      // Also attempt Meta Cloud API background dispatch
-      sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings);
+      // Dispatch via Meta Cloud API in the background (Zero window.open redirects)
+      sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings)
+        .then((res) => {
+          if (res.success) {
+            toast(`📲 WhatsApp confirmation sent to ${appt.customer} via Meta API!`);
+          } else {
+            console.warn('Meta WhatsApp dispatch notice:', res.message);
+          }
+        })
+        .catch(() => {});
     }
 
     // 2. Email confirmation via Resend
@@ -515,17 +514,16 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
-      const cleanDigits = form.mobile.replace(/\D/g, '').slice(-10);
-
-      // Auto-open WhatsApp Web / App directly for guaranteed instant customer delivery
-      if (cleanDigits.length === 10) {
-        try {
-          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(msg)}`, '_blank');
-        } catch {}
-      }
-
-      // Also attempt Meta Cloud API background dispatch
-      sendDirectWhatsAppMessage(form.mobile, msg, data?.settings);
+      // Dispatch via Meta Cloud API in the background (Zero window.open redirects)
+      sendDirectWhatsAppMessage(form.mobile, msg, data?.settings)
+        .then((res) => {
+          if (res.success) {
+            toast(`📲 WhatsApp confirmation sent to ${form.customer} via Meta API!`);
+          } else {
+            console.warn('Meta WhatsApp dispatch notice:', res.message);
+          }
+        })
+        .catch(() => {});
     }
 
     // Auto-send Email confirmation to customer via Resend if email is provided
@@ -1182,8 +1180,14 @@ export default function AppointmentsPage() {
                                 </a>
                                 <button
                                   className="btn-icon wa"
-                                  title="Send WhatsApp confirmation to customer"
-                                  onClick={() => openWA(a.mobile, appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat'))}
+                                  title="Send WhatsApp confirmation via Meta API"
+                                  onClick={async () => {
+                                    toast('⏳ Dispatching WhatsApp update via Meta API…');
+                                    const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat');
+                                    const res = await sendDirectWhatsAppMessage(a.mobile, msg, data?.settings);
+                                    if (res?.success) toast(`✅ WhatsApp update delivered to ${a.customer}!`);
+                                    else toast(`⚠️ ${res?.message || 'Failed to deliver WhatsApp message'}`, 'error');
+                                  }}
                                 >
                                   <MessageCircle size={12} />
                                 </button>

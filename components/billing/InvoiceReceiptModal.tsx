@@ -155,27 +155,15 @@ Have a wonderful day! 🙏✨`;
       } else {
         const is24h = (res as any).is24HourWindow || res.message?.toLowerCase().includes('24-hour') || res.message?.toLowerCase().includes('window');
         const fallbackMsg = is24h
-          ? 'Customer is outside Meta 24h messaging window. Use Direct WhatsApp button below.'
+          ? 'Customer is outside Meta 24h messaging window. Use Direct WhatsApp button below if needed.'
           : res.message || 'Meta WhatsApp delivery failed.';
         setWaResult({ status: 'failed', message: fallbackMsg });
         toast(fallbackMsg, is24h ? 'info' : 'error');
-
-        // If possible, also attempt opening WhatsApp directly
-        if (cleanDigits.length === 10) {
-          try {
-            window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
-          } catch {}
-        }
       }
     } catch (e: any) {
       const errMsg = e?.message || 'Unexpected error while sending WhatsApp message.';
       setWaResult({ status: 'failed', message: errMsg });
       toast(errMsg, 'error');
-      if (cleanDigits.length === 10) {
-        try {
-          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
-        } catch {}
-      }
     }
   };
 

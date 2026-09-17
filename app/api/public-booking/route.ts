@@ -257,9 +257,9 @@ export async function POST(request: Request) {
         console.log(`[Public Booking WhatsApp] Sent direct text message to ${mobile}:`, waResult);
       }
 
-      // Also alert salon studio owner phone
+      // Also alert salon studio owner phone (if separate staff/owner number configured)
       const salonPhone = (updatedData.settings?.whatsapp || '9773240010').replace(/\D/g, '').slice(-10);
-      if (salonPhone && salonPhone !== mobile) {
+      if (salonPhone && salonPhone !== mobile && salonPhone !== '9773240010') {
         const staffAlert = appointmentStaffMessage(newAppointment, salon);
         sendDirectWhatsAppMessage(salonPhone, staffAlert, updatedData.settings).catch(() => {});
       }

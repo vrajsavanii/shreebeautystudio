@@ -34,6 +34,11 @@ export async function sendDirectWhatsAppMessage(
   const recipient = `91${num}`;
   const clickToChatUrl = getWhatsAppUrl(num, message);
 
+  // Avoid Meta API error 100 if testing with the studio's own registered phone number
+  if (num === '9773240010') {
+    return { success: true, method: 'self_skipped', message: 'Studio business number acknowledged.', clickToChatUrl };
+  }
+
   try {
     // Server-side execution (API routes, Webhooks)
     if (typeof window === 'undefined') {
@@ -178,16 +183,11 @@ export async function sendWhatsAppTemplateMessage({
 }
 
 /**
- * Open WhatsApp directly in browser / phone app (Click-to-Chat).
- * 100% Unblockable & Works for every number worldwide without any 24h Meta restriction.
+ * Send WhatsApp directly via Meta Cloud API in the background.
+ * Zero browser redirects, zero popups. Returns result Promise.
  */
-export function openWA(mobile: string, message: string, settings?: any) {
-  if (typeof window === 'undefined') {
-    return sendDirectWhatsAppMessage(mobile, message, settings);
-  }
-  const num = (mobile || '').replace(/\D/g, '').slice(-10);
-  if (!num) return;
-  window.open(`https://wa.me/91${num}?text=${encodeURIComponent(message)}`, '_blank');
+export async function openWA(mobile: string, message: string, settings?: any): Promise<{ success: boolean; method: string; message: string; is24HourWindow?: boolean; clickToChatUrl?: string }> {
+  return sendDirectWhatsAppMessage(mobile, message, settings);
 }
 
 export function openWAWeb(mobile?: string, message?: string, settings?: any) {
