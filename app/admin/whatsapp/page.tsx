@@ -574,7 +574,7 @@ export default function WhatsAppHubPage() {
           <button
             type="button"
             className="btn btn-sm"
-            onClick={() => router.push('/settings')}
+            onClick={() => router.push('/admin/settings')}
             style={{
               background: '#ffffff',
               color: '#05424a',

@@ -98,49 +98,79 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       </button>
 
       {/* Left: Page Title & Breadcrumb Subtitle */}
-      <div className="topbar-title-wrap" style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0, flexShrink: 1 }}>
-        <h1 className="topbar-title" style={{ fontSize: 17, margin: 0, lineHeight: 1.2 }}>
+      <div
+        className="topbar-title-wrap"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 2,
+          minWidth: 'fit-content',
+          flexShrink: 0,
+        }}
+      >
+        <h1 className="topbar-title" style={{ fontSize: 17, fontWeight: 800, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
           {pageInfo.title}
         </h1>
-        <div className="topbar-subtitle" style={{ fontSize: 11.5, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
-          <span style={{ fontWeight: 600, color: 'var(--teal)' }}>
+        <div
+          className="topbar-subtitle"
+          style={{
+            fontSize: 11.5,
+            color: 'var(--muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            whiteSpace: 'nowrap',
+            lineHeight: 1.3,
+          }}
+        >
+          <span style={{ fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>
             {data?.settings?.salon || 'Shree Beauty Studio'}
           </span>
-          <span>•</span>
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ color: '#cbd5e1' }}>•</span>
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
             {pageInfo.subtitle}
           </span>
         </div>
       </div>
 
       {/* Center / Right: Live Date & Time + Alert Pills + Quick Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', flexShrink: 0 }}>
+      <div
+        className="topbar-right"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 7,
+          flexWrap: 'nowrap',
+          minWidth: 0,
+          justifyContent: 'flex-end',
+          flex: 1,
+        }}
+      >
         {/* Live Date & Time Pill */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 6,
             background: '#f8fafc',
             border: '1px solid var(--border)',
-            padding: '5px 11px',
+            padding: '4px 9px',
             borderRadius: 99,
-            fontSize: 11.5,
+            fontSize: 11,
             color: 'var(--text-light)',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
           }}
           className="topbar-datetime"
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <CalendarIcon size={12} color="var(--gold-dark)" />
-            <span style={{ fontWeight: 600 }}>{todayFormatted}</span>
-          </div>
+          <CalendarIcon size={12} color="var(--gold-dark)" />
+          <span style={{ fontWeight: 600 }}>{todayFormatted}</span>
           {timeStr && (
             <>
-              <span style={{ color: 'var(--border)' }}>|</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Clock size={12} color="var(--teal)" />
-                <span>{timeStr}</span>
-              </div>
+              <span style={{ color: '#cbd5e1' }}>·</span>
+              <Clock size={11.5} color="var(--teal)" />
+              <span>{timeStr}</span>
             </>
           )}
         </div>
@@ -152,7 +182,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             className="badge badge-teal topbar-badge"
             style={{
               textDecoration: 'none',
-              padding: '4px 9px',
+              padding: '3.5px 8px',
               fontSize: 11,
               display: 'inline-flex',
               alignItems: 'center',
@@ -174,7 +204,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             className="badge badge-red topbar-badge"
             style={{
               textDecoration: 'none',
-              padding: '4px 9px',
+              padding: '3.5px 8px',
               fontSize: 11,
               display: 'inline-flex',
               alignItems: 'center',
@@ -189,74 +219,84 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </Link>
         )}
 
-        {/* Quick Action Shortcuts */}
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} className="topbar-actions">
-          {!isSalesperson && (
+        {/* Quick Action Shortcuts (contextual & responsive) */}
+        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }} className="topbar-actions">
+          {!isSalesperson && pathname !== '/admin/whatsapp' && (
             <Link
               href="/admin/whatsapp"
               className="btn btn-sm"
               style={{
-                fontSize: 11.5,
-                padding: '5.5px 11px',
+                fontSize: 11,
+                padding: '4.5px 9px',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
+                gap: 4,
                 background: '#25D366',
                 color: '#053320',
                 fontWeight: 700,
                 border: 'none',
+                borderRadius: 7,
               }}
               title="Open WhatsApp Web & Client Messenger"
             >
-              <MessageCircle size={13} /> WhatsApp
+              <MessageCircle size={13} /> <span className="topbar-action-label">WhatsApp</span>
             </Link>
           )}
-          <Link
-            href="/admin/billing"
-            className="btn btn-primary btn-sm"
-            style={{
-              fontSize: 11.5,
-              padding: '5.5px 11px',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
-          >
-            <Zap size={12} /> POS Bill
-          </Link>
-          <Link
-            href="/admin/appointments"
-            className="btn btn-ghost btn-sm"
-            style={{
-              fontSize: 11.5,
-              padding: '5.5px 10px',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Plus size={12} /> Book
-          </Link>
+          {pathname !== '/admin/billing' && (
+            <Link
+              href="/admin/billing"
+              className="btn btn-primary btn-sm"
+              style={{
+                fontSize: 11,
+                padding: '4.5px 9px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                borderRadius: 7,
+              }}
+              title="New POS Bill"
+            >
+              <Zap size={12} /> <span className="topbar-action-label">POS Bill</span>
+            </Link>
+          )}
+          {pathname !== '/admin/appointments' && (
+            <Link
+              href="/admin/appointments"
+              className="btn btn-ghost btn-sm"
+              style={{
+                fontSize: 11,
+                padding: '4.5px 9px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                borderRadius: 7,
+              }}
+              title="Book Appointment"
+            >
+              <Plus size={12} /> <span className="topbar-action-label">Book</span>
+            </Link>
+          )}
           <Link
             href="/"
             target="_blank"
             className="btn btn-ghost btn-sm"
             style={{
-              fontSize: 11.5,
-              padding: '5.5px 10px',
+              fontSize: 11,
+              padding: '4.5px 9px',
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
               color: '#05424A',
               fontWeight: 600,
+              borderRadius: 7,
             }}
             title="Open Public Customer Website"
           >
-            <ExternalLink size={12} /> Public Site
+            <ExternalLink size={12} /> <span className="topbar-action-label">Site</span>
           </Link>
         </div>
 
@@ -307,12 +347,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
       <style>{`
         .topbar-badge-short { display: none; }
-        @media (max-width: 992px) {
+        @media (max-width: 1350px) {
+          .topbar-action-label { display: none !important; }
+        }
+        @media (max-width: 1150px) {
           .topbar-datetime { display: none !important; }
+        }
+        @media (max-width: 992px) {
+          .topbar-actions { display: none !important; }
         }
         @media (max-width: 767px) {
           #mobile-menu-btn { display: flex !important; margin-right: 2px; }
-          .topbar-actions { display: none !important; }
           .topbar-subtitle { display: none !important; }
           .topbar-user-name { display: none !important; }
           .topbar-badge-label { display: none !important; }
@@ -321,7 +366,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         @media (max-width: 480px) {
           .topbar-title {
             font-size: 14.5px !important;
-            max-width: 115px !important;
+            max-width: 120px !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: nowrap !important;

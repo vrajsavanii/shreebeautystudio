@@ -438,12 +438,12 @@ export default function ServicesPage() {
   // Quick Action Shortcuts
   const handleQuickBill = (s: Service) => {
     toast(`Opening POS billing for ${s.name}…`);
-    router.push('/billing');
+    router.push('/admin/billing');
   };
 
   const handleQuickBook = (s: Service) => {
     toast(`Opening appointments for ${s.name}…`);
-    router.push('/appointments');
+    router.push('/admin/appointments');
   };
 
   // WhatsApp Rate Card Text Formatter

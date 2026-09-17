@@ -588,7 +588,7 @@ export default function AppointmentsPage() {
   };
 
   const handleConvertToBill = (appt: Appointment) => {
-    router.push(`/billing?convertApptId=${appt.id}`);
+    router.push(`/admin/billing?convertApptId=${appt.id}`);
   };
 
   const handleOpenReceipt = (appt: Appointment) => {
@@ -1115,7 +1115,7 @@ export default function AppointmentsPage() {
                                       <button
                                         className="btn btn-sm btn-ghost"
                                         style={{ fontSize: 10.5, padding: '3px 6px' }}
-                                        onClick={() => router.push('/billing')}
+                                        onClick={() => router.push('/admin/billing')}
                                         title="View Billing POS"
                                       >
                                         <Eye size={10} /> View Bill
@@ -1298,7 +1298,9 @@ export default function AppointmentsPage() {
         </div>
 
         <div className="form-group">
-          <label className="label">Customer (Type to auto pick contact)</label>
+          <label className="label">
+            Customer <span className="label-hint">(auto pick contact)</span>
+          </label>
           <input
             type="text"
             className="input"
@@ -1319,7 +1321,9 @@ export default function AppointmentsPage() {
         </div>
 
         <div className="form-group">
-          <label className="label">Mobile Number (Type to auto pick contact)</label>
+          <label className="label">
+            Mobile Number <span className="label-hint">(10-digit)</span>
+          </label>
           <input
             type="tel"
             className="input"
@@ -1339,7 +1343,9 @@ export default function AppointmentsPage() {
         </div>
 
         <div className="form-group">
-          <label className="label">Customer Email (Optional — for Resend confirmation &amp; invoice)</label>
+          <label className="label">
+            Customer Email <span className="label-hint">(optional)</span>
+          </label>
           <input
             type="email"
             className="input"
@@ -1350,7 +1356,9 @@ export default function AppointmentsPage() {
 
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Service Name (Type custom or pick from menu)</label>
+            <label className="label">
+              Service Name <span className="label-hint">(custom or menu)</span>
+            </label>
             <input
               type="text"
               className="input"
@@ -1369,7 +1377,9 @@ export default function AppointmentsPage() {
             {errors.service && <span className="error-msg">{errors.service.message}</span>}
           </div>
           <div className="form-group">
-            <label className="label">Service Price / Rate (₹)</label>
+            <label className="label">
+              Service Price <span className="label-hint">(₹)</span>
+            </label>
             <input
               type="number"
               className="input"

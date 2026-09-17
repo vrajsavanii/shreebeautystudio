@@ -535,7 +535,7 @@ export default function PurchasesPage() {
           />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Link href="/suppliers" className="btn btn-ghost">
+          <Link href="/admin/suppliers" className="btn btn-ghost">
             <Building2 size={14} /> Suppliers Directory ({suppliers.length})
           </Link>
           <motion.button className="btn btn-primary" onClick={openNew} whileTap={{ scale: 0.97 }}>

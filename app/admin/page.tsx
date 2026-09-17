@@ -151,7 +151,7 @@ export default function DashboardPage() {
         <motion.div className="card" variants={fadeSlideUp} initial="hidden" animate="visible">
           <div className="section-header" style={{ padding: '16px 20px' }}>
             <h2>Revenue (Last 7 Days)</h2>
-            <Link href="/reports" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+            <Link href="/admin/reports" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
               Full Report <ChevronRight size={14} />
             </Link>
           </div>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
         <motion.div className="card" variants={fadeSlideUp} initial="hidden" animate="visible">
           <div className="section-header" style={{ padding: '16px 20px' }}>
             <h2>Staff Today</h2>
-            <Link href="/staff" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+            <Link href="/admin/staff" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
               Manage <ChevronRight size={14} />
             </Link>
           </div>
@@ -223,12 +223,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 2: Today's Appointments + Upcoming Reminders */}
-      <div className="dash-grid" style={{ marginTop: 0 }}>
+      <div className="dash-grid">
         {/* Today's Appointments */}
         <motion.div className="card" variants={fadeSlideUp} initial="hidden" animate="visible">
           <div className="section-header" style={{ padding: '16px 20px' }}>
             <h2>Today's Appointments</h2>
-            <Link href="/appointments" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+            <Link href="/admin/appointments" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
               View all <ChevronRight size={14} />
             </Link>
           </div>
@@ -273,7 +273,7 @@ export default function DashboardPage() {
         <motion.div className="card" variants={fadeSlideUp} initial="hidden" animate="visible" style={{ transitionDelay: '0.1s' }}>
           <div className="section-header" style={{ padding: '16px 20px' }}>
             <h2>Upcoming Reminders</h2>
-            <Link href="/reminders" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+            <Link href="/admin/reminders" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
               View all <ChevronRight size={14} />
             </Link>
           </div>
@@ -306,12 +306,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 3: Recent Invoices + Low Stock & Expiring Products */}
-      <div className="dash-grid" style={{ marginTop: 0 }}>
+      <div className="dash-grid">
         {/* Recent Invoices */}
         <motion.div className="card" variants={fadeSlideUp} initial="hidden" animate="visible">
           <div className="section-header" style={{ padding: '16px 20px' }}>
             <h2>Recent Invoices</h2>
-            <Link href="/billing" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+            <Link href="/admin/billing" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
               View all <ChevronRight size={14} />
             </Link>
           </div>
@@ -350,7 +350,7 @@ export default function DashboardPage() {
         <motion.div className="card" variants={fadeSlideUp} initial="hidden" animate="visible">
           <div className="section-header" style={{ padding: '16px 20px' }}>
             <h2>Inventory Alerts</h2>
-            <Link href="/inventory" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+            <Link href="/admin/inventory" style={{ fontSize: 13, color: 'var(--teal)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
               View all <ChevronRight size={14} />
             </Link>
           </div>

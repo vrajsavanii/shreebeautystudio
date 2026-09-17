@@ -1199,7 +1199,9 @@ function BillingContent() {
 
             <div className="form-grid">
               <div className="form-group">
-                <label className="label">Customer Name (Type to auto pick contact)</label>
+                <label className="label">
+                  Customer Name <span className="label-hint">(auto pick contact)</span>
+                </label>
                 <input
                   type="text"
                   className="input"
@@ -1218,7 +1220,9 @@ function BillingContent() {
                 </datalist>
               </div>
               <div className="form-group">
-                <label className="label">Mobile Number (Type to auto pick contact)</label>
+                <label className="label">
+                  Mobile Number <span className="label-hint">(10-digit)</span>
+                </label>
                 <input
                   type="tel"
                   className="input"

@@ -378,7 +378,7 @@ export default function CustomersPage() {
             value={search} onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             type="button"
             className="btn btn-secondary"
@@ -521,7 +521,9 @@ export default function CustomersPage() {
       >
         <div className="form-grid">
           <div className="form-group">
-            <label className="label">Full Name * (Type to auto pick contact)</label>
+            <label className="label">
+              Full Name * <span className="label-hint">(auto pick contact)</span>
+            </label>
             <input
               type="text"
               className="input"
@@ -542,7 +544,9 @@ export default function CustomersPage() {
             {errors.name && <span className="error-msg">{errors.name.message}</span>}
           </div>
           <div className="form-group">
-            <label className="label">Mobile Number * (Type to auto pick contact)</label>
+            <label className="label">
+              Mobile Number * <span className="label-hint">(10-digit)</span>
+            </label>
             <input
               type="tel"
               className="input"
@@ -577,7 +581,9 @@ export default function CustomersPage() {
           </div>
         </div>
         <div className="form-group">
-          <label className="label">✉️ Email Address (for digital receipts & offers)</label>
+          <label className="label">
+            ✉️ Email Address <span className="label-hint">(for receipts &amp; offers)</span>
+          </label>
           <input
             type="email"
             className="input"

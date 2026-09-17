@@ -448,7 +448,7 @@ export default function SuppliersPage() {
           />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Link href="/purchases" className="btn btn-ghost">
+          <Link href="/admin/purchases" className="btn btn-ghost">
             <Receipt size={14} /> Product Purchases ({purchases.length})
           </Link>
           <motion.button className="btn btn-primary" onClick={openAdd} whileTap={{ scale: 0.97 }}>
