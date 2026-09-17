@@ -32,6 +32,7 @@ import {
   Save,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
+import { scheduleSave } from '@/lib/sync';
 import { useToast } from '@/components/ui/Toast';
 import { money, fmtDate, todayISO } from '@/lib/utils';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
@@ -351,6 +352,7 @@ export default function WhatsAppHubPage() {
         },
       };
     });
+    scheduleSave();
     setIsManualEdited(false);
     toast(`💾 '${selectedTemplate.toUpperCase()}' ટેમ્પલેટ કાયમી સેવ થઇ ગયું! (Saved permanently)`);
   };
@@ -367,6 +369,7 @@ export default function WhatsAppHubPage() {
         },
       };
     });
+    scheduleSave();
     setIsManualEdited(false);
     toast(`🔄 '${selectedTemplate.toUpperCase()}' ટેમ્પલેટ રીસેટ થઈને મૂળ ડિફોલ્ટ સેટ થયુ!`);
   };
