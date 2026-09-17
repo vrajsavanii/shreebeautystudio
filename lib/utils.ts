@@ -132,3 +132,17 @@ export const getFirstFutureSlot = (dateStr: string, slots: string[]): string => 
   const firstValid = slots.find((s) => !isPastTimeForDate(dateStr, s));
   return firstValid || '';
 };
+
+/**
+ * 15-minute time slots covering 24 hours (:00, :15, :30, :45 from 06:00 to 23:45 / full day)
+ */
+export const FIFTEEN_MIN_TIME_SLOTS: { value: string; label: string }[] = Array.from({ length: 96 }, (_, i) => {
+  const totalMinutes = i * 15;
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const displayH = h % 12 === 0 ? 12 : h % 12;
+  const label = `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+  return { value: val, label };
+});

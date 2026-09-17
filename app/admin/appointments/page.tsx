@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM } from '@/lib/utils';
+import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM, FIFTEEN_MIN_TIME_SLOTS } from '@/lib/utils';
 import { Appointment, AppointmentStatus, WorkStatus, Invoice, StudioHoliday, HolidayType } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -1296,8 +1296,17 @@ export default function AppointmentsPage() {
             })()}
           </div>
           <div className="form-group">
-            <label className="label">Time (15-min intervals: :00, :15, :30, :45)</label>
-            <input type="time" step={900} className="input" {...register('time', { required: true })} />
+            <label className="label">Time</label>
+            <select className="input" {...register('time', { required: true })}>
+              {watch('time') && !FIFTEEN_MIN_TIME_SLOTS.some((s) => s.value === watch('time')) && (
+                <option value={watch('time')}>{watch('time')}</option>
+              )}
+              {FIFTEEN_MIN_TIME_SLOTS.map((slot) => (
+                <option key={slot.value} value={slot.value}>
+                  {slot.label}
+                </option>
+              ))}
+            </select>
             {(() => {
               const selectedDate = watch('date');
               const selectedTime = watch('time');

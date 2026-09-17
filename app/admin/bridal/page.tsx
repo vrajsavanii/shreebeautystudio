@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate, formatCustomerContactName } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, formatCustomerContactName, FIFTEEN_MIN_TIME_SLOTS } from '@/lib/utils';
 import { BridalBooking, BridalPackage, Invoice, InvoiceLine } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -1272,14 +1272,21 @@ const OTHER_EVENT_OPTIONS = [
                   </div>
                   <div>
                     <span style={{ fontSize: 10.5, color: form.includeWedding !== false ? '#92400e' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
-                    <input
-                      type="time"
-                      step={900}
+                    <select
                       className="input"
                       disabled={form.includeWedding === false}
                       value={form.weddingTime || '16:00'}
                       onChange={(e) => set('weddingTime', e.target.value)}
-                    />
+                    >
+                      {form.weddingTime && !FIFTEEN_MIN_TIME_SLOTS.some((s) => s.value === form.weddingTime) && (
+                        <option value={form.weddingTime}>{form.weddingTime}</option>
+                      )}
+                      {FIFTEEN_MIN_TIME_SLOTS.map((slot) => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1322,14 +1329,21 @@ const OTHER_EVENT_OPTIONS = [
                   </div>
                   <div>
                     <span style={{ fontSize: 10.5, color: form.includeSagai ? '#0284c7' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
-                    <input
-                      type="time"
-                      step={900}
+                    <select
                       className="input"
                       disabled={!form.includeSagai}
                       value={form.sagaiTime || '11:00'}
                       onChange={(e) => set('sagaiTime', e.target.value)}
-                    />
+                    >
+                      {form.sagaiTime && !FIFTEEN_MIN_TIME_SLOTS.some((s) => s.value === form.sagaiTime) && (
+                        <option value={form.sagaiTime}>{form.sagaiTime}</option>
+                      )}
+                      {FIFTEEN_MIN_TIME_SLOTS.map((slot) => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1372,14 +1386,21 @@ const OTHER_EVENT_OPTIONS = [
                   </div>
                   <div>
                     <span style={{ fontSize: 10.5, color: form.includeMandap !== false ? '#9d174d' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
-                    <input
-                      type="time"
-                      step={900}
+                    <select
                       className="input"
                       disabled={form.includeMandap === false}
                       value={form.mandapTime || '10:00'}
                       onChange={(e) => set('mandapTime', e.target.value)}
-                    />
+                    >
+                      {form.mandapTime && !FIFTEEN_MIN_TIME_SLOTS.some((s) => s.value === form.mandapTime) && (
+                        <option value={form.mandapTime}>{form.mandapTime}</option>
+                      )}
+                      {FIFTEEN_MIN_TIME_SLOTS.map((slot) => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1422,14 +1443,21 @@ const OTHER_EVENT_OPTIONS = [
                   </div>
                   <div>
                     <span style={{ fontSize: 10.5, color: form.includeMusic !== false ? '#5b21b6' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
-                    <input
-                      type="time"
-                      step={900}
+                    <select
                       className="input"
                       disabled={form.includeMusic === false}
                       value={form.musicTime || '19:00'}
                       onChange={(e) => set('musicTime', e.target.value)}
-                    />
+                    >
+                      {form.musicTime && !FIFTEEN_MIN_TIME_SLOTS.some((s) => s.value === form.musicTime) && (
+                        <option value={form.musicTime}>{form.musicTime}</option>
+                      )}
+                      {FIFTEEN_MIN_TIME_SLOTS.map((slot) => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1504,14 +1532,21 @@ const OTHER_EVENT_OPTIONS = [
                   </div>
                   <div>
                     <span style={{ fontSize: 10.5, color: form.includeOther ? '#065f46' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
-                    <input
-                      type="time"
-                      step={900}
+                    <select
                       className="input"
                       disabled={!form.includeOther}
                       value={form.otherTime || '11:00'}
                       onChange={(e) => set('otherTime', e.target.value)}
-                    />
+                    >
+                      {form.otherTime && !FIFTEEN_MIN_TIME_SLOTS.some((s) => s.value === form.otherTime) && (
+                        <option value={form.otherTime}>{form.otherTime}</option>
+                      )}
+                      {FIFTEEN_MIN_TIME_SLOTS.map((slot) => (
+                        <option key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
