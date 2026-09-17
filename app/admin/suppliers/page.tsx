@@ -382,7 +382,11 @@ export default function SuppliersPage() {
       .filter(Boolean)
       .join('\n');
 
-    openWA(s.mobile, lines);
+    toast('⏳ Sending WhatsApp statement via Meta Cloud API…');
+    openWA(s.mobile, lines)?.then((res: any) => {
+      if (res?.success) toast('✅ Statement sent via Meta WhatsApp API!');
+      else toast(`❌ ${res?.message || 'Failed to send statement'}`, 'error');
+    });
   };
 
   return (
@@ -535,13 +539,17 @@ export default function SuppliersPage() {
                                   <button
                                     className="btn-icon wa"
                                     style={{ width: 20, height: 20 }}
-                                    title="WhatsApp Supplier"
-                                    onClick={() =>
+                                    title="Send WhatsApp via Meta API"
+                                    onClick={() => {
+                                      toast('⏳ Sending WhatsApp message via Meta Cloud API…');
                                       openWA(
                                         s.mobile!,
                                         `Hello ${s.contact || s.name},\nThis is from ${data?.settings?.salon || 'Shree Beauty Studio'}.`
-                                      )
-                                    }
+                                      )?.then((res: any) => {
+                                        if (res?.success) toast('✅ Message sent via Meta WhatsApp API!');
+                                        else toast(`❌ ${res?.message || 'Failed to send WhatsApp message'}`, 'error');
+                                      });
+                                    }}
                                   >
                                     <MessageCircle size={11} />
                                   </button>

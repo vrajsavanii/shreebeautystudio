@@ -181,23 +181,30 @@ export async function sendWhatsAppTemplateMessage({
  * Open WhatsApp directly in browser / phone app (Click-to-Chat).
  * 100% Unblockable & Works for every number worldwide without any 24h Meta restriction.
  */
-export function openWA(mobile: string, message: string) {
-  if (typeof window === 'undefined') return;
+export function openWA(mobile: string, message: string, settings?: any) {
+  if (typeof window === 'undefined') {
+    return sendDirectWhatsAppMessage(mobile, message, settings);
+  }
   const num = (mobile || '').replace(/\D/g, '').slice(-10);
   if (!num) return;
   window.open(`https://wa.me/91${num}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-export function openWAWeb(mobile?: string, message?: string) {
-  if (typeof window === 'undefined') return;
+export function openWAWeb(mobile?: string, message?: string, settings?: any) {
+  if (typeof window === 'undefined') {
+    if (mobile && message) return sendDirectWhatsAppMessage(mobile, message, settings);
+    return Promise.resolve({ success: false, method: 'none', message: 'Missing recipient or message' });
+  }
   const num = (mobile || '').replace(/\D/g, '').slice(-10);
   const text = message ? encodeURIComponent(message) : '';
   const url = num ? `https://wa.me/91${num}?text=${text}` : `https://web.whatsapp.com/`;
   window.open(url, '_blank');
 }
 
-export function openWAApp(mobile: string, message: string) {
-  if (typeof window === 'undefined') return;
+export function openWAApp(mobile: string, message: string, settings?: any) {
+  if (typeof window === 'undefined') {
+    return sendDirectWhatsAppMessage(mobile, message, settings);
+  }
   const num = (mobile || '').replace(/\D/g, '').slice(-10);
   const text = encodeURIComponent(message);
   window.open(`https://api.whatsapp.com/send?phone=91${num}&text=${text}`, '_blank');

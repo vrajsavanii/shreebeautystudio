@@ -6,8 +6,8 @@ import { mergeWithDefaults } from '@/lib/store';
 import { uid } from '@/lib/utils';
 import { Appointment, Customer, SalonData } from '@/types/salon';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eqwfbcouxozwfwkzqano.supabase.co';
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxd2ZiY291eG96d2Z3a3pxYW5vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk4NDYxNiwiZXhwIjoyMTAzNTYwNjE2fQ.fEjqEpPf6PsbkvVoRMZ6zeqxKq1dOdnSTp3UR18DIwg';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'shree_beauty_webhook_token_2026';
 
 // 1. GET: Webhook Verification with Meta Cloud API
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const currentData: SalonData = mergeWithDefaults(salonRow.data);
 
     // Process WhatsApp AI Auto-Responder & PDF Dispatch
-    const originUrl = req.nextUrl.origin;
+    const originUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
     const aiResult = await processWhatsAppAIMessage(messageText, rawMobile, customerName, currentData, originUrl);
 
     // Parse booking details

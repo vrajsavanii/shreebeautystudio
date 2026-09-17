@@ -253,7 +253,17 @@ export default function StaffPage() {
                       <td>
                         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                           {s.mobile && (
-                            <button className="btn-icon wa" title="WhatsApp" onClick={() => openWA(s.mobile, `Hello ${s.name},\nThis is from ${data?.settings?.salon || 'Shree Beauty Studio'}.`)}>
+                            <button
+                              className="btn-icon wa"
+                              title="Send WhatsApp via Meta API"
+                              onClick={() => {
+                                toast('⏳ Sending WhatsApp message via Meta Cloud API…');
+                                openWA(s.mobile, `Hello ${s.name},\nThis is from ${data?.settings?.salon || 'Shree Beauty Studio'}.`)?.then((res: any) => {
+                                  if (res?.success) toast('✅ Message sent via Meta WhatsApp API!');
+                                  else toast(`❌ ${res?.message || 'Failed to send WhatsApp message'}`, 'error');
+                                });
+                              }}
+                            >
                               <MessageCircle size={14} />
                             </button>
                           )}

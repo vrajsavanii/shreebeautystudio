@@ -42,7 +42,6 @@ const DEFAULT_CATEGORIES = [
   'Hair Care & Styling',
   'Skin Care & Facials',
   'Waxing & Threading',
-  'Hands, Feet & Nails',
   'Makeup & Bridal',
   'Body Spa & Bleach',
   'Other Treatments',
@@ -81,16 +80,6 @@ const SALON_PRESET_PACKAGES = [
       { name: 'Full Arms + Underarms Rica Wax', price: 650, duration: 30, description: 'Rica peel-off wax for sensitive skin' },
       { name: 'Full Legs Honey Wax', price: 550, duration: 30, description: 'Smooth legs waxing' },
       { name: 'Full Body Waxing Package', price: 1800, duration: 90, description: 'Full body smooth waxing' },
-    ],
-  },
-  {
-    title: '💅 Hands, Feet & Nails Pack',
-    category: 'Hands, Feet & Nails',
-    services: [
-      { name: 'Classic Pedicure', price: 550, duration: 40, description: 'Relaxing foot soak, scrub & polish' },
-      { name: 'Spa Manicure & Pedicure Combo', price: 1100, duration: 60, description: 'Deluxe spa hands & feet treatment' },
-      { name: 'Gel Polish Application', price: 650, duration: 45, description: 'Long-lasting UV gel nail color' },
-      { name: 'Acrylic Nail Extensions Set', price: 1800, duration: 90, description: 'Full set acrylic extensions' },
     ],
   },
   {

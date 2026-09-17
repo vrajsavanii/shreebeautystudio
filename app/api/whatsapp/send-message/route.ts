@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const cleanNumber = to.replace(/\D/g, '').slice(-10);
-    const recipient = `91${cleanNumber}`;
+    const digits = to.replace(/\D/g, '');
+    const recipient = digits.length === 10 ? `91${digits}` : (digits.startsWith('91') && digits.length >= 12 ? digits : `91${digits.slice(-10)}`);
 
     let phoneId = whatsappPhoneId || '';
     let accessToken = whatsappAccessToken || '';
