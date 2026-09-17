@@ -121,7 +121,7 @@ export function getGoogleCalendarUrl(event: CalendarEvent): string {
 }
 
 /**
- * Generate a 1-click Google Calendar URL with reminder details for regular appointments.
+ * Generate a clean, short 1-click Google Calendar URL for regular appointments.
  */
 export function getAppointmentGoogleCalendarUrl(
   a: {
@@ -139,30 +139,21 @@ export function getAppointmentGoogleCalendarUrl(
   address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
 ): string {
   const time24 = parseTimeTo24(a.time || '10:00');
-  const details = [
-    `✨ Appointment Confirmed with ${salon}`,
-    `👤 Customer: ${a.customer}`,
-    a.mobile ? `📞 Mobile: +91 ${a.mobile}` : '',
-    `💄 Service: ${a.service}`,
-    a.price ? `💰 Price: ₹${a.price}` : '',
-    Number(a.advance || 0) > 0 ? `💵 Advance Paid: ₹${a.advance}` : '',
-    a.notes ? `📝 Notes: ${a.notes}` : '',
-    `\n📍 Studio Address:\n${address}`,
-    `📞 Salon Helpline: +91 97732 40010`,
-  ].filter(Boolean).join('\n');
+  const dtStart = formatICSDate(a.date, time24);
+  const dtEnd = addMinutes(a.date, time24, 60);
 
-  return getGoogleCalendarUrl({
-    title: `💅 ${a.service} — ${salon} (${a.customer})`,
-    description: details,
-    location: address || salon,
-    startDate: a.date,
-    startTime: time24,
-    durationMinutes: 60,
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `${a.service} — ${salon} (${a.customer})`,
+    dates: `${dtStart}/${dtEnd}`,
+    location: address ? 'Shree Beauty Studio, Katargam, Surat' : salon,
   });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 /**
- * Generate a 1-click Google Calendar URL for bridal appointments.
+ * Generate a clean, short 1-click Google Calendar URL for bridal appointments.
  */
 export function getBridalGoogleCalendarUrl(
   b: {
@@ -182,26 +173,17 @@ export function getBridalGoogleCalendarUrl(
 ): string {
   const eventDate = b.weddingDate || b.date || todayDateString();
   const pkgName = b.packageName || 'Bridal Package';
-  const details = [
-    `👑 BRIDAL APPOINTMENT — ${salon}`,
-    `👰 Bride: ${b.name}`,
-    b.mobile ? `📞 Mobile: +91 ${b.mobile}` : '',
-    `💄 Package: ${pkgName}`,
-    b.event ? `🎉 Event: ${b.event}` : '',
-    b.venue ? `📍 Venue: ${b.venue}` : `📍 Studio: ${address}`,
-    b.totalAmount ? `💰 Package Total: ₹${b.totalAmount}` : '',
-    Number(b.advance || 0) > 0 ? `💵 Advance Paid: ₹${b.advance}` : '',
-    `\n📞 Studio Contact: +91 97732 40010`,
-  ].filter(Boolean).join('\n');
+  const dtStart = formatICSDate(eventDate, '08:00');
+  const dtEnd = addMinutes(eventDate, '08:00', 180);
 
-  return getGoogleCalendarUrl({
-    title: `👑 Bridal Makeup: ${pkgName} — ${b.name} (${salon})`,
-    description: details,
-    location: b.venue || address || salon,
-    startDate: eventDate,
-    startTime: '08:00',
-    durationMinutes: 180,
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: `Bridal: ${pkgName} — ${b.name} (${salon})`,
+    dates: `${dtStart}/${dtEnd}`,
+    location: b.venue || 'Shree Beauty Studio, Katargam, Surat',
   });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 function todayDateString(): string {
