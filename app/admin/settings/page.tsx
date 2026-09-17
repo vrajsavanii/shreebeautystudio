@@ -407,11 +407,11 @@ export default function SettingsPage() {
               </div>
               <div className="form-group">
                 <label className="label">Opening Time</label>
-                <input type="time" className="input" value={s.open} onChange={(e) => update('open', e.target.value)} />
+                <input type="time" step={900} className="input" value={s.open} onChange={(e) => update('open', e.target.value)} />
               </div>
               <div className="form-group">
                 <label className="label">Closing Time</label>
-                <input type="time" className="input" value={s.close} onChange={(e) => update('close', e.target.value)} />
+                <input type="time" step={900} className="input" value={s.close} onChange={(e) => update('close', e.target.value)} />
               </div>
             </div>
             <div className="form-group">

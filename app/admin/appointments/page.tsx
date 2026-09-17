@@ -1296,8 +1296,8 @@ export default function AppointmentsPage() {
             })()}
           </div>
           <div className="form-group">
-            <label className="label">Time</label>
-            <input type="time" className="input" {...register('time', { required: true })} />
+            <label className="label">Time (15-min intervals: :00, :15, :30, :45)</label>
+            <input type="time" step={900} className="input" {...register('time', { required: true })} />
             {(() => {
               const selectedDate = watch('date');
               const selectedTime = watch('time');

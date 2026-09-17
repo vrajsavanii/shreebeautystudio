@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Calendar, Users, Receipt, Package,
-  ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings, Sparkles, Wallet, MessageCircle, LogOut, ShieldCheck, UserCheck, ExternalLink
+  ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings, Sparkles, Wallet, MessageCircle, LogOut, ShieldCheck, UserCheck, ExternalLink, BookOpen
 } from 'lucide-react';
 import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { useSalonStore } from '@/lib/store';
@@ -19,6 +19,7 @@ const NAV = [
   { href: '/admin/customers',    label: 'Customers',          icon: Users,           role: 'all' },
   { href: '/admin/services',     label: 'Services & Menu',    icon: Sparkles,        role: 'admin' },
   { href: '/admin/billing',      label: 'Billing (POS)',      icon: Receipt,         role: 'all' },
+  { href: '/admin/finance',      label: 'Finance & Accounting', icon: BookOpen,        role: 'admin' },
   { href: '/admin/inventory',    label: 'Inventory',          icon: Package,         role: 'all' },
   { href: '/admin/purchases',    label: 'Product Purchase',   icon: ShoppingBag,     role: 'all' },
   { href: '/admin/suppliers',    label: 'Suppliers',          icon: Building2,       role: 'admin' },

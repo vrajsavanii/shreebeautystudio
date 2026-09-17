@@ -586,11 +586,11 @@ export default function StaffPage() {
           <div className="form-grid">
             <div className="form-group">
               <label className="label">Check-In Time</label>
-              <input type="time" className="input" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
+              <input type="time" step={900} className="input" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
             </div>
             <div className="form-group">
               <label className="label">Check-Out Time</label>
-              <input type="time" className="input" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
+              <input type="time" step={900} className="input" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
             </div>
           </div>
         )}

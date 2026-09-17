@@ -1274,6 +1274,7 @@ const OTHER_EVENT_OPTIONS = [
                     <span style={{ fontSize: 10.5, color: form.includeWedding !== false ? '#92400e' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
                     <input
                       type="time"
+                      step={900}
                       className="input"
                       disabled={form.includeWedding === false}
                       value={form.weddingTime || '16:00'}
@@ -1323,6 +1324,7 @@ const OTHER_EVENT_OPTIONS = [
                     <span style={{ fontSize: 10.5, color: form.includeSagai ? '#0284c7' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
                     <input
                       type="time"
+                      step={900}
                       className="input"
                       disabled={!form.includeSagai}
                       value={form.sagaiTime || '11:00'}
@@ -1372,6 +1374,7 @@ const OTHER_EVENT_OPTIONS = [
                     <span style={{ fontSize: 10.5, color: form.includeMandap !== false ? '#9d174d' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
                     <input
                       type="time"
+                      step={900}
                       className="input"
                       disabled={form.includeMandap === false}
                       value={form.mandapTime || '10:00'}
@@ -1421,6 +1424,7 @@ const OTHER_EVENT_OPTIONS = [
                     <span style={{ fontSize: 10.5, color: form.includeMusic !== false ? '#5b21b6' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
                     <input
                       type="time"
+                      step={900}
                       className="input"
                       disabled={form.includeMusic === false}
                       value={form.musicTime || '19:00'}
@@ -1502,6 +1506,7 @@ const OTHER_EVENT_OPTIONS = [
                     <span style={{ fontSize: 10.5, color: form.includeOther ? '#065f46' : '#64748b', fontWeight: 700, display: 'block', marginBottom: 2 }}>Time</span>
                     <input
                       type="time"
+                      step={900}
                       className="input"
                       disabled={!form.includeOther}
                       value={form.otherTime || '11:00'}
