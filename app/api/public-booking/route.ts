@@ -4,8 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
 import { uid, todayISO, isPastTimeForDate } from '@/lib/utils';
-import { sendDirectWhatsAppMessage, sendWhatsAppTemplateMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage, bridalMessage } from '@/lib/whatsapp';
-import { sendResendEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
+import { sendDirectWhatsAppMessage, sendWhatsAppTemplateMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage, bridalMessage, appointmentStaffMessage } from '@/lib/whatsapp';
+import { sendUniversalEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
 import { autoSyncAppointmentToGoogleCalendar, autoSyncBridalToGoogleCalendar } from '@/lib/google-calendar-server';
 
 export const dynamic = 'force-dynamic';
@@ -256,11 +256,18 @@ export async function POST(request: Request) {
         waResult = await sendDirectWhatsAppMessage(mobile, msg, updatedData.settings);
         console.log(`[Public Booking WhatsApp] Sent direct text message to ${mobile}:`, waResult);
       }
+
+      // Also alert salon studio owner phone
+      const salonPhone = (updatedData.settings?.whatsapp || '9773240010').replace(/\D/g, '').slice(-10);
+      if (salonPhone && salonPhone !== mobile) {
+        const staffAlert = appointmentStaffMessage(newAppointment, salon);
+        sendDirectWhatsAppMessage(salonPhone, staffAlert, updatedData.settings).catch(() => {});
+      }
     } catch (err: any) {
       console.warn('[Public Booking WhatsApp] Dispatch error:', err?.message);
     }
 
-    // 8. Dispatch customer confirmation via Resend Email (if optional email provided)
+    // 8. Dispatch customer confirmation via Universal Email (Resend + Gmail SMTP fallback)
     let emailResult: any = null;
     if (email && email.includes('@') && updatedData.settings?.emailConfirmationsEnabled !== false) {
       try {
@@ -283,14 +290,13 @@ export async function POST(request: Request) {
           salonName: salon,
         });
 
-        emailResult = await sendResendEmail({
+        emailResult = await sendUniversalEmail({
           to: email,
           subject: isPending
             ? `⏳ Booking Request Received — ${serviceTitle} at ${salon}`
             : `✨ Appointment Confirmed — ${serviceTitle} at ${salon}`,
           html: emailHtml,
-          from: updatedData.settings?.resendFromEmail,
-          apiKey: updatedData.settings?.resendApiKey,
+          settings: updatedData.settings,
         });
         console.log(`[Public Booking Email] Sent confirmation to ${email}:`, emailResult);
       } catch (err: any) {

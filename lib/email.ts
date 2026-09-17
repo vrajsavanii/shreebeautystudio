@@ -167,6 +167,60 @@ export async function sendGmailSmtpEmail({
   }
 }
 
+/**
+ * Universal email dispatcher:
+ * Automatically tries Resend first. If Resend is missing/fails, falls back to Gmail SMTP seamlessly.
+ */
+export async function sendUniversalEmail({
+  to,
+  subject,
+  html,
+  text,
+  settings,
+}: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  settings?: any;
+}): Promise<EmailSendResult> {
+  const apiKey = settings?.resendApiKey || process.env.RESEND_API_KEY;
+  if (apiKey) {
+    const resendRes = await sendResendEmail({
+      to,
+      subject,
+      html,
+      text,
+      from: settings?.resendFromEmail || process.env.RESEND_FROM_EMAIL,
+      apiKey,
+    });
+    if (resendRes.success) {
+      return resendRes;
+    }
+    console.warn('[Universal Email] Resend failed, falling back to Gmail SMTP:', resendRes.error);
+  }
+
+  // Fallback to Gmail SMTP
+  const smtpUser = settings?.smtpUser || process.env.GMAIL_USER || 'shreebeauty.studio22@gmail.com';
+  const smtpPass = settings?.smtpPass || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD;
+  if (smtpPass) {
+    return await sendGmailSmtpEmail({
+      to,
+      subject,
+      html,
+      text,
+      user: smtpUser,
+      pass: smtpPass,
+      from: `Shree Beauty Studio <${smtpUser}>`,
+    });
+  }
+
+  return {
+    success: false,
+    error: 'Neither Resend API Key nor Gmail App Password is configured.',
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // HTML EMAIL TEMPLATE BUILDERS (Luxury Shree Beauty Studio Branding)
 // ─────────────────────────────────────────────────────────────────────────────

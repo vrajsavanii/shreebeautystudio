@@ -18,6 +18,8 @@ import {
   ArrowLeft,
   Scissors,
   Crown,
+  Check,
+  X,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -95,17 +97,30 @@ export default function PublicBookingPage() {
   const [confirmedAppt, setConfirmedAppt] = useState<Appointment | null>(null);
   const [confirmedBridal, setConfirmedBridal] = useState<BridalBooking | null>(null);
   const [searchService, setSearchService] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
 
+  // Available unique categories
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    services.forEach((s) => {
+      if (s.category && s.category.trim()) cats.add(s.category.trim());
+    });
+    return ['All', ...Array.from(cats)];
+  }, [services]);
+
   // Filtered Services
   const filteredServices = useMemo(() => {
-    if (!searchService) return services;
-    const q = searchService.toLowerCase();
-    return services.filter(
-      (s) => s.name.toLowerCase().includes(q) || (s.category || '').toLowerCase().includes(q)
-    );
-  }, [services, searchService]);
+    return services.filter((s) => {
+      if (selectedCategory !== 'All' && (s.category || '').toLowerCase() !== selectedCategory.toLowerCase()) {
+        return false;
+      }
+      if (!searchService) return true;
+      const q = searchService.toLowerCase();
+      return s.name.toLowerCase().includes(q) || (s.category || '').toLowerCase().includes(q);
+    });
+  }, [services, searchService, selectedCategory]);
 
   // Regular Services Total
   const regularTotal = useMemo(() => {
@@ -250,16 +265,10 @@ export default function PublicBookingPage() {
           return null;
         });
 
-        // Auto-launch WhatsApp with prefilled booking pass for instant customer delivery
-        const passMsg = `💅 *APPOINTMENT BOOKING PASS — ${salon.toUpperCase()}* 💅\n────────────────────────────\nDear ${newAppt.customer},\nYour appointment booking request has been received! ✨\n\n💄 *Service:* ${newAppt.service}\n📅 *Date:* ${fmtDate(newAppt.date)}\n⏰ *Time:* ${newAppt.time || 'Selected Slot'}\n${newAppt.price ? `💵 *Estimated Price:* ₹${newAppt.price}\n` : ''}📍 *Studio Address:*\n${address}\n📞 *Studio Contact:* +91 97732 40010\n────────────────────────────\n📅 *Google Calendar Reminder:*\n${getAppointmentGoogleCalendarUrl(newAppt, salon, address)}\n\nThank you for choosing ${salon}! 🙏✨`;
-
-        const cleanDigits = newAppt.mobile.replace(/\D/g, '').slice(-10);
-        if (cleanDigits.length === 10) {
-          try {
-            window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(passMsg)}`, '_blank');
-          } catch {}
+        // Update state and display success confirmation on screen (NO auto-redirect)
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
         setConfirmedAppt(newAppt);
       } else {
         // Bridal Booking Mode
@@ -356,15 +365,10 @@ export default function PublicBookingPage() {
           }),
         }).catch((err) => console.warn('Cloud bridal booking API warning:', err));
 
-        // Auto-launch WhatsApp with prefilled bridal booking pass
-        const bridalPassMsg = `👑 *BRIDAL BOOKING PASS — ${salon.toUpperCase()}* 👑\n────────────────────────────\nDear ${newBridalBooking.name},\nYour bridal booking request has been received! ✨\n\n💄 *Package:* ${newBridalBooking.packageName || 'Bridal Package'}\n📅 *Wedding Date:* ${fmtDate(newBridalBooking.weddingDate || newBridalBooking.date)}\n📍 *Venue:* ${newBridalBooking.venue || address}\n💵 *Estimated Package:* ₹${newBridalBooking.package || newBridalBooking.totalAmount || 0}\n────────────────────────────\n📍 *Studio Address:*\n${address}\n📞 *WhatsApp Support:* +91 97732 40010\n\nThank you for choosing ${salon}! 💖`;
-
-        if (cleanMobile.length === 10) {
-          try {
-            window.open(`https://wa.me/91${cleanMobile}?text=${encodeURIComponent(bridalPassMsg)}`, '_blank');
-          } catch {}
+        // Update state and display success confirmation on screen (NO auto-redirect)
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-
         setConfirmedBridal(newBridalBooking);
       }
     } catch (err: any) {
@@ -496,31 +500,95 @@ export default function PublicBookingPage() {
             >
               <div
                 style={{
-                  width: 68,
-                  height: 68,
+                  width: 72,
+                  height: 72,
                   borderRadius: '50%',
-                  background: '#fef3c7',
-                  color: '#b45309',
+                  background: '#dcfce7',
+                  color: '#16a34a',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 16px',
+                  boxShadow: '0 8px 24px rgba(22,163,74,0.25)',
                 }}
               >
-                <Clock size={38} />
+                <CheckCircle2 size={44} />
               </div>
 
-              <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 900, color: '#0f172a' }}>
-                {confirmedBridal ? '👑 Bridal Request Submitted!' : '⏳ Booking Request Submitted!'}
+              <span
+                style={{
+                  display: 'inline-block',
+                  background: '#ecfdf5',
+                  color: '#065f46',
+                  border: '1px solid #a7f3d0',
+                  borderRadius: 99,
+                  padding: '4px 14px',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  marginBottom: 8,
+                }}
+              >
+                ✨ BOOKING REQUEST RECEIVED ✨
+              </span>
+
+              <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 900, color: '#05424a' }}>
+                {confirmedBridal ? '👑 Bridal Booking Submitted!' : '🎉 Appointment Request Submitted!'}
               </h2>
-              <p style={{ margin: '0 0 16px', fontSize: 13.5, color: '#64748b' }}>
-                We have received your appointment request. Request notification dispatched to{' '}
-                <b>+91 {confirmedAppt?.mobile || confirmedBridal?.mobile}</b>
-                {customerEmail ? (
-                  <span> and <b>{customerEmail}</b></span>
-                ) : null}
-                .
+              <p style={{ margin: '0 0 16px', fontSize: 14, color: '#475569', lineHeight: 1.5 }}>
+                Thank you, <b>{confirmedAppt?.customer || confirmedBridal?.name}</b>! Your appointment request has been submitted to <b>{salon}</b>.
               </p>
+
+              {/* Automatic Background Dispatch Confirmation Badges */}
+              <div
+                style={{
+                  display: 'grid',
+                  gap: 8,
+                  marginBottom: 20,
+                  textAlign: 'left',
+                }}
+              >
+                <div
+                  style={{
+                    background: '#f0fdf4',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    fontSize: 12.5,
+                    color: '#166534',
+                    fontWeight: 700,
+                  }}
+                >
+                  <MessageCircle size={18} className="shrink-0 text-emerald-600" />
+                  <span>
+                    Auto WhatsApp message dispatched in background to <b>+91 {confirmedAppt?.mobile || confirmedBridal?.mobile}</b>
+                  </span>
+                </div>
+
+                {customerEmail && (
+                  <div
+                    style={{
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: 12,
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      fontSize: 12.5,
+                      color: '#1e40af',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <CheckCircle2 size={18} className="shrink-0 text-blue-600" />
+                    <span>
+                      Confirmation receipt &amp; details dispatched to <b>{customerEmail}</b>
+                    </span>
+                  </div>
+                )}
+              </div>
 
               {/* Gujarati Notice Banner: Confirmed Thaya Pasi J Book Thase */}
               <div
@@ -834,11 +902,11 @@ export default function PublicBookingPage() {
               onSubmit={handleBookingSubmit}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
+              className="p-4 sm:p-6 md:p-8"
               style={{
                 background: '#ffffff',
                 color: '#0f172a',
                 borderRadius: 24,
-                padding: '24px',
                 boxShadow: '0 20px 50px rgba(0,0,0,0.25)',
               }}
             >
@@ -851,14 +919,14 @@ export default function PublicBookingPage() {
                   padding: 4,
                   background: '#f1f5f9',
                   borderRadius: 14,
-                  marginBottom: 24,
+                  marginBottom: 20,
                 }}
               >
                 <button
                   type="button"
                   onClick={() => setBookingMode('regular')}
                   style={{
-                    padding: '11px 14px',
+                    padding: '12px 10px',
                     borderRadius: 11,
                     border: 'none',
                     background: bookingMode === 'regular' ? '#05424a' : 'transparent',
@@ -870,16 +938,21 @@ export default function PublicBookingPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
+                    minHeight: 46,
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
+                    userSelect: 'none',
                     transition: 'all 0.2s ease',
                   }}
+                  className="active:scale-[0.98] transition-transform"
                 >
-                  <Scissors size={16} /> Regular Salon Services
+                  <Scissors size={16} /> Regular Services
                 </button>
                 <button
                   type="button"
                   onClick={() => setBookingMode('bridal')}
                   style={{
-                    padding: '11px 14px',
+                    padding: '12px 10px',
                     borderRadius: 11,
                     border: 'none',
                     background: bookingMode === 'bridal' ? 'linear-gradient(135deg, #db2777, #be185d)' : 'transparent',
@@ -891,10 +964,15 @@ export default function PublicBookingPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 6,
+                    minHeight: 46,
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
+                    userSelect: 'none',
                     transition: 'all 0.2s ease',
                   }}
+                  className="active:scale-[0.98] transition-transform"
                 >
-                  <Crown size={16} /> 👑 Bridal &amp; Siders Packages
+                  <Crown size={16} /> Bridal Packages
                 </button>
               </div>
 
@@ -913,7 +991,53 @@ export default function PublicBookingPage() {
                       )}
                     </div>
 
-                    <div style={{ marginBottom: 12 }}>
+                    {/* Quick Category Filter Pills */}
+                    {categories.length > 1 && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 6,
+                          overflowX: 'auto',
+                          paddingBottom: 8,
+                          marginBottom: 10,
+                          WebkitOverflowScrolling: 'touch',
+                        }}
+                      >
+                        {categories.map((cat) => {
+                          const isCatActive = selectedCategory === cat;
+                          return (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setSelectedCategory(cat)}
+                              style={{
+                                whiteSpace: 'nowrap',
+                                padding: '6px 13px',
+                                borderRadius: 9999,
+                                fontSize: 12,
+                                fontWeight: 800,
+                                border: `1.5px solid ${isCatActive ? '#05424a' : '#e2e8f0'}`,
+                                background: isCatActive ? '#05424a' : '#ffffff',
+                                color: isCatActive ? '#ffffff' : '#475569',
+                                cursor: 'pointer',
+                                touchAction: 'manipulation',
+                                WebkitTapHighlightColor: 'transparent',
+                                userSelect: 'none',
+                                minHeight: 34,
+                                boxShadow: isCatActive ? '0 2px 8px rgba(5,66,74,0.25)' : 'none',
+                                transition: 'all 0.15s ease',
+                              }}
+                              className="active:scale-95 shrink-0"
+                            >
+                              {cat}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Search Service Input */}
+                    <div style={{ position: 'relative', marginBottom: 12 }}>
                       <input
                         type="search"
                         placeholder="Search haircut, facial, waxing, hair spa…"
@@ -921,75 +1045,143 @@ export default function PublicBookingPage() {
                         onChange={(e) => setSearchService(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '10px 14px',
-                          borderRadius: 10,
+                          padding: '11px 36px 11px 14px',
+                          borderRadius: 12,
                           border: '1.5px solid #cbd5e1',
-                          fontSize: 13,
+                          fontSize: 14,
                           outline: 'none',
+                          minHeight: 44,
+                          touchAction: 'manipulation',
                         }}
+                        className="text-base sm:text-sm"
                       />
+                      {searchService && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchService('')}
+                          style={{
+                            position: 'absolute',
+                            right: 10,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: '#e2e8f0',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: 24,
+                            height: 24,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#475569',
+                            touchAction: 'manipulation',
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
 
+                    {/* Service List Items */}
                     <div
                       style={{
-                        maxHeight: 280,
+                        maxHeight: 330,
                         overflowY: 'auto',
                         display: 'grid',
                         gap: 8,
                         paddingRight: 4,
+                        WebkitOverflowScrolling: 'touch',
+                        overscrollBehavior: 'contain',
                       }}
                     >
                       {filteredServices.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>
+                        <div style={{ textAlign: 'center', padding: '24px 16px', color: '#94a3b8', fontSize: 13 }}>
                           No matching services found.
+                          {selectedCategory !== 'All' && (
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedCategory('All'); setSearchService(''); }}
+                              style={{
+                                display: 'block',
+                                margin: '8px auto 0',
+                                color: '#05424a',
+                                fontWeight: 700,
+                                fontSize: 12,
+                                background: 'none',
+                                border: 'none',
+                                textDecoration: 'underline',
+                                cursor: 'pointer',
+                                touchAction: 'manipulation',
+                              }}
+                            >
+                              View all services
+                            </button>
+                          )}
                         </div>
                       ) : (
                         filteredServices.map((s) => {
                           const isSelected = selectedServices.includes(s.name);
                           return (
-                            <div
+                            <button
                               key={s.id || s.name}
+                              type="button"
+                              role="checkbox"
+                              aria-checked={isSelected}
                               onClick={() => toggleService(s.name)}
                               style={{
+                                width: '100%',
+                                textAlign: 'left',
                                 padding: '12px 14px',
-                                borderRadius: 12,
+                                borderRadius: 14,
                                 border: `1.5px solid ${isSelected ? '#05424a' : '#e2e8f0'}`,
-                                background: isSelected ? '#f0fdf4' : '#fafafa',
+                                background: isSelected ? '#f0fdf9' : '#ffffff',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
+                                gap: 12,
                                 transition: 'all 0.15s ease',
+                                touchAction: 'manipulation',
+                                WebkitTapHighlightColor: 'transparent',
+                                userSelect: 'none',
+                                minHeight: 62,
+                                boxShadow: isSelected ? '0 3px 12px rgba(5,66,74,0.12)' : '0 1px 2px rgba(0,0,0,0.02)',
                               }}
+                              className="active:scale-[0.98] transition-all"
                             >
-                              <div>
-                                <div style={{ fontWeight: 800, fontSize: 13.5, color: isSelected ? '#05424a' : '#1e293b' }}>
+                              <div style={{ pointerEvents: 'none', flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 800, fontSize: 14, color: isSelected ? '#05424a' : '#1e293b', lineHeight: 1.3 }}>
                                   {s.name}
                                 </div>
-                                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
-                                  ⏱ {s.duration || 30} mins • {s.category || 'General'}
+                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <span>⏱ {s.duration || 30} mins</span>
+                                  {s.category && <span>• {s.category}</span>}
                                 </div>
                               </div>
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontWeight: 800, fontSize: 14, color: '#16a34a' }}>
+                              <div style={{ pointerEvents: 'none', textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontWeight: 900, fontSize: 15, color: '#16a34a' }}>
                                   {money(s.price)}
                                 </div>
                                 <span
                                   style={{
-                                    fontSize: 10.5,
+                                    fontSize: 11,
                                     fontWeight: 800,
-                                    color: isSelected ? '#fff' : '#05424a',
-                                    background: isSelected ? '#05424a' : '#e2e8f0',
-                                    padding: '2px 8px',
-                                    borderRadius: 6,
+                                    color: isSelected ? '#ffffff' : '#05424a',
+                                    background: isSelected ? '#05424a' : '#edf7f9',
+                                    border: isSelected ? '1px solid #05424a' : '1px solid #c2e2e7',
+                                    padding: '3px 10px',
+                                    borderRadius: 8,
                                     marginTop: 4,
-                                    display: 'inline-block',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    boxShadow: isSelected ? '0 2px 6px rgba(5,66,74,0.25)' : 'none',
                                   }}
                                 >
-                                  {isSelected ? '✓ Added' : '+ Select'}
+                                  {isSelected ? '✓ Added' : '+ Add'}
                                 </span>
                               </div>
-                            </div>
+                            </button>
                           );
                         })
                       )}
@@ -1003,7 +1195,7 @@ export default function PublicBookingPage() {
                     </h3>
 
                     <div style={{ marginBottom: 14 }}>
-                      <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                         Booking Date:
                       </label>
                       <input
@@ -1020,13 +1212,16 @@ export default function PublicBookingPage() {
                         }}
                         style={{
                           width: '100%',
-                          padding: '9px 12px',
-                          borderRadius: 10,
+                          padding: '11px 14px',
+                          borderRadius: 12,
                           border: `1.5px solid ${regularHolidayCheck.isBlocked ? '#f43f5e' : '#cbd5e1'}`,
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: 700,
                           outline: 'none',
+                          minHeight: 46,
+                          touchAction: 'manipulation',
                         }}
+                        className="text-base sm:text-sm"
                       />
                     </div>
 
@@ -1065,17 +1260,24 @@ export default function PublicBookingPage() {
                     )}
 
                     <div style={{ opacity: regularHolidayCheck.isBlocked ? 0.4 : 1, pointerEvents: regularHolidayCheck.isBlocked ? 'none' : 'auto' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', margin: 0 }}>
                           Select Time Slot:
                         </label>
                         {bookingDate === todayISO() && (
-                          <span style={{ fontSize: 10.5, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '2px 8px', borderRadius: 6 }}>
                             ⚡ Live Future Slots
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(95px, 1fr))', gap: 6 }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: 8,
+                        }}
+                        className="sm:!grid-cols-4 md:!grid-cols-4"
+                      >
                         {TIME_SLOTS.map((slot) => {
                           const isSlotPast = isPastTimeForDate(bookingDate, slot);
                           const isSelected = selectedTime === slot && !isSlotPast;
@@ -1083,34 +1285,49 @@ export default function PublicBookingPage() {
                             <button
                               key={slot}
                               type="button"
+                              role="radio"
+                              aria-checked={isSelected}
                               disabled={isSlotPast || regularHolidayCheck.isBlocked}
                               onClick={() => !isSlotPast && setSelectedTime(slot)}
                               title={isSlotPast ? 'Past time slot — cannot be booked' : `Book ${slot}`}
                               style={{
-                                padding: '8px 6px',
-                                borderRadius: 8,
-                                fontSize: 11.5,
-                                fontWeight: 700,
+                                minHeight: 48,
+                                padding: '11px 6px',
+                                borderRadius: 10,
+                                fontSize: 13,
+                                fontWeight: isSelected ? 800 : 700,
                                 border: isSlotPast
                                   ? '1px dashed #cbd5e1'
-                                  : `1.5px solid ${isSelected ? '#05424a' : '#e2e8f0'}`,
+                                  : `1.5px solid ${isSelected ? '#05424a' : '#cbd5e1'}`,
                                 background: isSlotPast
                                   ? '#f1f5f9'
                                   : isSelected
                                   ? '#05424a'
-                                  : '#f8fafc',
+                                  : '#ffffff',
                                 color: isSlotPast
                                   ? '#94a3b8'
                                   : isSelected
                                   ? '#ffffff'
-                                  : '#334155',
+                                  : '#1e293b',
                                 cursor: isSlotPast ? 'not-allowed' : 'pointer',
                                 opacity: isSlotPast ? 0.45 : 1,
                                 textDecoration: isSlotPast ? 'line-through' : 'none',
                                 transition: 'all 0.15s ease',
+                                touchAction: 'manipulation',
+                                WebkitTapHighlightColor: 'transparent',
+                                userSelect: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4,
+                                boxShadow: isSelected
+                                  ? '0 4px 12px rgba(5,66,74,0.3)'
+                                  : '0 1px 2px rgba(0,0,0,0.03)',
                               }}
+                              className={!isSlotPast ? 'active:scale-95 transition-transform' : ''}
                             >
-                              {slot}
+                              {isSelected && <Check size={14} className="shrink-0 text-amber-300" />}
+                              <span>{slot}</span>
                             </button>
                           );
                         })}
@@ -1135,7 +1352,17 @@ export default function PublicBookingPage() {
                       )}
                     </div>
 
-                    <div style={{ display: 'grid', gap: 10, maxHeight: 320, overflowY: 'auto', paddingRight: 4 }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gap: 10,
+                        maxHeight: 330,
+                        overflowY: 'auto',
+                        paddingRight: 4,
+                        WebkitOverflowScrolling: 'touch',
+                        overscrollBehavior: 'contain',
+                      }}
+                    >
                       {bridalPackages.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 13 }}>
                           No bridal packages configured.
@@ -1144,10 +1371,15 @@ export default function PublicBookingPage() {
                         bridalPackages.map((pkg) => {
                           const isSelected = selectedBridalPkgIds.includes(pkg.id);
                           return (
-                            <div
+                            <button
                               key={pkg.id}
+                              type="button"
+                              role="checkbox"
+                              aria-checked={isSelected}
                               onClick={() => toggleBridalPkg(pkg.id)}
                               style={{
+                                width: '100%',
+                                textAlign: 'left',
                                 padding: '14px 16px',
                                 borderRadius: 14,
                                 border: `1.5px solid ${isSelected ? '#be185d' : '#fbcfe8'}`,
@@ -1156,47 +1388,57 @@ export default function PublicBookingPage() {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
+                                gap: 12,
                                 transition: 'all 0.15s ease',
-                                boxShadow: isSelected ? '0 4px 14px rgba(190,24,93,0.12)' : 'none',
+                                boxShadow: isSelected ? '0 4px 14px rgba(190,24,93,0.15)' : '0 1px 2px rgba(0,0,0,0.02)',
+                                touchAction: 'manipulation',
+                                WebkitTapHighlightColor: 'transparent',
+                                userSelect: 'none',
+                                minHeight: 68,
                               }}
+                              className="active:scale-[0.99] transition-all"
                             >
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ fontSize: 10.5, fontWeight: 800, background: '#fce7f3', color: '#be185d', padding: '2px 8px', borderRadius: 6 }}>
+                              <div style={{ pointerEvents: 'none', flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 800, background: '#fce7f3', color: '#be185d', padding: '2px 8px', borderRadius: 6 }}>
                                     {pkg.type}
                                   </span>
-                                  <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>
+                                  <div style={{ fontWeight: 800, fontSize: 14.5, color: '#0f172a' }}>
                                     {pkg.name}
                                   </div>
                                 </div>
-                                <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
+                                <div style={{ fontSize: 12, color: '#475569', marginTop: 4, lineHeight: 1.35 }}>
                                   Includes: {pkg.includes || 'Hair Styling, HD Makeup, Draping & Jewellery Setting'}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                                <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 3 }}>
                                   {pkg.sessions || 1} Glam Session(s)
                                 </div>
                               </div>
 
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontWeight: 900, fontSize: 15, color: '#be185d' }}>
+                              <div style={{ pointerEvents: 'none', textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontWeight: 900, fontSize: 16, color: '#be185d' }}>
                                   {money(pkg.price)}
                                 </div>
                                 <span
                                   style={{
-                                    fontSize: 10.5,
+                                    fontSize: 11,
                                     fontWeight: 800,
                                     color: isSelected ? '#fff' : '#be185d',
                                     background: isSelected ? '#be185d' : '#fce7f3',
+                                    border: isSelected ? '1px solid #be185d' : '1px solid #fbcfe8',
                                     padding: '3px 10px',
-                                    borderRadius: 6,
+                                    borderRadius: 8,
                                     marginTop: 6,
-                                    display: 'inline-block',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    boxShadow: isSelected ? '0 2px 6px rgba(190,24,93,0.25)' : 'none',
                                   }}
                                 >
                                   {isSelected ? '✓ Selected' : '+ Add Package'}
                                 </span>
                               </div>
-                            </div>
+                            </button>
                           );
                         })
                       )}
@@ -1209,9 +1451,9 @@ export default function PublicBookingPage() {
                       <Calendar size={18} color="#be185d" /> 2. Event Dates &amp; Venue Details *
                     </h3>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                           💍 Wedding / Main Event Date *
                         </label>
                         <input
@@ -1221,18 +1463,21 @@ export default function PublicBookingPage() {
                           onChange={(e) => setWeddingDate(e.target.value)}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 10,
+                            padding: '11px 14px',
+                            borderRadius: 12,
                             border: `1.5px solid ${bridalHolidayCheck.isBlocked ? '#f43f5e' : '#cbd5e1'}`,
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: 700,
                             outline: 'none',
+                            minHeight: 46,
+                            touchAction: 'manipulation',
                           }}
+                          className="text-base sm:text-sm"
                         />
                       </div>
 
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                           ✨ Sagai / Engagement Date (Optional):
                         </label>
                         <input
@@ -1242,13 +1487,16 @@ export default function PublicBookingPage() {
                           onChange={(e) => setSagaiDate(e.target.value)}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 10,
+                            padding: '11px 14px',
+                            borderRadius: 12,
                             border: '1.5px solid #cbd5e1',
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: 600,
                             outline: 'none',
+                            minHeight: 46,
+                            touchAction: 'manipulation',
                           }}
+                          className="text-base sm:text-sm"
                         />
                       </div>
                     </div>
@@ -1270,9 +1518,9 @@ export default function PublicBookingPage() {
                       </div>
                     )}
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                           📍 Venue / Location Address:
                         </label>
                         <input
@@ -1282,17 +1530,20 @@ export default function PublicBookingPage() {
                           onChange={(e) => setVenue(e.target.value)}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 10,
+                            padding: '11px 14px',
+                            borderRadius: 12,
                             border: '1.5px solid #cbd5e1',
-                            fontSize: 12.5,
+                            fontSize: 14,
                             outline: 'none',
+                            minHeight: 46,
+                            touchAction: 'manipulation',
                           }}
+                          className="text-base sm:text-sm"
                         />
                       </div>
 
                       <div>
-                        <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                           🎉 Event Title / Function:
                         </label>
                         <input
@@ -1302,12 +1553,15 @@ export default function PublicBookingPage() {
                           onChange={(e) => setEventTitle(e.target.value)}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 10,
+                            padding: '11px 14px',
+                            borderRadius: 12,
                             border: '1.5px solid #cbd5e1',
-                            fontSize: 12.5,
+                            fontSize: 14,
                             outline: 'none',
+                            minHeight: 46,
+                            touchAction: 'manipulation',
                           }}
+                          className="text-base sm:text-sm"
                         />
                       </div>
                     </div>
@@ -1323,7 +1577,7 @@ export default function PublicBookingPage() {
 
                 <div style={{ display: 'grid', gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                       Full Name *
                     </label>
                     <input
@@ -1334,21 +1588,24 @@ export default function PublicBookingPage() {
                       onChange={(e) => setCustomerName(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '10px 14px',
-                        borderRadius: 10,
+                        padding: '11px 14px',
+                        borderRadius: 12,
                         border: '1.5px solid #cbd5e1',
-                        fontSize: 13,
+                        fontSize: 14,
                         outline: 'none',
+                        minHeight: 46,
+                        touchAction: 'manipulation',
                       }}
+                      className="text-base sm:text-sm"
                     />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                       WhatsApp Mobile Number (10 digits) *
                     </label>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <span style={{ padding: '10px 12px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 10, fontSize: 13, fontWeight: 800, color: '#475569' }}>
+                      <span style={{ padding: '11px 12px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 12, fontSize: 14, fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', minHeight: 46 }}>
                         +91
                       </span>
                       <input
@@ -1360,18 +1617,21 @@ export default function PublicBookingPage() {
                         onChange={(e) => setCustomerMobile(e.target.value)}
                         style={{
                           flex: 1,
-                          padding: '10px 14px',
-                          borderRadius: 10,
+                          padding: '11px 14px',
+                          borderRadius: 12,
                           border: '1.5px solid #cbd5e1',
-                          fontSize: 13,
+                          fontSize: 14,
                           outline: 'none',
+                          minHeight: 46,
+                          touchAction: 'manipulation',
                         }}
+                        className="text-base sm:text-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                       Email Address (Optional — for luxury receipt & calendar invite):
                     </label>
                     <input
@@ -1381,17 +1641,20 @@ export default function PublicBookingPage() {
                       onChange={(e) => setCustomerEmail(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '10px 14px',
-                        borderRadius: 10,
+                        padding: '11px 14px',
+                        borderRadius: 12,
                         border: '1.5px solid #cbd5e1',
-                        fontSize: 13,
+                        fontSize: 14,
                         outline: 'none',
+                        minHeight: 46,
+                        touchAction: 'manipulation',
                       }}
+                      className="text-base sm:text-sm"
                     />
                   </div>
 
                   <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
                       Special Request / Notes (Optional):
                     </label>
                     <input
@@ -1401,12 +1664,15 @@ export default function PublicBookingPage() {
                       onChange={(e) => setNotes(e.target.value)}
                       style={{
                         width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: 10,
+                        padding: '11px 14px',
+                        borderRadius: 12,
                         border: '1.5px solid #cbd5e1',
-                        fontSize: 12.5,
+                        fontSize: 14,
                         outline: 'none',
+                        minHeight: 46,
+                        touchAction: 'manipulation',
                       }}
+                      className="text-base sm:text-sm"
                     />
                   </div>
                 </div>
@@ -1430,7 +1696,7 @@ export default function PublicBookingPage() {
                     }
                     style={{
                       width: '100%',
-                      padding: '14px 20px',
+                      padding: '15px 20px',
                       borderRadius: 14,
                       background: isBlocked
                         ? '#94a3b8'
@@ -1446,6 +1712,10 @@ export default function PublicBookingPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 8,
+                      minHeight: 52,
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
+                      userSelect: 'none',
                       boxShadow: isBlocked
                         ? 'none'
                         : bookingMode === 'bridal'
