@@ -35,7 +35,7 @@ export const DEFAULT_MEMBERSHIP_PLANS: MembershipPlan[] = [
 export const DEFAULT_USERS: UserAccount[] = [
   {
     id: 'user-admin',
-    name: 'Studio Owner (Admin)',
+    name: 'Owner',
     email: 'shree@admin.com',
     password: 'shree1234',
     role: 'Admin',
@@ -43,7 +43,7 @@ export const DEFAULT_USERS: UserAccount[] = [
   },
   {
     id: 'user-sales',
-    name: 'Sales Executive',
+    name: 'Sales',
     email: 'sales@shree.com',
     password: 'sales1234',
     role: 'Salesperson',

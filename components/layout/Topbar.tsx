@@ -297,7 +297,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         >
           {isSalesperson ? <UserCheck size={13} color="#16a34a" /> : <ShieldCheck size={13} color="#ca8a04" />}
           <span className="topbar-user-name" style={{ fontWeight: 700, color: isSalesperson ? '#15803d' : '#854d0e' }}>
-            {currentUser?.name || 'Owner'}
+            {(() => {
+              const raw = currentUser?.name || 'Owner';
+              const clean = raw.replace(/\s*\([^)]*\)/g, '').trim();
+              if (clean.toLowerCase() === 'studio owner' || clean.toLowerCase() === 'studio owner (admin)') return 'Owner';
+              return clean.split(' ')[0] || 'Owner';
+            })()}
           </span>
           <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 99, background: isSalesperson ? '#dcfce7' : '#fef9c3', color: isSalesperson ? '#166534' : '#713f12', fontWeight: 800 }}>
             {isSalesperson ? 'Sales' : 'Admin'}
