@@ -25,7 +25,7 @@ export async function processWhatsAppAIMessage(
   const cleanMobile = customerMobile.replace(/\D/g, '').slice(-10);
   const recipientName = customerName || 'Valued Client';
   const salonName = salonData.settings?.salon || 'Shree Beauty Studio';
-  const baseUrl = originUrl || 'http://localhost:3000';
+  const baseUrl = originUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
   // 1. Check if customer asked for Bridal Rate Card / PDF / Prices
   if (

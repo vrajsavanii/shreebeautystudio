@@ -794,8 +794,14 @@ const OTHER_EVENT_OPTIONS = [
                             <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit"><Pencil size={13} /></button>
                             <button
                               className="btn-icon wa"
-                              title="WhatsApp Bride"
-                              onClick={() => openWA(b.mobile, bridalMessage(b.name, eventSummary(b) || 'Bridal & Events', b.weddingDate, b.venue || '', data?.settings?.salon || 'Shree Beauty Studio'))}
+                              title="Send WhatsApp message via Meta API"
+                              onClick={() => {
+                                toast('⏳ Sending WhatsApp message via Meta Cloud API…');
+                                openWA(b.mobile, bridalMessage(b.name, eventSummary(b) || 'Bridal & Events', b.weddingDate, b.venue || '', data?.settings?.salon || 'Shree Beauty Studio'))?.then((res: any) => {
+                                  if (res?.success) toast('✅ Message sent via Meta WhatsApp API!');
+                                  else toast(`❌ ${res?.message || 'Failed to send WhatsApp message'}`, 'error');
+                                });
+                              }}
                             >
                               <MessageCircle size={13} />
                             </button>

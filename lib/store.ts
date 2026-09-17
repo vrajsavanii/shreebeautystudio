@@ -198,22 +198,6 @@ export const DEFAULT_DATA: SalonData = {
       duration: 90,
       description: 'Full body smooth waxing',
     },
-    {
-      id: 'mthj3pouwi341',
-      name: 'Classic Pedicure',
-      price: 550,
-      category: 'Hands, Feet & Nails',
-      duration: 40,
-      description: 'Relaxing foot soak, scrub & polish',
-    },
-    {
-      id: 'mthj3pou67ai2',
-      name: 'Spa Manicure & Pedicure Combo',
-      price: 1100,
-      category: 'Hands, Feet & Nails',
-      duration: 60,
-      description: 'Deluxe spa hands & feet treatment',
-    },
   ],
   staff: [
     {

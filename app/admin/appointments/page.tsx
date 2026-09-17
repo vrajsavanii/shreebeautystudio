@@ -1184,8 +1184,14 @@ export default function AppointmentsPage() {
                                 </a>
                                 <button
                                   className="btn-icon wa"
-                                  title="WhatsApp staff / customer"
-                                  onClick={() => openWA(a.mobile, appointmentStaffMessage(a, data.settings.salon))}
+                                  title="Send WhatsApp alert via Meta API"
+                                  onClick={() => {
+                                    toast('⏳ Sending WhatsApp alert via Meta Cloud API…');
+                                    openWA(a.mobile, appointmentStaffMessage(a, data.settings.salon))?.then((res: any) => {
+                                      if (res?.success) toast('✅ Alert sent via Meta WhatsApp API!');
+                                      else toast(`❌ ${res?.message || 'Failed to send WhatsApp alert'}`, 'error');
+                                    });
+                                  }}
                                 >
                                   <MessageCircle size={12} />
                                 </button>

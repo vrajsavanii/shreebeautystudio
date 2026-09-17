@@ -12,11 +12,13 @@ import {
 import { fmtDate } from '@/lib/utils';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { format, parseISO } from 'date-fns';
+import { useToast } from '@/components/ui/Toast';
 
 type TabFilter = 'all' | 'birthday' | 'anniversary' | 'appointment' | 'bridal';
 
 export default function RemindersPage() {
   const { data } = useSalonStore();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const reminders = useMemo(() => getAllUpcomingReminders(data, 30), [data]);
 
@@ -48,7 +50,13 @@ export default function RemindersPage() {
       const b = (data?.bridal || []).find((x) => x.mobile === r.mobile);
       if (b) msg = bridalMessage(b.name, 'event', b.weddingDate, b.venue, salonName);
     }
-    if (msg) openWA(r.mobile, msg);
+    if (msg) {
+      toast('⏳ Sending WhatsApp reminder via Meta Cloud API…');
+      openWA(r.mobile, msg)?.then((res: any) => {
+        if (res?.success) toast('✅ Reminder sent via Meta WhatsApp API!');
+        else toast(`❌ ${res?.message || 'Failed to send WhatsApp reminder'}`, 'error');
+      });
+    }
   };
 
   const typeStyles: Record<string, { bg: string; text: string; icon: any }> = {
