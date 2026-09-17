@@ -8,6 +8,7 @@
 // 5. Marketing & Promotional Campaigns
 
 import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 export interface EmailSendResult {
   success: boolean;
@@ -98,6 +99,70 @@ export async function sendResendEmail({
     return {
       success: false,
       error: err?.message || 'Unexpected error occurred while dispatching email',
+    };
+  }
+}
+
+/**
+ * Generic email dispatcher via Gmail SMTP (Nodemailer).
+ * 100% Free, requires NO custom domain, up to 500 emails/day rolling limit.
+ */
+export async function sendGmailSmtpEmail({
+  to,
+  subject,
+  html,
+  text,
+  user,
+  pass,
+  from,
+}: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  user?: string;
+  pass?: string;
+  from?: string;
+}): Promise<EmailSendResult> {
+  const smtpUser = user?.trim() || process.env.GMAIL_USER?.trim() || 'shreebeauty.studio22@gmail.com';
+  const smtpPass = (pass?.trim() || process.env.GMAIL_APP_PASSWORD?.trim() || process.env.SMTP_PASSWORD?.trim() || '').replace(/\s+/g, '');
+
+  if (!smtpPass) {
+    return {
+      success: false,
+      error: 'Gmail App Password is not configured. Please generate a 16-character App Password at myaccount.google.com/apppasswords and enter it in Settings → Email.',
+    };
+  }
+
+  const recipients = Array.isArray(to) ? to.join(', ') : to;
+  const senderAddress = from?.trim() || `Shree Beauty Studio <${smtpUser}>`;
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    const info = await transporter.sendMail({
+      from: senderAddress,
+      to: recipients,
+      subject,
+      text: text || subject,
+      html,
+    });
+
+    return {
+      success: true,
+      id: info.messageId,
+    };
+  } catch (err: any) {
+    console.error('[Gmail SMTP Exception]:', err);
+    return {
+      success: false,
+      error: err?.message || 'Failed to dispatch email via Gmail SMTP',
     };
   }
 }

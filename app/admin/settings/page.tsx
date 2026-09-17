@@ -129,8 +129,11 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: testEmailTo.trim(),
+          provider: s.emailProvider || 'gmail',
           apiKey: s.resendApiKey,
           fromEmail: s.resendFromEmail,
+          smtpUser: s.smtpUser || 'shreebeauty.studio22@gmail.com',
+          smtpPassword: s.smtpPassword,
         }),
       });
       const data = await res.json();
@@ -1021,77 +1024,192 @@ export default function SettingsPage() {
         {activeTab === 'email' && (
           <motion.div key="email" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 'clamp(14px, 3vw, 24px)' }}>
             <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
-              <h2>📧 Resend Email Configuration & Automation</h2>
+              <h2>📧 Email Configuration & Automation Engine</h2>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 }}>
-              <div className="form-group">
-                <label className="label">Resend API Key (re_...)</label>
-                <input
-                  type="password"
-                  className="input"
-                  placeholder="re_123456789abcdef..."
-                  value={s.resendApiKey || ''}
-                  onChange={(e) => update('resendApiKey', e.target.value)}
-                />
-                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
-                  Leave blank to use environment variable <code>RESEND_API_KEY</code> from <code>.env.local</code>. Generate a key at{' '}
-                  <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', fontWeight: 600 }}>
-                    resend.com/api-keys
-                  </a>.
-                </span>
-              </div>
-
-              <div className="form-group">
-                <label className="label">Sender Email Address & Name (From)</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Shree Beauty Studio <onboarding@resend.dev>"
-                  value={s.resendFromEmail || ''}
-                  onChange={(e) => update('resendFromEmail', e.target.value)}
-                />
-                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
-                  Format: <code>Salon Name &lt;email@domain.com&gt;</code>. Use <code>onboarding@resend.dev</code> for testing, or your custom verified domain in production.
-                </span>
-              </div>
-
-              {/* Notice regarding Resend Domain Verification */}
-              <div
+            {/* Provider Selection Tabs */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => update('emailProvider', 'gmail')}
                 style={{
-                  background: '#FFFBEB',
-                  border: '1.5px solid #FCD34D',
-                  borderRadius: 10,
-                  padding: '14px 16px',
+                  background: (s.emailProvider || 'gmail') === 'gmail' ? '#05424A' : '#F1F5F9',
+                  color: (s.emailProvider || 'gmail') === 'gmail' ? '#FFF' : '#334155',
+                  fontWeight: 700,
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  cursor: 'pointer',
                   display: 'flex',
-                  gap: 12,
-                  alignItems: 'flex-start',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                <AlertCircle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
-                <div style={{ fontSize: 12.5, color: '#92400E', lineHeight: 1.5 }}>
-                  <strong>Important Notice for Automated Cloud Email Delivery:</strong>
-                  <div style={{ marginTop: 4 }}>
-                    • In Resend&apos;s free sandbox testing mode (using <code>onboarding@resend.dev</code>), Resend <strong>only</strong> delivers emails to the registered account email (<code>ku2407u702@karnavatiuniversity.edu.in</code>).
+                <span>⭐ Gmail SMTP (Free &bull; No Domain Needed &bull; Up to 500/day)</span>
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => update('emailProvider', 'resend')}
+                style={{
+                  background: s.emailProvider === 'resend' ? '#05424A' : '#F1F5F9',
+                  color: s.emailProvider === 'resend' ? '#FFF' : '#334155',
+                  fontWeight: 700,
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                Resend Cloud API (Custom Domain)
+              </button>
+            </div>
+
+            {/* Gmail SMTP Configuration Mode */}
+            {(s.emailProvider || 'gmail') === 'gmail' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 }}>
+                <div className="form-group">
+                  <label className="label">Studio Gmail Address (Sender)</label>
+                  <input
+                    type="email"
+                    className="input"
+                    placeholder="shreebeauty.studio22@gmail.com"
+                    value={s.smtpUser || 'shreebeauty.studio22@gmail.com'}
+                    onChange={(e) => update('smtpUser', e.target.value)}
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    All automated client receipts and booking confirmation emails will be sent from this Gmail address.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="label">Google 16-Character App Password</label>
+                  <input
+                    type="password"
+                    className="input"
+                    placeholder="abcd efgh ijkl mnop"
+                    value={s.smtpPassword || ''}
+                    onChange={(e) => update('smtpPassword', e.target.value)}
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    A 16-character code from your Google Account. Spaces are ignored automatically.
+                  </span>
+                </div>
+
+                {/* Step-by-Step Instructions Box */}
+                <div
+                  style={{
+                    background: '#F0FDF4',
+                    border: '1.5px solid #BBF7D0',
+                    borderRadius: 10,
+                    padding: '14px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CheckCircle2 size={16} color="#16A34A" />
+                    <span>How to get your 16-character Google App Password (Takes 1 min):</span>
                   </div>
-                  <div style={{ marginTop: 3 }}>
-                    • To enable automated background cloud email delivery to <strong>all customer emails</strong> (like @gmail.com), add and verify your studio domain at{' '}
-                    <a
-                      href="https://resend.com/domains"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: '#05424A', fontWeight: 700, textDecoration: 'underline' }}
-                    >
-                      resend.com/domains
-                    </a>{' '}
-                    and update the <em>Sender Email Address (From)</em> above to match your domain (e.g. <code>Shree Beauty Studio &lt;info@shreebeautystudio.com&gt;</code>).
-                  </div>
-                  <div style={{ marginTop: 3 }}>
-                    • For bills &amp; invoices during testing mode, the system also provides a 1-click <em>Open in Gmail Compose</em> button with pre-filled details!
+                  <ol style={{ margin: '4px 0 0 20px', padding: 0, fontSize: 12, color: '#14532D', lineHeight: 1.65 }}>
+                    <li>
+                      Go to your Google Account Security:{' '}
+                      <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" style={{ color: '#05424A', fontWeight: 700, textDecoration: 'underline' }}>
+                        myaccount.google.com/security
+                      </a>{' '}
+                      and ensure <strong>2-Step Verification</strong> is ON.
+                    </li>
+                    <li>
+                      Open:{' '}
+                      <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: '#05424A', fontWeight: 700, textDecoration: 'underline' }}>
+                        myaccount.google.com/apppasswords
+                      </a>.
+                    </li>
+                    <li>Enter App Name: <b>Shree Studio</b> and click <b>Create</b>.</li>
+                    <li>Google will display a 16-letter password in a yellow box (e.g. <code>abcd efgh ijkl mnop</code>).</li>
+                    <li>Paste that password into the field above and click <b>Save Settings</b>!</li>
+                  </ol>
+                  <div style={{ fontSize: 11.5, color: '#15803D', marginTop: 4, fontWeight: 600 }}>
+                    ✨ Once saved, Vercel will send automated emails to any customer (Gmail, Yahoo, iCloud) with zero domain restrictions!
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Resend API Configuration Mode */}
+            {s.emailProvider === 'resend' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 24 }}>
+                <div className="form-group">
+                  <label className="label">Resend API Key (re_...)</label>
+                  <input
+                    type="password"
+                    className="input"
+                    placeholder="re_123456789abcdef..."
+                    value={s.resendApiKey || ''}
+                    onChange={(e) => update('resendApiKey', e.target.value)}
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    Leave blank to use environment variable <code>RESEND_API_KEY</code> from <code>.env.local</code>. Generate a key at{' '}
+                    <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)', fontWeight: 600 }}>
+                      resend.com/api-keys
+                    </a>.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="label">Sender Email Address & Name (From)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Shree Beauty Studio <onboarding@resend.dev>"
+                    value={s.resendFromEmail || ''}
+                    onChange={(e) => update('resendFromEmail', e.target.value)}
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                    Format: <code>Salon Name &lt;email@domain.com&gt;</code>. Use <code>onboarding@resend.dev</code> for testing, or your custom verified domain in production.
+                  </span>
+                </div>
+
+                {/* Notice regarding Resend Domain Verification */}
+                <div
+                  style={{
+                    background: '#FFFBEB',
+                    border: '1.5px solid #FCD34D',
+                    borderRadius: 10,
+                    padding: '14px 16px',
+                    display: 'flex',
+                    gap: 12,
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <AlertCircle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ fontSize: 12.5, color: '#92400E', lineHeight: 1.5 }}>
+                    <strong>Important Notice for Automated Cloud Email Delivery:</strong>
+                    <div style={{ marginTop: 4 }}>
+                      • In Resend&apos;s free sandbox testing mode (using <code>onboarding@resend.dev</code>), Resend <strong>only</strong> delivers emails to the registered account email (<code>ku2407u702@karnavatiuniversity.edu.in</code>).
+                    </div>
+                    <div style={{ marginTop: 3 }}>
+                      • To enable automated background cloud email delivery to <strong>all customer emails</strong> (like @gmail.com), add and verify your studio domain at{' '}
+                      <a
+                        href="https://resend.com/domains"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#05424A', fontWeight: 700, textDecoration: 'underline' }}
+                      >
+                        resend.com/domains
+                      </a>{' '}
+                      and update the <em>Sender Email Address (From)</em> above to match your domain (e.g. <code>Shree Beauty Studio &lt;info@shreebeautystudio.com&gt;</code>).
+                    </div>
+                    <div style={{ marginTop: 3 }}>
+                      • For bills &amp; invoices during testing mode, the system also provides a 1-click <em>Open in Gmail Compose</em> button with pre-filled details!
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Email Automation Switches */}
             <div style={{ background: '#F8FAFC', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 24 }}>

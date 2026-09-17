@@ -36,6 +36,10 @@ export interface SalonSettings {
   sagaiWishTemplate?: string;
   lastAutoWishDate?: string; // YYYY-MM-DD
   whatsappTemplates?: Record<string, string>;
+  // Email Provider Settings (Gmail SMTP vs Resend Cloud)
+  emailProvider?: 'gmail' | 'resend';
+  smtpUser?: string;
+  smtpPassword?: string;
   // Resend Email Settings
   resendApiKey?: string;
   resendFromEmail?: string;

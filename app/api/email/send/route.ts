@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import {
   sendResendEmail,
+  sendGmailSmtpEmail,
   renderAppointmentConfirmationHtml,
   renderAppointmentReminderHtml,
   renderMilestoneWishHtml,
@@ -13,7 +14,17 @@ import {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { type, to, subject, data, apiKey: reqApiKey, fromEmail: reqFromEmail } = body;
+    const {
+      type,
+      to,
+      subject,
+      data,
+      apiKey: reqApiKey,
+      fromEmail: reqFromEmail,
+      smtpUser: reqSmtpUser,
+      smtpPassword: reqSmtpPassword,
+      provider: reqProvider,
+    } = body;
 
     if (!to || typeof to !== 'string' || !to.includes('@')) {
       return NextResponse.json({ error: 'Valid recipient email address is required.' }, { status: 400 });
@@ -21,30 +32,37 @@ export async function POST(req: NextRequest) {
 
     let apiKey = reqApiKey;
     let fromEmail = reqFromEmail;
+    let smtpUser = reqSmtpUser;
+    let smtpPassword = reqSmtpPassword;
+    let emailProvider = reqProvider;
 
     // Check salon_state in database if credentials are not in request body
-    if (!apiKey || !fromEmail) {
-      try {
-        const supabase = getSupabaseAdmin();
-        if (supabase) {
-          const { data: row } = await supabase
-            .from('salon_state')
-            .select('data')
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+    try {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const { data: row } = await supabase
+          .from('salon_state')
+          .select('data')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-          if (!apiKey && row?.data?.settings?.resendApiKey) {
-            apiKey = row.data.settings.resendApiKey;
-          }
-          if (!fromEmail && row?.data?.settings?.resendFromEmail) {
-            fromEmail = row.data.settings.resendFromEmail;
-          }
+        const s = row?.data?.settings;
+        if (s) {
+          if (!apiKey && s.resendApiKey) apiKey = s.resendApiKey;
+          if (!fromEmail && s.resendFromEmail) fromEmail = s.resendFromEmail;
+          if (!smtpUser && s.smtpUser) smtpUser = s.smtpUser;
+          if (!smtpPassword && s.smtpPassword) smtpPassword = s.smtpPassword;
+          if (!emailProvider && s.emailProvider) emailProvider = s.emailProvider;
         }
-      } catch (err) {
-        console.warn('Could not read resend credentials from salon_state:', err);
       }
+    } catch (err) {
+      console.warn('Could not read email credentials from salon_state:', err);
     }
+
+    // Fall back to server environment variables if available
+    smtpUser = smtpUser || process.env.GMAIL_USER || 'shreebeauty.studio22@gmail.com';
+    smtpPassword = smtpPassword || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD || '';
 
     let emailHtml = '';
     let emailSubject = subject;
@@ -128,14 +146,55 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const result = await sendResendEmail({
-      to,
-      subject: emailSubject,
-      html: emailHtml,
-      text: plainTextSummary,
-      from: fromEmail,
-      apiKey,
-    });
+    let result: any = null;
+    let usedProvider = 'resend';
+
+    // Check if Gmail SMTP should be used (if explicitly chosen OR if App Password exists)
+    const hasSmtp = !!smtpPassword;
+    const preferGmail = emailProvider === 'gmail' || (hasSmtp && (!fromEmail || fromEmail.includes('@resend.dev')));
+
+    if (preferGmail && hasSmtp) {
+      usedProvider = 'gmail';
+      result = await sendGmailSmtpEmail({
+        to,
+        subject: emailSubject,
+        html: emailHtml,
+        text: plainTextSummary,
+        user: smtpUser,
+        pass: smtpPassword,
+        from: `Shree Beauty Studio <${smtpUser}>`,
+      });
+    } else {
+      // Dispatch via Resend
+      result = await sendResendEmail({
+        to,
+        subject: emailSubject,
+        html: emailHtml,
+        text: plainTextSummary,
+        from: fromEmail,
+        apiKey,
+      });
+
+      // If Resend failed due to sandbox domain restriction, and Gmail SMTP is configured, auto-fallback to Gmail SMTP!
+      if (!result.success && hasSmtp) {
+        const errLower = (result.error || '').toLowerCase();
+        if (errLower.includes('only send testing emails') || errLower.includes('verify a domain')) {
+          const smtpFallback = await sendGmailSmtpEmail({
+            to,
+            subject: emailSubject,
+            html: emailHtml,
+            text: plainTextSummary,
+            user: smtpUser,
+            pass: smtpPassword,
+            from: `Shree Beauty Studio <${smtpUser}>`,
+          });
+          if (smtpFallback.success) {
+            result = smtpFallback;
+            usedProvider = 'gmail';
+          }
+        }
+      }
+    }
 
     // Fallback URLs for seamless client-side dispatch (Gmail Web & Mailto)
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(plainTextSummary)}`;
@@ -152,6 +211,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: false,
         isDomainRestriction,
+        provider: usedProvider,
         error: result.error,
         fallback: {
           subject: emailSubject,
@@ -164,8 +224,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      provider: usedProvider,
       id: result.id,
-      message: 'Email dispatched successfully!',
+      message: `Email dispatched successfully via ${usedProvider === 'gmail' ? 'Gmail SMTP' : 'Resend'}!`,
       fallback: {
         subject: emailSubject,
         body: plainTextSummary,
