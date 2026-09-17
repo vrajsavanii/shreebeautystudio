@@ -11,7 +11,7 @@ import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { useSalonStore } from '@/lib/store';
 import { clearAdminSession } from '@/lib/admin-auth';
 import { staggerContainer, fadeSlideUp } from '@/variants';
-import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 
 const NAV = [
   { href: '/admin',              label: 'Dashboard',          icon: LayoutDashboard, role: 'all' },
@@ -53,26 +53,38 @@ export default function Sidebar() {
 
   return (
     <nav className="sidebar no-print">
-      {/* Logo */}
-      <div className="sidebar-logo">
-        <div className="logo-img-wrap sidebar-avatar-glow">
+      {/* Direct Brand Logo Banner */}
+      <div
+        style={{
+          padding: '16px 14px 12px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            borderRadius: 12,
+            overflow: 'hidden',
+            background: '#05424A',
+            border: '1px solid rgba(234, 186, 56, 0.35)',
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.35)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          }}
+        >
           <img
-            src={SHREE_ONLY_LOGO_BASE64}
+            src={SHREE_LOGO_BASE64}
             alt={salonName}
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              objectFit: 'cover',
+              width: '100%',
+              height: 'auto',
               display: 'block',
+              objectFit: 'contain',
             }}
           />
-        </div>
-        <div>
-          <div className="sidebar-logo-title">{salonName}</div>
-          <div className="sidebar-logo-sub">
-            {isSalesperson ? 'Salesperson Mode' : 'Management Console'}
-          </div>
         </div>
       </div>
 
