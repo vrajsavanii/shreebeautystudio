@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       try {
         const supabase = getSupabaseAdmin();
         if (supabase) {
-          const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
+          const { data: row } = await supabase.from('salon_state').select('data').order('updated_at', { ascending: false }).limit(1).maybeSingle();
           if (!accessToken && row?.data?.settings?.whatsappAccessToken) {
             accessToken = row.data.settings.whatsappAccessToken;
           }
@@ -240,8 +240,15 @@ export async function POST(req: NextRequest) {
       // Log full error server-side without exposing it to the client
       console.error('[WhatsApp] Meta API error response:', JSON.stringify(metaJson));
       const userMessage = classifyMetaError(metaJson, metaRes.status);
+      const code = metaJson?.error?.code;
+      const is24HourWindow = code === 131047 || code === 131056;
       return NextResponse.json(
-        { success: false, error: userMessage },
+        {
+          success: false,
+          error: userMessage,
+          errorCode: code,
+          is24HourWindow,
+        },
         { status: 200 } // Return 200 so client can read the error body
       );
     }

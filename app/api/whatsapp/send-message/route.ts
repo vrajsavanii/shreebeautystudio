@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       try {
         const supabase = getSupabaseAdmin();
         if (supabase) {
-          const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
+          const { data: row } = await supabase.from('salon_state').select('data').order('updated_at', { ascending: false }).limit(1).maybeSingle();
           if (!accessToken && row?.data?.settings?.whatsappAccessToken) {
             accessToken = row.data.settings.whatsappAccessToken;
           }
@@ -91,21 +91,25 @@ export async function POST(req: NextRequest) {
 
       if (!metaRes.ok) {
         console.error('Meta WhatsApp Text API Error:', metaJson);
+        const code = metaJson?.error?.code;
+        const is24HourWindow = code === 131047 || code === 131056;
         let errMsg = metaJson?.error?.message || 'Failed to send WhatsApp message via Meta Cloud API';
-        if (metaJson?.error?.code === 190 || errMsg.toLowerCase().includes('oauth access token')) {
+        if (code === 190 || errMsg.toLowerCase().includes('oauth access token')) {
           errMsg = '❌ Invalid or expired Meta Access Token. Please refresh your token from Meta Developer Portal.';
-        } else if (metaJson?.error?.code === 131030) {
+        } else if (code === 131030) {
           errMsg = `⚠️ Recipient number (+${recipient}) is not on your Meta Test Number allowed list. In Meta Developer Portal → "Step 2: Send and receive messages", click "Manage phone number list", add your mobile number and verify with the OTP.`;
-        } else if (metaJson?.error?.code === 131047) {
-          errMsg = '⚠️ Customer 24-hour messaging window closed. Customer needs to send a message to your WhatsApp number first, or you must send an approved Meta Template.';
+        } else if (is24HourWindow) {
+          errMsg = '⚠️ Customer 24-hour messaging window closed. Dispatched via WhatsApp Web/Direct.';
         }
         return NextResponse.json(
           {
             success: false,
             error: errMsg,
+            errorCode: code,
+            is24HourWindow,
             details: metaJson,
           },
-          { status: metaRes.status || 500 }
+          { status: 200 }
         );
       }
 

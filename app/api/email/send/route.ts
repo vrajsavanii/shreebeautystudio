@@ -1,6 +1,7 @@
 // app/api/email/send/route.ts
 // Handles transactional email sending (confirmations, reminders, wishes, invoices)
 import { NextRequest, NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@/lib/supabase-server';
 import {
   sendResendEmail,
   renderAppointmentConfirmationHtml,
@@ -12,14 +13,42 @@ import {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { type, to, subject, data, apiKey, fromEmail } = body;
+    const { type, to, subject, data, apiKey: reqApiKey, fromEmail: reqFromEmail } = body;
 
     if (!to || typeof to !== 'string' || !to.includes('@')) {
       return NextResponse.json({ error: 'Valid recipient email address is required.' }, { status: 400 });
     }
 
+    let apiKey = reqApiKey;
+    let fromEmail = reqFromEmail;
+
+    // Check salon_state in database if credentials are not in request body
+    if (!apiKey || !fromEmail) {
+      try {
+        const supabase = getSupabaseAdmin();
+        if (supabase) {
+          const { data: row } = await supabase
+            .from('salon_state')
+            .select('data')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!apiKey && row?.data?.settings?.resendApiKey) {
+            apiKey = row.data.settings.resendApiKey;
+          }
+          if (!fromEmail && row?.data?.settings?.resendFromEmail) {
+            fromEmail = row.data.settings.resendFromEmail;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not read resend credentials from salon_state:', err);
+      }
+    }
+
     let emailHtml = '';
     let emailSubject = subject;
+    let plainTextSummary = '';
 
     switch (type) {
       case 'confirmation': {
@@ -34,6 +63,7 @@ export async function POST(req: NextRequest) {
           address: data?.address,
           salonName: data?.salonName,
         });
+        plainTextSummary = `✨ APPOINTMENT CONFIRMED — ${data?.salonName || 'Shree Beauty Studio'}\n\nDear ${data?.customerName || 'Valued Guest'},\nYour appointment for ${data?.service || 'Salon Service'} is confirmed on ${data?.date || ''} at ${data?.time || ''}.\nStylist: ${data?.staff || 'Studio Specialist'}\nAddress: ${data?.address || 'Surat, Gujarat'}\n\nWe look forward to welcoming you! 💖`;
         break;
       }
 
@@ -48,6 +78,7 @@ export async function POST(req: NextRequest) {
           address: data?.address,
           salonName: data?.salonName,
         });
+        plainTextSummary = `⏰ APPOINTMENT REMINDER — ${data?.salonName || 'Shree Beauty Studio'}\n\nDear ${data?.customerName || 'Valued Guest'},\nThis is a gentle reminder for your upcoming appointment for ${data?.service || 'Salon Service'} on ${data?.date || ''} at ${data?.time || ''}.\nAddress: ${data?.address || 'Surat, Gujarat'}\n\nSee you soon! 💖`;
         break;
       }
 
@@ -63,6 +94,7 @@ export async function POST(req: NextRequest) {
           couponCode: data?.couponCode || 'SHREE-CELEBRATE',
           salonName: data?.salonName,
         });
+        plainTextSummary = `🎉 ${title} — ${data?.salonName || 'Shree Beauty Studio'}\n\nDear ${data?.customerName || 'Valued Guest'},\nWishing you joy, happiness and radiance! Celebrate your special occasion with an exclusive ${data?.discountPercent || 15}% treat discount.\nCoupon Code: ${data?.couponCode || 'SHREE-CELEBRATE'}\n\nWarm regards,\nShree Beauty Studio 💖`;
         break;
       }
 
@@ -77,6 +109,10 @@ export async function POST(req: NextRequest) {
           lines: data?.lines || [],
           salonName: data?.salonName,
         });
+        const linesText = (data?.lines || [])
+          .map((l: any) => `• ${l.name} (${l.qty || 1}x) - ₹${l.price}`)
+          .join('\n');
+        plainTextSummary = `🧾 INVOICE RECEIPT — ${data?.salonName || 'Shree Beauty Studio'}\n────────────────────────────\nDear ${data?.customerName || 'Customer'},\nThank you for visiting ${data?.salonName || 'Shree Beauty Studio'}!\n\n📄 Invoice No: ${data?.invoiceNo || 'INV-001'}\n📅 Date: ${data?.date || ''}\n💳 Payment Mode: ${data?.mode || 'GPay UPI'}\n\nServices / Items:\n${linesText || '• Salon Services'}\n\n💵 Total Bill: ₹${data?.total || 0}\n\n📍 Shree Beauty Studio, Surat, Gujarat\n📞 +91 97732 40010\nThank you & have a wonderful day! ✨`;
         break;
       }
 
@@ -87,6 +123,7 @@ export async function POST(req: NextRequest) {
         }
         emailHtml = body.html || `<div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">${body.message}</div>`;
         emailSubject = emailSubject || 'Message from Shree Beauty Studio';
+        plainTextSummary = body.message || emailSubject;
         break;
       }
     }
@@ -95,18 +132,46 @@ export async function POST(req: NextRequest) {
       to,
       subject: emailSubject,
       html: emailHtml,
+      text: plainTextSummary,
       from: fromEmail,
       apiKey,
     });
 
+    // Fallback URLs for seamless client-side dispatch (Gmail Web & Mailto)
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(plainTextSummary)}`;
+    const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(plainTextSummary)}`;
+
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      const errLower = (result.error || '').toLowerCase();
+      const isDomainRestriction =
+        errLower.includes('only send testing emails') ||
+        errLower.includes('verify a domain') ||
+        errLower.includes('sandbox') ||
+        errLower.includes('validation_error');
+
+      return NextResponse.json({
+        success: false,
+        isDomainRestriction,
+        error: result.error,
+        fallback: {
+          subject: emailSubject,
+          body: plainTextSummary,
+          gmailUrl,
+          mailtoUrl,
+        },
+      }, { status: 200 }); // Return status 200 so UI can seamlessly handle fallback
     }
 
     return NextResponse.json({
       success: true,
       id: result.id,
       message: 'Email dispatched successfully!',
+      fallback: {
+        subject: emailSubject,
+        body: plainTextSummary,
+        gmailUrl,
+        mailtoUrl,
+      },
     });
   } catch (err: any) {
     console.error('[Email Send API Error]:', err);

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     try {
       const supabase = getSupabaseAdmin();
       if (supabase) {
-        const { data: row } = await supabase.from('salon_state').select('data').eq('id', 1).single();
+        const { data: row } = await supabase.from('salon_state').select('data').order('updated_at', { ascending: false }).limit(1).maybeSingle();
         if (row?.data?.settings) {
           phoneId = row.data.settings.whatsappPhoneId || '';
           accessToken = row.data.settings.whatsappAccessToken || '';

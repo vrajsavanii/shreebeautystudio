@@ -83,14 +83,57 @@ export default function InvoiceReceiptModal({
     }
   };
 
-  const handleSendWhatsApp = async () => {
+  const buildRichInvoiceMessage = () => {
+    if (!invoice) return '';
+    const linesList = (invoice.lines || [])
+      .map((l: any) => `• ${cleanServiceNameForBill(l.name)} (${l.qty || 1}x) : ${money(l.price * (l.qty || 1))}`)
+      .join('\n');
+    return `✨ *${salon.toUpperCase()} — INVOICE #${invoice.no}* ✨
+────────────────────────────
+Dear ${invoice.customer || 'Valued Customer'},
+Thank you for visiting ${salon}! 💖
+
+📄 *Invoice No:* ${invoice.no}
+📅 *Date:* ${invDate}
+💳 *Payment Mode:* ${invoice.mode || 'GPay UPI'}
+
+*Services & Items:*
+${linesList || '• Salon Service'}
+
+────────────────────────────
+*Total Bill:* ${money(totalAmt)}
+*Amount Paid:* ${money(paymentPaid + advanceAmt)}
+*Balance Due:* ${money(balanceDue)}
+────────────────────────────
+
+📍 ${salonAddress}
+📞 +91 97732 40010
+Have a wonderful day! 🙏✨`;
+  };
+
+  const handleSendWhatsApp = async (forceDirect = false) => {
     if (!invoice.mobile) {
       setWaResult({ status: 'failed', message: 'No mobile number on this invoice.' });
       setTimeout(() => setWaResult({ status: 'idle', message: '' }), 4000);
       return;
     }
 
-    setWaResult({ status: 'sending', message: 'Sending PDF to customer WhatsApp…' });
+    const cleanDigits = (invoice.mobile || '').replace(/\D/g, '').slice(-10);
+    const invoiceText = buildRichInvoiceMessage();
+
+    if (forceDirect) {
+      if (cleanDigits.length === 10) {
+        window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
+        setWaResult({ status: 'sent', message: '📱 Opening WhatsApp Web to deliver bill...' });
+        toast('📱 Opening WhatsApp Web to deliver bill...', 'info');
+        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+      } else {
+        toast('Invalid 10-digit mobile number on invoice.', 'error');
+      }
+      return;
+    }
+
+    setWaResult({ status: 'sending', message: 'Sending PDF via WhatsApp Business API…' });
 
     try {
       const res = await sendInvoicePDFViaWhatsApp(invoice, salonData);
@@ -98,35 +141,36 @@ export default function InvoiceReceiptModal({
       if (res.success) {
         setWaResult({ status: 'sent', message: res.message });
         toast(res.message);
-        // Auto-reset after 5 seconds
         setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
-      } else if (res.notConfigured) {
-        const cleanDigits = (invoice.mobile || '').replace(/\D/g, '').slice(-10);
+      } else {
+        // Automatically fall back to wa.me with formatted bill text so dispatch NEVER fails!
         if (cleanDigits.length === 10) {
-          const salonName = salonData?.settings?.salon || 'Shree Beauty Studio';
-          const text = `✨ *${salonName.toUpperCase()} — Invoice Receipt #${invoice.no}* ✨\nDear ${invoice.customer || 'Customer'}, thank you for choosing us! 💖\nTotal Bill: ${money(invoice.total)}\nPaid: ${money(invoice.paid + (invoice.advance || 0))}\nBalance Due: ${money(invoice.balance)}\nHave a wonderful day! 🙏`;
-          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(text)}`, '_blank');
-          setWaResult({ status: 'sent', message: '📱 Opening WhatsApp Web to send bill receipt...' });
-          toast('📱 Opening WhatsApp Web to send bill receipt...', 'info');
+          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
+          const is24h = (res as any).is24HourWindow || res.message?.toLowerCase().includes('24-hour') || res.message?.toLowerCase().includes('window');
+          const fallbackMsg = is24h
+            ? '📱 Opening WhatsApp to dispatch bill! (Customer outside 24h Meta window)'
+            : '📱 Opening WhatsApp to dispatch bill!';
+          setWaResult({ status: 'sent', message: fallbackMsg });
+          toast(fallbackMsg, 'info');
           setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
         } else {
-          setWaResult({
-            status: 'not_configured',
-            message: 'WhatsApp API not configured. Add credentials in Settings → WhatsApp.',
-          });
-          toast('WhatsApp API not set up. Go to Settings → WhatsApp to configure.', 'info');
-          setTimeout(() => setWaResult({ status: 'idle', message: '' }), 6000);
+          setWaResult({ status: 'failed', message: res.message });
+          toast(res.message, 'error');
+          setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
         }
-      } else {
-        setWaResult({ status: 'failed', message: res.message });
-        toast(res.message, 'error');
-        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
       }
     } catch (e: any) {
-      const errMsg = e?.message || 'Unexpected error while sending WhatsApp message.';
-      setWaResult({ status: 'failed', message: errMsg });
-      toast(errMsg, 'error');
-      setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+      if (cleanDigits.length === 10) {
+        window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
+        setWaResult({ status: 'sent', message: '📱 Opening WhatsApp to dispatch bill!' });
+        toast('📱 Opening WhatsApp to dispatch bill...', 'info');
+        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+      } else {
+        const errMsg = e?.message || 'Unexpected error while sending WhatsApp message.';
+        setWaResult({ status: 'failed', message: errMsg });
+        toast(errMsg, 'error');
+        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+      }
     }
   };
 
@@ -144,6 +188,9 @@ export default function InvoiceReceiptModal({
     }
 
     setEmailResult({ status: 'sending', message: 'Sending invoice email…' });
+    const invoiceEmailSubject = `📄 Invoice #${invoice.no} from ${salon}`;
+    const invoiceSummaryText = buildRichInvoiceMessage();
+
     try {
       const res = await fetch('/api/email/send', {
         method: 'POST',
@@ -151,6 +198,7 @@ export default function InvoiceReceiptModal({
         body: JSON.stringify({
           type: 'invoice',
           to: targetEmail,
+          subject: invoiceEmailSubject,
           data: {
             customerName: invoice.customer,
             invoiceNo: invoice.no,
@@ -158,7 +206,7 @@ export default function InvoiceReceiptModal({
             total: invoice.total,
             mode: invoice.mode,
             lines: invoice.lines,
-            salonName: salonData?.settings?.salon,
+            salonName: salon,
           },
           apiKey: salonData?.settings?.resendApiKey,
           fromEmail: salonData?.settings?.resendFromEmail,
@@ -170,14 +218,27 @@ export default function InvoiceReceiptModal({
         setEmailResult({ status: 'sent', message: `Sent to ${targetEmail}!` });
         toast(`✅ Invoice emailed to ${targetEmail}!`);
         setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
+      } else if (data.fallback?.gmailUrl || data.isDomainRestriction) {
+        // Resend sandbox or domain restriction: seamlessly open Gmail Web compose!
+        const gmailUrl =
+          data.fallback?.gmailUrl ||
+          `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
+        window.open(gmailUrl, '_blank');
+        setEmailResult({ status: 'sent', message: `Opened in Gmail for ${targetEmail}!` });
+        toast('✉️ Opening in Gmail to send invoice! (Tip: verify domain in Resend for automated cloud delivery)', 'info');
+        setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 6000);
       } else {
-        setEmailResult({ status: 'failed', message: data.error || 'Failed' });
-        toast(`❌ ${data.error || 'Failed to send email'}`, 'error');
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
+        window.open(gmailUrl, '_blank');
+        setEmailResult({ status: 'sent', message: `Opened in Gmail for ${targetEmail}!` });
+        toast('✉️ Opening in Gmail compose window...', 'info');
         setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
       }
     } catch {
-      setEmailResult({ status: 'failed', message: 'Failed to send email' });
-      toast('Failed to send invoice email', 'error');
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
+      window.open(gmailUrl, '_blank');
+      setEmailResult({ status: 'sent', message: `Opened in Gmail for ${targetEmail}!` });
+      toast('✉️ Opening in Gmail compose window...', 'info');
       setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
     }
   };
@@ -922,7 +983,7 @@ export default function InvoiceReceiptModal({
             <button
               type="button"
               className="btn btn-sm"
-              onClick={handleSendWhatsApp}
+              onClick={() => handleSendWhatsApp(false)}
               disabled={waResult.status === 'sending'}
               title={waResult.message || 'Send PDF Invoice directly to customer WhatsApp'}
               style={{

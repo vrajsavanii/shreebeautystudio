@@ -501,7 +501,7 @@ export async function sendInvoicePDFViaWhatsApp(
   inv: Invoice,
   salonData?: SalonData,
   formatType: 'thermal' | 'a4' = 'thermal'
-): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean }> {
+): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean; is24HourWindow?: boolean }> {
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
   const cleanMobile = (inv.mobile || '').replace(/\D/g, '');
 
@@ -570,8 +570,10 @@ export async function sendInvoicePDFViaWhatsApp(
 
     return {
       success: false,
-      method: 'api_error',
+      method: json.is24HourWindow ? '24h_window' : 'api_error',
       message: json.error || 'Unable to send WhatsApp message. Please try again.',
+      notConfigured: json.notConfigured,
+      is24HourWindow: json.is24HourWindow,
     };
   } catch (fetchErr: any) {
     console.error('[Invoice PDF] Network error calling send-pdf API:', fetchErr?.message || fetchErr);
