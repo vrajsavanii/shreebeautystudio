@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
 import { uid, todayISO, isPastTimeForDate } from '@/lib/utils';
-import { sendDirectWhatsAppMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage, bridalMessage } from '@/lib/whatsapp';
+import { sendDirectWhatsAppMessage, sendWhatsAppTemplateMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage, bridalMessage } from '@/lib/whatsapp';
 import { sendResendEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
 import { autoSyncAppointmentToGoogleCalendar, autoSyncBridalToGoogleCalendar } from '@/lib/google-calendar-server';
 
@@ -235,8 +235,27 @@ export async function POST(request: Request) {
 
     let waResult: any = null;
     try {
-      waResult = await sendDirectWhatsAppMessage(mobile, msg, updatedData.settings);
-      console.log(`[Public Booking WhatsApp] Sent request notification to ${mobile}:`, waResult);
+      // 1. Attempt template dispatch (Utility templates work outside the 24-hour window)
+      const serviceName = type === 'bridal' && newBridal ? (newBridal.packageName || 'Bridal Package') : (newAppointment.service || 'Salon Service');
+      const dateStr = newAppointment.date || newBridal?.weddingDate || 'Upcoming';
+      const timeStr = newAppointment.time || '10:00 AM';
+
+      const templateRes = await sendWhatsAppTemplateMessage({
+        mobile,
+        templateName: 'shree_booking_confirmation',
+        languageCode: 'en_US',
+        bodyParameters: [customerName, serviceName, dateStr, timeStr, address],
+        settings: updatedData.settings,
+      });
+
+      if (templateRes.success) {
+        waResult = templateRes;
+        console.log(`[Public Booking WhatsApp] Sent template message to ${mobile}:`, templateRes);
+      } else {
+        // Fall back to direct text API
+        waResult = await sendDirectWhatsAppMessage(mobile, msg, updatedData.settings);
+        console.log(`[Public Booking WhatsApp] Sent direct text message to ${mobile}:`, waResult);
+      }
     } catch (err: any) {
       console.warn('[Public Booking WhatsApp] Dispatch error:', err?.message);
     }

@@ -258,21 +258,17 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage(updatedAppt, salon, address);
-      sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings).then((res) => {
-        if (res.success) {
-          toast('✅ WhatsApp confirmation sent to customer!');
-        } else {
-          const is24h = (res as any).is24HourWindow;
-          if (is24h) {
-            toast('📱 Customer is outside 24h Meta window. Use Direct WhatsApp button on appointment row to message them.', 'info');
-            try {
-              window.open(`https://wa.me/91${appt.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
-            } catch {}
-          } else {
-            toast(res.message || 'Could not send WhatsApp confirmation', 'error');
-          }
-        }
-      });
+      const cleanDigits = appt.mobile.replace(/\D/g, '').slice(-10);
+
+      // Auto-open WhatsApp Web / App directly for guaranteed instant customer delivery
+      if (cleanDigits.length === 10) {
+        try {
+          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(msg)}`, '_blank');
+        } catch {}
+      }
+
+      // Also attempt Meta Cloud API background dispatch
+      sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings);
     }
 
     // 2. Email confirmation via Resend
@@ -519,19 +515,17 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
-      sendDirectWhatsAppMessage(form.mobile, msg, data?.settings).then((res) => {
-        if (res.success) {
-          toast('✅ WhatsApp confirmation sent to customer!');
-        } else {
-          const is24h = (res as any).is24HourWindow;
-          if (is24h) {
-            toast('📱 Customer is outside 24h Meta window. Use Direct WhatsApp button on appointment row to message them.', 'info');
-            try {
-              window.open(`https://wa.me/91${form.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
-            } catch {}
-          }
-        }
-      });
+      const cleanDigits = form.mobile.replace(/\D/g, '').slice(-10);
+
+      // Auto-open WhatsApp Web / App directly for guaranteed instant customer delivery
+      if (cleanDigits.length === 10) {
+        try {
+          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(msg)}`, '_blank');
+        } catch {}
+      }
+
+      // Also attempt Meta Cloud API background dispatch
+      sendDirectWhatsAppMessage(form.mobile, msg, data?.settings);
     }
 
     // Auto-send Email confirmation to customer via Resend if email is provided

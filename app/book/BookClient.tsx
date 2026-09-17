@@ -250,12 +250,14 @@ export default function PublicBookingPage() {
           return null;
         });
 
-        // If the server endpoint wasn't reached, fallback to client-side dispatch
-        if (!apiRes || !apiRes.ok) {
-          const msg = appointmentRequestPendingMessage(newAppt, salon, address);
-          sendDirectWhatsAppMessage(newAppt.mobile, msg).catch((err) =>
-            console.error('WhatsApp Fallback Error:', err)
-          );
+        // Auto-launch WhatsApp with prefilled booking pass for instant customer delivery
+        const passMsg = `💅 *APPOINTMENT BOOKING PASS — ${salon.toUpperCase()}* 💅\n────────────────────────────\nDear ${newAppt.customer},\nYour appointment booking request has been received! ✨\n\n💄 *Service:* ${newAppt.service}\n📅 *Date:* ${fmtDate(newAppt.date)}\n⏰ *Time:* ${newAppt.time || 'Selected Slot'}\n${newAppt.price ? `💵 *Estimated Price:* ₹${newAppt.price}\n` : ''}📍 *Studio Address:*\n${address}\n📞 *Studio Contact:* +91 97732 40010\n────────────────────────────\n📅 *Google Calendar Reminder:*\n${getAppointmentGoogleCalendarUrl(newAppt, salon, address)}\n\nThank you for choosing ${salon}! 🙏✨`;
+
+        const cleanDigits = newAppt.mobile.replace(/\D/g, '').slice(-10);
+        if (cleanDigits.length === 10) {
+          try {
+            window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(passMsg)}`, '_blank');
+          } catch {}
         }
 
         setConfirmedAppt(newAppt);
@@ -354,10 +356,14 @@ export default function PublicBookingPage() {
           }),
         }).catch((err) => console.warn('Cloud bridal booking API warning:', err));
 
-        // Dispatch Bridal Confirmation & Rate Card PDF via Meta WhatsApp API
-        sendBridalRateCardPDFViaWhatsApp(bridalPackages, cleanMobile, customerName.trim(), data).catch(
-          (err) => console.error('Bridal PDF Error:', err)
-        );
+        // Auto-launch WhatsApp with prefilled bridal booking pass
+        const bridalPassMsg = `👑 *BRIDAL BOOKING PASS — ${salon.toUpperCase()}* 👑\n────────────────────────────\nDear ${newBridalBooking.name},\nYour bridal booking request has been received! ✨\n\n💄 *Package:* ${newBridalBooking.packageName || 'Bridal Package'}\n📅 *Wedding Date:* ${fmtDate(newBridalBooking.weddingDate || newBridalBooking.date)}\n📍 *Venue:* ${newBridalBooking.venue || address}\n💵 *Estimated Package:* ₹${newBridalBooking.package || newBridalBooking.totalAmount || 0}\n────────────────────────────\n📍 *Studio Address:*\n${address}\n📞 *WhatsApp Support:* +91 97732 40010\n\nThank you for choosing ${salon}! 💖`;
+
+        if (cleanMobile.length === 10) {
+          try {
+            window.open(`https://wa.me/91${cleanMobile}?text=${encodeURIComponent(bridalPassMsg)}`, '_blank');
+          } catch {}
+        }
 
         setConfirmedBridal(newBridalBooking);
       }
