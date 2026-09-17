@@ -264,8 +264,10 @@ export default function AppointmentsPage() {
         } else {
           const is24h = (res as any).is24HourWindow;
           if (is24h) {
-            toast('📱 Customer outside 24h Meta window. Opening WhatsApp Web/App...', 'info');
-            window.open(`https://wa.me/91${appt.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
+            toast('📱 Customer is outside 24h Meta window. Use Direct WhatsApp button on appointment row to message them.', 'info');
+            try {
+              window.open(`https://wa.me/91${appt.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
+            } catch {}
           } else {
             toast(res.message || 'Could not send WhatsApp confirmation', 'error');
           }
@@ -523,8 +525,10 @@ export default function AppointmentsPage() {
         } else {
           const is24h = (res as any).is24HourWindow;
           if (is24h) {
-            toast('📱 Customer outside 24h Meta window. Opening WhatsApp...', 'info');
-            window.open(`https://wa.me/91${form.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
+            toast('📱 Customer is outside 24h Meta window. Use Direct WhatsApp button on appointment row to message them.', 'info');
+            try {
+              window.open(`https://wa.me/91${form.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(msg)}`, '_blank');
+            } catch {}
           }
         }
       });
@@ -1184,8 +1188,8 @@ export default function AppointmentsPage() {
                                 </a>
                                 <button
                                   className="btn-icon wa"
-                                  title="WhatsApp staff / customer"
-                                  onClick={() => openWA(a.mobile, appointmentStaffMessage(a, data.settings.salon))}
+                                  title="Send WhatsApp confirmation to customer"
+                                  onClick={() => openWA(a.mobile, appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat'))}
                                 >
                                   <MessageCircle size={12} />
                                 </button>

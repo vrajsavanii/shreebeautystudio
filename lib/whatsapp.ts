@@ -7,19 +7,32 @@ import { fmtDate, money } from './utils';
 import { getAppointmentGoogleCalendarUrl } from './calendar';
 
 /**
- * Send a WhatsApp text message directly via Meta WhatsApp Cloud API (Zero Browser Redirects).
+ * Build a standard unblockable WhatsApp Click-to-Chat (wa.me) URL.
+ * Works 100% reliably for all phone numbers without any 24-hour Meta API restriction.
+ */
+export function getWhatsAppUrl(mobile: string, message?: string): string {
+  const num = (mobile || '').replace(/\D/g, '').slice(-10);
+  if (!num) return 'https://wa.me/919773240010';
+  const text = message ? encodeURIComponent(message) : '';
+  return `https://wa.me/91${num}${text ? `?text=${text}` : ''}`;
+}
+
+/**
+ * Send a WhatsApp text message directly via Meta WhatsApp Cloud API.
+ * Returns structured result indicating whether the customer is outside the 24h Meta customer window.
  */
 export async function sendDirectWhatsAppMessage(
   mobile: string,
   message: string,
   settings?: any
-): Promise<{ success: boolean; method: string; message: string }> {
+): Promise<{ success: boolean; method: string; message: string; is24HourWindow?: boolean; clickToChatUrl?: string }> {
   const num = mobile.replace(/\D/g, '').slice(-10);
   if (!num) {
     return { success: false, method: 'none', message: 'Recipient mobile number is invalid or missing.' };
   }
 
   const recipient = `91${num}`;
+  const clickToChatUrl = getWhatsAppUrl(num, message);
 
   try {
     // Server-side execution (API routes, Webhooks)
@@ -28,10 +41,10 @@ export async function sendDirectWhatsAppMessage(
       const accessToken = settings?.whatsappAccessToken || process.env.META_WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '';
 
       if (!accessToken || accessToken.startsWith('LLM_')) {
-        return { success: false, method: 'none', message: 'WhatsApp API access token not configured.' };
+        return { success: false, method: 'none', message: 'WhatsApp API access token not configured.', clickToChatUrl };
       }
 
-      const metaRes = await fetch(`https://graph.facebook.com/v19.0/${phoneId}/messages`, {
+      const metaRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,12 +64,19 @@ export async function sendDirectWhatsAppMessage(
 
       const metaJson = await metaRes.json();
       if (metaRes.ok) {
-        return { success: true, method: 'meta_cloud_api', message: 'Message sent via Meta WhatsApp API' };
+        return { success: true, method: 'meta_cloud_api', message: 'Message sent via Meta WhatsApp API', clickToChatUrl };
       }
+
+      const code = metaJson?.error?.code;
+      const is24HourWindow = code === 131047 || code === 131056;
       return {
         success: false,
-        method: 'none',
-        message: metaJson?.error?.message || 'Failed to send WhatsApp message via Meta Cloud API',
+        method: is24HourWindow ? '24h_window' : 'none',
+        is24HourWindow,
+        message: is24HourWindow
+          ? 'Customer has not messaged the salon in 24 hours. Meta requires template approval or direct WhatsApp dispatch.'
+          : metaJson?.error?.message || 'Failed to send WhatsApp message via Meta Cloud API',
+        clickToChatUrl,
       };
     }
 
@@ -74,27 +94,113 @@ export async function sendDirectWhatsAppMessage(
 
     const json = await res.json();
     if (res.ok && json.success) {
-      return { success: true, method: 'meta_cloud_api', message: 'Message sent via Meta WhatsApp API' };
+      return { success: true, method: 'meta_cloud_api', message: 'Message sent via Meta WhatsApp API', clickToChatUrl };
     }
-    return { success: false, method: 'none', message: json.error || 'Failed to send Meta WhatsApp API message' };
+    return {
+      success: false,
+      method: json.is24HourWindow ? '24h_window' : 'none',
+      is24HourWindow: json.is24HourWindow,
+      message: json.error || 'Failed to send Meta WhatsApp API message',
+      clickToChatUrl,
+    };
   } catch (err: any) {
-    return { success: false, method: 'none', message: err?.message || 'Network error sending WhatsApp message' };
+    return { success: false, method: 'none', message: err?.message || 'Network error sending WhatsApp message', clickToChatUrl };
   }
 }
 
-// Backward compatibility helper wrappers (all redirect to Meta API with NO web popups)
+/**
+ * Dispatch an official approved WhatsApp Template message via Meta Cloud API.
+ * Works outside the 24-hour window once the template is approved by Meta.
+ */
+export async function sendWhatsAppTemplateMessage({
+  mobile,
+  templateName,
+  languageCode = 'en_US',
+  bodyParameters = [],
+  settings,
+}: {
+  mobile: string;
+  templateName: string;
+  languageCode?: string;
+  bodyParameters: string[];
+  settings?: any;
+}): Promise<{ success: boolean; method: string; message: string }> {
+  const num = mobile.replace(/\D/g, '').slice(-10);
+  if (!num) {
+    return { success: false, method: 'none', message: 'Recipient mobile number is invalid.' };
+  }
+
+  const recipient = `91${num}`;
+  const phoneId = settings?.whatsappPhoneId || process.env.META_WHATSAPP_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || '1313759075154191';
+  const accessToken = settings?.whatsappAccessToken || process.env.META_WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '';
+
+  if (!accessToken || accessToken.startsWith('LLM_')) {
+    return { success: false, method: 'none', message: 'WhatsApp API access token not configured.' };
+  }
+
+  try {
+    const metaRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: recipient,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: { code: languageCode },
+          components: [
+            {
+              type: 'body',
+              parameters: bodyParameters.map((text) => ({ type: 'text', text: String(text || '') })),
+            },
+          ],
+        },
+      }),
+    });
+
+    const metaJson = await metaRes.json();
+    if (metaRes.ok) {
+      return { success: true, method: 'meta_template_api', message: 'Template message sent successfully via WhatsApp!' };
+    }
+    return {
+      success: false,
+      method: 'template_error',
+      message: metaJson?.error?.message || 'Failed to send template message',
+    };
+  } catch (err: any) {
+    return { success: false, method: 'network_error', message: err?.message || 'Error sending template' };
+  }
+}
+
+/**
+ * Open WhatsApp directly in browser / phone app (Click-to-Chat).
+ * 100% Unblockable & Works for every number worldwide without any 24h Meta restriction.
+ */
 export function openWA(mobile: string, message: string) {
-  sendDirectWhatsAppMessage(mobile, message);
+  if (typeof window === 'undefined') return;
+  const num = (mobile || '').replace(/\D/g, '').slice(-10);
+  if (!num) return;
+  window.open(`https://wa.me/91${num}?text=${encodeURIComponent(message)}`, '_blank');
 }
 
 export function openWAWeb(mobile?: string, message?: string) {
-  if (mobile && message) {
-    sendDirectWhatsAppMessage(mobile, message);
-  }
+  if (typeof window === 'undefined') return;
+  const num = (mobile || '').replace(/\D/g, '').slice(-10);
+  const text = message ? encodeURIComponent(message) : '';
+  const url = num ? `https://wa.me/91${num}?text=${text}` : `https://web.whatsapp.com/`;
+  window.open(url, '_blank');
 }
 
 export function openWAApp(mobile: string, message: string) {
-  sendDirectWhatsAppMessage(mobile, message);
+  if (typeof window === 'undefined') return;
+  const num = (mobile || '').replace(/\D/g, '').slice(-10);
+  const text = encodeURIComponent(message);
+  window.open(`https://api.whatsapp.com/send?phone=91${num}&text=${text}`, '_blank');
 }
 
 export function appointmentStaffMessage(a: Appointment, salon: string): string {

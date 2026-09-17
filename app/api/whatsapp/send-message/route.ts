@@ -64,17 +64,29 @@ export async function POST(req: NextRequest) {
         '';
     }
 
+    const clickToChatUrl = `https://wa.me/${recipient}?text=${encodeURIComponent(message)}`;
+
     // If Meta Cloud API credentials are provided, send message directly via WhatsApp Business API
     if (phoneId && accessToken) {
-      const metaRes = await fetch(
-        `https://graph.facebook.com/v19.0/${phoneId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({
+      const isTemplate = Boolean(body.templateName);
+      const payload = isTemplate
+        ? {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: recipient,
+            type: 'template',
+            template: {
+              name: body.templateName,
+              language: { code: body.languageCode || 'en_US' },
+              components: [
+                {
+                  type: 'body',
+                  parameters: (body.templateParameters || []).map((t: string) => ({ type: 'text', text: String(t) })),
+                },
+              ],
+            },
+          }
+        : {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
             to: recipient,
@@ -83,7 +95,17 @@ export async function POST(req: NextRequest) {
               preview_url: false,
               body: message,
             },
-          }),
+          };
+
+      const metaRes = await fetch(
+        `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(payload),
         }
       );
 
@@ -107,6 +129,7 @@ export async function POST(req: NextRequest) {
             error: errMsg,
             errorCode: code,
             is24HourWindow,
+            clickToChatUrl,
             details: metaJson,
           },
           { status: 200 }
@@ -115,9 +138,10 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        method: 'meta_cloud_api',
+        method: isTemplate ? 'meta_template_api' : 'meta_cloud_api',
         messageId: metaJson?.messages?.[0]?.id,
         recipient,
+        clickToChatUrl,
         message: '✅ Message sent successfully via WhatsApp Business Cloud API! 🚀',
       });
     }
@@ -127,6 +151,7 @@ export async function POST(req: NextRequest) {
       success: false,
       notConfigured: true,
       recipient,
+      clickToChatUrl,
       message: 'WhatsApp Cloud API credentials not configured in Settings.',
     });
   } catch (error: any) {

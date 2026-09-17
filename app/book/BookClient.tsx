@@ -96,6 +96,7 @@ export default function PublicBookingPage() {
   const [confirmedBridal, setConfirmedBridal] = useState<BridalBooking | null>(null);
   const [searchService, setSearchService] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedPass, setCopiedPass] = useState(false);
 
   // Filtered Services
   const filteredServices = useMemo(() => {
@@ -589,34 +590,142 @@ export default function PublicBookingPage() {
                 )}
               </div>
 
+              {/* Instant WhatsApp Booking Pass Card */}
+              {(() => {
+                const customerNum = (confirmedAppt?.mobile || confirmedBridal?.mobile || '').replace(/\D/g, '').slice(-10);
+                const gcalUrl = confirmedBridal
+                  ? getBridalGoogleCalendarUrl(confirmedBridal, salon, address)
+                  : confirmedAppt
+                  ? getAppointmentGoogleCalendarUrl(confirmedAppt, salon, address)
+                  : '';
+
+                const fullPassText = confirmedBridal
+                  ? `👑 *BRIDAL BOOKING PASS — ${salon.toUpperCase()}* 👑\n────────────────────────────\nDear ${confirmedBridal.name},\nYour bridal booking request has been received! ✨\n\n💄 *Package:* ${confirmedBridal.packageName || 'Bridal Glam'}\n📅 *Wedding Date:* ${fmtDate(confirmedBridal.weddingDate || confirmedBridal.date)}\n📍 *Venue:* ${confirmedBridal.venue || address}\n💵 *Estimated Package:* ₹${confirmedBridal.package || confirmedBridal.totalAmount || 0}\n────────────────────────────\n📍 *Studio Address:*\n${address}\n📞 *WhatsApp Support:* +91 97732 40010\n\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 💖`
+                  : `💅 *APPOINTMENT BOOKING PASS — ${salon.toUpperCase()}* 💅\n────────────────────────────\nDear ${confirmedAppt?.customer},\nYour appointment booking request has been received! ✨\n\n💄 *Service:* ${confirmedAppt?.service}\n📅 *Date:* ${fmtDate(confirmedAppt?.date || todayISO())}\n⏰ *Time:* ${confirmedAppt?.time || 'Selected Slot'}\n${confirmedAppt?.price ? `💵 *Estimated Price:* ₹${confirmedAppt.price}\n` : ''}📍 *Studio Address:*\n${address}\n📞 *Studio Contact:* +91 97732 40010\n────────────────────────────\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 🙏✨`;
+
+                const salonGreeting = `Hello ${salon}! I have submitted an online appointment request for ${
+                  confirmedAppt?.service || confirmedBridal?.packageName
+                } on ${fmtDate(confirmedAppt?.date || confirmedBridal?.date)}. Please confirm my booking! ✨`;
+
+                return (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                      border: '2px solid #86efac',
+                      borderRadius: 18,
+                      padding: '20px 18px',
+                      marginBottom: 20,
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                      <div
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: '50%',
+                          background: '#25D366',
+                          color: '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          boxShadow: '0 4px 10px rgba(37,211,102,0.3)',
+                        }}
+                      >
+                        <MessageCircle size={22} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 900, fontSize: 15, color: '#064e3b' }}>
+                          📲 Instant WhatsApp Booking Pass
+                        </div>
+                        <div style={{ fontSize: 12, color: '#047857' }}>
+                          Receive complete appointment details &amp; calendar reminder on WhatsApp
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: 10 }}>
+                      {/* Button 1: Send directly to Customer's WhatsApp */}
+                      <a
+                        href={`https://wa.me/91${customerNum}?text=${encodeURIComponent(fullPassText)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 10,
+                          background: '#25D366',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          fontSize: 14,
+                          padding: '13px 18px',
+                          borderRadius: 12,
+                          textDecoration: 'none',
+                          boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
+                        }}
+                      >
+                        <MessageCircle size={18} />
+                        <span>📲 Send Booking Details to My WhatsApp</span>
+                      </a>
+
+                      {/* Button 2: Message the Salon (Opens 24h Meta Window) */}
+                      <a
+                        href={`https://wa.me/${phone}?text=${encodeURIComponent(salonGreeting)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 10,
+                          background: '#ffffff',
+                          color: '#065f46',
+                          border: '1.5px solid #a7f3d0',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          padding: '11px 16px',
+                          borderRadius: 12,
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <span>💬 Message Studio (+91 97732 40010)</span>
+                      </a>
+
+                      {/* Button 3: Copy Booking Details */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(fullPassText);
+                          setCopiedPass(true);
+                          setTimeout(() => setCopiedPass(false), 3000);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          background: '#ffffff',
+                          color: '#334155',
+                          border: '1.5px solid #cbd5e1',
+                          fontWeight: 700,
+                          fontSize: 12.5,
+                          padding: '10px 16px',
+                          borderRadius: 12,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Copy size={15} />
+                        <span>{copiedPass ? '✅ Booking Pass Copied!' : '📋 Copy Booking Details'}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Action Buttons */}
               <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
-                <a
-                  href={`https://wa.me/${phone}?text=${encodeURIComponent(
-                    `Hello ${salon}! I have submitted an online appointment request for ${
-                      confirmedAppt?.service || confirmedBridal?.packageName
-                    } on ${fmtDate(confirmedAppt?.date || confirmedBridal?.date)}.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    background: '#25D366',
-                    color: '#ffffff',
-                    fontWeight: 800,
-                    fontSize: 14,
-                    padding: '13px 20px',
-                    borderRadius: 14,
-                    textDecoration: 'none',
-                    boxShadow: '0 6px 20px rgba(37,211,102,0.3)',
-                  }}
-                >
-                  <MessageCircle size={18} />
-                  <span>Chat with Salon on WhatsApp</span>
-                </a>
                 <a
                   href={
                     confirmedBridal

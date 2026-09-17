@@ -153,33 +153,28 @@ Have a wonderful day! 🙏✨`;
         toast(res.message);
         setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
       } else {
-        // Automatically fall back to wa.me with formatted bill text so dispatch NEVER fails!
+        const is24h = (res as any).is24HourWindow || res.message?.toLowerCase().includes('24-hour') || res.message?.toLowerCase().includes('window');
+        const fallbackMsg = is24h
+          ? 'Customer is outside Meta 24h messaging window. Use Direct WhatsApp button below.'
+          : res.message || 'Meta WhatsApp delivery failed.';
+        setWaResult({ status: 'failed', message: fallbackMsg });
+        toast(fallbackMsg, is24h ? 'info' : 'error');
+
+        // If possible, also attempt opening WhatsApp directly
         if (cleanDigits.length === 10) {
-          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
-          const is24h = (res as any).is24HourWindow || res.message?.toLowerCase().includes('24-hour') || res.message?.toLowerCase().includes('window');
-          const fallbackMsg = is24h
-            ? '📱 Opening WhatsApp to dispatch bill! (Customer outside 24h Meta window)'
-            : '📱 Opening WhatsApp to dispatch bill!';
-          setWaResult({ status: 'sent', message: fallbackMsg });
-          toast(fallbackMsg, 'info');
-          setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
-        } else {
-          setWaResult({ status: 'failed', message: res.message });
-          toast(res.message, 'error');
-          setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+          try {
+            window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
+          } catch {}
         }
       }
     } catch (e: any) {
+      const errMsg = e?.message || 'Unexpected error while sending WhatsApp message.';
+      setWaResult({ status: 'failed', message: errMsg });
+      toast(errMsg, 'error');
       if (cleanDigits.length === 10) {
-        window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
-        setWaResult({ status: 'sent', message: '📱 Opening WhatsApp to dispatch bill!' });
-        toast('📱 Opening WhatsApp to dispatch bill...', 'info');
-        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
-      } else {
-        const errMsg = e?.message || 'Unexpected error while sending WhatsApp message.';
-        setWaResult({ status: 'failed', message: errMsg });
-        toast(errMsg, 'error');
-        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+        try {
+          window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
+        } catch {}
       }
     }
   };
@@ -1121,15 +1116,65 @@ Have a wonderful day! 🙏✨`;
             </div>
           )}
 
+          {/* WhatsApp Direct Fallback Alert if Meta 24h window closed or sending fails */}
+          {waResult.status === 'failed' && (
+            <div
+              style={{
+                background: '#fffbeb',
+                border: '1.5px solid #fde68a',
+                borderRadius: 10,
+                padding: '10px 14px',
+                marginBottom: 12,
+                fontSize: 12,
+                color: '#92400e',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 800 }}>⚠️ {waResult.message}</span>
+                <div style={{ fontSize: 11, color: '#b45309', marginTop: 2 }}>
+                  Meta Cloud API requires customer interaction first. Click below to deliver via WhatsApp Web/App:
+                </div>
+              </div>
+              {invoice.mobile && (
+                <a
+                  href={`https://wa.me/91${invoice.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(buildRichInvoiceMessage())}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: '#25D366',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    boxShadow: '0 2px 6px rgba(37,211,102,0.3)',
+                  }}
+                >
+                  <MessageCircle size={13} />
+                  <span>Open WhatsApp Web/App</span>
+                </a>
+              )}
+            </div>
+          )}
+
           {/* Row 1: Share & PDF Export Actions */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(115px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(105px, 1fr))',
               gap: 8,
             }}
           >
-            {/* WhatsApp Send Button */}
+            {/* WhatsApp Send Button (Meta Cloud API) */}
             <button
               type="button"
               className="btn btn-sm"
@@ -1179,6 +1224,35 @@ Have a wonderful day! 🙏✨`;
                 </>
               )}
             </button>
+
+            {/* Direct WhatsApp (wa.me) — Works for 100% of New Numbers */}
+            {invoice.mobile && (
+              <a
+                href={`https://wa.me/91${invoice.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(buildRichInvoiceMessage())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-sm"
+                title="Send bill directly via WhatsApp (Works for all new customer numbers without 24h restrictions)"
+                style={{
+                  background: '#f0fdf4',
+                  color: '#15803d',
+                  fontWeight: 700,
+                  border: '1px solid #86efac',
+                  padding: '9px 10px',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  fontSize: 12,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <MessageCircle size={14} color="#16a34a" />
+                <span>Direct WA</span>
+              </a>
+            )}
 
             {/* Email Invoice Button */}
             <button
