@@ -7,7 +7,6 @@ import {
   LayoutDashboard, Calendar, Users, Receipt, Package,
   ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings, Sparkles, MessageCircle, ExternalLink, BookOpen
 } from 'lucide-react';
-import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { useSalonStore } from '@/lib/store';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -105,11 +104,6 @@ export default function Sidebar() {
           </Link>
         </motion.div>
       </motion.div>
-
-      {/* Cloud Status */}
-      <div style={{ padding: '12px 14px 16px', borderTop: '1px solid rgba(255,255,255,.08)' }}>
-        <CloudStatusBadge />
-      </div>
     </nav>
   );
 }
