@@ -45,10 +45,10 @@ export default function Sidebar() {
 
   return (
     <nav className="sidebar no-print">
-      {/* Direct Brand Logo Banner - Seamless Borderless */}
+      {/* Direct Brand Logo Banner - Seamless Borderless Big Size */}
       <div
         style={{
-          padding: '18px 16px 12px',
+          padding: '20px 14px 16px',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -59,11 +59,13 @@ export default function Sidebar() {
           alt={salonName}
           style={{
             width: '100%',
+            maxWidth: '215px',
             height: 'auto',
             display: 'block',
             objectFit: 'contain',
             border: 'none',
             outline: 'none',
+            filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25))',
           }}
         />
       </div>
