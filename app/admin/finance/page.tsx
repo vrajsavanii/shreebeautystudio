@@ -883,155 +883,166 @@ export default function FinanceAccountingPage() {
 
   return (
     <div style={{ padding: '24px 28px', maxWidth: 1600, margin: '0 auto', color: '#1e293b' }}>
-      {/* ─── 6 QUICK ACTION BUTTONS ─── */}
+      {/* ─── 6 QUICK ACTION BUTTONS (SINGLE HORIZONTAL ROW) ─── */}
       <div
+        className="no-scrollbar"
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
           gap: 10,
           marginBottom: 20,
         }}
       >
-          <button
-            onClick={() => setSaleModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderRadius: 10,
-              background: '#059669',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: 13.5,
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.2)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-            onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <Plus size={16} /> + Sale
-          </button>
+        <button
+          onClick={() => setSaleModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#059669',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: 13,
+            border: 'none',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 12px rgba(5, 150, 105, 0.2)',
+            transition: 'transform 0.15s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <Plus size={15} /> + Sale
+        </button>
 
-          <button
-            onClick={() => setPurchaseModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderRadius: 10,
-              background: '#2563eb',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: 13.5,
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-            onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <Plus size={16} /> + Purchase
-          </button>
+        <button
+          onClick={() => setPurchaseModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#2563eb',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: 13,
+            border: 'none',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+            transition: 'transform 0.15s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <Plus size={15} /> + Purchase
+        </button>
 
-          <button
-            onClick={() => setPaymentInModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderRadius: 10,
-              background: '#0d9488',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: 13.5,
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-            onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <ArrowDownLeft size={16} /> + Payment In
-          </button>
+        <button
+          onClick={() => setPaymentInModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#0d9488',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: 13,
+            border: 'none',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 12px rgba(13, 148, 136, 0.2)',
+            transition: 'transform 0.15s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <ArrowDownLeft size={15} /> + Payment In
+        </button>
 
-          <button
-            onClick={() => setPaymentOutModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderRadius: 10,
-              background: '#d97706',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: 13.5,
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(217, 119, 6, 0.2)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-            onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <ArrowUpRight size={16} /> + Payment Out
-          </button>
+        <button
+          onClick={() => setPaymentOutModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#d97706',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: 13,
+            border: 'none',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 12px rgba(217, 119, 6, 0.2)',
+            transition: 'transform 0.15s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <ArrowUpRight size={15} /> + Payment Out
+        </button>
 
-          <button
-            onClick={() => setExpenseModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderRadius: 10,
-              background: '#e11d48',
-              color: '#ffffff',
-              fontWeight: 700,
-              fontSize: 13.5,
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(225, 29, 72, 0.2)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-            onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <Plus size={16} /> + Expense
-          </button>
+        <button
+          onClick={() => setExpenseModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#e11d48',
+            color: '#ffffff',
+            fontWeight: 700,
+            fontSize: 13,
+            border: 'none',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 4px 12px rgba(225, 29, 72, 0.2)',
+            transition: 'transform 0.15s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <Plus size={15} /> + Expense
+        </button>
 
-          <button
-            onClick={() => setPartyModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '9px 16px',
-              borderRadius: 10,
-              background: '#ffffff',
-              color: '#7c3aed',
-              fontWeight: 700,
-              fontSize: 13.5,
-              border: '1.5px solid #ddd6fe',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(124, 58, 237, 0.08)',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-            onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-          >
-            <Users size={16} /> + Party
-          </button>
-        </div>
+        <button
+          onClick={() => setPartyModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: '#ffffff',
+            color: '#7c3aed',
+            fontWeight: 700,
+            fontSize: 13,
+            border: '1.5px solid #ddd6fe',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(124, 58, 237, 0.08)',
+            transition: 'transform 0.15s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <Users size={15} /> + Party
+        </button>
+      </div>
 
       {/* ─── 6 COLORFUL KPI METRIC CARDS (SINGLE HORIZONTAL ROW) ─── */}
       <div
@@ -1441,21 +1452,23 @@ export default function FinanceAccountingPage() {
       {/* ─── TAB CONTENT 1: ALL TRANSACTIONS ─── */}
       {activeTab === 'transactions' && (
         <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-          {/* Filters Bar */}
+          {/* Filters Bar (Single Line) */}
           <div
+            className="no-scrollbar"
             style={{
-              padding: '16px 20px',
+              padding: '14px 20px',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 14,
+              gap: 12,
               background: '#f8fafc',
+              overflowX: 'auto',
             }}
           >
             {/* Search Input */}
-            <div style={{ position: 'relative', minWidth: 280, flex: '1 1 300px' }}>
+            <div style={{ position: 'relative', minWidth: 260, flex: '1 1 280px' }}>
               <Search
                 size={16}
                 style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}
@@ -1467,10 +1480,10 @@ export default function FinanceAccountingPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '9px 12px 9px 36px',
+                  padding: '8px 12px 8px 36px',
                   borderRadius: 10,
                   border: '1px solid #cbd5e1',
-                  fontSize: 13.5,
+                  fontSize: 13,
                   background: '#ffffff',
                   outline: 'none',
                 }}
@@ -1478,18 +1491,20 @@ export default function FinanceAccountingPage() {
             </div>
 
             {/* Type Filter Pills */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', flexShrink: 0 }}>
               {(['All', 'Sale', 'Purchase', 'Payment In', 'Payment Out', 'Expense'] as TxTypeFilter[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
                   style={{
-                    padding: '6px 13px',
+                    padding: '6px 12px',
                     borderRadius: 8,
-                    fontSize: 12.5,
+                    fontSize: 12,
                     fontWeight: 700,
                     border: '1px solid',
                     cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
                     background: typeFilter === t ? '#0f172a' : '#ffffff',
                     color: typeFilter === t ? '#ffffff' : '#475569',
                     borderColor: typeFilter === t ? '#0f172a' : '#e2e8f0',
@@ -1501,16 +1516,17 @@ export default function FinanceAccountingPage() {
             </div>
 
             {/* Time Filter Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <select
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
                 style={{
                   padding: '7px 14px',
                   borderRadius: 8,
-                  fontSize: 12.5,
+                  fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                   border: '1px solid #cbd5e1',
                   background: '#ffffff',
                   color: '#1e293b',
