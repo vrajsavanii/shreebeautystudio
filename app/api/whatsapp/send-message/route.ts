@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!message && !body.templateName) {
+    if (!message && !body.templateName && !body.interactive) {
       return NextResponse.json(
-        { error: 'Message text or templateName is required' },
+        { error: 'Message text, templateName, or interactive payload is required' },
         { status: 400 }
       );
     }
@@ -70,37 +70,50 @@ export async function POST(req: NextRequest) {
 
     // If Meta Cloud API credentials are provided, send message directly via WhatsApp Business API
     if (phoneId && accessToken) {
+      const isInteractive = (body.type === 'interactive' || Boolean(body.interactive)) && body.interactive;
       const isTemplate = Boolean(body.templateName);
       const rawParams = body.templateParameters || body.bodyParameters || [];
-      const payload = isTemplate
-        ? {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: recipient,
-            type: 'template',
-            template: {
-              name: body.templateName,
-              language: { code: body.languageCode || 'en_US' },
-              components: [
-                {
-                  type: 'body',
-                  parameters: rawParams.map((t: any) => ({ type: 'text', text: String(t ?? '') })),
-                },
-              ],
-            },
-          }
-        : {
-            messaging_product: 'whatsapp',
-            recipient_type: 'individual',
-            to: recipient,
-            type: 'text',
-            text: {
-              preview_url: false,
-              body: message,
-            },
-          };
+      let payload: any;
 
-      const metaRes = await fetch(
+      if (isInteractive) {
+        payload = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: recipient,
+          type: 'interactive',
+          interactive: body.interactive,
+        };
+      } else if (isTemplate) {
+        payload = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: recipient,
+          type: 'template',
+          template: {
+            name: body.templateName,
+            language: { code: body.languageCode || 'en_US' },
+            components: [
+              {
+                type: 'body',
+                parameters: rawParams.map((t: any) => ({ type: 'text', text: String(t ?? '') })),
+              },
+            ],
+          },
+        };
+      } else {
+        payload = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: recipient,
+          type: 'text',
+          text: {
+            preview_url: false,
+            body: message || '',
+          },
+        };
+      }
+
+      let metaRes = await fetch(
         `https://graph.facebook.com/v21.0/${phoneId}/messages`,
         {
           method: 'POST',
@@ -112,7 +125,35 @@ export async function POST(req: NextRequest) {
         }
       );
 
-      const metaJson = await metaRes.json();
+      let metaJson = await metaRes.json();
+
+      // If interactive failed, fall back to plain text
+      if (!metaRes.ok && isInteractive) {
+        console.warn('Interactive WhatsApp message failed, falling back to plain text:', metaJson);
+        const fallbackText = body.interactive?.body?.text || message || 'Welcome to Shree Beauty Studio!';
+        const fallbackRes = await fetch(
+          `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              messaging_product: 'whatsapp',
+              recipient_type: 'individual',
+              to: recipient,
+              type: 'text',
+              text: { preview_url: false, body: fallbackText },
+            }),
+          }
+        );
+        const fallbackJson = await fallbackRes.json();
+        if (fallbackRes.ok) {
+          metaRes = fallbackRes;
+          metaJson = fallbackJson;
+        }
+      }
 
       if (!metaRes.ok) {
         console.error('Meta WhatsApp Text API Error:', metaJson);

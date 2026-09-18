@@ -112,11 +112,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'status_processed' }, { status: 200 });
     }
 
-    if (!message || message.type !== 'text') {
+    if (!message || (message.type !== 'text' && message.type !== 'interactive')) {
       return NextResponse.json({ status: 'ignored_or_non_text' }, { status: 200 });
     }
 
-    const messageText = message.text?.body || '';
+    let messageText = '';
+    let buttonId = '';
+
+    if (message.type === 'text') {
+      messageText = message.text?.body || '';
+    } else if (message.type === 'interactive') {
+      if (message.interactive?.type === 'button_reply') {
+        buttonId = message.interactive?.button_reply?.id || '';
+        messageText = message.interactive?.button_reply?.title || buttonId;
+      } else if (message.interactive?.type === 'list_reply') {
+        buttonId = message.interactive?.list_reply?.id || '';
+        messageText = message.interactive?.list_reply?.title || buttonId;
+      }
+    }
+
     const rawMobile = message.from || '';
     const mobile = rawMobile.replace(/^91/, '').slice(-10);
     const customerName = contact?.profile?.name || 'WhatsApp Customer';
@@ -137,20 +151,22 @@ export async function POST(req: NextRequest) {
     const salonRow = rows[0];
     const currentData: SalonData = mergeWithDefaults(salonRow.data);
 
-    // Process WhatsApp AI Auto-Responder & PDF Dispatch
+    // Process WhatsApp AI Auto-Responder, Interactive Menu & PDF Dispatch
     const originUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
-    const aiResult = await processWhatsAppAIMessage(messageText, rawMobile, customerName, currentData, originUrl);
+    const aiResult = await processWhatsAppAIMessage(messageText, rawMobile, customerName, currentData, originUrl, buttonId);
 
     // Track 24-Hour Free Customer Service Window (opened by customer's incoming message)
     const nowISO = new Date().toISOString();
     const activeUntilISO = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+    const displayLastMsg = buttonId ? `Button: ${messageText || buttonId}` : (messageText || 'Incoming interaction');
 
     const updatedActiveSessions = {
       ...(currentData.whatsappActiveSessions || {}),
       [mobile]: {
         name: customerName,
         activeUntil: activeUntilISO,
-        lastMessage: messageText,
+        lastMessage: displayLastMsg,
         lastMessageAt: nowISO,
       },
     };
