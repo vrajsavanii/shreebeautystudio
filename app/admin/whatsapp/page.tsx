@@ -30,12 +30,13 @@ import {
   Pencil,
   RotateCcw,
   Save,
+  MessageSquare,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { useToast } from '@/components/ui/Toast';
 import { money, fmtDate, todayISO } from '@/lib/utils';
-import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
+import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import {
   sendDirectWhatsAppMessage,
@@ -443,6 +444,45 @@ export default function WhatsAppHubPage() {
     }
   };
 
+  const [sendingText, setSendingText] = useState(false);
+
+  const handleSendInvoiceText = async () => {
+    const inv = invoices.find((i) => i.id === selectedInvoiceId) || invoices[0];
+    if (!inv) {
+      toast('No invoices found to send. Please create an invoice first.', 'error');
+      return;
+    }
+
+    const targetInv: typeof inv = {
+      ...inv,
+      mobile: targetPhone || inv.mobile,
+      customer: targetName || inv.customer,
+    };
+
+    if (!targetInv.mobile) {
+      toast('Please enter a recipient mobile number.', 'error');
+      return;
+    }
+
+    setSendingText(true);
+    setPdfSentStatus(null);
+    toast(`⏳ Sending official text receipt for ${targetInv.no} via Meta API…`);
+
+    try {
+      const res = await sendInvoiceTextViaWhatsApp(targetInv, data);
+      if (res.success) {
+        toast(`✅ Official text receipt for ${targetInv.no} sent directly to ${targetInv.customer}'s WhatsApp!`);
+        setPdfSentStatus(`✅ Text receipt sent successfully via Meta Cloud API!`);
+      } else {
+        toast(`❌ Failed to send text receipt: ${res.message}`, 'error');
+      }
+    } catch (err: any) {
+      toast(`Error sending text receipt: ${err?.message || 'Unknown error'}`, 'error');
+    } finally {
+      setSendingText(false);
+    }
+  };
+
   const handleSendBridalPDF = async () => {
     if (!targetPhone) {
       toast('Please enter or select a recipient mobile number.', 'error');
@@ -811,14 +851,13 @@ export default function WhatsAppHubPage() {
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, alignItems: 'center' }}>
                   <motion.button
                     type="button"
                     className="btn btn-primary"
                     disabled={sendingPDF}
                     onClick={handleSendInvoicePDF}
                     style={{
-                      flex: 1,
                       background: 'linear-gradient(135deg, #16a34a, #15803d)',
                       borderColor: '#16a34a',
                       fontSize: 12.5,
@@ -832,7 +871,29 @@ export default function WhatsAppHubPage() {
                     }}
                     whileTap={{ scale: 0.97 }}
                   >
-                    <Receipt size={15} /> {sendingPDF ? 'Generating & Sending PDF…' : '📄 Send PDF Bill via WhatsApp API'}
+                    <Receipt size={15} /> {sendingPDF ? 'Generating & Sending PDF…' : '📄 Send PDF Bill (WhatsApp)'}
+                  </motion.button>
+
+                  <motion.button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={sendingText}
+                    onClick={handleSendInvoiceText}
+                    style={{
+                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                      borderColor: '#2563eb',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      padding: '9px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      boxShadow: '0 3px 10px rgba(37,99,235,0.25)',
+                    }}
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    <MessageSquare size={15} /> {sendingText ? 'Sending Text…' : '💬 Send Text Receipt (Approved)'}
                   </motion.button>
                 </div>
 

@@ -503,33 +503,89 @@ export async function downloadA4InvoicePDF(
 }
 
 /**
- * Send the crystal-clear PDF Invoice to a customer's WhatsApp via Meta Cloud API.
+ * Send official WhatsApp text receipt to customer using approved Meta utility template.
+ * Works for 100% of phone numbers (new and old) outside the 24-hour window.
  */
-export async function sendInvoicePDFViaWhatsApp(
+export async function sendInvoiceTextViaWhatsApp(
   inv: Invoice,
-  salonData?: SalonData,
-  formatType: 'thermal' | 'a4' = 'a4'
-): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean; is24HourWindow?: boolean }> {
-  const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
-  const cleanMobile = (inv.mobile || '').replace(/\D/g, '');
+  salonData?: SalonData
+): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean }> {
+  const cleanMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
 
   if (!cleanMobile) {
     return {
       success: false,
       method: 'none',
-      message: 'This invoice has no mobile number for the customer.',
+      message: 'This invoice has no valid mobile number for the customer.',
     };
   }
 
-  // ── 1. Calculate Template Parameters for Approved Meta Utility Template ───
   const balanceNum = Math.round(Number(inv.balance) || 0);
   const paymentStatus = balanceNum > 0
     ? `Due: Rs. ${balanceNum.toLocaleString('en-IN')}`
     : 'Paid In Full';
 
-  // ── 2. Primary Dispatch: Attempt High-Res PDF Document via Meta Template ───
-  let pdfDelivered = false;
-  let pdfMethod = '';
+  try {
+    const res = await sendWhatsAppTemplateMessage({
+      mobile: cleanMobile,
+      templateName: 'shree_invoice_receipt',
+      languageCode: 'en_US',
+      bodyParameters: [
+        (inv.customer || 'Customer').trim(),
+        inv.no || 'INV-1001',
+        Number(inv.total || 0).toLocaleString('en-IN'),
+        paymentStatus,
+      ],
+      settings: salonData?.settings,
+    });
+
+    if (res.success) {
+      return {
+        ...res,
+        message: `✅ WhatsApp text receipt for #${inv.no} sent successfully!`,
+      };
+    }
+    return res;
+  } catch (err: any) {
+    return {
+      success: false,
+      method: 'network_error',
+      message: err?.message || 'Error communicating with WhatsApp API',
+    };
+  }
+}
+
+/**
+ * Send the official PDF Invoice document to a customer's WhatsApp via Meta Cloud API.
+ */
+export async function sendInvoicePDFViaWhatsApp(
+  inv: Invoice,
+  salonData?: SalonData,
+  formatType: 'thermal' | 'a4' = 'a4'
+): Promise<{
+  success: boolean;
+  method: string;
+  message: string;
+  notConfigured?: boolean;
+  is24HourWindow?: boolean;
+  isPendingTemplate?: boolean;
+}> {
+  const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
+  const cleanMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
+
+  if (!cleanMobile) {
+    return {
+      success: false,
+      method: 'none',
+      message: 'This invoice has no valid mobile number for the customer.',
+    };
+  }
+
+  const balanceNum = Math.round(Number(inv.balance) || 0);
+  const paymentStatus = balanceNum > 0
+    ? `Due: Rs. ${balanceNum.toLocaleString('en-IN')}`
+    : 'Paid In Full';
+
   try {
     const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData, formatType);
     const pdfBase64 = pdf.output('datauristring');
@@ -558,76 +614,34 @@ export async function sendInvoicePDFViaWhatsApp(
 
     const json = await res.json();
     if (json.success) {
-      pdfDelivered = true;
-      pdfMethod = json.method || 'pdf';
+      if (json.method === 'meta_template_pdf') {
+        return {
+          success: true,
+          method: 'meta_template_pdf',
+          message: '✅ Official Invoice PDF sent directly to customer WhatsApp!',
+        };
+      }
+      return {
+        success: true,
+        method: json.method || 'pdf',
+        isPendingTemplate: json.isPendingTemplate,
+        message: json.message || '✅ PDF Invoice dispatched to customer WhatsApp!',
+      };
     }
-  } catch (pdfErr) {
-    console.warn('[Invoice PDF] PDF send notice:', pdfErr);
-  }
 
-  if (pdfDelivered && pdfMethod === 'meta_template_pdf') {
     return {
-      success: true,
-      method: 'meta_template_pdf',
-      message: '✅ Official Invoice PDF sent directly to customer WhatsApp!',
+      success: false,
+      method: json.method || 'api_error',
+      notConfigured: json.notConfigured,
+      is24HourWindow: json.is24HourWindow,
+      message: json.error || json.message || 'Failed to send PDF invoice via WhatsApp.',
     };
-  }
-
-  // ── 3. Fallback: Dispatch Approved Meta Text Receipt Template (100% Delivery Outside 24h) ───
-  let tmplRes: { success: boolean; method: string; message: string; notConfigured?: boolean } = {
-    success: false,
-    method: 'none',
-    message: '',
-  };
-
-  try {
-    tmplRes = await sendWhatsAppTemplateMessage({
-      mobile: cleanMobile,
-      templateName: 'shree_invoice_receipt',
-      languageCode: 'en_US',
-      bodyParameters: [
-        (inv.customer || 'Customer').trim(),
-        inv.no || 'INV-1001',
-        Number(inv.total || 0).toLocaleString('en-IN'),
-        paymentStatus,
-      ],
-      settings: salonData?.settings,
-    });
-  } catch (tmplErr: any) {
-    console.error('[Invoice WhatsApp] Template fallback notice:', tmplErr?.message || tmplErr);
-    tmplRes = {
+  } catch (pdfErr: any) {
+    console.error('[Invoice PDF] PDF send error:', pdfErr);
+    return {
       success: false,
       method: 'network_error',
-      message: tmplErr?.message || 'Error communicating with WhatsApp API',
+      message: pdfErr?.message || 'Error generating or sending PDF to WhatsApp API.',
     };
   }
-
-  if (tmplRes.notConfigured) {
-    return {
-      success: false,
-      notConfigured: true,
-      method: 'not_configured',
-      message:
-        tmplRes.message ||
-        'WhatsApp API not configured. Please add your Phone Number ID and Access Token in Settings → WhatsApp.',
-    };
-  }
-
-  // ── 4. Return Final Status ────────────────────────────────────────────────
-  if (pdfDelivered || tmplRes.success) {
-    return {
-      success: true,
-      method: pdfDelivered ? 'template_and_pdf' : 'meta_template_api',
-      message: pdfDelivered
-        ? '✅ Official Invoice Receipt & PDF sent directly to customer WhatsApp!'
-        : '✅ Official Invoice Receipt sent directly to customer WhatsApp!',
-    };
-  }
-
-  return {
-    success: false,
-    method: 'api_error',
-    message: tmplRes.message || 'Unable to send WhatsApp message. Please check customer phone number.',
-    notConfigured: tmplRes.notConfigured,
-  };
 }

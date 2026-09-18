@@ -8,6 +8,7 @@ import {
   Printer,
   Download,
   MessageCircle,
+  MessageSquare,
   CheckCircle2,
   Share2,
   FileText,
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
-import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
+import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
 import { money } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 
@@ -46,6 +47,8 @@ export default function InvoiceReceiptModal({
   const [downloading, setDownloading] = useState(false);
   const [downloadingFormat, setDownloadingFormat] = useState<'thermal' | 'a4' | null>(null);
   const [waResult, setWaResult] = useState<WAResult>({ status: 'idle', message: '' });
+  const [waPdfResult, setWaPdfResult] = useState<WAResult>({ status: 'idle', message: '' });
+  const [waTextResult, setWaTextResult] = useState<WAResult>({ status: 'idle', message: '' });
   const [emailResult, setEmailResult] = useState<EmailResult>({ status: 'idle', message: '' });
   const [emailFallback, setEmailFallback] = useState<{
     targetEmail: string;
@@ -121,47 +124,96 @@ ${linesList || '• Salon Service'}
 Have a wonderful day! 🙏✨`;
   };
 
-  const handleSendWhatsApp = async (forceDirect = false) => {
+  const handleDirectWhatsApp = () => {
     if (!invoice.mobile) {
-      setWaResult({ status: 'failed', message: 'No mobile number on this invoice.' });
-      setTimeout(() => setWaResult({ status: 'idle', message: '' }), 4000);
+      toast('No mobile number on this invoice.', 'error');
       return;
     }
-
     const cleanDigits = (invoice.mobile || '').replace(/\D/g, '').slice(-10);
     const invoiceText = buildRichInvoiceMessage();
+    if (cleanDigits.length === 10) {
+      window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
+      setWaResult({ status: 'sent', message: '📱 Opening WhatsApp Web to deliver bill...' });
+      toast('📱 Opening WhatsApp Web to deliver bill...', 'info');
+      setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+    } else {
+      toast('Invalid 10-digit mobile number on invoice.', 'error');
+    }
+  };
 
-    if (forceDirect) {
-      if (cleanDigits.length === 10) {
-        window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
-        setWaResult({ status: 'sent', message: '📱 Opening WhatsApp Web to deliver bill...' });
-        toast('📱 Opening WhatsApp Web to deliver bill...', 'info');
-        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
-      } else {
-        toast('Invalid 10-digit mobile number on invoice.', 'error');
-      }
+  const handleSendWhatsAppPDF = async () => {
+    if (!invoice.mobile) {
+      setWaPdfResult({ status: 'failed', message: 'No mobile number on this invoice.' });
+      setWaResult({ status: 'failed', message: 'No mobile number on this invoice.' });
+      setTimeout(() => {
+        setWaPdfResult({ status: 'idle', message: '' });
+        setWaResult({ status: 'idle', message: '' });
+      }, 4000);
       return;
     }
 
+    setWaPdfResult({ status: 'sending', message: 'Sending PDF via WhatsApp Business API…' });
     setWaResult({ status: 'sending', message: 'Sending PDF via WhatsApp Business API…' });
 
     try {
       const res = await sendInvoicePDFViaWhatsApp(invoice, salonData);
-
       if (res.success) {
+        setWaPdfResult({ status: 'sent', message: res.message });
         setWaResult({ status: 'sent', message: res.message });
         toast(res.message);
-        setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
+        setTimeout(() => {
+          setWaPdfResult({ status: 'idle', message: '' });
+          setWaResult({ status: 'idle', message: '' });
+        }, 5000);
       } else {
-        const is24h = (res as any).is24HourWindow || res.message?.toLowerCase().includes('24-hour') || res.message?.toLowerCase().includes('window');
+        const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
         const fallbackMsg = is24h
-          ? 'Customer is outside Meta 24h messaging window. Use Direct WhatsApp button below if needed.'
+          ? 'PDF template pending review. Click "WhatsApp Text" for instant delivery or "Direct WA" to send via WhatsApp Web.'
           : res.message || 'Meta WhatsApp delivery failed.';
+        setWaPdfResult({ status: 'failed', message: fallbackMsg });
         setWaResult({ status: 'failed', message: fallbackMsg });
         toast(fallbackMsg, is24h ? 'info' : 'error');
       }
     } catch (e: any) {
-      const errMsg = e?.message || 'Unexpected error while sending WhatsApp message.';
+      const errMsg = e?.message || 'Unexpected error while sending WhatsApp PDF.';
+      setWaPdfResult({ status: 'failed', message: errMsg });
+      setWaResult({ status: 'failed', message: errMsg });
+      toast(errMsg, 'error');
+    }
+  };
+
+  const handleSendWhatsAppText = async () => {
+    if (!invoice.mobile) {
+      setWaTextResult({ status: 'failed', message: 'No mobile number on this invoice.' });
+      setWaResult({ status: 'failed', message: 'No mobile number on this invoice.' });
+      setTimeout(() => {
+        setWaTextResult({ status: 'idle', message: '' });
+        setWaResult({ status: 'idle', message: '' });
+      }, 4000);
+      return;
+    }
+
+    setWaTextResult({ status: 'sending', message: 'Sending official text receipt via Meta API…' });
+    setWaResult({ status: 'sending', message: 'Sending official text receipt via Meta API…' });
+
+    try {
+      const res = await sendInvoiceTextViaWhatsApp(invoice, salonData);
+      if (res.success) {
+        setWaTextResult({ status: 'sent', message: res.message });
+        setWaResult({ status: 'sent', message: res.message });
+        toast(res.message);
+        setTimeout(() => {
+          setWaTextResult({ status: 'idle', message: '' });
+          setWaResult({ status: 'idle', message: '' });
+        }, 5000);
+      } else {
+        setWaTextResult({ status: 'failed', message: res.message || 'WhatsApp text delivery failed.' });
+        setWaResult({ status: 'failed', message: res.message || 'WhatsApp text delivery failed.' });
+        toast(res.message || 'WhatsApp text delivery failed.', 'error');
+      }
+    } catch (e: any) {
+      const errMsg = e?.message || 'Unexpected error while sending WhatsApp text receipt.';
+      setWaTextResult({ status: 'failed', message: errMsg });
       setWaResult({ status: 'failed', message: errMsg });
       toast(errMsg, 'error');
     }
@@ -1162,24 +1214,21 @@ Have a wonderful day! 🙏✨`;
               gap: 8,
             }}
           >
-            {/* WhatsApp Send Button (Meta Cloud API) */}
+            {/* 1. WhatsApp PDF Send Button */}
             <button
               type="button"
               className="btn btn-sm"
-              onClick={() => handleSendWhatsApp(false)}
-              disabled={waResult.status === 'sending'}
-              title={waResult.message || 'Send PDF Invoice directly to customer WhatsApp'}
+              onClick={handleSendWhatsAppPDF}
+              disabled={waPdfResult.status === 'sending'}
+              title={waPdfResult.message || 'Send PDF Invoice directly to customer WhatsApp via Meta API'}
               style={{
                 background:
-                  waResult.status === 'sent'
+                  waPdfResult.status === 'sent'
                     ? '#16a34a'
-                    : waResult.status === 'failed' || waResult.status === 'not_configured'
+                    : waPdfResult.status === 'failed' || waPdfResult.status === 'not_configured'
                     ? '#dc2626'
-                    : '#25D366',
-                color:
-                  waResult.status === 'sent' || waResult.status === 'failed' || waResult.status === 'not_configured'
-                    ? '#fff'
-                    : '#053320',
+                    : '#059669',
+                color: '#ffffff',
                 fontWeight: 700,
                 border: 'none',
                 padding: '9px 10px',
@@ -1189,26 +1238,74 @@ Have a wonderful day! 🙏✨`;
                 justifyContent: 'center',
                 gap: 5,
                 fontSize: 12,
-                cursor: waResult.status === 'sending' ? 'wait' : 'pointer',
-                opacity: waResult.status === 'sending' ? 0.8 : 1,
+                cursor: waPdfResult.status === 'sending' ? 'wait' : 'pointer',
+                opacity: waPdfResult.status === 'sending' ? 0.8 : 1,
                 transition: 'all 0.2s',
                 whiteSpace: 'nowrap',
               }}
             >
-              {waResult.status === 'sending' ? (
+              {waPdfResult.status === 'sending' ? (
                 <>
                   <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Sending…</span>
+                  <span>Sending PDF…</span>
                 </>
-              ) : waResult.status === 'sent' ? (
+              ) : waPdfResult.status === 'sent' ? (
                 <>
                   <CheckCircle2 size={14} />
-                  <span>Sent!</span>
+                  <span>PDF Sent!</span>
                 </>
               ) : (
                 <>
-                  <MessageCircle size={15} />
-                  <span>WhatsApp Bill</span>
+                  <FileText size={15} />
+                  <span>WhatsApp PDF</span>
+                </>
+              )}
+            </button>
+
+            {/* 2. WhatsApp Text Send Button (Approved Template) */}
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={handleSendWhatsAppText}
+              disabled={waTextResult.status === 'sending'}
+              title={waTextResult.message || 'Send official text receipt via Meta approved template (Guaranteed delivery to all numbers)'}
+              style={{
+                background:
+                  waTextResult.status === 'sent'
+                    ? '#16a34a'
+                    : waTextResult.status === 'failed' || waTextResult.status === 'not_configured'
+                    ? '#dc2626'
+                    : '#2563eb',
+                color: '#ffffff',
+                fontWeight: 700,
+                border: 'none',
+                padding: '9px 10px',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                fontSize: 12,
+                cursor: waTextResult.status === 'sending' ? 'wait' : 'pointer',
+                opacity: waTextResult.status === 'sending' ? 0.8 : 1,
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {waTextResult.status === 'sending' ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>Sending Text…</span>
+                </>
+              ) : waTextResult.status === 'sent' ? (
+                <>
+                  <CheckCircle2 size={14} />
+                  <span>Text Sent!</span>
+                </>
+              ) : (
+                <>
+                  <MessageSquare size={15} />
+                  <span>WhatsApp Text</span>
                 </>
               )}
             </button>

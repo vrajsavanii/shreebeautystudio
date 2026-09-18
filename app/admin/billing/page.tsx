@@ -24,6 +24,9 @@ import {
   Pencil,
   Download,
   Eye,
+  FileText,
+  MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
@@ -32,7 +35,7 @@ import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransac
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
+import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
@@ -119,7 +122,61 @@ function BillingContent() {
   const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
 
   // WhatsApp send status for history table rows (invoiceId -> 'sending'|'sent'|'failed')
+  const [waPdfStatus, setWaPdfStatus] = useState<Record<string, 'sending' | 'sent' | 'failed'>>({});
+  const [waTextStatus, setWaTextStatus] = useState<Record<string, 'sending' | 'sent' | 'failed'>>({});
   const [waInvoiceStatus, setWaInvoiceStatus] = useState<Record<string, 'sending' | 'sent' | 'failed'>>({});
+
+  const handleSendInvoicePDF = async (inv: Invoice) => {
+    if (!inv.mobile) {
+      toast('No mobile number on this invoice', 'error');
+      return;
+    }
+    setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sending' }));
+    try {
+      const res = await sendInvoicePDFViaWhatsApp(inv, data);
+      if (res.success) {
+        setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sent' }));
+        toast(res.message);
+        setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+      } else {
+        setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
+        const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
+        const fallbackMsg = is24h
+          ? 'PDF template pending review. Click TXT button for guaranteed instant delivery!'
+          : res.message || 'WhatsApp PDF send failed';
+        toast(fallbackMsg, is24h ? 'info' : 'error');
+        setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+      }
+    } catch {
+      setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
+      toast('Unexpected error sending PDF via WhatsApp', 'error');
+      setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+    }
+  };
+
+  const handleSendInvoiceText = async (inv: Invoice) => {
+    if (!inv.mobile) {
+      toast('No mobile number on this invoice', 'error');
+      return;
+    }
+    setWaTextStatus((s) => ({ ...s, [inv.id]: 'sending' }));
+    try {
+      const res = await sendInvoiceTextViaWhatsApp(inv, data);
+      if (res.success) {
+        setWaTextStatus((s) => ({ ...s, [inv.id]: 'sent' }));
+        toast(res.message);
+        setTimeout(() => setWaTextStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+      } else {
+        setWaTextStatus((s) => ({ ...s, [inv.id]: 'failed' }));
+        toast(res.message || 'WhatsApp text receipt failed', 'error');
+        setTimeout(() => setWaTextStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+      }
+    } catch {
+      setWaTextStatus((s) => ({ ...s, [inv.id]: 'failed' }));
+      toast('Unexpected error sending WhatsApp text receipt', 'error');
+      setTimeout(() => setWaTextStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+    }
+  };
 
   // Editing and Deleting Invoice State
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
@@ -740,7 +797,7 @@ function BillingContent() {
       toast(`Invoice ${existingInv.no} updated successfully!`);
       cancelEditInvoice();
       if (updatedInv.mobile) {
-        sendInvoicePDFViaWhatsApp(updatedInv, data).then((res) => {
+        sendInvoiceTextViaWhatsApp(updatedInv, data).then((res) => {
           if (res.success) toast(res.message);
           else if (!res.notConfigured) toast(res.message, 'error');
         });
@@ -905,9 +962,9 @@ function BillingContent() {
     setUseWallet(0);
     setSelectedCustomerObj(null);
 
-    // Auto-send WhatsApp receipt to customer
+    // Auto-send approved WhatsApp text receipt to customer immediately
     if (inv.mobile) {
-      sendInvoicePDFViaWhatsApp(inv, data, 'a4').then((res) => {
+      sendInvoiceTextViaWhatsApp(inv, data).then((res) => {
         if (res.success) {
           toast(res.message);
         } else if (!res.notConfigured) {
@@ -2740,72 +2797,118 @@ function BillingContent() {
                                 >
                                   <Printer size={12} />
                                 </button>
+                                {/* 1. Send PDF Invoice via WhatsApp */}
                                 <button
                                   type="button"
                                   className="pos-action-btn"
                                   title={
-                                    waInvoiceStatus[inv.id] === 'sending'
-                                      ? 'Sending…'
-                                      : waInvoiceStatus[inv.id] === 'sent'
-                                      ? '✅ Sent!'
-                                      : waInvoiceStatus[inv.id] === 'failed'
-                                      ? '❌ Send Failed'
+                                    waPdfStatus[inv.id] === 'sending'
+                                      ? 'Sending PDF…'
+                                      : waPdfStatus[inv.id] === 'sent'
+                                      ? '✅ PDF Sent!'
+                                      : waPdfStatus[inv.id] === 'failed'
+                                      ? '❌ PDF Failed'
                                       : 'Send PDF Invoice via WhatsApp'
                                   }
                                   style={{
                                     background:
-                                      waInvoiceStatus[inv.id] === 'sent'
+                                      waPdfStatus[inv.id] === 'sent'
                                         ? '#dcfce7'
-                                        : waInvoiceStatus[inv.id] === 'failed'
+                                        : waPdfStatus[inv.id] === 'failed'
                                         ? '#fee2e2'
-                                        : '#f0fdf4',
+                                        : '#ecfdf5',
                                     color:
-                                      waInvoiceStatus[inv.id] === 'sent'
+                                      waPdfStatus[inv.id] === 'sent'
                                         ? '#16a34a'
-                                        : waInvoiceStatus[inv.id] === 'failed'
+                                        : waPdfStatus[inv.id] === 'failed'
                                         ? '#dc2626'
-                                        : '#16a34a',
+                                        : '#059669',
                                     borderColor:
-                                      waInvoiceStatus[inv.id] === 'sent'
+                                      waPdfStatus[inv.id] === 'sent'
                                         ? '#86efac'
-                                        : waInvoiceStatus[inv.id] === 'failed'
+                                        : waPdfStatus[inv.id] === 'failed'
                                         ? '#fecaca'
-                                        : '#86efac',
-                                    opacity: waInvoiceStatus[inv.id] === 'sending' ? 0.6 : 1,
-                                    cursor: waInvoiceStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
+                                        : '#a7f3d0',
+                                    opacity: waPdfStatus[inv.id] === 'sending' ? 0.6 : 1,
+                                    cursor: waPdfStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
                                     height: activeTab === 'history' ? 28 : 21,
-                                    width: 26,
-                                    padding: 0,
+                                    minWidth: 26,
+                                    padding: '0 4px',
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
+                                    gap: 2,
+                                    fontSize: 10,
+                                    fontWeight: 700,
                                   }}
-                                  disabled={waInvoiceStatus[inv.id] === 'sending'}
-                                  onClick={async () => {
-                                    if (!inv.mobile) {
-                                      toast('No mobile number on this invoice', 'error');
-                                      return;
-                                    }
-                                    setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'sending' }));
-                                    try {
-                                      const res = await sendInvoicePDFViaWhatsApp(inv, data);
-                                      if (res.success) {
-                                        setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'sent' }));
-                                        toast(res.message);
-                                        setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-                                      } else {
-                                        setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-                                        toast(res.message || 'WhatsApp send failed', 'error');
-                                        setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-                                      }
-                                    } catch {
-                                      setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-                                      toast('Unexpected error sending WhatsApp message', 'error');
-                                      setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-                                    }
-                                  }}
+                                  disabled={waPdfStatus[inv.id] === 'sending'}
+                                  onClick={() => handleSendInvoicePDF(inv)}
                                 >
-                                  <MessageCircle size={12} />
+                                  {waPdfStatus[inv.id] === 'sending' ? (
+                                    <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                                  ) : (
+                                    <>
+                                      <FileText size={11} />
+                                      <span style={{ fontSize: 9 }}>PDF</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {/* 2. Send Text Receipt via WhatsApp (Approved Template) */}
+                                <button
+                                  type="button"
+                                  className="pos-action-btn"
+                                  title={
+                                    waTextStatus[inv.id] === 'sending'
+                                      ? 'Sending Text…'
+                                      : waTextStatus[inv.id] === 'sent'
+                                      ? '✅ Text Sent!'
+                                      : waTextStatus[inv.id] === 'failed'
+                                      ? '❌ Text Failed'
+                                      : 'Send Text Receipt via WhatsApp (Approved Template)'
+                                  }
+                                  style={{
+                                    background:
+                                      waTextStatus[inv.id] === 'sent'
+                                        ? '#dcfce7'
+                                        : waTextStatus[inv.id] === 'failed'
+                                        ? '#fee2e2'
+                                        : '#eff6ff',
+                                    color:
+                                      waTextStatus[inv.id] === 'sent'
+                                        ? '#16a34a'
+                                        : waTextStatus[inv.id] === 'failed'
+                                        ? '#dc2626'
+                                        : '#2563eb',
+                                    borderColor:
+                                      waTextStatus[inv.id] === 'sent'
+                                        ? '#86efac'
+                                        : waTextStatus[inv.id] === 'failed'
+                                        ? '#fecaca'
+                                        : '#bfdbfe',
+                                    opacity: waTextStatus[inv.id] === 'sending' ? 0.6 : 1,
+                                    cursor: waTextStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
+                                    height: activeTab === 'history' ? 28 : 21,
+                                    minWidth: 26,
+                                    padding: '0 4px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 2,
+                                    fontSize: 10,
+                                    fontWeight: 700,
+                                  }}
+                                  disabled={waTextStatus[inv.id] === 'sending'}
+                                  onClick={() => handleSendInvoiceText(inv)}
+                                >
+                                  {waTextStatus[inv.id] === 'sending' ? (
+                                    <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                                  ) : (
+                                    <>
+                                      <MessageSquare size={11} />
+                                      <span style={{ fontSize: 9 }}>TXT</span>
+                                    </>
+                                  )}
                                 </button>
                                 <button
                                   type="button"
@@ -2983,59 +3086,81 @@ function BillingContent() {
                         >
                           <Printer size={12} /> Print
                         </button>
+                        {/* Card PDF button */}
                         <button
                           type="button"
                           className="btn btn-ghost btn-xs"
-                          disabled={waInvoiceStatus[inv.id] === 'sending'}
-                          onClick={async () => {
-                            if (!inv.mobile) {
-                              toast('No mobile number on this invoice', 'error');
-                              return;
-                            }
-                            setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'sending' }));
-                            try {
-                              const res = await sendInvoicePDFViaWhatsApp(inv, data);
-                              if (res.success) {
-                                setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'sent' }));
-                                toast(res.message);
-                                setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-                              } else {
-                                setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-                                toast(res.message || 'WhatsApp send failed', 'error');
-                                setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-                              }
-                            } catch {
-                              setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-                              toast('Unexpected error sending WhatsApp message', 'error');
-                              setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-                            }
-                          }}
+                          disabled={waPdfStatus[inv.id] === 'sending'}
+                          onClick={() => handleSendInvoicePDF(inv)}
                           style={{
                             height: 32,
                             fontSize: 11,
                             borderRadius: 6,
                             background:
-                              waInvoiceStatus[inv.id] === 'sent'
+                              waPdfStatus[inv.id] === 'sent'
                                 ? '#dcfce7'
-                                : waInvoiceStatus[inv.id] === 'failed'
+                                : waPdfStatus[inv.id] === 'failed'
                                 ? '#fee2e2'
-                                : '#f0fdf4',
+                                : '#ecfdf5',
                             color:
-                              waInvoiceStatus[inv.id] === 'sent'
+                              waPdfStatus[inv.id] === 'sent'
                                 ? '#16a34a'
-                                : waInvoiceStatus[inv.id] === 'failed'
+                                : waPdfStatus[inv.id] === 'failed'
                                 ? '#dc2626'
-                                : '#16a34a',
+                                : '#059669',
                             border: '1px solid #86efac',
                             fontWeight: 600,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 4,
+                            gap: 3,
                             padding: '0 4px',
                           }}
                         >
-                          <MessageCircle size={12} /> WA
+                          {waPdfStatus[inv.id] === 'sending' ? (
+                            <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                          ) : (
+                            <FileText size={12} />
+                          )}
+                          <span>PDF</span>
+                        </button>
+                        {/* Card Text button */}
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs"
+                          disabled={waTextStatus[inv.id] === 'sending'}
+                          onClick={() => handleSendInvoiceText(inv)}
+                          style={{
+                            height: 32,
+                            fontSize: 11,
+                            borderRadius: 6,
+                            background:
+                              waTextStatus[inv.id] === 'sent'
+                                ? '#dcfce7'
+                                : waTextStatus[inv.id] === 'failed'
+                                ? '#fee2e2'
+                                : '#eff6ff',
+                            color:
+                              waTextStatus[inv.id] === 'sent'
+                                ? '#16a34a'
+                                : waTextStatus[inv.id] === 'failed'
+                                ? '#dc2626'
+                                : '#2563eb',
+                            border: '1px solid #bfdbfe',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 3,
+                            padding: '0 4px',
+                          }}
+                        >
+                          {waTextStatus[inv.id] === 'sending' ? (
+                            <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                          ) : (
+                            <MessageSquare size={12} />
+                          )}
+                          <span>Text</span>
                         </button>
                         <button
                           type="button"
