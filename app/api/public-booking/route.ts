@@ -240,23 +240,22 @@ export async function POST(request: Request) {
       const dateStr = newAppointment.date || newBridal?.weddingDate || 'Upcoming';
       const timeStr = newAppointment.time || '10:00 AM';
 
-      // First attempt approved template 'shree_appointment_reminder' which is ACTIVE in Meta
+      // 1. First attempt shree_booking_confirmation (5 parameters: customer, service, date, time, location)
       let templateRes = await sendWhatsAppTemplateMessage({
         mobile,
-        templateName: 'shree_appointment_reminder',
+        templateName: 'shree_booking_confirmation',
         languageCode: 'en_US',
-        bodyParameters: [customerName, serviceName, dateStr, timeStr],
+        bodyParameters: [customerName, serviceName, dateStr, timeStr, address],
         settings: updatedData.settings,
       });
 
-      // If that ever fails, also attempt shree_booking_confirmation
+      // 2. If pending or unapproved, fall back to active approved shree_appointment_reminder (4 parameters: customer, service, date, time)
       if (!templateRes.success) {
-        console.warn(`[Public Booking WhatsApp] shree_appointment_reminder notice: ${templateRes.message}, trying shree_booking_confirmation...`);
         templateRes = await sendWhatsAppTemplateMessage({
           mobile,
-          templateName: 'shree_booking_confirmation',
+          templateName: 'shree_appointment_reminder',
           languageCode: 'en_US',
-          bodyParameters: [customerName, serviceName, dateStr, timeStr, address],
+          bodyParameters: [customerName, serviceName, dateStr, timeStr],
           settings: updatedData.settings,
         });
       }

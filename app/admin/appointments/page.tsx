@@ -258,28 +258,30 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage(updatedAppt, salon, address);
-      
+      // 1. WhatsApp Confirmation Message (Attempts shree_appointment_confirmation, falls back to approved shree_appointment_reminder)
       sendWhatsAppTemplateMessage({
         mobile: appt.mobile,
-        templateName: 'shree_appointment_reminder',
+        templateName: 'shree_appointment_confirmation',
         languageCode: 'en_US',
-        bodyParameters: [appt.customer, appt.service, appt.date || 'Upcoming', appt.time || '10:00 AM'],
+        bodyParameters: [appt.customer, appt.service, appt.date || 'Upcoming', appt.time || '10:00 AM', address],
         settings: data?.settings,
       })
-        .then((tmplRes) => {
-          if (tmplRes.success) {
+        .then(async (res1) => {
+          if (res1.success) {
+            toast(`📲 WhatsApp confirmation delivered to ${appt.customer} via Meta Official Template!`);
+            return;
+          }
+          const res2 = await sendWhatsAppTemplateMessage({
+            mobile: appt.mobile,
+            templateName: 'shree_appointment_reminder',
+            languageCode: 'en_US',
+            bodyParameters: [appt.customer, appt.service, appt.date || 'Upcoming', appt.time || '10:00 AM'],
+            settings: data?.settings,
+          });
+          if (res2.success) {
             toast(`📲 WhatsApp confirmation delivered to ${appt.customer} via Meta Official Template!`);
           } else {
-            // Fall back to direct text
-            sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings)
-              .then((res) => {
-                if (res.success) {
-                  toast(`📲 WhatsApp confirmation sent to ${appt.customer} via Meta API!`);
-                } else {
-                  console.warn('Meta WhatsApp dispatch notice:', res.message);
-                }
-              })
-              .catch(() => {});
+            sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings).catch(() => {});
           }
         })
         .catch(() => {
@@ -532,26 +534,34 @@ export default function AppointmentsPage() {
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
       
+      const primaryTemplate = editId ? 'shree_appt_update' : 'shree_appointment_confirmation';
+      const primaryParams = editId
+        ? [form.customer, form.date || 'Upcoming', form.time || '10:00 AM', form.service]
+        : [form.customer, form.service, form.date || 'Upcoming', form.time || '10:00 AM', address];
+
       sendWhatsAppTemplateMessage({
         mobile: form.mobile,
-        templateName: 'shree_appointment_reminder',
+        templateName: primaryTemplate,
         languageCode: 'en_US',
-        bodyParameters: [form.customer, form.service, form.date || 'Upcoming', form.time || '10:00 AM'],
+        bodyParameters: primaryParams,
         settings: data?.settings,
       })
-        .then((tmplRes) => {
-          if (tmplRes.success) {
-            toast(`📲 WhatsApp confirmation delivered to ${form.customer} via Meta Official Template!`);
+        .then(async (res1) => {
+          if (res1.success) {
+            toast(`📲 WhatsApp ${editId ? 'update' : 'confirmation'} delivered to ${form.customer}!`);
+            return;
+          }
+          const res2 = await sendWhatsAppTemplateMessage({
+            mobile: form.mobile,
+            templateName: 'shree_appointment_reminder',
+            languageCode: 'en_US',
+            bodyParameters: [form.customer, form.service, form.date || 'Upcoming', form.time || '10:00 AM'],
+            settings: data?.settings,
+          });
+          if (res2.success) {
+            toast(`📲 WhatsApp ${editId ? 'update' : 'confirmation'} delivered to ${form.customer}!`);
           } else {
-            sendDirectWhatsAppMessage(form.mobile, msg, data?.settings)
-              .then((res) => {
-                if (res.success) {
-                  toast(`📲 WhatsApp confirmation sent to ${form.customer} via Meta API!`);
-                } else {
-                  console.warn('Meta WhatsApp dispatch notice:', res.message);
-                }
-              })
-              .catch(() => {});
+            sendDirectWhatsAppMessage(form.mobile, msg, data?.settings).catch(() => {});
           }
         })
         .catch(() => {
