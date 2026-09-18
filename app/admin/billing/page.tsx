@@ -2432,12 +2432,22 @@ function BillingContent() {
         {(activeTab === 'split' || activeTab === 'history') && (
           <motion.div className="card billing-builder-card" variants={fadeSlideUp} initial="hidden" animate="visible">
             {/* Header & Search */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0, color: 'var(--text)' }}>
                   Recent Invoices
                 </h2>
-                <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--teal-subtle)', color: 'var(--teal)', padding: '2px 8px', borderRadius: 10 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: 'var(--teal-subtle)',
+                    color: 'var(--teal)',
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    lineHeight: 1.2,
+                  }}
+                >
                   {filteredInvoices.length}
                 </span>
               </div>
@@ -2449,7 +2459,7 @@ function BillingContent() {
                   placeholder="Search invoice…"
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  style={{ padding: '5px 8px 5px 28px', fontSize: 11.5 }}
+                  style={{ padding: '6px 10px 6px 30px', fontSize: 12, height: 32 }}
                 />
               </div>
             </div>
@@ -2460,24 +2470,53 @@ function BillingContent() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: 8,
-                marginBottom: 14,
-                background: '#f8fafc',
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid #e2e8f0',
+                marginBottom: 16,
               }}
             >
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Invoices</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>{invoiceStats.count}</div>
+              <div
+                style={{
+                  background: '#f8fafc',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #e2e8f0',
+                }}
+              >
+                <div style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Invoices
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginTop: 2, lineHeight: 1.2 }}>
+                  {invoiceStats.count}
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Collected</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#16a34a', marginTop: 2 }}>{money(invoiceStats.totalCollected)}</div>
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #bbf7d0',
+                }}
+              >
+                <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Collected
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#16a34a', marginTop: 2, lineHeight: 1.2 }}>
+                  {money(invoiceStats.totalCollected)}
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: 10, color: invoiceStats.totalDue > 0 ? '#dc2626' : 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Due Balance</div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: invoiceStats.totalDue > 0 ? '#dc2626' : 'var(--text)', marginTop: 2 }}>{money(invoiceStats.totalDue)}</div>
+              <div
+                style={{
+                  background: invoiceStats.totalDue > 0 ? '#fef2f2' : '#f8fafc',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: invoiceStats.totalDue > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                }}
+              >
+                <div style={{ fontSize: 10, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Due Balance
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#0f172a', marginTop: 2, lineHeight: 1.2 }}>
+                  {money(invoiceStats.totalDue)}
+                </div>
               </div>
             </div>
 
@@ -2491,21 +2530,21 @@ function BillingContent() {
               <>
                 {/* Desktop & Tablet Table (>= 681px) */}
                 <div className="billing-invoices-desktop">
-                  <div className="table-wrap" style={{ maxHeight: 520, overflowY: 'auto', overflowX: 'auto' }}>
+                  <div className="table-wrap" style={{ maxHeight: 520, overflowY: 'auto', overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
-                      <thead>
+                      <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         <tr>
-                          <th style={{ padding: '8px 6px', fontSize: 10.5, textAlign: 'left', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
-                          <th style={{ padding: '8px 6px', fontSize: 10.5, textAlign: 'left' }}>Customer</th>
-                          <th style={{ padding: '8px 6px', fontSize: 10.5, textAlign: 'left', whiteSpace: 'nowrap' }}>Amount &amp; Status</th>
-                          <th style={{ padding: '8px 6px', fontSize: 10.5, textAlign: 'right', whiteSpace: 'nowrap' }}>Actions</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Amount &amp; Status</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'right', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredInvoices.map((inv) => (
-                          <tr key={inv.id}>
-                            <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <tr key={inv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <button
                                   type="button"
                                   onClick={() => setReceiptModalInv(inv)}
@@ -2513,54 +2552,56 @@ function BillingContent() {
                                     background: 'none',
                                     border: 'none',
                                     padding: 0,
-                                    fontWeight: 700,
-                                    color: 'var(--teal)',
+                                    fontWeight: 800,
+                                    color: '#05424A',
                                     cursor: 'pointer',
-                                    fontSize: 12,
-                                    textDecoration: 'underline',
+                                    fontSize: 12.5,
+                                    fontFamily: 'monospace, sans-serif',
                                   }}
                                   title="Click to view receipt"
                                 >
                                   {inv.no}
                                 </button>
                                 {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
-                                  <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fce7f3', padding: '1px 5px', borderRadius: 4 }}>
+                                  <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1.5px 6px', borderRadius: 4 }}>
                                     👑 Bridal
                                   </span>
                                 ) : (
-                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: 4 }}>
+                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1.5px 6px', borderRadius: 4 }}>
                                     🛍️ POS
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 2 }}>{fmtDate(inv.date)}</div>
+                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{fmtDate(inv.date)}</div>
                             </td>
-                            <td style={{ padding: '8px 6px' }}>
-                              <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }} title={inv.customer}>
+                            <td style={{ padding: '10px 10px' }}>
+                              <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 115 }} title={inv.customer}>
                                 {inv.customer}
                               </div>
-                              <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{inv.mobile || '—'}</div>
+                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{inv.mobile || '—'}</div>
                             </td>
-                            <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
-                              <div style={{ fontWeight: 800, fontSize: 12.5, color: 'var(--text)' }}>{money(inv.total)}</div>
+                            <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
+                              <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a' }}>{money(inv.total)}</div>
                               {Number(inv.balance) > 0 ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                                  <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: 10.5 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                                  <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 11 }}>
                                     Due: {money(inv.balance)}
                                   </span>
                                   <button
                                     type="button"
                                     className="btn btn-xs"
                                     style={{
-                                      fontSize: 9.5,
-                                      padding: '1px 5px',
-                                      height: 18,
+                                      fontSize: 10,
+                                      padding: '1px 6px',
+                                      height: 19,
                                       borderRadius: 4,
-                                      background: '#dcfce7',
+                                      background: '#f0fdf4',
                                       color: '#15803d',
                                       border: '1px solid #86efac',
                                       fontWeight: 700,
                                       cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
                                     }}
                                     title="Record Payment-In"
                                     onClick={() => openPaymentInModal(inv)}
@@ -2569,18 +2610,18 @@ function BillingContent() {
                                   </button>
                                 </div>
                               ) : (
-                                <div style={{ color: 'var(--green)', fontSize: 10.5, fontWeight: 600, marginTop: 1 }}>
+                                <div style={{ color: '#16a34a', fontSize: 11, fontWeight: 600, marginTop: 2 }}>
                                   Paid: {money(inv.paid)}
                                 </div>
                               )}
                             </td>
-                            <td style={{ padding: '8px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', gap: 3, alignItems: 'center', justifyContent: 'flex-end' }}>
+                            <td style={{ padding: '10px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
                                 <button
                                   type="button"
                                   className="pos-action-btn"
                                   title="View Official Bill Layout"
-                                  style={{ background: '#e0f2fe', color: '#0369a1', borderColor: '#bae6fd' }}
+                                  style={{ background: '#f0f9ff', color: '#0284c7', borderColor: '#bae6fd' }}
                                   onClick={() => setReceiptModalInv(inv)}
                                 >
                                   <Eye size={12.5} />
@@ -2589,7 +2630,7 @@ function BillingContent() {
                                   type="button"
                                   className="pos-action-btn"
                                   title="Download PDF Bill"
-                                  style={{ background: '#fef3c7', color: '#92400e', borderColor: '#fde68a' }}
+                                  style={{ background: '#fffbeb', color: '#b45309', borderColor: '#fde68a' }}
                                   onClick={() => downloadInvoicePDF(inv, data)}
                                 >
                                   <Download size={12.5} />
@@ -2598,7 +2639,7 @@ function BillingContent() {
                                   type="button"
                                   className="pos-action-btn"
                                   title="Print Thermal / A4 Receipt"
-                                  style={{ background: '#f1f5f9', color: '#334155', borderColor: '#cbd5e1' }}
+                                  style={{ background: '#f8fafc', color: '#475569', borderColor: '#cbd5e1' }}
                                   onClick={() => handlePrint(inv)}
                                 >
                                   <Printer size={12.5} />
@@ -2621,19 +2662,19 @@ function BillingContent() {
                                         ? '#dcfce7'
                                         : waInvoiceStatus[inv.id] === 'failed'
                                         ? '#fee2e2'
-                                        : '#e8f5e9',
+                                        : '#f0fdf4',
                                     color:
                                       waInvoiceStatus[inv.id] === 'sent'
                                         ? '#16a34a'
                                         : waInvoiceStatus[inv.id] === 'failed'
                                         ? '#dc2626'
-                                        : '#25D366',
+                                        : '#16a34a',
                                     borderColor:
                                       waInvoiceStatus[inv.id] === 'sent'
                                         ? '#86efac'
                                         : waInvoiceStatus[inv.id] === 'failed'
                                         ? '#fecaca'
-                                        : '#bbf7d0',
+                                        : '#86efac',
                                     opacity: waInvoiceStatus[inv.id] === 'sending' ? 0.6 : 1,
                                     cursor: waInvoiceStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
                                   }}
@@ -2668,7 +2709,7 @@ function BillingContent() {
                                   type="button"
                                   className="pos-action-btn"
                                   title="Edit Invoice"
-                                  style={{ background: '#ede9fe', color: '#6d28d9', borderColor: '#ddd6fe' }}
+                                  style={{ background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}
                                   onClick={() => openEditInvoice(inv)}
                                 >
                                   <Pencil size={12.5} />
@@ -2700,11 +2741,11 @@ function BillingContent() {
                         background: '#ffffff',
                         border: '1px solid #e2e8f0',
                         borderRadius: 10,
-                        padding: 12,
+                        padding: '12px 14px',
                         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 8,
+                        gap: 10,
                       }}
                     >
                       {/* Top Row: Invoice Number, Badge, Date */}
@@ -2718,44 +2759,44 @@ function BillingContent() {
                               border: 'none',
                               padding: 0,
                               fontWeight: 800,
-                              color: 'var(--teal)',
+                              color: '#05424A',
                               cursor: 'pointer',
                               fontSize: 13,
-                              textDecoration: 'underline',
+                              fontFamily: 'monospace, sans-serif',
                             }}
                           >
                             {inv.no}
                           </button>
                           {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
-                            <span style={{ fontSize: 10, fontWeight: 800, color: '#be185d', background: '#fce7f3', padding: '1.5px 6px', borderRadius: 4 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1.5px 6px', borderRadius: 4 }}>
                               👑 Bridal
                             </span>
                           ) : (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1.5px 6px', borderRadius: 4 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1.5px 6px', borderRadius: 4 }}>
                               🛍️ POS
                             </span>
                           )}
                         </div>
-                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>{fmtDate(inv.date)}</span>
+                        <span style={{ fontSize: 11, color: '#64748b' }}>{fmtDate(inv.date)}</span>
                       </div>
 
                       {/* Middle Row: Customer Info & Amount */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
                             {inv.customer}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                          <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
                             {inv.mobile || '—'}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>
                             {money(inv.total)}
                           </div>
                           {Number(inv.balance) > 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 2 }}>
-                              <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: 11 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end', marginTop: 2 }}>
+                              <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 11 }}>
                                 Due: {money(inv.balance)}
                               </span>
                               <button
@@ -2763,10 +2804,10 @@ function BillingContent() {
                                 className="btn btn-xs"
                                 style={{
                                   fontSize: 10,
-                                  padding: '2px 6px',
+                                  padding: '2px 7px',
                                   height: 20,
                                   borderRadius: 4,
-                                  background: '#dcfce7',
+                                  background: '#f0fdf4',
                                   color: '#15803d',
                                   border: '1px solid #86efac',
                                   fontWeight: 700,
@@ -2778,7 +2819,7 @@ function BillingContent() {
                               </button>
                             </div>
                           ) : (
-                            <span style={{ color: 'var(--green)', fontSize: 11, fontWeight: 600 }}>
+                            <span style={{ color: '#16a34a', fontSize: 11, fontWeight: 600 }}>
                               ✅ Paid: {money(inv.paid)}
                             </span>
                           )}
@@ -2792,7 +2833,7 @@ function BillingContent() {
                           gridTemplateColumns: 'repeat(4, 1fr) auto auto',
                           gap: 6,
                           borderTop: '1px solid #f1f5f9',
-                          paddingTop: 8,
+                          paddingTop: 10,
                           alignItems: 'center',
                         }}
                       >
@@ -2800,7 +2841,7 @@ function BillingContent() {
                           type="button"
                           className="btn btn-ghost btn-xs"
                           onClick={() => setReceiptModalInv(inv)}
-                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
+                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
                         >
                           <Eye size={12} /> View
                         </button>
@@ -2808,7 +2849,7 @@ function BillingContent() {
                           type="button"
                           className="btn btn-ghost btn-xs"
                           onClick={() => downloadInvoicePDF(inv, data)}
-                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
+                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
                         >
                           <Download size={12} /> PDF
                         </button>
@@ -2816,7 +2857,7 @@ function BillingContent() {
                           type="button"
                           className="btn btn-ghost btn-xs"
                           onClick={() => handlePrint(inv)}
-                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
+                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
                         >
                           <Printer size={12} /> Print
                         </button>
@@ -2856,13 +2897,13 @@ function BillingContent() {
                                 ? '#dcfce7'
                                 : waInvoiceStatus[inv.id] === 'failed'
                                 ? '#fee2e2'
-                                : '#e8f5e9',
+                                : '#f0fdf4',
                             color:
                               waInvoiceStatus[inv.id] === 'sent'
                                 ? '#16a34a'
                                 : waInvoiceStatus[inv.id] === 'failed'
                                 ? '#dc2626'
-                                : '#25D366',
+                                : '#16a34a',
                             border: '1px solid #86efac',
                             fontWeight: 600,
                             display: 'flex',
@@ -2879,7 +2920,7 @@ function BillingContent() {
                           className="pos-action-btn"
                           title="Edit Invoice"
                           onClick={() => openEditInvoice(inv)}
-                          style={{ width: 32, height: 32, borderRadius: 6, background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe' }}
+                          style={{ width: 32, height: 32, borderRadius: 6, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' }}
                         >
                           <Pencil size={13} />
                         </button>
@@ -2902,32 +2943,136 @@ function BillingContent() {
             {/* Quick POS Tips & Shortcuts */}
             <div
               style={{
-                marginTop: 14,
+                marginTop: 16,
                 padding: '12px 14px',
                 background: '#f8fafc',
                 borderRadius: 8,
                 border: '1px solid #e2e8f0',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: '#05424A', fontWeight: 700, fontSize: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: '#05424A', fontWeight: 700, fontSize: 12 }}>
                 <Sparkles size={14} style={{ color: '#EABA38' }} /> Quick POS Tips &amp; Shortcuts
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, fontSize: 11, color: '#475569' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                  <span style={{ fontSize: 13, lineHeight: 1 }}>⚡</span>
-                  <span><b>Fast Billing:</b> Press Enter in line items to auto-append new rows.</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: 8 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '7px 10px',
+                    background: '#ffffff',
+                    borderRadius: 6,
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 5,
+                      background: '#f1f5f9',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    ⚡
+                  </span>
+                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                    <strong style={{ color: '#0f172a', fontWeight: 700 }}>Fast Billing:</strong> Press Enter to add rows
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                  <span style={{ fontSize: 13, lineHeight: 1 }}>👰</span>
-                  <span><b>Bridal Import:</b> Pick bride above to auto-fill wedding package events.</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '7px 10px',
+                    background: '#ffffff',
+                    borderRadius: 6,
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 5,
+                      background: '#fdf2f8',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    👰
+                  </span>
+                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                    <strong style={{ color: '#0f172a', fontWeight: 700 }}>Bridal Import:</strong> Auto-fill wedding events
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                  <span style={{ fontSize: 13, lineHeight: 1 }}>💬</span>
-                  <span><b>WhatsApp:</b> Click WhatsApp icon to send PDF invoice instantly.</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '7px 10px',
+                    background: '#ffffff',
+                    borderRadius: 6,
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 5,
+                      background: '#f0fdf4',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    💬
+                  </span>
+                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                    <strong style={{ color: '#0f172a', fontWeight: 700 }}>WhatsApp:</strong> Send PDF bill to customer
+                  </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                  <span style={{ fontSize: 13, lineHeight: 1 }}>🖨️</span>
-                  <span><b>Thermal Print:</b> 80mm roll auto-cut feed spacer included.</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '7px 10px',
+                    background: '#ffffff',
+                    borderRadius: 6,
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 5,
+                      background: '#f1f5f9',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    🖨️
+                  </span>
+                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                    <strong style={{ color: '#0f172a', fontWeight: 700 }}>Thermal Print:</strong> 80mm roll auto-cut
+                  </span>
                 </div>
               </div>
             </div>
