@@ -1056,14 +1056,28 @@ export default function FinanceAccountingPage() {
       >
         {/* 1. YOU'LL GET (RECEIVABLES) */}
         <div
+          onClick={() => {
+            setActiveTab('parties');
+          }}
+          title="Click to view Customers & Receivables"
           style={{
             background: '#f0fdf4',
-            border: '1.5px solid #bbf7d0',
+            border: activeTab === 'parties' ? '2px solid #16a34a' : '1.5px solid #bbf7d0',
             borderRadius: 14,
             padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 2px 8px rgba(34, 197, 94, 0.05)',
+            boxShadow: activeTab === 'parties' ? '0 4px 14px rgba(34, 197, 94, 0.18)' : '0 2px 8px rgba(34, 197, 94, 0.05)',
             minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(34, 197, 94, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = activeTab === 'parties' ? '0 4px 14px rgba(34, 197, 94, 0.18)' : '0 2px 8px rgba(34, 197, 94, 0.05)';
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
@@ -1096,14 +1110,28 @@ export default function FinanceAccountingPage() {
 
         {/* 2. YOU'LL PAY (PAYABLES) */}
         <div
+          onClick={() => {
+            setActiveTab('purchases');
+          }}
+          title="Click to view Purchases & Payables"
           style={{
             background: '#fff1f2',
-            border: '1.5px solid #fecdd3',
+            border: activeTab === 'purchases' ? '2px solid #e11d48' : '1.5px solid #fecdd3',
             borderRadius: 14,
             padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 2px 8px rgba(244, 63, 94, 0.05)',
+            boxShadow: activeTab === 'purchases' ? '0 4px 14px rgba(244, 63, 94, 0.18)' : '0 2px 8px rgba(244, 63, 94, 0.05)',
             minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(244, 63, 94, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = activeTab === 'purchases' ? '0 4px 14px rgba(244, 63, 94, 0.18)' : '0 2px 8px rgba(244, 63, 94, 0.05)';
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
@@ -1136,14 +1164,28 @@ export default function FinanceAccountingPage() {
 
         {/* 3. CASH IN HAND */}
         <div
+          onClick={() => {
+            setActiveTab('rojmel');
+          }}
+          title="Click to view Daily Rojmel & Cash Book"
           style={{
             background: '#f0f9ff',
-            border: '1.5px solid #bae6fd',
+            border: activeTab === 'rojmel' ? '2px solid #0284c7' : '1.5px solid #bae6fd',
             borderRadius: 14,
             padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 2px 8px rgba(14, 165, 233, 0.05)',
+            boxShadow: activeTab === 'rojmel' ? '0 4px 14px rgba(14, 165, 233, 0.18)' : '0 2px 8px rgba(14, 165, 233, 0.05)',
             minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(14, 165, 233, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = activeTab === 'rojmel' ? '0 4px 14px rgba(14, 165, 233, 0.18)' : '0 2px 8px rgba(14, 165, 233, 0.05)';
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
@@ -1176,14 +1218,31 @@ export default function FinanceAccountingPage() {
 
         {/* 4. BANK & UPI BALANCE */}
         <div
+          onClick={() => {
+            setActiveTab('transactions');
+            setTypeFilter('All');
+            setTimeFilter('all');
+            setSearch('');
+          }}
+          title="Click to view Bank, UPI & Online transactions"
           style={{
             background: '#f0fdfa',
-            border: '1.5px solid #99f6e4',
+            border: activeTab === 'transactions' && typeFilter === 'All' ? '2px solid #0d9488' : '1.5px solid #99f6e4',
             borderRadius: 14,
             padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 2px 8px rgba(20, 184, 166, 0.05)',
+            boxShadow: activeTab === 'transactions' && typeFilter === 'All' ? '0 4px 14px rgba(20, 184, 166, 0.18)' : '0 2px 8px rgba(20, 184, 166, 0.05)',
             minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(20, 184, 166, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = activeTab === 'transactions' && typeFilter === 'All' ? '0 4px 14px rgba(20, 184, 166, 0.18)' : '0 2px 8px rgba(20, 184, 166, 0.05)';
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
@@ -1216,14 +1275,30 @@ export default function FinanceAccountingPage() {
 
         {/* 5. TODAY'S SALE */}
         <div
+          onClick={() => {
+            setActiveTab('transactions');
+            setTypeFilter('Sale');
+            setTimeFilter('today');
+          }}
+          title="Click to view Today's Sales"
           style={{
             background: '#faf5ff',
-            border: '1.5px solid #e9d5ff',
+            border: activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '2px solid #9333ea' : '1.5px solid #e9d5ff',
             borderRadius: 14,
             padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 2px 8px rgba(168, 85, 247, 0.05)',
+            boxShadow: activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '0 4px 14px rgba(168, 85, 247, 0.18)' : '0 2px 8px rgba(168, 85, 247, 0.05)',
             minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(168, 85, 247, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '0 4px 14px rgba(168, 85, 247, 0.18)' : '0 2px 8px rgba(168, 85, 247, 0.05)';
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
@@ -1256,14 +1331,28 @@ export default function FinanceAccountingPage() {
 
         {/* 6. STOCK VALUE */}
         <div
+          onClick={() => {
+            setActiveTab('reports');
+          }}
+          title="Click to view Stock & Valuation Reports"
           style={{
             background: '#fffbeb',
-            border: '1.5px solid #fde68a',
+            border: activeTab === 'reports' ? '2px solid #d97706' : '1.5px solid #fde68a',
             borderRadius: 14,
             padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.05)',
+            boxShadow: activeTab === 'reports' ? '0 4px 14px rgba(245, 158, 11, 0.18)' : '0 2px 8px rgba(245, 158, 11, 0.05)',
             minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = activeTab === 'reports' ? '0 4px 14px rgba(245, 158, 11, 0.18)' : '0 2px 8px rgba(245, 158, 11, 0.05)';
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
