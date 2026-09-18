@@ -45,39 +45,27 @@ export default function Sidebar() {
 
   return (
     <nav className="sidebar no-print">
-      {/* Direct Brand Logo Banner */}
+      {/* Direct Brand Logo Banner - Seamless Borderless */}
       <div
         style={{
-          padding: '16px 14px 12px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          marginBottom: 12,
+          padding: '18px 16px 12px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
         }}
       >
-        <div
+        <img
+          src={SHREE_LOGO_BASE64}
+          alt={salonName}
           style={{
             width: '100%',
-            borderRadius: 12,
-            overflow: 'hidden',
-            background: '#05424A',
-            border: '1px solid rgba(234, 186, 56, 0.35)',
-            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            height: 'auto',
+            display: 'block',
+            objectFit: 'contain',
+            border: 'none',
+            outline: 'none',
           }}
-        >
-          <img
-            src={SHREE_LOGO_BASE64}
-            alt={salonName}
-            style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-              objectFit: 'contain',
-            }}
-          />
-        </div>
+        />
       </div>
 
       {/* Nav Items */}
