@@ -442,49 +442,53 @@ Total Registered Customers: ${custs}`;
             setIsMinimized(false);
           }}
           className="copilot-floating-btn"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          aria-label="Open AI Voice Copilot (Shortcut: Ctrl+K)"
+          title="Open AI Voice Copilot (Ctrl+K)"
           style={{
             position: 'fixed',
-            bottom: 24,
-            right: 24,
+            bottom: 18,
+            right: 18,
             zIndex: 999,
             background: 'linear-gradient(135deg, #032B30 0%, #05424A 100%)',
             color: '#ffffff',
-            border: '1.5px solid #EABA38',
-            borderRadius: 30,
-            padding: '10px 18px',
+            border: '1px solid rgba(234, 186, 56, 0.55)',
+            borderRadius: 99,
+            padding: '6px 12px',
             display: 'flex',
             alignItems: 'center',
-            gap: 10,
-            boxShadow: '0 8px 24px rgba(3,43,48,0.45)',
+            gap: 7,
+            boxShadow: '0 4px 16px rgba(3,43,48,0.35)',
             cursor: 'pointer',
-            fontWeight: 800,
-            fontSize: 13,
+            fontWeight: 700,
+            fontSize: 12,
           }}
         >
           <div
             style={{
-              background: 'rgba(234, 186, 56, 0.2)',
+              background: 'rgba(234, 186, 56, 0.22)',
               borderRadius: '50%',
-              padding: 6,
+              width: 24,
+              height: 24,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
-            <Sparkles size={17} color="#EABA38" />
+            <Sparkles size={13} color="#EABA38" />
           </div>
-          <span className="copilot-btn-text" style={{ letterSpacing: 0.2 }}>
-            AI Voice Copilot
+          <span className="copilot-btn-text" style={{ letterSpacing: 0.1 }}>
+            AI Copilot
           </span>
           <span
             className="copilot-shortcut"
             style={{
               background: 'rgba(255,255,255,0.15)',
-              fontSize: 10,
-              padding: '2px 6px',
-              borderRadius: 6,
+              fontSize: 9.5,
+              padding: '1.5px 5px',
+              borderRadius: 5,
               fontWeight: 700,
               color: '#fef08a',
             }}

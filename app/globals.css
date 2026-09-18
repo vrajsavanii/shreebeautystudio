@@ -1022,14 +1022,15 @@ tbody tr.today-row {
 /* ─── Billing Layout ─────────────────────────────────────────────── */
 .billing-layout {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 
 .billing-layout > * {
   align-self: start !important;
   height: auto !important;
+  min-width: 0;
 }
 
 @media (max-width: 1100px) {
@@ -1039,29 +1040,151 @@ tbody tr.today-row {
   }
 }
 
+/* Segmented Navigation Tabs */
+.billing-tabs {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  gap: 3px;
+  margin-bottom: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.billing-tabs .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.billing-tabs .tab-btn:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.billing-tabs .tab-btn.active {
+  background: #ffffff;
+  color: #05424A;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.billing-tabs .tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 800;
+  background: #05424A;
+  color: #ffffff;
+  line-height: 1;
+}
+
+/* Line Items Desktop Table vs Mobile Cards */
+.billing-lines-desktop {
+  display: block;
+}
+
+.billing-lines-mobile {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .billing-lines-desktop {
+    display: none !important;
+  }
+  .billing-lines-mobile {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Invoice History Desktop Table vs Mobile Cards */
+.billing-invoices-desktop {
+  display: block;
+}
+
+.billing-invoices-mobile {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .billing-invoices-desktop {
+    display: none !important;
+  }
+  .billing-invoices-mobile {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* POS Action Button Uniform Styling */
+.pos-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  padding: 0;
+}
+.pos-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.pos-action-btn:active {
+  transform: scale(0.95);
+}
+
 .billing-totals {
   background: #f8fafc;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 7px;
+  margin-top: 14px;
 }
 
 .total-row {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  color: var(--text-light);
+  align-items: center;
+  font-size: 12.5px;
+  color: #475569;
 }
 
 .total-row.grand {
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 800;
-  color: var(--teal);
-  border-top: 1.5px solid var(--border);
+  color: #05424A;
+  border-top: 1.5px solid #e2e8f0;
   padding-top: 8px;
   margin-top: 4px;
 }

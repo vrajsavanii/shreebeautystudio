@@ -114,13 +114,13 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </h1>
       </div>
 
-      {/* Center / Right: Live Date & Time + Alert Pills + Quick Actions */}
+      {/* Center / Right: Clean Right-Side Toolbar */}
       <div
         className="topbar-right"
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 7,
+          gap: 6,
           flexWrap: 'nowrap',
           minWidth: 0,
           justifyContent: 'flex-end',
@@ -130,15 +130,16 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {/* Live Date & Time Pill */}
         <div
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: 6,
+            gap: 5,
             background: '#f8fafc',
-            border: '1px solid var(--border)',
-            padding: '4px 9px',
+            border: '1px solid #e2e8f0',
+            padding: '0 8px',
+            height: 28,
             borderRadius: 99,
             fontSize: 11,
-            color: 'var(--text-light)',
+            color: '#475569',
             whiteSpace: 'nowrap',
             flexShrink: 0,
           }}
@@ -159,19 +160,25 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {todayAppts > 0 && (
           <Link
             href="/admin/appointments"
-            className="badge badge-teal topbar-badge"
+            className="topbar-badge"
             style={{
               textDecoration: 'none',
-              padding: '3.5px 8px',
+              height: 28,
+              padding: '0 8px',
               fontSize: 11,
+              fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
               flexShrink: 0,
+              borderRadius: 99,
+              background: '#e0f2fe',
+              color: '#0369a1',
+              border: '1px solid #bae6fd',
             }}
             title={`${todayAppts} appointment(s) scheduled for today`}
           >
-            <Sparkles size={11} color="var(--teal)" />
+            <Sparkles size={11} color="#0284c7" />
             <span className="topbar-badge-label">{todayAppts} Today</span>
             <span className="topbar-badge-short">{todayAppts}</span>
           </Link>
@@ -181,42 +188,51 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {lowStockCount > 0 && (
           <Link
             href="/admin/inventory"
-            className="badge badge-red topbar-badge"
+            className="topbar-badge"
             style={{
               textDecoration: 'none',
-              padding: '3.5px 8px',
+              height: 28,
+              padding: '0 8px',
               fontSize: 11,
+              fontWeight: 700,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
               flexShrink: 0,
+              borderRadius: 99,
+              background: '#fef2f2',
+              color: '#dc2626',
+              border: '1px solid #fecaca',
             }}
             title={`${lowStockCount} item(s) below re-order level`}
           >
-            <AlertTriangle size={11} color="var(--red)" />
+            <AlertTriangle size={11} color="#ef4444" />
             <span className="topbar-badge-label">{lowStockCount} Low</span>
             <span className="topbar-badge-short">{lowStockCount}</span>
           </Link>
         )}
 
-        {/* Quick Action Shortcuts (contextual & responsive) */}
+        {/* Quick Action Shortcuts (Uniform 28px height) */}
         <div style={{ display: 'flex', gap: 5, alignItems: 'center' }} className="topbar-actions">
           {!isSalesperson && pathname !== '/admin/whatsapp' && (
             <Link
               href="/admin/whatsapp"
-              className="btn btn-sm"
+              className="topbar-btn"
               style={{
-                fontSize: 11,
-                padding: '4.5px 9px',
+                fontSize: 11.5,
+                height: 28,
+                padding: '0 9px',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
                 background: '#25D366',
-                color: '#053320',
+                color: '#ffffff',
                 fontWeight: 700,
                 border: 'none',
-                borderRadius: 7,
+                borderRadius: 6,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                flexShrink: 0,
               }}
               title="Open WhatsApp Web & Client Messenger"
             >
@@ -226,15 +242,20 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           {pathname !== '/admin/billing' && (
             <Link
               href="/admin/billing"
-              className="btn btn-primary btn-sm"
+              className="topbar-btn"
               style={{
-                fontSize: 11,
-                padding: '4.5px 9px',
+                fontSize: 11.5,
+                height: 28,
+                padding: '0 9px',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
-                borderRadius: 7,
+                borderRadius: 6,
+                background: '#05424A',
+                color: '#ffffff',
+                fontWeight: 700,
+                flexShrink: 0,
               }}
               title="New POS Bill"
             >
@@ -244,15 +265,21 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           {pathname !== '/admin/appointments' && (
             <Link
               href="/admin/appointments"
-              className="btn btn-ghost btn-sm"
+              className="topbar-btn"
               style={{
-                fontSize: 11,
-                padding: '4.5px 9px',
+                fontSize: 11.5,
+                height: 28,
+                padding: '0 9px',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
-                borderRadius: 7,
+                borderRadius: 6,
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                color: '#334155',
+                fontWeight: 600,
+                flexShrink: 0,
               }}
               title="Book Appointment"
             >
@@ -262,17 +289,21 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           <Link
             href="/"
             target="_blank"
-            className="btn btn-ghost btn-sm"
+            className="topbar-btn"
             style={{
-              fontSize: 11,
-              padding: '4.5px 9px',
+              fontSize: 11.5,
+              height: 28,
+              padding: '0 9px',
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',
               gap: 4,
               color: '#05424A',
               fontWeight: 600,
-              borderRadius: 7,
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              flexShrink: 0,
             }}
             title="Open Public Customer Website"
           >
@@ -280,16 +311,17 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </Link>
         </div>
 
-        {/* Active User Pill */}
+        {/* Active User Pill (28px height) */}
         <div
           className="topbar-user-pill"
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
+            height: 28,
             gap: 5,
             background: isSalesperson ? '#f0fdf4' : '#fefce8',
             border: isSalesperson ? '1px solid #bbf7d0' : '1px solid #fef08a',
-            padding: '3px 8px',
+            padding: '0 8px',
             borderRadius: 99,
             fontSize: 11.5,
             whiteSpace: 'nowrap',
@@ -305,7 +337,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               return clean.split(' ')[0] || 'Owner';
             })()}
           </span>
-          <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 99, background: isSalesperson ? '#dcfce7' : '#fef9c3', color: isSalesperson ? '#166534' : '#713f12', fontWeight: 800 }}>
+          <span style={{ fontSize: 9.5, padding: '1px 5px', borderRadius: 99, background: isSalesperson ? '#dcfce7' : '#fef9c3', color: isSalesperson ? '#166534' : '#713f12', fontWeight: 800 }}>
             {isSalesperson ? 'Sales' : 'Admin'}
           </span>
           <button

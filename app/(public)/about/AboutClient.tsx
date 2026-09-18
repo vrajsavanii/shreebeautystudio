@@ -19,6 +19,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { customerImages } from '@/lib/customer-images';
+import StudioMap3D from '@/components/customer/StudioMap3D';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 25 },
@@ -564,18 +565,8 @@ export default function AboutClient() {
             </div>
           </div>
 
-          <div style={{ minHeight: 340, background: '#e2e8f0' }}>
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3719.9946!2d72.8258!3d21.2156!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be04f0c3c55a6f3%3A0x6f9da3b1a41fbe06!2sKatargam%2C%20Surat%2C%20Gujarat!5e0!3m2!1sen!2sin!4v1680000000000!5m2!1sen!2sin"
-              width="100%"
-              height="100%"
-              style={{ border: 0, minHeight: 320, width: '100%', display: 'block' }}
-              allowFullScreen={false}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Shree Beauty Studio Map Katargam Surat"
-            />
-          </div>
+          {/* Realistic 3D Satellite Interactive Map */}
+          <StudioMap3D height={400} showCardOverlay={true} />
         </div>
       </section>
     </div>
