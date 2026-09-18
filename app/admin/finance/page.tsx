@@ -119,6 +119,8 @@ export default function FinanceAccountingPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TxTypeFilter>('All');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [customerKhataFilter, setCustomerKhataFilter] = useState<'due' | 'all'>('due');
+  const [supplierKhataFilter, setSupplierKhataFilter] = useState<'due' | 'all'>('due');
 
   // Modals
   const [saleModalOpen, setSaleModalOpen] = useState(false);
@@ -442,6 +444,53 @@ export default function FinanceAccountingPage() {
     data.expenses,
     data.inventory,
   ]);
+
+  // ── Parties List with Balance Calculation & Filter ─────────────────────────
+  const customerListWithBalance = useMemo(() => {
+    const list = (data.customers || []).map((c) => {
+      let balance = 0;
+      (data.invoices || []).forEach((inv) => {
+        if (inv.customer === c.name || (c.mobile && inv.mobile === c.mobile)) {
+          balance += Number(inv.balance || 0);
+        }
+      });
+      if (c.openingBalance && c.openingBalanceType === 'To Receive') {
+        balance += Number(c.openingBalance);
+      }
+      return { ...c, balance };
+    });
+
+    // Sort highest balance first
+    list.sort((a, b) => b.balance - a.balance);
+
+    if (customerKhataFilter === 'due') {
+      return list.filter((c) => c.balance > 0);
+    }
+    return list;
+  }, [data.customers, data.invoices, customerKhataFilter]);
+
+  const supplierListWithBalance = useMemo(() => {
+    const list = (data.suppliers || []).map((s) => {
+      let balance = 0;
+      (data.purchases || []).forEach((p) => {
+        if (p.supplier === s.name || p.supplierId === s.id) {
+          balance += Number(p.balance || 0);
+        }
+      });
+      if (s.opening && (s.openingBalanceType === 'To Pay' || !s.openingBalanceType)) {
+        balance += Number(s.opening);
+      }
+      return { ...s, balance };
+    });
+
+    // Sort highest balance first
+    list.sort((a, b) => b.balance - a.balance);
+
+    if (supplierKhataFilter === 'due') {
+      return list.filter((s) => s.balance > 0);
+    }
+    return list;
+  }, [data.suppliers, data.purchases, supplierKhataFilter]);
 
   // ── Filtered Transactions ──────────────────────────────────────────────────
   const filteredTransactions = useMemo(() => {
@@ -1854,57 +1903,88 @@ export default function FinanceAccountingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
           {/* Customers Khata */}
           <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Users size={18} color="#059669" />
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                  Customers Khata ({(data.customers || []).length})
+                  Customers Khata ({customerKhataFilter === 'due' ? `${metrics.dueCustomerCount} Due` : (data.customers || []).length})
                 </h3>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>
-                Receivables: {money(metrics.receivables)}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: 2, borderRadius: 8 }}>
+                  <button
+                    onClick={() => setCustomerKhataFilter('due')}
+                    style={{
+                      padding: '4px 9px',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: customerKhataFilter === 'due' ? '#059669' : 'transparent',
+                      color: customerKhataFilter === 'due' ? '#ffffff' : '#64748b',
+                    }}
+                  >
+                    Only Due ({metrics.dueCustomerCount})
+                  </button>
+                  <button
+                    onClick={() => setCustomerKhataFilter('all')}
+                    style={{
+                      padding: '4px 9px',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: customerKhataFilter === 'all' ? '#059669' : 'transparent',
+                      color: customerKhataFilter === 'all' ? '#ffffff' : '#64748b',
+                    }}
+                  >
+                    All ({(data.customers || []).length})
+                  </button>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>
+                  Receivables: {money(metrics.receivables)}
+                </span>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(data.customers || []).map((c) => {
-                let balance = 0;
-                (data.invoices || []).forEach((inv) => {
-                  if (inv.customer === c.name || (c.mobile && inv.mobile === c.mobile)) {
-                    balance += Number(inv.balance || 0);
-                  }
-                });
-                if (c.openingBalance && c.openingBalanceType === 'To Receive') {
-                  balance += Number(c.openingBalance);
-                }
-
-                return (
+              {customerListWithBalance.length === 0 ? (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#166534', background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0' }}>
+                  <CheckCircle2 size={24} color="#16a34a" style={{ margin: '0 auto 6px' }} />
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>All Customer Accounts Clear!</div>
+                  <div style={{ fontSize: 12, color: '#15803d', marginTop: 2 }}>No pending receivables.</div>
+                </div>
+              ) : (
+                customerListWithBalance.map((c) => (
                   <div
                     key={c.id}
                     style={{
                       padding: 12,
                       borderRadius: 10,
-                      border: '1px solid #e2e8f0',
-                      background: '#f8fafc',
+                      border: '1.5px solid',
+                      borderColor: c.balance > 0 ? '#fecaca' : '#e2e8f0',
+                      background: c.balance > 0 ? '#fff5f5' : '#f8fafc',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>{c.name}</div>
-                      <div style={{ fontSize: 12, color: '#64748b' }}>📞 {c.mobile || 'No mobile'}</div>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 14 }}>{c.name}</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>📞 {c.mobile || 'No mobile'}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: balance > 0 ? '#dc2626' : '#16a34a' }}>
-                        {balance > 0 ? `To Receive: ${money(balance)}` : 'Clear (₹0)'}
+                      <div style={{ fontWeight: 900, fontSize: 14, color: c.balance > 0 ? '#dc2626' : '#16a34a' }}>
+                        {c.balance > 0 ? `To Receive: ${money(c.balance)}` : 'Clear (₹0)'}
                       </div>
-                      {balance > 0 && c.mobile && (
+                      {c.balance > 0 && c.mobile && (
                         <button
-                          onClick={() => handleSendWhatsAppReminder(c.name, c.mobile, balance)}
+                          onClick={() => handleSendWhatsAppReminder(c.name, c.mobile, c.balance)}
                           style={{
                             marginTop: 4,
-                            padding: '4px 8px',
+                            padding: '5px 9px',
                             borderRadius: 6,
                             background: '#25D366',
                             color: '#ffffff',
@@ -1917,62 +1997,93 @@ export default function FinanceAccountingPage() {
                             gap: 4,
                           }}
                         >
-                          <MessageCircle size={11} /> Send WhatsApp Alert
+                          <MessageCircle size={12} /> Send WhatsApp Alert
                         </button>
                       )}
                     </div>
                   </div>
-                );
-              })}
+                ))
+              )}
             </div>
           </div>
 
           {/* Suppliers Khata */}
           <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Building2 size={18} color="#2563eb" />
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
-                  Suppliers &amp; Vendors ({(data.suppliers || []).length})
+                  Suppliers &amp; Vendors ({supplierKhataFilter === 'due' ? `${metrics.dueSupplierCount} Due` : (data.suppliers || []).length})
                 </h3>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>
-                Payables: {money(metrics.payables)}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', background: '#f1f5f9', padding: 2, borderRadius: 8 }}>
+                  <button
+                    onClick={() => setSupplierKhataFilter('due')}
+                    style={{
+                      padding: '4px 9px',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: supplierKhataFilter === 'due' ? '#2563eb' : 'transparent',
+                      color: supplierKhataFilter === 'due' ? '#ffffff' : '#64748b',
+                    }}
+                  >
+                    Only Due ({metrics.dueSupplierCount})
+                  </button>
+                  <button
+                    onClick={() => setSupplierKhataFilter('all')}
+                    style={{
+                      padding: '4px 9px',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: supplierKhataFilter === 'all' ? '#2563eb' : 'transparent',
+                      color: supplierKhataFilter === 'all' ? '#ffffff' : '#64748b',
+                    }}
+                  >
+                    All ({(data.suppliers || []).length})
+                  </button>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>
+                  Payables: {money(metrics.payables)}
+                </span>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(data.suppliers || []).map((s) => {
-                let balance = 0;
-                (data.purchases || []).forEach((p) => {
-                  if (p.supplier === s.name || p.supplierId === s.id) {
-                    balance += Number(p.balance || 0);
-                  }
-                });
-                if (s.opening && (s.openingBalanceType === 'To Pay' || !s.openingBalanceType)) {
-                  balance += Number(s.opening);
-                }
-
-                return (
+              {supplierListWithBalance.length === 0 ? (
+                <div style={{ padding: '24px 16px', textAlign: 'center', color: '#1e40af', background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe' }}>
+                  <CheckCircle2 size={24} color="#2563eb" style={{ margin: '0 auto 6px' }} />
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>All Supplier Accounts Clear!</div>
+                  <div style={{ fontSize: 12, color: '#1d4ed8', marginTop: 2 }}>No pending payables / dues.</div>
+                </div>
+              ) : (
+                supplierListWithBalance.map((s) => (
                   <div
                     key={s.id}
                     style={{
                       padding: 12,
                       borderRadius: 10,
-                      border: '1px solid #e2e8f0',
-                      background: '#f8fafc',
+                      border: '1.5px solid',
+                      borderColor: s.balance > 0 ? '#fed7aa' : '#e2e8f0',
+                      background: s.balance > 0 ? '#fff7ed' : '#f8fafc',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>{s.name}</div>
-                      <div style={{ fontSize: 12, color: '#64748b' }}>📞 {s.mobile || s.contact || 'No phone'}</div>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 14 }}>{s.name}</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>📞 {s.mobile || s.contact || 'No phone'}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: balance > 0 ? '#dc2626' : '#16a34a' }}>
-                        {balance > 0 ? `To Pay: ${money(balance)}` : 'Clear (₹0)'}
+                      <div style={{ fontWeight: 900, fontSize: 14, color: s.balance > 0 ? '#dc2626' : '#16a34a' }}>
+                        {s.balance > 0 ? `To Pay: ${money(s.balance)}` : 'Clear (₹0)'}
                       </div>
                       <button
                         onClick={() => {
@@ -1981,7 +2092,7 @@ export default function FinanceAccountingPage() {
                             partyId: s.id,
                             partyName: s.name,
                             partyMobile: s.mobile || '',
-                            amount: balance > 0 ? String(balance) : '',
+                            amount: s.balance > 0 ? String(s.balance) : '',
                             mode: 'Cash',
                             referenceNo: '',
                             notes: `Payment for ${s.name}`,
@@ -1990,7 +2101,7 @@ export default function FinanceAccountingPage() {
                         }}
                         style={{
                           marginTop: 4,
-                          padding: '4px 8px',
+                          padding: '5px 9px',
                           borderRadius: 6,
                           background: '#d97706',
                           color: '#ffffff',
@@ -2004,8 +2115,8 @@ export default function FinanceAccountingPage() {
                       </button>
                     </div>
                   </div>
-                );
-              })}
+                ))
+              )}
             </div>
           </div>
         </div>
