@@ -1357,10 +1357,10 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '9px 18px',
+            gap: 7,
+            padding: '8px 16px',
             borderRadius: 10,
-            fontSize: 13.5,
+            fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
@@ -1372,7 +1372,7 @@ export default function FinanceAccountingPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          <Receipt size={16} /> All Transactions ({unifiedTransactions.length})
+          <Receipt size={15} /> Transactions ({unifiedTransactions.length})
         </button>
 
         <button
@@ -1380,10 +1380,10 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '9px 18px',
+            gap: 7,
+            padding: '8px 16px',
             borderRadius: 10,
-            fontSize: 13.5,
+            fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
@@ -1395,7 +1395,7 @@ export default function FinanceAccountingPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          <Users size={16} /> Parties / Khata Book ({(data.customers || []).length + (data.suppliers || []).length})
+          <Users size={15} /> Parties / Khata ({(data.customers || []).length + (data.suppliers || []).length})
         </button>
 
         <button
@@ -1403,10 +1403,10 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '9px 18px',
+            gap: 7,
+            padding: '8px 16px',
             borderRadius: 10,
-            fontSize: 13.5,
+            fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
@@ -1418,7 +1418,7 @@ export default function FinanceAccountingPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          <FileText size={16} /> Sales Invoices
+          <FileText size={15} /> Invoices
         </button>
 
         <button
@@ -1426,10 +1426,10 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '9px 18px',
+            gap: 7,
+            padding: '8px 16px',
             borderRadius: 10,
-            fontSize: 13.5,
+            fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
@@ -1441,7 +1441,7 @@ export default function FinanceAccountingPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          <ShoppingBag size={16} /> Purchases
+          <ShoppingBag size={15} /> Purchases
         </button>
 
         <button
@@ -1449,10 +1449,10 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '9px 18px',
+            gap: 7,
+            padding: '8px 16px',
             borderRadius: 10,
-            fontSize: 13.5,
+            fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
@@ -1464,7 +1464,7 @@ export default function FinanceAccountingPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          <BookOpen size={16} /> Daily Cash Book (Rojmel)
+          <BookOpen size={15} /> Rojmel
         </button>
 
         <button
@@ -1472,10 +1472,10 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '9px 18px',
+            gap: 7,
+            padding: '8px 16px',
             borderRadius: 10,
-            fontSize: 13.5,
+            fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
@@ -1487,7 +1487,7 @@ export default function FinanceAccountingPage() {
             transition: 'all 0.15s ease',
           }}
         >
-          <BarChart3 size={16} /> Financial Reports
+          <BarChart3 size={15} /> Reports
         </button>
       </div>
 
