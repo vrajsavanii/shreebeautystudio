@@ -120,7 +120,6 @@ export default function DashboardPage() {
         <StatCard label="Today's Appointments" value={stats.todayAppts} icon={<Calendar size={20} />} iconBg="rgba(5,66,74,.1)" iconColor="#05424A" sub="non-cancelled" />
         <StatCard label="Today's Collection" value={stats.todayCollection} isMoney icon={<TrendingUp size={20} />} iconBg="rgba(35,163,109,.12)" iconColor="#23a36d" sub="paid + advance" />
         <StatCard label="Pending Amount" value={stats.pendingAmount} isMoney icon={<Clock size={20} />} iconBg="rgba(230,154,34,.12)" iconColor="#e69a22" sub="all invoices + bridal" />
-        <StatCard label="Total Customers" value={stats.totalCustomers} icon={<Users size={20} />} iconBg="rgba(59,111,245,.1)" iconColor="#3b6ff5" sub="registered" />
         <StatCard label="Low Stock Items" value={stats.lowStock} icon={<Package size={20} />} iconBg="rgba(255,74,61,.1)" iconColor="#ff4a3d" alert sub="needs restocking" />
       </motion.div>
 
