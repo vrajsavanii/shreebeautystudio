@@ -215,7 +215,74 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── 5. Send document message via Meta Cloud API ───────────────────────────
+    // ── 5. If templateName or templateParameters are provided, attempt Template PDF dispatch ──
+    const templateName = body.templateName || (body.templateParameters ? 'shree_invoice_pdf' : null);
+    if (templateName) {
+      try {
+        const docHeader: Record<string, string> = {
+          filename: filename || `Invoice_${recipient}.pdf`,
+        };
+        if (mediaId) docHeader.id = mediaId;
+        else if (pdfUrl) docHeader.link = pdfUrl;
+
+        const rawParams = body.templateParameters || [];
+        const templatePayload = {
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: recipient,
+          type: 'template',
+          template: {
+            name: templateName,
+            language: { code: body.languageCode || 'en_US' },
+            components: [
+              {
+                type: 'header',
+                parameters: [
+                  {
+                    type: 'document',
+                    document: docHeader,
+                  },
+                ],
+              },
+              {
+                type: 'body',
+                parameters: rawParams.map((t: any) => ({ type: 'text', text: String(t ?? '') })),
+              },
+            ],
+          },
+        };
+
+        const tmplRes = await fetch(
+          `https://graph.facebook.com/v21.0/${phoneId}/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify(templatePayload),
+          }
+        );
+
+        const tmplJson = await tmplRes.json();
+        if (tmplRes.ok && tmplJson?.messages?.[0]?.id) {
+          const messageId = tmplJson.messages[0].id;
+          console.log(`[WhatsApp] ✅ Template PDF sent to ${recipient}. Message ID: ${messageId}`);
+          return NextResponse.json({
+            success: true,
+            method: 'meta_template_pdf',
+            messageId,
+            recipient,
+            message: '✅ PDF Invoice sent directly to customer WhatsApp!',
+          });
+        }
+        console.warn('[WhatsApp] Template PDF dispatch returned notice:', JSON.stringify(tmplJson));
+      } catch (tmplErr) {
+        console.warn('[WhatsApp] Error in template PDF dispatch:', tmplErr);
+      }
+    }
+
+    // ── 6. Fallback: Send raw session document message via Meta Cloud API ────
     const metaRes = await fetch(
       `https://graph.facebook.com/v21.0/${phoneId}/messages`,
       {

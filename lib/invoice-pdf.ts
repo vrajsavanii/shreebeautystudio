@@ -527,7 +527,53 @@ export async function sendInvoicePDFViaWhatsApp(
     ? `Due: Rs. ${balanceNum.toLocaleString('en-IN')}`
     : 'Paid In Full';
 
-  // ── 2. Primary Dispatch: Approved Meta Utility Template (Guaranteed Delivery) ───
+  // ── 2. Primary Dispatch: Attempt High-Res PDF Document via Meta Template ───
+  let pdfDelivered = false;
+  let pdfMethod = '';
+  try {
+    const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData, formatType);
+    const pdfBase64 = pdf.output('datauristring');
+    const caption = `✨ *${salon.toUpperCase()} — Official Invoice #${inv.no}* ✨\nDear ${inv.customer || 'Customer'}, thank you for visiting ${salon}! 💖\nYour official tax receipt is attached below.`;
+
+    const res = await fetch('/api/whatsapp/send-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: cleanMobile,
+        mobile: cleanMobile,
+        caption,
+        filename,
+        pdfBase64,
+        templateName: 'shree_invoice_pdf',
+        templateParameters: [
+          (inv.customer || 'Customer').trim(),
+          inv.no || 'INV-1001',
+          Number(inv.total || 0).toLocaleString('en-IN'),
+          paymentStatus,
+        ],
+        whatsappPhoneId: salonData?.settings?.whatsappPhoneId,
+        whatsappAccessToken: salonData?.settings?.whatsappAccessToken,
+      }),
+    });
+
+    const json = await res.json();
+    if (json.success) {
+      pdfDelivered = true;
+      pdfMethod = json.method || 'pdf';
+    }
+  } catch (pdfErr) {
+    console.warn('[Invoice PDF] PDF send notice:', pdfErr);
+  }
+
+  if (pdfDelivered && pdfMethod === 'meta_template_pdf') {
+    return {
+      success: true,
+      method: 'meta_template_pdf',
+      message: '✅ Official Invoice PDF sent directly to customer WhatsApp!',
+    };
+  }
+
+  // ── 3. Fallback: Dispatch Approved Meta Text Receipt Template (100% Delivery Outside 24h) ───
   let tmplRes: { success: boolean; method: string; message: string; notConfigured?: boolean } = {
     success: false,
     method: 'none',
@@ -548,7 +594,7 @@ export async function sendInvoicePDFViaWhatsApp(
       settings: salonData?.settings,
     });
   } catch (tmplErr: any) {
-    console.error('[Invoice WhatsApp] Template dispatch error:', tmplErr?.message || tmplErr);
+    console.error('[Invoice WhatsApp] Template fallback notice:', tmplErr?.message || tmplErr);
     tmplRes = {
       success: false,
       method: 'network_error',
@@ -567,52 +613,14 @@ export async function sendInvoicePDFViaWhatsApp(
     };
   }
 
-  // ── 3. Secondary Dispatch: Attempt High-Res PDF Document Attachment ────────
-  let pdfDelivered = false;
-  try {
-    const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData, formatType);
-    const pdfBase64 = pdf.output('datauristring');
-    const caption = `✨ *${salon.toUpperCase()} — Official Invoice #${inv.no}* ✨\nDear ${inv.customer || 'Customer'}, thank you for visiting ${salon}! 💖\nYour official receipt is attached below.`;
-
-    const res = await fetch('/api/whatsapp/send-pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        to: cleanMobile,
-        mobile: cleanMobile,
-        caption,
-        filename,
-        pdfBase64,
-        whatsappPhoneId: salonData?.settings?.whatsappPhoneId,
-        whatsappAccessToken: salonData?.settings?.whatsappAccessToken,
-      }),
-    });
-
-    const json = await res.json();
-    if (json.success && json.method === 'meta_cloud_api') {
-      pdfDelivered = true;
-    }
-  } catch (pdfErr) {
-    console.warn('[Invoice PDF] Secondary PDF send notice:', pdfErr);
-  }
-
   // ── 4. Return Final Status ────────────────────────────────────────────────
-  if (tmplRes.success) {
+  if (pdfDelivered || tmplRes.success) {
     return {
       success: true,
       method: pdfDelivered ? 'template_and_pdf' : 'meta_template_api',
       message: pdfDelivered
         ? '✅ Official Invoice Receipt & PDF sent directly to customer WhatsApp!'
         : '✅ Official Invoice Receipt sent directly to customer WhatsApp!',
-    };
-  }
-
-  // If template failed but PDF succeeded (active 24h window)
-  if (pdfDelivered) {
-    return {
-      success: true,
-      method: 'cloud_api',
-      message: '✅ High-Res PDF Bill sent directly to customer via WhatsApp Business API! 🚀',
     };
   }
 
