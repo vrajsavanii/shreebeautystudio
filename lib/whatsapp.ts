@@ -129,18 +129,80 @@ export async function sendWhatsAppTemplateMessage({
   languageCode?: string;
   bodyParameters: string[];
   settings?: any;
-}): Promise<{ success: boolean; method: string; message: string }> {
+}): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean }> {
   const num = mobile.replace(/\D/g, '').slice(-10);
   if (!num) {
     return { success: false, method: 'none', message: 'Recipient mobile number is invalid.' };
   }
 
   const recipient = `91${num}`;
-  const phoneId = settings?.whatsappPhoneId || process.env.META_WHATSAPP_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || '1313759075154191';
-  const accessToken = settings?.whatsappAccessToken || process.env.META_WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '';
+
+  // 1. Client-side browser execution: route via secure backend API proxy
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/whatsapp/send-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: recipient,
+          templateName,
+          languageCode,
+          templateParameters: bodyParameters,
+          whatsappPhoneId: settings?.whatsappPhoneId,
+          whatsappAccessToken: settings?.whatsappAccessToken,
+        }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        return {
+          success: true,
+          method: json.method || 'meta_template_api',
+          message: json.message || 'Template message sent successfully via WhatsApp!',
+        };
+      }
+      return {
+        success: false,
+        method: json.notConfigured ? 'not_configured' : 'template_error',
+        notConfigured: json.notConfigured,
+        message: json.error || json.message || 'Failed to send template message via WhatsApp',
+      };
+    } catch (err: any) {
+      return { success: false, method: 'network_error', message: err?.message || 'Error sending template message' };
+    }
+  }
+
+  // 2. Server-side direct execution: read environment variables / database
+  let phoneId = settings?.whatsappPhoneId || '';
+  let accessToken = settings?.whatsappAccessToken || '';
+
+  if (!accessToken || accessToken.startsWith('LLM_') || !phoneId) {
+    try {
+      const { getSupabaseAdmin } = await import('./supabase-server');
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const { data: row } = await supabase.from('salon_state').select('data').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+        if (!accessToken && row?.data?.settings?.whatsappAccessToken) {
+          accessToken = row.data.settings.whatsappAccessToken;
+        }
+        if (!phoneId && row?.data?.settings?.whatsappPhoneId) {
+          phoneId = row.data.settings.whatsappPhoneId;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!phoneId) {
+    phoneId = process.env.META_WHATSAPP_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || '1313759075154191';
+  }
+  if (!accessToken || accessToken.startsWith('LLM_')) {
+    accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || '';
+  }
 
   if (!accessToken || accessToken.startsWith('LLM_')) {
-    return { success: false, method: 'none', message: 'WhatsApp API access token not configured.' };
+    return { success: false, method: 'none', notConfigured: true, message: 'WhatsApp API access token not configured.' };
   }
 
   try {

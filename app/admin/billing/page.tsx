@@ -741,7 +741,7 @@ function BillingContent() {
       cancelEditInvoice();
       if (updatedInv.mobile) {
         sendInvoicePDFViaWhatsApp(updatedInv, data).then((res) => {
-          if (res.success) toast('✅ PDF Bill sent directly to customer WhatsApp!');
+          if (res.success) toast(res.message);
           else if (!res.notConfigured) toast(res.message, 'error');
         });
       }
@@ -905,11 +905,11 @@ function BillingContent() {
     setUseWallet(0);
     setSelectedCustomerObj(null);
 
-    // Auto-send WhatsApp A4 PDF receipt to customer
+    // Auto-send WhatsApp receipt to customer
     if (inv.mobile) {
       sendInvoicePDFViaWhatsApp(inv, data, 'a4').then((res) => {
         if (res.success) {
-          toast('✅ High-Res A4 PDF Bill sent directly to customer WhatsApp!');
+          toast(res.message);
         } else if (!res.notConfigured) {
           toast(res.message, 'error');
         }
@@ -2791,7 +2791,7 @@ function BillingContent() {
                                       const res = await sendInvoicePDFViaWhatsApp(inv, data);
                                       if (res.success) {
                                         setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'sent' }));
-                                        toast('✅ PDF Invoice sent to customer WhatsApp!');
+                                        toast(res.message);
                                         setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
                                       } else {
                                         setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'failed' }));
@@ -2997,7 +2997,7 @@ function BillingContent() {
                               const res = await sendInvoicePDFViaWhatsApp(inv, data);
                               if (res.success) {
                                 setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'sent' }));
-                                toast('✅ PDF Invoice sent to customer WhatsApp!');
+                                toast(res.message);
                                 setTimeout(() => setWaInvoiceStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
                               } else {
                                 setWaInvoiceStatus((s) => ({ ...s, [inv.id]: 'failed' }));

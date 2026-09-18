@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!message) {
+    if (!message && !body.templateName) {
       return NextResponse.json(
-        { error: 'Message text is required' },
+        { error: 'Message text or templateName is required' },
         { status: 400 }
       );
     }
@@ -64,11 +64,12 @@ export async function POST(req: NextRequest) {
         '';
     }
 
-    const clickToChatUrl = `https://wa.me/${recipient}?text=${encodeURIComponent(message)}`;
+    const clickToChatUrl = `https://wa.me/${recipient}?text=${encodeURIComponent(message || '')}`;
 
     // If Meta Cloud API credentials are provided, send message directly via WhatsApp Business API
     if (phoneId && accessToken) {
       const isTemplate = Boolean(body.templateName);
+      const rawParams = body.templateParameters || body.bodyParameters || [];
       const payload = isTemplate
         ? {
             messaging_product: 'whatsapp',
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
               components: [
                 {
                   type: 'body',
-                  parameters: (body.templateParameters || []).map((t: string) => ({ type: 'text', text: String(t) })),
+                  parameters: rawParams.map((t: any) => ({ type: 'text', text: String(t ?? '') })),
                 },
               ],
             },
