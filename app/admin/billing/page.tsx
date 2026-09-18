@@ -140,11 +140,14 @@ function BillingContent() {
         setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       } else {
         setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
+        const isPayment = res.isPaymentRequired || Boolean(data?.settings?.whatsappPaymentIssue);
         const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
-        const fallbackMsg = is24h
+        const fallbackMsg = isPayment
+          ? 'Meta requires payment method on WhatsApp account. Open View (Eye) -> Direct WA.'
+          : is24h
           ? 'PDF template pending review. Click TXT button for guaranteed instant delivery!'
           : res.message || 'WhatsApp PDF send failed';
-        toast(fallbackMsg, is24h ? 'info' : 'error');
+        toast(fallbackMsg, isPayment ? 'error' : is24h ? 'info' : 'error');
         setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       }
     } catch {
@@ -168,7 +171,11 @@ function BillingContent() {
         setTimeout(() => setWaTextStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       } else {
         setWaTextStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-        toast(res.message || 'WhatsApp text receipt failed', 'error');
+        const isPayment = res.isPaymentRequired || Boolean(data?.settings?.whatsappPaymentIssue);
+        const fallbackMsg = isPayment
+          ? 'Meta requires payment method on WhatsApp account. Open View (Eye) -> Direct WA.'
+          : res.message || 'WhatsApp text receipt failed';
+        toast(fallbackMsg, 'error');
         setTimeout(() => setWaTextStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       }
     } catch {

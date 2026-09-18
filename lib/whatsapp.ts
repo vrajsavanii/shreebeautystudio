@@ -25,7 +25,15 @@ export async function sendDirectWhatsAppMessage(
   mobile: string,
   message: string,
   settings?: any
-): Promise<{ success: boolean; method: string; message: string; is24HourWindow?: boolean; clickToChatUrl?: string }> {
+): Promise<{
+  success: boolean;
+  method: string;
+  message: string;
+  is24HourWindow?: boolean;
+  isPaymentRequired?: boolean;
+  paymentUrl?: string;
+  clickToChatUrl?: string;
+}> {
   const num = mobile.replace(/\D/g, '').slice(-10);
   if (!num) {
     return { success: false, method: 'none', message: 'Recipient mobile number is invalid or missing.' };
@@ -52,33 +60,44 @@ export async function sendDirectWhatsAppMessage(
       const metaRes = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
           to: recipient,
           type: 'text',
-          text: {
-            preview_url: false,
-            body: message,
-          },
+          text: { preview_url: false, body: message },
         }),
       });
 
       const metaJson = await metaRes.json();
-      if (metaRes.ok) {
+      if (metaRes.ok && metaJson.messages) {
         return { success: true, method: 'meta_cloud_api', message: 'Message sent via Meta WhatsApp API', clickToChatUrl };
       }
 
-      const code = metaJson?.error?.code;
-      const is24HourWindow = code === 131047 || code === 131056;
+      const is24HourWindow =
+        metaJson?.error?.code === 131047 ||
+        metaJson?.error?.error_data?.details?.includes('24 hours') ||
+        metaJson?.error?.message?.includes('24 hours');
+
+      const isPaymentRequired =
+        metaJson?.error?.code === 131042 ||
+        metaJson?.error?.title?.toLowerCase()?.includes('payment') ||
+        metaJson?.error?.message?.toLowerCase()?.includes('payment');
+
+      const paymentUrl = metaJson?.error?.href || 'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account';
+
       return {
         success: false,
-        method: is24HourWindow ? '24h_window' : 'none',
+        method: isPaymentRequired ? 'payment_required' : is24HourWindow ? '24h_window' : 'none',
         is24HourWindow,
-        message: is24HourWindow
+        isPaymentRequired,
+        paymentUrl,
+        message: isPaymentRequired
+          ? 'Payment method required on WhatsApp Business Account.'
+          : is24HourWindow
           ? 'Customer has not messaged the salon in 24 hours. Meta requires template approval or direct WhatsApp dispatch.'
           : metaJson?.error?.message || 'Failed to send WhatsApp message via Meta Cloud API',
         clickToChatUrl,
@@ -103,8 +122,10 @@ export async function sendDirectWhatsAppMessage(
     }
     return {
       success: false,
-      method: json.is24HourWindow ? '24h_window' : 'none',
+      method: json.isPaymentRequired ? 'payment_required' : json.is24HourWindow ? '24h_window' : 'none',
       is24HourWindow: json.is24HourWindow,
+      isPaymentRequired: json.isPaymentRequired,
+      paymentUrl: json.paymentUrl,
       message: json.error || 'Failed to send Meta WhatsApp API message',
       clickToChatUrl,
     };
@@ -129,7 +150,15 @@ export async function sendWhatsAppTemplateMessage({
   languageCode?: string;
   bodyParameters: string[];
   settings?: any;
-}): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean }> {
+}): Promise<{
+  success: boolean;
+  method: string;
+  message: string;
+  notConfigured?: boolean;
+  isPaymentRequired?: boolean;
+  paymentUrl?: string;
+  clickToChatUrl?: string;
+}> {
   const num = mobile.replace(/\D/g, '').slice(-10);
   if (!num) {
     return { success: false, method: 'none', message: 'Recipient mobile number is invalid.' };
@@ -163,8 +192,11 @@ export async function sendWhatsAppTemplateMessage({
       }
       return {
         success: false,
-        method: json.notConfigured ? 'not_configured' : 'template_error',
+        method: json.isPaymentRequired ? 'payment_required' : json.notConfigured ? 'not_configured' : 'template_error',
         notConfigured: json.notConfigured,
+        isPaymentRequired: json.isPaymentRequired,
+        paymentUrl: json.paymentUrl,
+        clickToChatUrl: json.clickToChatUrl,
         message: json.error || json.message || 'Failed to send template message via WhatsApp',
       };
     } catch (err: any) {

@@ -509,7 +509,14 @@ export async function downloadA4InvoicePDF(
 export async function sendInvoiceTextViaWhatsApp(
   inv: Invoice,
   salonData?: SalonData
-): Promise<{ success: boolean; method: string; message: string; notConfigured?: boolean }> {
+): Promise<{
+  success: boolean;
+  method: string;
+  message: string;
+  notConfigured?: boolean;
+  isPaymentRequired?: boolean;
+  paymentUrl?: string;
+}> {
   const cleanMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
 
   if (!cleanMobile) {
@@ -569,6 +576,8 @@ export async function sendInvoicePDFViaWhatsApp(
   notConfigured?: boolean;
   is24HourWindow?: boolean;
   isPendingTemplate?: boolean;
+  isPaymentRequired?: boolean;
+  paymentUrl?: string;
 }> {
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
   const cleanMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
@@ -631,9 +640,11 @@ export async function sendInvoicePDFViaWhatsApp(
 
     return {
       success: false,
-      method: json.method || 'api_error',
+      method: json.method || (json.isPaymentRequired ? 'payment_required' : 'api_error'),
       notConfigured: json.notConfigured,
       is24HourWindow: json.is24HourWindow,
+      isPaymentRequired: json.isPaymentRequired,
+      paymentUrl: json.paymentUrl,
       message: json.error || json.message || 'Failed to send PDF invoice via WhatsApp.',
     };
   } catch (pdfErr: any) {

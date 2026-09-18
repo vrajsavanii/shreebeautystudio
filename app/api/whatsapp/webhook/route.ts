@@ -33,8 +33,84 @@ export async function POST(req: NextRequest) {
 
     const entry = body?.entry?.[0];
     const change = entry?.changes?.[0]?.value;
+    const statuses = change?.statuses;
     const message = change?.messages?.[0];
     const contact = change?.contacts?.[0];
+
+    // Handle Meta delivery status callbacks (failed, delivered, read, sent)
+    if (statuses && Array.isArray(statuses) && statuses.length > 0) {
+      const statusItem = statuses[0];
+      console.log('📊 WhatsApp message delivery status callback:', JSON.stringify(statusItem));
+
+      if (statusItem.status === 'failed') {
+        const err = statusItem.errors?.[0];
+        console.error('❌ Meta delivery failure:', err);
+        const isPayment =
+          err?.code === 131042 ||
+          err?.title?.toLowerCase().includes('payment') ||
+          err?.message?.toLowerCase().includes('payment');
+
+        if (isPayment) {
+          try {
+            const stateRes = await fetch(`${SUPABASE_URL}/rest/v1/salon_state?limit=1`, {
+              headers: { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY },
+            });
+            const rows = await stateRes.json();
+            if (rows && rows.length > 0) {
+              const salonRow = rows[0];
+              const cur = mergeWithDefaults(salonRow.data);
+              cur.settings = cur.settings || {};
+              cur.settings.whatsappPaymentIssue = {
+                code: err?.code || 131042,
+                title: err?.title || 'Business eligibility payment issue',
+                details:
+                  err?.error_data?.details ||
+                  'Message failed to send because no payment method is set up for your WhatsApp Business account.',
+                href:
+                  err?.href ||
+                  'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account',
+                timestamp: new Date().toISOString(),
+              };
+              await fetch(`${SUPABASE_URL}/rest/v1/salon_state?owner_id=eq.${salonRow.owner_id}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${SERVICE_KEY}`,
+                  apikey: SERVICE_KEY,
+                },
+                body: JSON.stringify({ data: cur, updated_at: new Date().toISOString() }),
+              });
+            }
+          } catch (dbErr) {
+            console.error('Error saving payment issue to DB:', dbErr);
+          }
+        }
+      } else if (statusItem.status === 'delivered' || statusItem.status === 'sent') {
+        // If a message was successfully delivered, clear payment issue if previously set
+        try {
+          const stateRes = await fetch(`${SUPABASE_URL}/rest/v1/salon_state?limit=1`, {
+            headers: { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY },
+          });
+          const rows = await stateRes.json();
+          if (rows?.[0]?.data?.settings?.whatsappPaymentIssue) {
+            const salonRow = rows[0];
+            const cur = mergeWithDefaults(salonRow.data);
+            delete cur.settings.whatsappPaymentIssue;
+            await fetch(`${SUPABASE_URL}/rest/v1/salon_state?owner_id=eq.${salonRow.owner_id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${SERVICE_KEY}`,
+                apikey: SERVICE_KEY,
+              },
+              body: JSON.stringify({ data: cur, updated_at: new Date().toISOString() }),
+            });
+          }
+        } catch {}
+      }
+
+      return NextResponse.json({ status: 'status_processed' }, { status: 200 });
+    }
 
     if (!message || message.type !== 'text') {
       return NextResponse.json({ status: 'ignored_or_non_text' }, { status: 200 });

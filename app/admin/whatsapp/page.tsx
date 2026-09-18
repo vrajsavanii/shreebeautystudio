@@ -31,6 +31,7 @@ import {
   RotateCcw,
   Save,
   MessageSquare,
+  AlertCircle,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -546,6 +547,85 @@ export default function WhatsAppHubPage() {
 
   return (
     <div>
+      {/* Meta Payment Issue Banner */}
+      {data?.settings?.whatsappPaymentIssue && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="card"
+          style={{
+            background: '#fef2f2',
+            border: '1.5px solid #f87171',
+            borderRadius: 12,
+            padding: '16px 20px',
+            marginBottom: 16,
+            boxShadow: '0 4px 12px rgba(239,68,68,0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: '#fee2e2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <AlertCircle size={22} color="#dc2626" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>⚠️ Meta Action Required: Add Payment Method to WhatsApp Account</span>
+                  <span style={{ fontSize: 11, background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                    Error 131042
+                  </span>
+                </div>
+                <p style={{ margin: '4px 0 8px', fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.5, maxWidth: 820 }}>
+                  Meta Cloud API has paused automated dispatch for WABA <code>3350176545369989</code> (+91 97732 40010) because no payment method (card or UPI) is attached.
+                  Meta requires an active payment method on file even for free conversations. Messages will resume automatically once added.
+                </p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <a
+                    href={
+                      data?.settings?.whatsappPaymentIssue?.href ||
+                      'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm"
+                    style={{
+                      background: '#dc2626',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      textDecoration: 'none',
+                      boxShadow: '0 2px 8px rgba(220,38,38,0.25)',
+                    }}
+                  >
+                    <ExternalLink size={14} />
+                    <span>💳 Add Payment Method on Meta Business Manager</span>
+                  </a>
+                  <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 600 }}>
+                    💡 In the meantime, use &quot;Open WhatsApp Web&quot; for 100% free delivery.
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* WhatsApp Web Banner & Global Controls */}
       <div
         className="card"

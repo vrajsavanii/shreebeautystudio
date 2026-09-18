@@ -30,23 +30,25 @@ export async function POST(req: NextRequest) {
 
     let phoneId = whatsappPhoneId || '';
     let accessToken = whatsappAccessToken || '';
+    let paymentIssue: any = null;
 
     // Check salon_state in database if credentials are not in request body
-    if (!accessToken || accessToken.startsWith('LLM_') || !phoneId) {
-      try {
-        const supabase = getSupabaseAdmin();
-        if (supabase) {
-          const { data: row } = await supabase.from('salon_state').select('data').order('updated_at', { ascending: false }).limit(1).maybeSingle();
-          if (!accessToken && row?.data?.settings?.whatsappAccessToken) {
-            accessToken = row.data.settings.whatsappAccessToken;
-          }
-          if (!phoneId && row?.data?.settings?.whatsappPhoneId) {
-            phoneId = row.data.settings.whatsappPhoneId;
-          }
+    try {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const { data: row } = await supabase.from('salon_state').select('data').order('updated_at', { ascending: false }).limit(1).maybeSingle();
+        if (row?.data?.settings?.whatsappPaymentIssue) {
+          paymentIssue = row.data.settings.whatsappPaymentIssue;
         }
-      } catch (err) {
-        console.warn('Could not read whatsapp credentials from salon_state:', err);
+        if (!accessToken && row?.data?.settings?.whatsappAccessToken) {
+          accessToken = row.data.settings.whatsappAccessToken;
+        }
+        if (!phoneId && row?.data?.settings?.whatsappPhoneId) {
+          phoneId = row.data.settings.whatsappPhoneId;
+        }
       }
+    } catch (err) {
+      console.warn('Could not read whatsapp credentials from salon_state:', err);
     }
 
     // Fall back to server env or verified salon default
@@ -65,6 +67,19 @@ export async function POST(req: NextRequest) {
     }
 
     const clickToChatUrl = `https://wa.me/${recipient}?text=${encodeURIComponent(message || '')}`;
+
+    // If Meta has blocked dispatch due to missing payment method, fail honestly with direct link
+    if (paymentIssue) {
+      const paymentUrl = paymentIssue.href || 'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account';
+      return NextResponse.json({
+        success: false,
+        isPaymentRequired: true,
+        error: '⚠️ WhatsApp delivery is paused by Meta: A payment method must be added to your WhatsApp Business Account in Meta Business Manager. Use Direct WA in the meantime.',
+        message: 'Payment method required on WhatsApp Business Account.',
+        paymentUrl,
+        clickToChatUrl,
+      }, { status: 200 });
+    }
 
     // If Meta Cloud API credentials are provided, send message directly via WhatsApp Business API
     if (phoneId && accessToken) {

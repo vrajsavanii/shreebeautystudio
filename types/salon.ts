@@ -24,6 +24,13 @@ export interface SalonSettings {
   whatsappAccessToken?: string; // Meta Cloud API Bearer Token
   whatsappPhoneId?: string;     // Meta Cloud API Phone Number ID
   whatsappBusinessAccountId?: string;
+  whatsappPaymentIssue?: {
+    code?: number;
+    title?: string;
+    details?: string;
+    href?: string;
+    timestamp?: string;
+  };
   autoSendPdfWhatsApp?: boolean; // Auto-send PDF when bill is saved
   // Auto Milestone Wishing
   autoWishMilestones?: boolean; // Auto-send greetings on Birthday, Sagai & Wedding dates

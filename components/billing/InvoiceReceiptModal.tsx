@@ -18,6 +18,7 @@ import {
   Mail,
   Send,
   Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -27,7 +28,12 @@ import { useToast } from '@/components/ui/Toast';
 
 
 type WAStatus = 'idle' | 'sending' | 'sent' | 'failed' | 'not_configured';
-type WAResult = { status: WAStatus; message: string };
+type WAResult = {
+  status: WAStatus;
+  message: string;
+  isPaymentRequired?: boolean;
+  paymentUrl?: string;
+};
 type EmailResult = { status: 'idle' | 'sending' | 'sent' | 'failed'; message: string };
 
 interface InvoiceReceiptModalProps {
@@ -166,13 +172,26 @@ Have a wonderful day! 🙏✨`;
           setWaResult({ status: 'idle', message: '' });
         }, 5000);
       } else {
+        const isPayment = res.isPaymentRequired;
         const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
-        const fallbackMsg = is24h
+        const fallbackMsg = isPayment
+          ? 'Meta requires a payment method on your WhatsApp account before automated delivery. Use Direct WA below.'
+          : is24h
           ? 'PDF template pending review. Click "WhatsApp Text" for instant delivery or "Direct WA" to send via WhatsApp Web.'
           : res.message || 'Meta WhatsApp delivery failed.';
-        setWaPdfResult({ status: 'failed', message: fallbackMsg });
-        setWaResult({ status: 'failed', message: fallbackMsg });
-        toast(fallbackMsg, is24h ? 'info' : 'error');
+        setWaPdfResult({
+          status: 'failed',
+          message: fallbackMsg,
+          isPaymentRequired: isPayment,
+          paymentUrl: res.paymentUrl,
+        });
+        setWaResult({
+          status: 'failed',
+          message: fallbackMsg,
+          isPaymentRequired: isPayment,
+          paymentUrl: res.paymentUrl,
+        });
+        toast(fallbackMsg, isPayment ? 'error' : is24h ? 'info' : 'error');
       }
     } catch (e: any) {
       const errMsg = e?.message || 'Unexpected error while sending WhatsApp PDF.';
@@ -207,9 +226,23 @@ Have a wonderful day! 🙏✨`;
           setWaResult({ status: 'idle', message: '' });
         }, 5000);
       } else {
-        setWaTextResult({ status: 'failed', message: res.message || 'WhatsApp text delivery failed.' });
-        setWaResult({ status: 'failed', message: res.message || 'WhatsApp text delivery failed.' });
-        toast(res.message || 'WhatsApp text delivery failed.', 'error');
+        const isPayment = res.isPaymentRequired;
+        const msg = isPayment
+          ? 'Meta requires a payment method on your WhatsApp account before automated delivery. Use Direct WA below.'
+          : res.message || 'WhatsApp text delivery failed.';
+        setWaTextResult({
+          status: 'failed',
+          message: msg,
+          isPaymentRequired: isPayment,
+          paymentUrl: res.paymentUrl,
+        });
+        setWaResult({
+          status: 'failed',
+          message: msg,
+          isPaymentRequired: isPayment,
+          paymentUrl: res.paymentUrl,
+        });
+        toast(msg, 'error');
       }
     } catch (e: any) {
       const errMsg = e?.message || 'Unexpected error while sending WhatsApp text receipt.';
@@ -1156,8 +1189,81 @@ Have a wonderful day! 🙏✨`;
             </div>
           )}
 
-          {/* WhatsApp Direct Fallback Alert if Meta 24h window closed or sending fails */}
-          {waResult.status === 'failed' && (
+          {/* WhatsApp Payment Requirement Alert */}
+          {(waResult.isPaymentRequired || (waResult.status === 'failed' && salonData?.settings?.whatsappPaymentIssue)) && (
+            <div
+              style={{
+                background: '#fef2f2',
+                border: '1.5px solid #fca5a5',
+                borderRadius: 10,
+                padding: '12px 14px',
+                marginBottom: 12,
+                fontSize: 12,
+                color: '#991b1b',
+              }}
+            >
+              <div style={{ fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertCircle size={16} color="#dc2626" />
+                <span>Meta WhatsApp Action Required: Add Payment Method</span>
+              </div>
+              <div style={{ fontSize: 11.5, color: '#7f1d1d', lineHeight: 1.45, marginBottom: 10 }}>
+                Meta Cloud API has temporarily paused automated messages because no payment method is linked to your WhatsApp Business Account (ID: 3350176545369989). Add a payment method on Meta, or use Direct WA below.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <a
+                  href={
+                    waResult.paymentUrl ||
+                    salonData?.settings?.whatsappPaymentIssue?.href ||
+                    'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account'
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    boxShadow: '0 2px 6px rgba(220,38,38,0.3)',
+                  }}
+                >
+                  <ExternalLink size={13} />
+                  <span>💳 Add Payment Method on Meta</span>
+                </a>
+                {invoice.mobile && (
+                  <a
+                    href={`https://wa.me/91${invoice.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(buildRichInvoiceMessage())}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      background: '#25D366',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 11.5,
+                      padding: '7px 12px',
+                      borderRadius: 6,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      boxShadow: '0 2px 6px rgba(37,211,102,0.3)',
+                    }}
+                  >
+                    <MessageCircle size={13} />
+                    <span>💬 Deliver via Direct WA</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* WhatsApp Direct Fallback Alert if Meta 24h window closed or general failure */}
+          {waResult.status === 'failed' && !waResult.isPaymentRequired && !salonData?.settings?.whatsappPaymentIssue && (
             <div
               style={{
                 background: '#fffbeb',
