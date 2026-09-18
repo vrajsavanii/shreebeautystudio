@@ -11,7 +11,7 @@ import { Appointment, AppointmentStatus, WorkStatus, Invoice, StudioHoliday, Hol
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { openWA, appointmentStaffMessage, appointmentCustomerMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
+import { openWA, appointmentStaffMessage, appointmentCustomerMessage, sendDirectWhatsAppMessage, sendWhatsAppTemplateMessage } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
@@ -253,21 +253,38 @@ export default function AppointmentsPage() {
     scheduleSave();
     toast(`🎉 Appointment Confirmed for ${appt.customer}!`);
 
-    // 1. WhatsApp Confirmation Message
+    // 1. WhatsApp Confirmation Message (Utilizes Approved Official Template)
     if (appt.mobile) {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage(updatedAppt, salon, address);
-      // Dispatch via Meta Cloud API in the background (Zero window.open redirects)
-      sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings)
-        .then((res) => {
-          if (res.success) {
-            toast(`📲 WhatsApp confirmation sent to ${appt.customer} via Meta API!`);
+      
+      sendWhatsAppTemplateMessage({
+        mobile: appt.mobile,
+        templateName: 'shree_appointment_reminder',
+        languageCode: 'en_US',
+        bodyParameters: [appt.customer, appt.service, appt.date || 'Upcoming', appt.time || '10:00 AM'],
+        settings: data?.settings,
+      })
+        .then((tmplRes) => {
+          if (tmplRes.success) {
+            toast(`📲 WhatsApp confirmation delivered to ${appt.customer} via Meta Official Template!`);
           } else {
-            console.warn('Meta WhatsApp dispatch notice:', res.message);
+            // Fall back to direct text
+            sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings)
+              .then((res) => {
+                if (res.success) {
+                  toast(`📲 WhatsApp confirmation sent to ${appt.customer} via Meta API!`);
+                } else {
+                  console.warn('Meta WhatsApp dispatch notice:', res.message);
+                }
+              })
+              .catch(() => {});
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings).catch(() => {});
+        });
     }
 
     // 2. Email confirmation via Resend
@@ -509,21 +526,37 @@ export default function AppointmentsPage() {
     scheduleSave();
     toast(editId ? 'Appointment updated!' : 'Appointment booked!');
 
-    // Auto-send WhatsApp confirmation to customer
+    // Auto-send WhatsApp confirmation to customer via approved official template
     if (form.mobile && form.status !== 'Cancelled') {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
-      // Dispatch via Meta Cloud API in the background (Zero window.open redirects)
-      sendDirectWhatsAppMessage(form.mobile, msg, data?.settings)
-        .then((res) => {
-          if (res.success) {
-            toast(`📲 WhatsApp confirmation sent to ${form.customer} via Meta API!`);
+      
+      sendWhatsAppTemplateMessage({
+        mobile: form.mobile,
+        templateName: 'shree_appointment_reminder',
+        languageCode: 'en_US',
+        bodyParameters: [form.customer, form.service, form.date || 'Upcoming', form.time || '10:00 AM'],
+        settings: data?.settings,
+      })
+        .then((tmplRes) => {
+          if (tmplRes.success) {
+            toast(`📲 WhatsApp confirmation delivered to ${form.customer} via Meta Official Template!`);
           } else {
-            console.warn('Meta WhatsApp dispatch notice:', res.message);
+            sendDirectWhatsAppMessage(form.mobile, msg, data?.settings)
+              .then((res) => {
+                if (res.success) {
+                  toast(`📲 WhatsApp confirmation sent to ${form.customer} via Meta API!`);
+                } else {
+                  console.warn('Meta WhatsApp dispatch notice:', res.message);
+                }
+              })
+              .catch(() => {});
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          sendDirectWhatsAppMessage(form.mobile, msg, data?.settings).catch(() => {});
+        });
     }
 
     // Auto-send Email confirmation to customer via Resend if email is provided
@@ -1180,13 +1213,24 @@ export default function AppointmentsPage() {
                                 </a>
                                 <button
                                   className="btn-icon wa"
-                                  title="Send WhatsApp confirmation via Meta API"
+                                  title="Send WhatsApp confirmation via Meta Official Template"
                                   onClick={async () => {
-                                    toast('⏳ Dispatching WhatsApp update via Meta API…');
-                                    const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat');
-                                    const res = await sendDirectWhatsAppMessage(a.mobile, msg, data?.settings);
-                                    if (res?.success) toast(`✅ WhatsApp update delivered to ${a.customer}!`);
-                                    else toast(`⚠️ ${res?.message || 'Failed to deliver WhatsApp message'}`, 'error');
+                                    toast('⏳ Dispatching WhatsApp update via Meta Official Template…');
+                                    const tmplRes = await sendWhatsAppTemplateMessage({
+                                      mobile: a.mobile,
+                                      templateName: 'shree_appointment_reminder',
+                                      languageCode: 'en_US',
+                                      bodyParameters: [a.customer, a.service, a.date || 'Upcoming', a.time || '10:00 AM'],
+                                      settings: data?.settings,
+                                    });
+                                    if (tmplRes?.success) {
+                                      toast(`✅ WhatsApp reminder delivered to ${a.customer}!`);
+                                    } else {
+                                      const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat');
+                                      const res = await sendDirectWhatsAppMessage(a.mobile, msg, data?.settings);
+                                      if (res?.success) toast(`✅ WhatsApp update delivered to ${a.customer}!`);
+                                      else toast(`⚠️ ${res?.message || 'Failed to deliver WhatsApp message'}`, 'error');
+                                    }
                                   }}
                                 >
                                   <MessageCircle size={12} />
