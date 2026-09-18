@@ -883,69 +883,17 @@ export default function FinanceAccountingPage() {
 
   return (
     <div style={{ padding: '24px 28px', maxWidth: 1600, margin: '0 auto', color: '#1e293b' }}>
-      {/* ─── HEADER BAR WITH VYAPAR PRO BADGE & 6 QUICK ACTION BUTTONS ─── */}
+      {/* ─── 6 QUICK ACTION BUTTONS ─── */}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          marginBottom: 24,
+          justifyContent: 'flex-end',
+          gap: 10,
+          marginBottom: 20,
         }}
       >
-        {/* Title & Subtitle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 14,
-              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#ffffff',
-              boxShadow: '0 8px 16px rgba(16, 185, 129, 0.25)',
-            }}
-          >
-            <BookOpen size={26} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h1
-                style={{
-                  fontSize: 24,
-                  fontWeight: 800,
-                  color: '#0f172a',
-                  margin: 0,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                Finance &amp; Rojmel (નાણાં અને રોજમેળ)
-              </h1>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: '3px 9px',
-                  borderRadius: 99,
-                  background: '#f0fdf4',
-                  color: '#166534',
-                  border: '1px solid #bbf7d0',
-                }}
-              >
-                Vyapar All-in-One
-              </span>
-            </div>
-            <p style={{ margin: '3px 0 0', fontSize: 13, color: '#64748b' }}>
-              Sales Invoices, Purchases, Operating Expenses, Party Khata (ખાતાવહી) &amp; Daily Cashbook (રોજમેળ).
-            </p>
-          </div>
-        </div>
-
-        {/* 6 Action Buttons */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
           <button
             onClick={() => setSaleModalOpen(true)}
             style={{
@@ -1084,7 +1032,6 @@ export default function FinanceAccountingPage() {
             <Users size={16} /> + Party
           </button>
         </div>
-      </div>
 
       {/* ─── 6 COLORFUL KPI METRIC CARDS (SINGLE HORIZONTAL ROW) ─── */}
       <div
