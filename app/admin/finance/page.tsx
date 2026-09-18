@@ -1553,56 +1553,28 @@ export default function FinanceAccountingPage() {
               ))}
             </div>
 
-            {/* Time Filter Pills */}
+            {/* Time Filter Dropdown */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button
-                onClick={() => setTimeFilter('all')}
+              <select
+                value={timeFilter}
+                onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
                 style={{
-                  padding: '6px 12px',
+                  padding: '7px 14px',
                   borderRadius: 8,
-                  fontSize: 12,
+                  fontSize: 12.5,
                   fontWeight: 700,
                   cursor: 'pointer',
-                  border: '1px solid',
-                  background: timeFilter === 'all' ? '#e2e8f0' : '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
                   color: '#1e293b',
-                  borderColor: '#cbd5e1',
+                  outline: 'none',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                 }}
               >
-                All Time
-              </button>
-              <button
-                onClick={() => setTimeFilter('today')}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: '1px solid',
-                  background: timeFilter === 'today' ? '#e2e8f0' : '#ffffff',
-                  color: '#1e293b',
-                  borderColor: '#cbd5e1',
-                }}
-              >
-                Today
-              </button>
-              <button
-                onClick={() => setTimeFilter('month')}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: '1px solid',
-                  background: timeFilter === 'month' ? '#e2e8f0' : '#ffffff',
-                  color: '#1e293b',
-                  borderColor: '#cbd5e1',
-                }}
-              >
-                This Month
-              </button>
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="month">This Month</option>
+              </select>
             </div>
           </div>
 
