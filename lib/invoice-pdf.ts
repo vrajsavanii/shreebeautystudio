@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from './logo-base64';
 import { format, parseISO } from 'date-fns';
+import { sendWhatsAppTemplateMessage } from './whatsapp';
 
 export function formatIndianDate(dateStr: string): string {
   try {
@@ -573,6 +574,32 @@ export async function sendInvoicePDFViaWhatsApp(
         method: 'cloud_api',
         message: '✅ High-Res PDF Bill sent directly to customer via WhatsApp Business API! 🚀',
       };
+    }
+
+    // If PDF media send failed (e.g. 24-hour customer window on a new number), dispatch approved official template!
+    try {
+      const tmplRes = await sendWhatsAppTemplateMessage({
+        mobile: cleanMobile,
+        templateName: 'shree_invoice_receipt',
+        languageCode: 'en_US',
+        bodyParameters: [
+          inv.customer || 'Customer',
+          inv.no || 'INV-1001',
+          String(inv.total || 0),
+          Number(inv.balance) > 0 ? `Due: Rs. ${Number(inv.balance).toLocaleString('en-IN')}` : 'Paid In Full',
+        ],
+        settings: salonData?.settings,
+      });
+
+      if (tmplRes.success) {
+        return {
+          success: true,
+          method: 'template_receipt',
+          message: '✅ Official Invoice Receipt dispatched via approved Meta WhatsApp template!',
+        };
+      }
+    } catch (tmplErr: any) {
+      console.warn('[Invoice PDF] Template fallback notice:', tmplErr?.message);
     }
 
     return {
