@@ -22,7 +22,15 @@ import {
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
-import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
+import {
+  downloadInvoicePDF,
+  formatIndianDate,
+  sendInvoicePDFViaWhatsApp,
+  sendInvoiceTextViaWhatsApp,
+  cleanServiceNameForBill,
+  shareInvoicePDFViaDirectWhatsApp,
+  buildPublicInvoiceMessage,
+} from '@/lib/invoice-pdf';
 import { money } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 
@@ -136,11 +144,11 @@ Have a wonderful day! 🙏✨`;
       return;
     }
     const cleanDigits = (invoice.mobile || '').replace(/\D/g, '').slice(-10);
-    const invoiceText = buildRichInvoiceMessage();
+    const invoiceText = buildPublicInvoiceMessage(invoice, salonData);
     if (cleanDigits.length === 10) {
       window.open(`https://wa.me/91${cleanDigits}?text=${encodeURIComponent(invoiceText)}`, '_blank');
-      setWaResult({ status: 'sent', message: '📱 Opening WhatsApp Web to deliver bill...' });
-      toast('📱 Opening WhatsApp Web to deliver bill...', 'info');
+      setWaResult({ status: 'sent', message: '📱 Opening WhatsApp with bill & PDF link...' });
+      toast('📱 Opening WhatsApp with bill & PDF link...', 'info');
       setTimeout(() => setWaResult({ status: 'idle', message: '' }), 5000);
     } else {
       toast('Invalid 10-digit mobile number on invoice.', 'error');
@@ -155,6 +163,21 @@ Have a wonderful day! 🙏✨`;
         setWaPdfResult({ status: 'idle', message: '' });
         setWaResult({ status: 'idle', message: '' });
       }, 4000);
+      return;
+    }
+
+    // If Meta has an active payment issue, immediately use Direct WhatsApp PDF sharing (100% free)
+    if (salonData?.settings?.whatsappPaymentIssue) {
+      setWaPdfResult({ status: 'sending', message: 'Opening WhatsApp PDF share…' });
+      try {
+        const shareRes = await shareInvoicePDFViaDirectWhatsApp(invoice, salonData);
+        setWaPdfResult({ status: shareRes.success ? 'sent' : 'idle', message: shareRes.message });
+        toast(shareRes.message);
+        setTimeout(() => setWaPdfResult({ status: 'idle', message: '' }), 5000);
+      } catch (err: any) {
+        toast(err?.message || 'Error sharing PDF', 'error');
+        setWaPdfResult({ status: 'failed', message: err?.message || 'Error sharing PDF' });
+      }
       return;
     }
 
@@ -173,10 +196,18 @@ Have a wonderful day! 🙏✨`;
         }, 5000);
       } else {
         const isPayment = res.isPaymentRequired;
+        if (isPayment) {
+          // Meta requires payment: immediately launch direct WhatsApp PDF sharing
+          toast('Meta payment required. Opening Direct WhatsApp PDF share (Free)…', 'info');
+          const shareRes = await shareInvoicePDFViaDirectWhatsApp(invoice, salonData);
+          setWaPdfResult({ status: shareRes.success ? 'sent' : 'idle', message: shareRes.message });
+          toast(shareRes.message);
+          setTimeout(() => setWaPdfResult({ status: 'idle', message: '' }), 5000);
+          return;
+        }
+
         const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
-        const fallbackMsg = isPayment
-          ? 'Meta requires a payment method on your WhatsApp account before automated delivery. Use Direct WA below.'
-          : is24h
+        const fallbackMsg = is24h
           ? 'PDF template pending review. Click "WhatsApp Text" for instant delivery or "Direct WA" to send via WhatsApp Web.'
           : res.message || 'Meta WhatsApp delivery failed.';
         setWaPdfResult({
@@ -191,7 +222,7 @@ Have a wonderful day! 🙏✨`;
           isPaymentRequired: isPayment,
           paymentUrl: res.paymentUrl,
         });
-        toast(fallbackMsg, isPayment ? 'error' : is24h ? 'info' : 'error');
+        toast(fallbackMsg, is24h ? 'info' : 'error');
       }
     } catch (e: any) {
       const errMsg = e?.message || 'Unexpected error while sending WhatsApp PDF.';

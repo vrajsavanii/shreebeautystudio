@@ -35,7 +35,7 @@ import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransac
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, cleanServiceNameForBill } from '@/lib/invoice-pdf';
+import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, cleanServiceNameForBill, shareInvoicePDFViaDirectWhatsApp } from '@/lib/invoice-pdf';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
@@ -131,6 +131,22 @@ function BillingContent() {
       toast('No mobile number on this invoice', 'error');
       return;
     }
+
+    // If Meta has an active payment issue, immediately use Direct WhatsApp PDF sharing (100% free)
+    if (data?.settings?.whatsappPaymentIssue) {
+      setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sending' }));
+      try {
+        const shareRes = await shareInvoicePDFViaDirectWhatsApp(inv, data);
+        setWaPdfStatus((s) => ({ ...s, [inv.id]: shareRes.success ? 'sent' : 'failed' }));
+        toast(shareRes.message);
+        setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+      } catch {
+        setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
+        setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+      }
+      return;
+    }
+
     setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sending' }));
     try {
       const res = await sendInvoicePDFViaWhatsApp(inv, data);
@@ -139,15 +155,21 @@ function BillingContent() {
         toast(res.message);
         setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       } else {
+        if (res.isPaymentRequired) {
+          toast('Meta payment required. Opening Direct WhatsApp PDF share (Free)…', 'info');
+          const shareRes = await shareInvoicePDFViaDirectWhatsApp(inv, data);
+          setWaPdfStatus((s) => ({ ...s, [inv.id]: shareRes.success ? 'sent' : 'failed' }));
+          toast(shareRes.message);
+          setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
+          return;
+        }
+
         setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-        const isPayment = res.isPaymentRequired || Boolean(data?.settings?.whatsappPaymentIssue);
         const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
-        const fallbackMsg = isPayment
-          ? 'Meta requires payment method on WhatsApp account. Open View (Eye) -> Direct WA.'
-          : is24h
+        const fallbackMsg = is24h
           ? 'PDF template pending review. Click TXT button for guaranteed instant delivery!'
           : res.message || 'WhatsApp PDF send failed';
-        toast(fallbackMsg, isPayment ? 'error' : is24h ? 'info' : 'error');
+        toast(fallbackMsg, is24h ? 'info' : 'error');
         setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       }
     } catch {

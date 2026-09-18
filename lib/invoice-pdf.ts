@@ -656,3 +656,138 @@ export async function sendInvoicePDFViaWhatsApp(
     };
   }
 }
+
+/**
+ * Build rich WhatsApp text for an invoice, including a 1-click link to view/download the official PDF online.
+ */
+export function buildPublicInvoiceMessage(inv: Invoice, salonData?: SalonData): string {
+  const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
+  const salonAddress =
+    salonData?.settings?.address ||
+    '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
+
+  const totalAmt = Number(inv.total || 0);
+  const advanceAmt = Number(inv.advance || 0);
+  const paymentPaid = Number(inv.paid || 0);
+  const balanceDue = Number(
+    inv.balance !== undefined ? inv.balance : Math.max(0, totalAmt - advanceAmt - paymentPaid)
+  );
+
+  const linesList = (inv.lines || [])
+    .map(
+      (l: any) =>
+        `• ${cleanServiceNameForBill(l.name)} (${l.qty || 1}x) : ₹${Number(
+          l.price * (l.qty || 1)
+        ).toLocaleString('en-IN')}`
+    )
+    .join('\n');
+
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://shree-beauty-studio.vercel.app';
+  const publicPdfUrl = `${origin}/invoice/view?no=${encodeURIComponent(inv.no || 'INV-1001')}`;
+
+  return `✨ *${salon.toUpperCase()} — INVOICE #${inv.no}* ✨
+────────────────────────────
+Dear ${inv.customer || 'Customer'},
+Thank you for visiting ${salon}! 💖
+
+📄 *Invoice No:* ${inv.no}
+📅 *Date:* ${formatIndianDate(inv.date)}
+💳 *Payment Mode:* ${inv.mode || 'Cash'}
+
+*Services & Items:*
+${linesList || '• Salon Service'}
+
+────────────────────────────
+*Total Bill:* ₹${totalAmt.toLocaleString('en-IN')}
+*Amount Paid:* ₹${(paymentPaid + advanceAmt).toLocaleString('en-IN')}
+*Balance Due:* ₹${balanceDue.toLocaleString('en-IN')}
+────────────────────────────
+
+📄 *Download / View Official PDF Bill:*
+👉 ${publicPdfUrl}
+
+📍 ${salonAddress}
+📞 +91 97732 40010
+Have a wonderful day! 🙏✨`;
+}
+
+/**
+ * Direct WhatsApp PDF sharing via native app redirection:
+ * 1. Mobile (Android/iOS): Uses Web Share API to directly attach and send the actual PDF document file in WhatsApp!
+ * 2. Desktop: Downloads PDF to computer + opens WhatsApp Web with the full bill & direct PDF viewer link.
+ */
+export async function shareInvoicePDFViaDirectWhatsApp(
+  inv: Invoice,
+  salonData?: SalonData,
+  formatType: 'thermal' | 'a4' = 'a4'
+): Promise<{
+  success: boolean;
+  method: 'native_share' | 'download_and_redirect' | 'cancelled';
+  message: string;
+}> {
+  const cleanMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
+  const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
+  const messageText = buildPublicInvoiceMessage(inv, salonData);
+
+  try {
+    const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData, formatType);
+    const pdfBlob = pdf.output('blob');
+
+    // Attempt native file sharing on mobile / supporting browsers
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.share === 'function' &&
+      typeof navigator.canShare === 'function' &&
+      typeof File !== 'undefined'
+    ) {
+      try {
+        const pdfFile = new File([pdfBlob], filename, { type: 'application/pdf' });
+        if (navigator.canShare({ files: [pdfFile] })) {
+          await navigator.share({
+            files: [pdfFile],
+            title: `${salon} Invoice #${inv.no}`,
+            text: messageText,
+          });
+          return {
+            success: true,
+            method: 'native_share',
+            message: '✅ Invoice PDF shared directly via WhatsApp!',
+          };
+        }
+      } catch (shareErr: any) {
+        if (shareErr?.name === 'AbortError') {
+          return { success: false, method: 'cancelled', message: 'Share action cancelled.' };
+        }
+        console.warn('Native file share failed, falling back to download and redirect:', shareErr);
+      }
+    }
+
+    // Desktop fallback: Download PDF and open WhatsApp Web with public bill link
+    pdf.save(filename);
+
+    if (cleanMobile.length === 10) {
+      const waUrl = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(messageText)}`;
+      window.open(waUrl, '_blank');
+    } else {
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(messageText)}`;
+      window.open(waUrl, '_blank');
+    }
+
+    return {
+      success: true,
+      method: 'download_and_redirect',
+      message: '📄 PDF downloaded! WhatsApp Web opened with bill & link. Tap 📎 to attach PDF.',
+    };
+  } catch (err: any) {
+    console.error('Error in shareInvoicePDFViaDirectWhatsApp:', err);
+    return {
+      success: false,
+      method: 'download_and_redirect',
+      message: err?.message || 'Error generating PDF for WhatsApp sharing.',
+    };
+  }
+}
+

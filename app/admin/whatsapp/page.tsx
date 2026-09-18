@@ -37,7 +37,7 @@ import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { useToast } from '@/components/ui/Toast';
 import { money, fmtDate, todayISO } from '@/lib/utils';
-import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp } from '@/lib/invoice-pdf';
+import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, shareInvoicePDFViaDirectWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import {
   sendDirectWhatsAppMessage,
@@ -426,6 +426,21 @@ export default function WhatsAppHubPage() {
       return;
     }
 
+    // If Meta has an active payment issue, immediately use Direct WhatsApp PDF sharing (100% free)
+    if (data?.settings?.whatsappPaymentIssue) {
+      setSendingPDF(true);
+      try {
+        const shareRes = await shareInvoicePDFViaDirectWhatsApp(targetInv, data);
+        toast(shareRes.message);
+        setPdfSentStatus(`✅ Direct WhatsApp opened with PDF!`);
+      } catch (err: any) {
+        toast(err?.message || 'Error sharing PDF', 'error');
+      } finally {
+        setSendingPDF(false);
+      }
+      return;
+    }
+
     setSendingPDF(true);
     setPdfSentStatus(null);
     toast(`⏳ Sending Invoice PDF ${targetInv.no} via Meta WhatsApp API…`);
@@ -436,6 +451,13 @@ export default function WhatsAppHubPage() {
         toast(`✅ PDF Invoice ${targetInv.no} sent directly to ${targetInv.customer}'s WhatsApp via Meta API!`);
         setPdfSentStatus(`✅ PDF Sent successfully via Meta Cloud API!`);
       } else {
+        if (res.isPaymentRequired) {
+          toast('Meta payment required. Opening Direct WhatsApp PDF share (Free)…', 'info');
+          const shareRes = await shareInvoicePDFViaDirectWhatsApp(targetInv, data);
+          toast(shareRes.message);
+          setPdfSentStatus(`✅ Direct WhatsApp opened with PDF!`);
+          return;
+        }
         toast(`❌ Failed to send PDF via Meta API: ${res.message}`, 'error');
       }
     } catch (err: any) {
