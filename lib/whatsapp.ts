@@ -2,9 +2,95 @@
 //
 // Meta WhatsApp Cloud API — Pure API System (No WhatsApp Web Redirects)
 
-import { Appointment, Invoice } from '@/types/salon';
+import { Appointment, Invoice, SalonData } from '@/types/salon';
 import { fmtDate, money } from './utils';
 import { getAppointmentGoogleCalendarUrl } from './calendar';
+
+export interface Customer24HourStatus {
+  active: boolean;
+  expiresAt?: string;
+  remainingMinutes?: number;
+  remainingHours?: number;
+  formattedRemaining?: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+}
+
+/**
+ * Check whether a given customer mobile number has an active 24-hour free customer service window.
+ * Returns remaining hours/minutes and expiration timestamp.
+ */
+export function isCustomerIn24HourWindow(
+  mobile?: string,
+  salonData?: SalonData
+): Customer24HourStatus {
+  if (!mobile) return { active: false };
+  const clean = mobile.replace(/\D/g, '').slice(-10);
+  if (!clean || clean.length !== 10) return { active: false };
+
+  const now = Date.now();
+
+  // 1. Check whatsappActiveSessions in salonData
+  const session = salonData?.whatsappActiveSessions?.[clean];
+  if (session?.activeUntil) {
+    const expiresTime = new Date(session.activeUntil).getTime();
+    if (expiresTime > now) {
+      const diffMs = expiresTime - now;
+      const totalMinutes = Math.floor(diffMs / (60 * 1000));
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      return {
+        active: true,
+        expiresAt: session.activeUntil,
+        remainingMinutes: mins,
+        remainingHours: hours,
+        formattedRemaining: `${hours}h ${mins}m left`,
+        lastMessage: session.lastMessage,
+        lastMessageAt: session.lastMessageAt,
+      };
+    }
+  }
+
+  // 2. Check customer record directly
+  const cust = (salonData?.customers || []).find(
+    (c) => (c.mobile || '').replace(/\D/g, '').slice(-10) === clean
+  );
+  if (cust?.whatsappWindowExpiresAt) {
+    const expiresTime = new Date(cust.whatsappWindowExpiresAt).getTime();
+    if (expiresTime > now) {
+      const diffMs = expiresTime - now;
+      const totalMinutes = Math.floor(diffMs / (60 * 1000));
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      return {
+        active: true,
+        expiresAt: cust.whatsappWindowExpiresAt,
+        remainingMinutes: mins,
+        remainingHours: hours,
+        formattedRemaining: `${hours}h ${mins}m left`,
+        lastMessageAt: cust.lastWhatsAppMessageAt,
+      };
+    }
+  }
+
+  return { active: false };
+}
+
+/**
+ * Get standard Reception Desk WhatsApp link that sends 'Hi' to activate the 24h window.
+ */
+export function getReceptionWhatsAppUrl(studioMobile = '919773240010', text = 'Hi'): string {
+  const clean = studioMobile.replace(/\D/g, '').slice(-10);
+  return `https://wa.me/91${clean || '9773240010'}?text=${encodeURIComponent(text)}`;
+}
+
+/**
+ * Get crisp QR Code image URL for the Reception Desk counter.
+ */
+export function getReceptionWhatsAppQrUrl(studioMobile = '919773240010', text = 'Hi', size = 300): string {
+  const waUrl = getReceptionWhatsAppUrl(studioMobile, text);
+  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(waUrl)}&margin=10`;
+}
 
 /**
  * Build a standard unblockable WhatsApp Click-to-Chat (wa.me) URL.

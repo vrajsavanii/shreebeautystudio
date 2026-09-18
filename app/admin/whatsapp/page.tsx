@@ -32,6 +32,8 @@ import {
   Save,
   MessageSquare,
   AlertCircle,
+  QrCode,
+  Printer,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -54,7 +56,12 @@ import {
   loyaltyBalanceMessage,
   festivalPromoMessage,
   bridalMessage,
+  isCustomerIn24HourWindow,
+  getReceptionWhatsAppUrl,
+  getReceptionWhatsAppQrUrl,
 } from '@/lib/whatsapp';
+import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { format } from 'date-fns';
@@ -88,6 +95,66 @@ export default function WhatsAppHubPage() {
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
   const [selectedApptId, setSelectedApptId] = useState('');
   const [preferWeb, setPreferWeb] = useState(true);
+  const [receptionDeskModalOpen, setReceptionDeskModalOpen] = useState(false);
+
+  // Active 24-Hour Free Sessions List
+  const activeSessionsList = useMemo(() => {
+    const sessions = data?.whatsappActiveSessions || {};
+    const now = Date.now();
+    const list: Array<{
+      mobile: string;
+      name?: string;
+      activeUntil: string;
+      lastMessage?: string;
+      lastMessageAt?: string;
+      formattedRemaining: string;
+      isExpired: boolean;
+    }> = [];
+
+    // 1. From whatsappActiveSessions map
+    Object.entries(sessions).forEach(([mobile, sess]) => {
+      const expires = new Date(sess.activeUntil).getTime();
+      const diffMs = expires - now;
+      const totalMinutes = Math.floor(Math.max(0, diffMs) / (60 * 1000));
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      list.push({
+        mobile,
+        name: sess.name,
+        activeUntil: sess.activeUntil,
+        lastMessage: sess.lastMessage,
+        lastMessageAt: sess.lastMessageAt,
+        formattedRemaining: diffMs > 0 ? `${hours}h ${mins}m left` : 'Expired',
+        isExpired: diffMs <= 0,
+      });
+    });
+
+    // 2. Cross-reference customers with whatsappWindowExpiresAt
+    (data?.customers || []).forEach((c) => {
+      const clean = (c.mobile || '').replace(/\D/g, '').slice(-10);
+      if (clean && c.whatsappWindowExpiresAt && !list.some((x) => x.mobile === clean)) {
+        const expires = new Date(c.whatsappWindowExpiresAt).getTime();
+        const diffMs = expires - now;
+        const totalMinutes = Math.floor(Math.max(0, diffMs) / (60 * 1000));
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        list.push({
+          mobile: clean,
+          name: c.name,
+          activeUntil: c.whatsappWindowExpiresAt,
+          lastMessageAt: c.lastWhatsAppMessageAt,
+          formattedRemaining: diffMs > 0 ? `${hours}h ${mins}m left` : 'Expired',
+          isExpired: diffMs <= 0,
+        });
+      }
+    });
+
+    return list.sort((a, b) => new Date(b.activeUntil).getTime() - new Date(a.activeUntil).getTime());
+  }, [data?.whatsappActiveSessions, data?.customers]);
+
+  const active24hCount = useMemo(() => {
+    return activeSessionsList.filter((s) => !s.isExpired).length;
+  }, [activeSessionsList]);
 
   // Broadcast Client Filter State
   const [broadcastFilter, setBroadcastFilter] = useState<
@@ -770,7 +837,14 @@ export default function WhatsAppHubPage() {
           onClick={() => setActiveTab('incoming')}
         >
           <Bot size={14} />
-          <span>🤖 Meta WhatsApp Webhook</span>
+          <span>🟢 24h Free Sessions &amp; Desk QR</span>
+          {active24hCount > 0 ? (
+            <span className="tab-badge" style={{ background: '#16a34a', color: '#fff', fontWeight: 800 }}>
+              {active24hCount} Active
+            </span>
+          ) : (
+            <span className="tab-badge">{activeSessionsList.length}</span>
+          )}
         </button>
       </div>
 
@@ -1710,13 +1784,372 @@ export default function WhatsAppHubPage() {
         </motion.div>
       )}
 
-      {/* TAB 3: WhatsApp Webhook Credentials & Settings */}
+      {/* TAB 3: WhatsApp 24h Free Sessions & Desk QR */}
       {activeTab === 'incoming' && (
-        <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{ display: 'grid', gap: 16 }}>
+        <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{ display: 'grid', gap: 18 }}>
+          {/* Top Banner: Reception Standee QR Card & 24h Meta Rules */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: 16,
+            }}
+          >
+            {/* Left Card: Reception Desk Standee QR */}
+            <div
+              className="card"
+              style={{
+                padding: 20,
+                textAlign: 'center',
+                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                border: '2px solid #05424A',
+                borderRadius: 16,
+                boxShadow: '0 4px 16px rgba(5, 66, 74, 0.08)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+                <QrCode size={20} color="#05424A" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#05424A' }}>
+                  Reception Counter Standee
+                </h3>
+              </div>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 14px' }}>
+                Display this on the front desk. Walk-in clients scan to open WhatsApp and activate their 24h free session.
+              </p>
+
+              <div
+                style={{
+                  display: 'inline-block',
+                  background: '#ffffff',
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: 12,
+                  padding: 10,
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                  marginBottom: 14,
+                }}
+              >
+                <img
+                  src={getReceptionWhatsAppQrUrl(salonPhone, 'Hi', 260)}
+                  alt="Reception Desk QR"
+                  style={{ width: 170, height: 170, display: 'block', borderRadius: 8 }}
+                />
+              </div>
+
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#15803d', marginBottom: 14 }}>
+                💬 +91 {salonPhone.replace(/\D/g, '').slice(-10)} (Sends &quot;Hi&quot;)
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => setReceptionDeskModalOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: '#05424A',
+                  }}
+                >
+                  <QrCode size={13} /> Open Fullscreen QR
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const url = getReceptionWhatsAppUrl(salonPhone, 'Hi');
+                    navigator.clipboard.writeText(url);
+                    toast('📋 WhatsApp Activation link copied!');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  <Copy size={13} /> Copy Link
+                </button>
+              </div>
+            </div>
+
+            {/* Right Card: How the 24-Hour Free Meta Policy Works */}
+            <div
+              className="card"
+              style={{
+                padding: 20,
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 16,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <Sparkles size={18} color="#EABA38" />
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+                    24-Hour Free Service Window Rules
+                  </h3>
+                </div>
+                <p style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.5, margin: '0 0 12px' }}>
+                  Meta WhatsApp Cloud API grants <strong>1,000 Free Service Conversations every calendar month (₹0 charged)</strong>:
+                </p>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 14, background: '#f0fdf4', color: '#16a34a', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>1</span>
+                    <div style={{ fontSize: 12, color: '#334155' }}>
+                      <strong>Customer Initiates:</strong> Customer scans the reception desk QR or sends any message (&quot;Hi&quot;) to +91 {salonPhone.replace(/\D/g, '').slice(-10)}.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 14, background: '#f0fdf4', color: '#16a34a', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>2</span>
+                    <div style={{ fontSize: 12, color: '#334155' }}>
+                      <strong>24h Window Opens:</strong> Meta opens a 24-hour customer service window for that phone number.
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 14, background: '#f0fdf4', color: '#16a34a', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>3</span>
+                    <div style={{ fontSize: 12, color: '#334155' }}>
+                      <strong>Unlimited Free PDFs &amp; Texts:</strong> Within these 24 hours, you can send unlimited PDF invoices, appointment reminders, and custom texts via Meta Cloud API at ₹0 cost!
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 14, background: '#f0fdf4', color: '#16a34a', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800 }}>4</span>
+                    <div style={{ fontSize: 12, color: '#334155' }}>
+                      <strong>Outside 24h Fallback:</strong> If customer hasn&apos;t messaged within 24 hours, use <em>Direct WA</em> (100% free via WhatsApp Web) or official utility templates.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 14,
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: 10,
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <CheckCircle2 size={16} color="#16a34a" />
+                <div style={{ fontSize: 11.5, color: '#15803d', fontWeight: 600 }}>
+                  Active Free Sessions in Studio: <strong>{active24hCount}</strong> client{active24hCount !== 1 ? 's' : ''} currently eligible for ₹0 Meta API dispatch.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Active 24-Hour Customer Sessions Table */}
+          <div className="card" style={{ padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+                  🟢 Active 24-Hour Free Customer Sessions
+                </h3>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: active24hCount > 0 ? '#dcfce7' : '#f1f5f9',
+                    color: active24hCount > 0 ? '#15803d' : '#64748b',
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                  }}
+                >
+                  {active24hCount} Active
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setReceptionDeskModalOpen(true)}
+                style={{ fontSize: 12, fontWeight: 600, color: '#05424A', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <QrCode size={13} /> Show Desk QR
+              </button>
+            </div>
+
+            {activeSessionsList.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '30px 16px',
+                  color: '#64748b',
+                  fontSize: 13,
+                  background: '#f8fafc',
+                  borderRadius: 12,
+                  border: '1px dashed #cbd5e1',
+                }}
+              >
+                <Smartphone size={28} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
+                <div style={{ fontWeight: 700, color: '#1e293b' }}>No active customer sessions right now</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>
+                  When clients scan the Reception QR and message &quot;Hi&quot;, their 24h free session will show here in real-time.
+                </div>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>Mobile</th>
+                      <th>Last Message</th>
+                      <th>Time Remaining</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeSessionsList.map((sess) => (
+                      <tr key={sess.mobile}>
+                        <td style={{ fontWeight: 700, color: '#0f172a' }}>
+                          {sess.name || 'Valued Client'}
+                        </td>
+                        <td style={{ fontFamily: 'monospace' }}>+91 {sess.mobile}</td>
+                        <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#64748b' }}>
+                          {sess.lastMessage || 'Incoming chat interaction'}
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 700, color: sess.isExpired ? '#94a3b8' : '#15803d' }}>
+                            {sess.formattedRemaining}
+                          </span>
+                        </td>
+                        <td>
+                          {sess.isExpired ? (
+                            <span style={{ fontSize: 10.5, background: '#f1f5f9', color: '#64748b', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                              ⚪ Outside 24h
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 10.5, background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                              🟢 24h Free Active
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => {
+                                setTargetPhone(sess.mobile);
+                                if (sess.name) setTargetName(sess.name);
+                                setActiveTab('composer');
+                              }}
+                              style={{
+                                background: '#05424A',
+                                color: '#ffffff',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                              }}
+                            >
+                              ⚡ Compose Free Msg
+                            </button>
+                            <a
+                              href={`https://wa.me/91${sess.mobile}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-sm"
+                              style={{
+                                background: '#25D366',
+                                color: '#ffffff',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '4px 8px',
+                                borderRadius: 6,
+                                textDecoration: 'none',
+                              }}
+                            >
+                              💬 Direct WA
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Meta Cloud API Templates Status Overview */}
+          <div className="card" style={{ padding: 20 }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+              📋 Official Meta WhatsApp Message Templates Status
+            </h3>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    <th>Template Name</th>
+                    <th>Category</th>
+                    <th>Meta Approval Status</th>
+                    <th>Parameters</th>
+                    <th>Dispatched For</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>shree_invoice_receipt</td>
+                    <td><span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 700 }}>UTILITY</span></td>
+                    <td><span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>✅ APPROVED</span></td>
+                    <td>Name, Invoice No, Total, Status</td>
+                    <td>Instant Billing POS &amp; Tax Receipt</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>shree_appointment_reminder</td>
+                    <td><span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 700 }}>UTILITY</span></td>
+                    <td><span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>✅ APPROVED</span></td>
+                    <td>Name, Date, Time, Service</td>
+                    <td>24h Prior Booking Reminder</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>shree_appointment_confirmation</td>
+                    <td><span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 700 }}>UTILITY</span></td>
+                    <td><span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>✅ APPROVED</span></td>
+                    <td>Name, Date, Time, Service</td>
+                    <td>Approved Calendar Booking</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>shree_booking_confirmation</td>
+                    <td><span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 700 }}>UTILITY</span></td>
+                    <td><span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>✅ APPROVED</span></td>
+                    <td>Name, Date, Time, Service</td>
+                    <td>Online &amp; Walk-in Bookings</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>shree_appt_update</td>
+                    <td><span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 700 }}>UTILITY</span></td>
+                    <td><span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>✅ APPROVED</span></td>
+                    <td>Name, Date, Time, Service</td>
+                    <td>Rescheduled Appointments</td>
+                  </tr>
+                  <tr>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700 }}>shree_invoice_pdf</td>
+                    <td><span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 700 }}>UTILITY</span></td>
+                    <td><span style={{ background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: 4, fontSize: 10.5, fontWeight: 800 }}>🟡 PENDING REVIEW</span></td>
+                    <td>Header PDF Document + Body</td>
+                    <td>Direct PDF Attachment outside 24h</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Webhook Connection Guide */}
           <div className="card" style={{ padding: 22 }}>
             <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800 }}>
-              🔗 Meta WhatsApp Cloud API Credentials
+              🔗 Meta WhatsApp Cloud API Credentials &amp; Webhook Setup
             </h3>
             <div style={{ display: 'grid', gap: 12 }}>
               <div className="form-group">
@@ -1769,6 +2202,16 @@ export default function WhatsAppHubPage() {
           </div>
         </motion.div>
       )}
+
+      {/* Reception Desk QR Modal */}
+      <ReceptionDeskQRModal
+        isOpen={receptionDeskModalOpen}
+        onClose={() => setReceptionDeskModalOpen(false)}
+        studioName={salon}
+        studioMobile={salonPhone}
+        customerMobile={targetPhone}
+        customerName={targetName}
+      />
     </div>
   );
 }

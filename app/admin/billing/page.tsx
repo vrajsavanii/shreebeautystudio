@@ -27,6 +27,7 @@ import {
   FileText,
   MessageSquare,
   Loader2,
+  QrCode,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
@@ -36,6 +37,8 @@ import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, cleanServiceNameForBill, shareInvoicePDFViaDirectWhatsApp } from '@/lib/invoice-pdf';
+import { isCustomerIn24HourWindow } from '@/lib/whatsapp';
+import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
@@ -125,6 +128,10 @@ function BillingContent() {
   const [waPdfStatus, setWaPdfStatus] = useState<Record<string, 'sending' | 'sent' | 'failed'>>({});
   const [waTextStatus, setWaTextStatus] = useState<Record<string, 'sending' | 'sent' | 'failed'>>({});
   const [waInvoiceStatus, setWaInvoiceStatus] = useState<Record<string, 'sending' | 'sent' | 'failed'>>({});
+
+  // 24-Hour Free WhatsApp Customer Service Window & Reception QR Modal
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const cust24hStatus = useMemo(() => isCustomerIn24HourWindow(mobile, data), [mobile, data]);
 
   const handleSendInvoicePDF = async (inv: Invoice) => {
     if (!inv.mobile) {
@@ -1531,6 +1538,97 @@ function BillingContent() {
                     </option>
                   ))}
                 </datalist>
+
+                {/* 24-Hour Free Customer Service Window Status */}
+                {mobile.length === 10 ? (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: 11,
+                      gap: 6,
+                    }}
+                  >
+                    {cust24hStatus.active ? (
+                      <span
+                        style={{
+                          color: '#16a34a',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: '#f0fdf4',
+                          padding: '2px 7px',
+                          borderRadius: 6,
+                          border: '1px solid #bbf7d0',
+                        }}
+                        title={`Incoming message received. Meta Cloud API dispatch is ₹0 until ${cust24hStatus.expiresAt}`}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                        🟢 24h Free Active ({cust24hStatus.formattedRemaining})
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          color: '#64748b',
+                          fontSize: 11,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                        title="Customer has not messaged recently. Free automated Meta API window is closed."
+                      >
+                        <span>⚪ Outside 24h Window</span>
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setQrModalOpen(true)}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 6,
+                        padding: '2px 7px',
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        color: '#05424A',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                      }}
+                      title="Show Reception Desk QR Code to customer"
+                    >
+                      <QrCode size={11} />
+                      <span>{cust24hStatus.active ? 'Desk QR' : '📱 Scan Desk QR'}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => setQrModalOpen(true)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        fontSize: 10.5,
+                        fontWeight: 600,
+                        color: '#05424A',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        padding: 0,
+                      }}
+                    >
+                      <QrCode size={11} />
+                      <span>Reception Desk QR</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3458,6 +3556,16 @@ function BillingContent() {
         onClose={() => setReceiptModalInv(null)}
         invoice={receiptModalInv}
         salonData={data}
+      />
+
+      {/* Reception Desk QR Code Modal for 24h Free Window Activation */}
+      <ReceptionDeskQRModal
+        isOpen={qrModalOpen}
+        onClose={() => setQrModalOpen(false)}
+        studioName={data?.settings?.salon || 'Shree Beauty Studio'}
+        studioMobile={data?.settings?.whatsapp || '919773240010'}
+        customerMobile={mobile}
+        customerName={customer}
       />
     </div>
   );

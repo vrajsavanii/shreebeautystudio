@@ -19,6 +19,7 @@ import {
   Send,
   Copy,
   ExternalLink,
+  QrCode,
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -31,6 +32,8 @@ import {
   shareInvoicePDFViaDirectWhatsApp,
   buildPublicInvoiceMessage,
 } from '@/lib/invoice-pdf';
+import { isCustomerIn24HourWindow } from '@/lib/whatsapp';
+import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import { money } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 
@@ -72,8 +75,11 @@ export default function InvoiceReceiptModal({
     body: string;
     isDomainRestriction?: boolean;
   } | null>(null);
+  const [receptionQRModalOpen, setReceptionQRModalOpen] = useState(false);
 
   if (!isOpen || !invoice) return null;
+
+  const cust24h = isCustomerIn24HourWindow(invoice.mobile, salonData);
 
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
   const salonAddress =
@@ -1343,6 +1349,72 @@ Have a wonderful day! 🙏✨`;
             </div>
           )}
 
+          {/* 24-Hour Free Service Window Status Banner */}
+          {invoice.mobile && (
+            <div
+              style={{
+                background: cust24h.active ? '#f0fdf4' : '#f8fafc',
+                border: `1px solid ${cust24h.active ? '#bbf7d0' : '#e2e8f0'}`,
+                borderRadius: 10,
+                padding: '8px 12px',
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: cust24h.active ? '#16a34a' : '#94a3b8',
+                    display: 'inline-block',
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: cust24h.active ? '#15803d' : '#475569',
+                  }}
+                >
+                  {cust24h.active
+                    ? `🟢 24h Free Window Active (${cust24h.formattedRemaining})`
+                    : '⚪ Outside 24h Window'}
+                </span>
+                <span style={{ fontSize: 11, color: '#64748b' }}>
+                  {cust24h.active ? '• Meta Cloud API ₹0' : '• Scan QR to activate ₹0 session'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setReceptionQRModalOpen(true)}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  padding: '4px 8px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#05424A',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+                title="Show Reception Desk QR Code to customer"
+              >
+                <QrCode size={12} />
+                <span>{cust24h.active ? 'Desk QR' : '📱 Scan Desk QR'}</span>
+              </button>
+            </div>
+          )}
+
           {/* Row 1: Share & PDF Export Actions */}
           <div
             style={{
@@ -1620,6 +1692,15 @@ Have a wonderful day! 🙏✨`;
           </div>
         </div>
       </motion.div>
+
+      <ReceptionDeskQRModal
+        isOpen={receptionQRModalOpen}
+        onClose={() => setReceptionQRModalOpen(false)}
+        studioName={salon}
+        studioMobile={salonPhone}
+        customerMobile={invoice.mobile}
+        customerName={invoice.customer}
+      />
     </div>
   );
 }

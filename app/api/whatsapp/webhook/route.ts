@@ -141,41 +141,70 @@ export async function POST(req: NextRequest) {
     const originUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
     const aiResult = await processWhatsAppAIMessage(messageText, rawMobile, customerName, currentData, originUrl);
 
-    // Parse booking details
-    const parsed = parseWhatsAppBookingMessage(messageText, currentData.services, customerName);
+    // Track 24-Hour Free Customer Service Window (opened by customer's incoming message)
+    const nowISO = new Date().toISOString();
+    const activeUntilISO = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-    // Create new appointment
-    const newAppointment: Appointment = {
-      id: uid(),
-      date: parsed.date,
-      time: parsed.time,
-      customer: parsed.customerName || customerName,
-      mobile: mobile,
-      service: parsed.service,
-      staff: currentData.staff[0]?.name || 'Unassigned',
-      advance: 0,
-      status: 'Confirmed',
-      notes: parsed.notes || `Booked via WhatsApp AI: "${messageText}"`,
+    const updatedActiveSessions = {
+      ...(currentData.whatsappActiveSessions || {}),
+      [mobile]: {
+        name: customerName,
+        activeUntil: activeUntilISO,
+        lastMessage: messageText,
+        lastMessageAt: nowISO,
+      },
     };
 
-    // Auto-register customer if not in customer list
+    // Auto-register or update customer with 24h window expiration
     let updatedCustomers: Customer[] = [...currentData.customers];
-    const existingCust = updatedCustomers.find((c) => c.mobile === mobile || c.name === customerName);
-    if (!existingCust && (mobile || customerName)) {
+    const existingCustIdx = updatedCustomers.findIndex(
+      (c) => (c.mobile && c.mobile.replace(/\D/g, '').slice(-10) === mobile) || (customerName && c.name === customerName)
+    );
+
+    if (existingCustIdx >= 0) {
+      updatedCustomers[existingCustIdx] = {
+        ...updatedCustomers[existingCustIdx],
+        whatsappWindowExpiresAt: activeUntilISO,
+        lastWhatsAppMessageAt: nowISO,
+      };
+    } else if (mobile || customerName) {
       updatedCustomers.push({
         id: uid(),
         name: customerName,
         mobile: mobile,
         birthday: '',
         anniversary: '',
-        notes: 'Acquired via WhatsApp Business AI',
+        whatsappWindowExpiresAt: activeUntilISO,
+        lastWhatsAppMessageAt: nowISO,
+        notes: 'Acquired via WhatsApp (24h Free Window Active)',
       });
+    }
+
+    // Only create appointment if AI or user explicitly requested a booking
+    let updatedAppointments = currentData.appointments;
+    let newAppointment: Appointment | null = null;
+    if (aiResult.appointmentCreated && aiResult.appointmentData) {
+      const parsed = aiResult.appointmentData;
+      newAppointment = {
+        id: uid(),
+        date: parsed.date,
+        time: parsed.time,
+        customer: parsed.customerName || customerName,
+        mobile: mobile,
+        service: parsed.service,
+        staff: currentData.staff[0]?.name || 'Unassigned',
+        advance: 0,
+        status: 'Confirmed',
+        notes: parsed.notes || `Booked via WhatsApp AI: "${messageText}"`,
+      };
+      updatedAppointments = [newAppointment, ...currentData.appointments];
     }
 
     const updatedData: SalonData = {
       ...currentData,
       customers: updatedCustomers,
-      appointments: [newAppointment, ...currentData.appointments],
+      appointments: updatedAppointments,
+      whatsappActiveSessions: updatedActiveSessions,
     };
 
     // Save updated state to Supabase
@@ -194,9 +223,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      is24HourWindowActive: true,
+      activeUntil: activeUntilISO,
       appointment: newAppointment,
       aiResponse: aiResult,
-      message: 'WhatsApp AI auto-response processed successfully',
+      message: 'WhatsApp message processed & 24h free service window activated successfully',
     });
   } catch (error: any) {
     console.error('Error processing WhatsApp webhook:', error);

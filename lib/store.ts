@@ -1057,6 +1057,8 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     transferSeq: typeof incoming.transferSeq === 'number' ? incoming.transferSeq : 1001,
     // Studio Holidays & Blocked Dates
     holidays: Array.isArray(incoming.holidays) ? incoming.holidays : [],
+    // WhatsApp Active 24h Free Customer Service Sessions
+    whatsappActiveSessions: (incoming as any)?.whatsappActiveSessions || {},
   };
 }
 

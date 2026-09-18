@@ -113,6 +113,9 @@ export interface Customer {
   membershipId?: string;
   membershipExpiry?: string;
   lastWishedDates?: Record<string, string>; // e.g. { "birthday_2026": "2026-08-30" }
+  // WhatsApp 24h Free Service Window
+  whatsappWindowExpiresAt?: string; // ISO timestamp when 24h free customer service window closes
+  lastWhatsAppMessageAt?: string;   // ISO timestamp of last incoming message from customer
   // CRM analytics (computed, not stored)
   totalVisits?: number;
   totalSpend?: number;
@@ -544,4 +547,14 @@ export interface SalonData {
   transferSeq?: number;
   // Holidays & Blocked Dates
   holidays?: StudioHoliday[];
+  // WhatsApp Active 24h Free Customer Service Sessions (mobile -> session)
+  whatsappActiveSessions?: Record<
+    string,
+    {
+      name?: string;
+      activeUntil: string;
+      lastMessage?: string;
+      lastMessageAt?: string;
+    }
+  >;
 }

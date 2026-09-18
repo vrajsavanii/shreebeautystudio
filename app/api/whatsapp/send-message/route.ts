@@ -68,19 +68,6 @@ export async function POST(req: NextRequest) {
 
     const clickToChatUrl = `https://wa.me/${recipient}?text=${encodeURIComponent(message || '')}`;
 
-    // If Meta has blocked dispatch due to missing payment method, fail honestly with direct link
-    if (paymentIssue) {
-      const paymentUrl = paymentIssue.href || 'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account';
-      return NextResponse.json({
-        success: false,
-        isPaymentRequired: true,
-        error: '⚠️ WhatsApp delivery is paused by Meta: A payment method must be added to your WhatsApp Business Account in Meta Business Manager. Use Direct WA in the meantime.',
-        message: 'Payment method required on WhatsApp Business Account.',
-        paymentUrl,
-        clickToChatUrl,
-      }, { status: 200 });
-    }
-
     // If Meta Cloud API credentials are provided, send message directly via WhatsApp Business API
     if (phoneId && accessToken) {
       const isTemplate = Boolean(body.templateName);
@@ -131,20 +118,33 @@ export async function POST(req: NextRequest) {
         console.error('Meta WhatsApp Text API Error:', metaJson);
         const code = metaJson?.error?.code;
         const is24HourWindow = code === 131047 || code === 131056;
+        const isPaymentRequired =
+          code === 131042 ||
+          metaJson?.error?.title?.toLowerCase()?.includes('payment') ||
+          metaJson?.error?.message?.toLowerCase()?.includes('payment');
+        const paymentUrl = isPaymentRequired
+          ? metaJson?.error?.href || 'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account'
+          : undefined;
+
         let errMsg = metaJson?.error?.message || 'Failed to send WhatsApp message via Meta Cloud API';
         if (code === 190 || errMsg.toLowerCase().includes('oauth access token')) {
           errMsg = '❌ Invalid or expired Meta Access Token. Please refresh your token from Meta Developer Portal.';
         } else if (code === 131030) {
           errMsg = `⚠️ Recipient number (+${recipient}) is not on your Meta Test Number allowed list. In Meta Developer Portal → "Step 2: Send and receive messages", click "Manage phone number list", add your mobile number and verify with the OTP.`;
+        } else if (isPaymentRequired) {
+          errMsg = '⚠️ Payment method required on WhatsApp Business Account to dispatch messages outside test sandbox.';
         } else if (is24HourWindow) {
           errMsg = '⚠️ Customer 24-hour messaging window closed. Dispatched via WhatsApp Web/Direct.';
         }
+
         return NextResponse.json(
           {
             success: false,
             error: errMsg,
             errorCode: code,
             is24HourWindow,
+            isPaymentRequired,
+            paymentUrl,
             clickToChatUrl,
             details: metaJson,
           },

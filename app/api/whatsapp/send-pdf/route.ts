@@ -132,18 +132,6 @@ export async function POST(req: NextRequest) {
         '';
     }
 
-    // If Meta has blocked dispatch due to missing payment method, fail honestly with direct link
-    if (paymentIssue) {
-      const paymentUrl = paymentIssue.href || 'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account';
-      return NextResponse.json({
-        success: false,
-        isPaymentRequired: true,
-        error: '⚠️ WhatsApp delivery is paused by Meta: A payment method must be added to your WhatsApp Business Account in Meta Business Manager. Use Direct WA in the meantime.',
-        message: 'Payment method required on WhatsApp Business Account.',
-        paymentUrl,
-      }, { status: 200 });
-    }
-
     if (!phoneId || !accessToken || phoneId.startsWith('PASTE_') || accessToken.startsWith('PASTE_') || accessToken.startsWith('LLM_')) {
       return NextResponse.json(
         {
@@ -324,12 +312,23 @@ export async function POST(req: NextRequest) {
       const userMessage = classifyMetaError(metaJson, metaRes.status);
       const code = metaJson?.error?.code;
       const is24HourWindow = code === 131047 || code === 131056;
+      const isPaymentRequired =
+        code === 131042 ||
+        metaJson?.error?.title?.toLowerCase()?.includes('payment') ||
+        metaJson?.error?.message?.toLowerCase()?.includes('payment');
+      const paymentUrl = isPaymentRequired
+        ? metaJson?.error?.href ||
+          'https://business.facebook.com/billing_hub/accounts/details/?business_id=2541939702957992&asset_id=3350176545369989&wizard_name=ADD_PM&account_type=whatsapp-business-account'
+        : undefined;
+
       return NextResponse.json(
         {
           success: false,
           error: userMessage,
           errorCode: code,
           is24HourWindow,
+          isPaymentRequired,
+          paymentUrl,
         },
         { status: 200 } // Return 200 so client can read the error body
       );
