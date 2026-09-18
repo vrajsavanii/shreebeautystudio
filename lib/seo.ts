@@ -86,9 +86,10 @@ export function getLocalBusinessSchema() {
     })),
     priceRange: BUSINESS.priceRange,
     sameAs: [
-      'https://www.google.com/maps/place/Shree+Beauty+Studio/@21.2156,72.8258,17z',
+      'https://www.instagram.com/shreebeauty.studio/',
+      'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
     ],
-    hasMap: 'https://maps.google.com/?q=Radhika+Society+Katargam+Surat',
+    hasMap: 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
     currenciesAccepted: 'INR',
     paymentAccepted: 'Cash, UPI, Credit Card, Debit Card',
     knowsLanguage: ['English', 'Hindi', 'Gujarati'],

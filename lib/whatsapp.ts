@@ -244,7 +244,9 @@ We have received your online appointment booking request!
 ⏰ Time: ${a.time}
 💄 Service: ${a.service}
 👩‍💼 Specialist: Studio Specialist
-📍 Location: ${address || 'Katargam, Surat'}
+📍 Location: ${address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
+📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
+📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
 
 📌 *Status:* ⏳ *PENDING SALON CONFIRMATION*
 Our studio team is reviewing your time slot. You will receive a final *CONFIRMED* message once approved by our salon.
@@ -267,6 +269,9 @@ We have received your Bridal & Siders package booking request!
 👑 *Package:* ${packageName}
 💍 *Wedding Date:* ${fmtDate(weddingDate)}
 📍 *Venue:* ${venue || 'Surat Venue'}
+📍 *Studio Address:* 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat
+📍 *Google Map:* https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
+📸 *Instagram:* @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
 
 📌 *Status:* ⏳ *PENDING ARTIST CONFIRMATION*
 Our Master Bridal Artist will verify the date schedule and send your final confirmation shortly.
@@ -290,7 +295,9 @@ Dear ${a.customer},
 💄 Service: ${a.service}
 👩‍💼 Specialist: Studio Specialist
 💵 Advance Paid: ${money(a.advance || 0)}
-📍 Address: ${address || 'Surat, Gujarat'}
+📍 Address: ${address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
+📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
+📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
 
 📅 *Save to Google Calendar & Auto-Reminder:*
 👉 ${gcalUrl}
@@ -349,7 +356,10 @@ Dear ${clientName},
 Thank you for booking your Bridal & Event makeup package with us!
 
 👑 Package / Event: ${eventText}
-${dateText ? `📅 Date: ${dateText}\n` : ''}${venueText}
+${dateText ? `📅 Date: ${dateText}\n` : ''}${venueText}📍 Studio Address: 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat
+📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
+📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
+
 ✨ Our team will ensure a flawless, royalty glam look for your special day!
 
 For details or changes, reply to this message. 💖`;

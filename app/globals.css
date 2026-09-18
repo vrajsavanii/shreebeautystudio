@@ -1022,9 +1022,21 @@ tbody tr.today-row {
 /* ─── Billing Layout ─────────────────────────────────────────────── */
 .billing-layout {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: 18px;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
   align-items: start;
+}
+
+.billing-layout > * {
+  align-self: start !important;
+  height: auto !important;
+}
+
+@media (max-width: 1100px) {
+  .billing-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 .billing-totals {

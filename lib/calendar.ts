@@ -146,7 +146,8 @@ export function getAppointmentGoogleCalendarUrl(
     action: 'TEMPLATE',
     text: `${a.service} — ${salon} (${a.customer})`,
     dates: `${dtStart}/${dtEnd}`,
-    location: address ? 'Shree Beauty Studio, Katargam, Surat' : salon,
+    details: `Customer: ${a.customer}\nService: ${a.service}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
+    location: address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -180,7 +181,8 @@ export function getBridalGoogleCalendarUrl(
     action: 'TEMPLATE',
     text: `Bridal: ${pkgName} — ${b.name} (${salon})`,
     dates: `${dtStart}/${dtEnd}`,
-    location: b.venue || 'Shree Beauty Studio, Katargam, Surat',
+    details: `Bride: ${b.name}\nPackage: ${pkgName}\nVenue: ${b.venue || address}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
+    location: b.venue || address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;

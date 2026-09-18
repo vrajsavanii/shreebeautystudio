@@ -23,6 +23,9 @@ export default function CustomerFooter() {
   const whatsapp = settings?.whatsapp || '919773240010';
   const openTime = settings?.open || '10:00';
   const closeTime = settings?.close || '19:00';
+  const instagramHandle = settings?.instagramHandle || '@shreebeauty.studio';
+  const instagramUrl = settings?.instagramUrl || `https://www.instagram.com/${instagramHandle.replace('@', '')}/`;
+  const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
 
   return (
     <footer
@@ -116,7 +119,7 @@ export default function CustomerFooter() {
           {/* Social Media */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a
-              href="https://www.instagram.com/shreebeautystudio_surat/"
+              href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Shree Beauty Studio on Instagram"
@@ -138,7 +141,16 @@ export default function CustomerFooter() {
             >
               <Instagram size={16} />
             </a>
-            <span style={{ fontSize: 12, color: '#64748b' }}>@shreebeautystudio_surat</span>
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 13, color: '#cbd5e1', textDecoration: 'none', fontWeight: 600 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              {instagramHandle}
+            </a>
           </div>
         </div>
 
@@ -199,10 +211,23 @@ export default function CustomerFooter() {
             Studio Visit &amp; Hours
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#cbd5e1', textDecoration: 'none' }}
+              title="Open in Google Maps"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
               <MapPin size={16} color="#EABA38" style={{ flexShrink: 0, marginTop: 2 }} />
-              <span>{address}</span>
-            </div>
+              <div>
+                <span>{address}</span>
+                <span style={{ display: 'block', fontSize: 11.5, color: '#EABA38', fontWeight: 700, marginTop: 2 }}>
+                  📍 View on Google Maps ↗
+                </span>
+              </div>
+            </a>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
               <Clock size={16} color="#EABA38" style={{ flexShrink: 0 }} />
               <span>{openTime} – {closeTime} · Open All 7 Days</span>

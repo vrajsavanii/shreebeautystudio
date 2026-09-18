@@ -995,9 +995,18 @@ export default function PublicHomePage() {
                 <strong style={{ display: 'block', fontSize: 13, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
                   Studio Address
                 </strong>
-                <p style={{ margin: 0, fontSize: 14, color: '#475569', lineHeight: 1.5 }}>
-                  {address}
-                </p>
+                <a
+                  href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ margin: 0, fontSize: 14, color: '#475569', lineHeight: 1.5, textDecoration: 'none', display: 'block' }}
+                  title="Open in Google Maps"
+                >
+                  <span>{address}</span>
+                  <span style={{ display: 'block', color: '#05424A', fontWeight: 700, fontSize: 12, marginTop: 2 }}>
+                    📍 View on Google Maps ↗
+                  </span>
+                </a>
               </div>
             </div>
 
@@ -1061,7 +1070,7 @@ export default function PublicHomePage() {
                 <span>Book Your Slot</span>
               </Link>
               <a
-                href="https://maps.google.com/?q=Radhika+Society+Katargam+Surat"
+                href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

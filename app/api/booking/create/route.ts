@@ -226,7 +226,9 @@ Your appointment is confirmed! Here are your booking details:
 💄 Service: ${service.name}
 👩‍💼 Professional: ${staffName}
 💰 Price: ₹${service.price}
-📍 Address: ${data.settings?.address || 'Surat'}
+📍 Address: ${data.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
+📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
+📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
 
 Thank you for choosing ${data.settings?.salon || 'Shree Beauty Studio'}! We look forward to pampering you. 💖`,
         }),

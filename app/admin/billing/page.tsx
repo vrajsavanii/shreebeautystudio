@@ -76,7 +76,7 @@ function BillingContent() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<BillingViewTab>('split');
+  const [activeTab, setActiveTab] = useState<BillingViewTab>('builder');
   const [historySearch, setHistorySearch] = useState('');
 
   // Form state
@@ -1008,9 +1008,17 @@ function BillingContent() {
     );
   }, [recentInvoices, historySearch]);
 
+  const invoiceStats = useMemo(() => {
+    const count = filteredInvoices.length;
+    const totalBilled = filteredInvoices.reduce((s, i) => s + (Number(i.total) || 0), 0);
+    const totalDue = filteredInvoices.reduce((s, i) => s + (Number(i.balance) || 0), 0);
+    const totalCollected = totalBilled - totalDue;
+    return { count, totalBilled, totalDue, totalCollected };
+  }, [filteredInvoices]);
+
   const tabs: { id: BillingViewTab; label: string; shortLabel: string; icon: any; count?: number }[] = [
-    { id: 'split', label: 'Side-by-Side POS', shortLabel: 'Split POS', icon: Columns },
     { id: 'builder', label: 'New POS Bill', shortLabel: 'New Bill', icon: Receipt },
+    { id: 'split', label: 'Side-by-Side POS', shortLabel: 'Split POS', icon: Columns },
     { id: 'history', label: 'Invoice Receipts History', shortLabel: 'History', icon: History, count: recentInvoices.length },
   ];
 
@@ -1197,15 +1205,33 @@ function BillingContent() {
 
             {/* Quick Import Bridal Booking (Loads only ticked functions) */}
             {data?.bridal && data.bridal.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
+              <div
+                style={{
+                  marginBottom: 14,
+                  padding: '10px 12px',
+                  background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)',
+                  borderRadius: 8,
+                  border: '1px dashed #f472b6',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 4 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#9d174d', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    👰 Quick Import Bridal Booking
+                  </span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#be185d' }}>
+                    Auto-loads ticked events & ceremonies
+                  </span>
+                </div>
                 <select
                   className="input"
                   style={{
                     fontSize: 12,
-                    fontWeight: 700,
-                    borderColor: '#f472b6',
-                    background: '#fdf2f8',
-                    color: '#9d174d',
+                    fontWeight: 600,
+                    borderColor: '#fbcfe8',
+                    background: '#ffffff',
+                    color: '#831843',
+                    cursor: 'pointer',
+                    padding: '6px 10px',
                   }}
                   onChange={(e) => {
                     const b = data.bridal?.find((x) => x.id === e.target.value);
@@ -1216,7 +1242,7 @@ function BillingContent() {
                   defaultValue=""
                 >
                   <option value="" disabled>
-                    👰 Quick Import Bridal Booking (Loads only ticked functions into bill)...
+                    Choose bride booking to load into bill...
                   </option>
                   {data.bridal.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -1352,11 +1378,11 @@ function BillingContent() {
 
               {/* Column Header Titles & Lines in Scrollable Container for Mobile */}
               <div className="billing-lines-scroll" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', paddingBottom: 4 }}>
-                <div style={{ minWidth: 540 }}>
+                <div style={{ minWidth: 460 }}>
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'minmax(180px, 1.8fr) 52px 75px 105px 75px 28px',
+                      gridTemplateColumns: 'minmax(140px, 1.8fr) 46px 68px 90px 68px 28px',
                       gap: 6,
                       padding: '6px 8px',
                       background: '#e2e8f0',
@@ -1386,7 +1412,7 @@ function BillingContent() {
                         animate={{ opacity: 1, y: 0 }}
                         style={{
                           display: 'grid',
-                          gridTemplateColumns: 'minmax(180px, 1.8fr) 52px 75px 105px 75px 28px',
+                          gridTemplateColumns: 'minmax(140px, 1.8fr) 46px 68px 90px 68px 28px',
                           gap: 6,
                           alignItems: 'center',
                         }}
@@ -1805,110 +1831,178 @@ function BillingContent() {
         {/* Invoice Receipts History Panel */}
         {(activeTab === 'split' || activeTab === 'history') && (
           <motion.div className="card billing-builder-card" variants={fadeSlideUp} initial="hidden" animate="visible">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0, color: 'var(--text)' }}>
-                Recent Invoices ({filteredInvoices.length})
-              </h2>
-              <div className="search-wrap" style={{ maxWidth: 220 }}>
-                <Search size={14} className="search-icon" />
+            {/* Header & Search */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0, color: 'var(--text)' }}>
+                  Recent Invoices
+                </h2>
+                <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--teal-subtle)', color: 'var(--teal)', padding: '2px 8px', borderRadius: 10 }}>
+                  {filteredInvoices.length}
+                </span>
+              </div>
+              <div className="search-wrap" style={{ maxWidth: 220, flex: 1, minWidth: 140 }}>
+                <Search size={13} className="search-icon" />
                 <input
                   type="search"
                   className="input"
                   placeholder="Search invoice…"
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  style={{ padding: '6px 10px 6px 32px', fontSize: 12 }}
+                  style={{ padding: '5px 8px 5px 28px', fontSize: 11.5 }}
                 />
               </div>
             </div>
 
+            {/* Quick Metrics Strip */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 8,
+                marginBottom: 14,
+                background: '#f8fafc',
+                padding: '8px 12px',
+                borderRadius: 8,
+                border: '1px solid #e2e8f0',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Invoices</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginTop: 2 }}>{invoiceStats.count}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Collected</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#16a34a', marginTop: 2 }}>{money(invoiceStats.totalCollected)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: invoiceStats.totalDue > 0 ? '#dc2626' : 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>Due Balance</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: invoiceStats.totalDue > 0 ? '#dc2626' : 'var(--text)', marginTop: 2 }}>{money(invoiceStats.totalDue)}</div>
+              </div>
+            </div>
+
             {filteredInvoices.length === 0 ? (
-              <div className="empty-state">
-                <History size={40} />
-                <h3>No invoices found</h3>
-                <p>Generated bills and receipts will appear here.</p>
+              <div className="empty-state" style={{ padding: '30px 16px' }}>
+                <History size={36} />
+                <h3 style={{ fontSize: 14, marginTop: 8 }}>No invoices found</h3>
+                <p style={{ fontSize: 12 }}>Generated bills and receipts will appear here.</p>
               </div>
             ) : (
-              <div className="table-wrap" style={{ maxHeight: 520, overflowY: 'auto' }}>
-                <table>
+              <div className="table-wrap" style={{ maxHeight: 520, overflowY: 'auto', overflowX: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
                   <thead>
                     <tr>
-                      <th>Invoice & Date</th>
-                      <th>Customer & Mobile</th>
-                      <th>Amount & Due</th>
-                      <th>Actions</th>
+                      <th style={{ padding: '8px 6px', fontSize: 10.5, width: '27%' }}>Invoice & Date</th>
+                      <th style={{ padding: '8px 6px', fontSize: 10.5, width: '27%' }}>Customer</th>
+                      <th style={{ padding: '8px 6px', fontSize: 10.5, width: '22%' }}>Amount</th>
+                      <th style={{ padding: '8px 6px', fontSize: 10.5, width: '24%', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredInvoices.map((inv) => (
                       <tr key={inv.id}>
-                        <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{inv.no}</span>
+                        <td style={{ padding: '8px 6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                            <button
+                              type="button"
+                              onClick={() => setReceiptModalInv(inv)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                fontWeight: 700,
+                                color: 'var(--teal)',
+                                cursor: 'pointer',
+                                fontSize: 12,
+                                textDecoration: 'underline',
+                                textDecorationColor: 'transparent',
+                              }}
+                              title="Click to view receipt"
+                            >
+                              {inv.no}
+                            </button>
                             {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
-                              <span style={{ fontSize: 10, fontWeight: 800, color: '#be185d', background: '#fce7f3', padding: '1px 6px', borderRadius: 6 }}>
+                              <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fce7f3', padding: '1px 5px', borderRadius: 4 }}>
                                 👑 Bridal
                               </span>
                             ) : (
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 6px', borderRadius: 6 }}>
+                              <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '1px 5px', borderRadius: 4 }}>
                                 🛍️ POS
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{fmtDate(inv.date)}</div>
+                          <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 2 }}>{fmtDate(inv.date)}</div>
                         </td>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{inv.customer}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{inv.mobile}</div>
+                        <td style={{ padding: '8px 6px' }}>
+                          <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }} title={inv.customer}>
+                            {inv.customer}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{inv.mobile || '—'}</div>
                         </td>
-                        <td>
-                          <div style={{ fontWeight: 700, fontSize: 13.5 }}>{money(inv.total)}</div>
+                        <td style={{ padding: '8px 6px' }}>
+                          <div style={{ fontWeight: 700, fontSize: 12.5 }}>{money(inv.total)}</div>
                           {Number(inv.balance) > 0 ? (
-                            <div style={{ color: 'var(--red)', fontWeight: 700, fontSize: 11 }}>
-                              Due: {money(inv.balance)}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
+                              <span style={{ color: 'var(--red)', fontWeight: 700, fontSize: 10.5 }}>
+                                Due: {money(inv.balance)}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn-xs"
+                                style={{
+                                  fontSize: 9.5,
+                                  padding: '1px 5px',
+                                  height: 18,
+                                  borderRadius: 4,
+                                  background: '#dcfce7',
+                                  color: '#15803d',
+                                  border: '1px solid #86efac',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                                title="Record Payment-In"
+                                onClick={() => openPaymentInModal(inv)}
+                              >
+                                Collect
+                              </button>
                             </div>
                           ) : (
-                            <div style={{ color: 'var(--green)', fontSize: 11, fontWeight: 600 }}>
+                            <div style={{ color: 'var(--green)', fontSize: 10.5, fontWeight: 600, marginTop: 1 }}>
                               Paid: {money(inv.paid)}
                             </div>
                           )}
                         </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                            {Number(inv.balance) > 0 && (
-                              <button
-                                className="btn btn-sm btn-ghost"
-                                style={{ fontSize: 10, padding: '2px 5px', color: 'var(--green)', borderColor: '#86efac' }}
-                                title="Record Payment-In"
-                                onClick={() => openPaymentInModal(inv)}
-                              >
-                                <ArrowDownLeft size={10} /> Collect
-                              </button>
-                            )}
+                        <td style={{ padding: '8px 6px' }}>
+                          <div style={{ display: 'flex', gap: 3, alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'nowrap' }}>
                             <button
+                              type="button"
                               className="btn-icon"
                               title="View Official Bill Layout"
-                              style={{ background: '#e0f2fe', color: '#0369a1' }}
+                              style={{ width: 26, height: 26, borderRadius: 5, background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', flexShrink: 0 }}
                               onClick={() => setReceiptModalInv(inv)}
                             >
                               <Eye size={12} />
                             </button>
                             <button
+                              type="button"
                               className="btn-icon"
                               title="Download PDF Bill"
-                              style={{ background: '#fef3c7', color: '#92400e' }}
+                              style={{ width: 26, height: 26, borderRadius: 5, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', flexShrink: 0 }}
                               onClick={() => downloadInvoicePDF(inv, data)}
                             >
                               <Download size={12} />
                             </button>
                             <button
-                              className="btn-icon edit"
-                              title="Edit Invoice"
-                              onClick={() => openEditInvoice(inv)}
+                              type="button"
+                              className="btn-icon"
+                              title="Print Thermal / A4 Receipt"
+                              style={{ width: 26, height: 26, borderRadius: 5, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', flexShrink: 0 }}
+                              onClick={() => handlePrint(inv)}
                             >
-                              <Pencil size={12} />
+                              <Printer size={12} />
                             </button>
                             <button
+                              type="button"
                               className="btn-icon wa"
                               title={
                                 waInvoiceStatus[inv.id] === 'sending'
@@ -1920,6 +2014,10 @@ function BillingContent() {
                                   : 'Send PDF Invoice via WhatsApp'
                               }
                               style={{
+                                width: 26,
+                                height: 26,
+                                borderRadius: 5,
+                                flexShrink: 0,
                                 background:
                                   waInvoiceStatus[inv.id] === 'sent'
                                     ? '#dcfce7'
@@ -1963,15 +2061,19 @@ function BillingContent() {
                               <MessageCircle size={12} />
                             </button>
                             <button
-                              className="btn-icon"
-                              title="Print Thermal / A4 Receipt"
-                              onClick={() => handlePrint(inv)}
+                              type="button"
+                              className="btn-icon edit"
+                              title="Edit Invoice"
+                              style={{ width: 26, height: 26, borderRadius: 5, flexShrink: 0 }}
+                              onClick={() => openEditInvoice(inv)}
                             >
-                              <Printer size={12} />
+                              <Pencil size={12} />
                             </button>
                             <button
+                              type="button"
                               className="btn-icon danger"
                               title="Delete Invoice & Return Stock"
+                              style={{ width: 26, height: 26, borderRadius: 5, flexShrink: 0 }}
                               onClick={() => setDeleteInvoiceId(inv.id)}
                             >
                               <Trash2 size={12} />
@@ -1982,6 +2084,41 @@ function BillingContent() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Quick POS Shortcuts & Guide Strip (fills empty void when few invoices) */}
+            {filteredInvoices.length <= 3 && (
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: '12px 14px',
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%)',
+                  borderRadius: 8,
+                  border: '1px solid #bbf7d0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: '#166534', fontWeight: 700, fontSize: 12 }}>
+                  <Sparkles size={14} /> Quick POS Tips & Shortcuts
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8, fontSize: 11, color: '#374151' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>⚡</span>
+                    <span><b>Fast Billing:</b> Press Enter in line items to auto-append new rows.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>👰</span>
+                    <span><b>Bridal Import:</b> Pick bride above to auto-fill wedding package events.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>💬</span>
+                    <span><b>WhatsApp:</b> Click WhatsApp icon to send PDF invoice instantly.</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>🖨️</span>
+                    <span><b>Thermal Print:</b> 80mm roll auto-cut feed spacer included.</span>
+                  </div>
+                </div>
               </div>
             )}
           </motion.div>

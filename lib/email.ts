@@ -280,8 +280,12 @@ function baseLayout(content: string, previewText: string = ''): string {
         ${content}
       </div>
       <div class="footer">
-        <p><strong>Shree Beauty Studio</strong> &bull; Surat, Gujarat</p>
-        <p>For inquiries, WhatsApp us at <a href="https://wa.me/919876543210">+91 98765 43210</a></p>
+        <p><strong>Shree Beauty Studio</strong> &bull; 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004</p>
+        <p style="margin: 8px 0;">
+          <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; text-decoration: underline; font-weight: 700;">📍 Google Maps Location</a> &bull; 
+          <a href="https://www.instagram.com/shreebeauty.studio/" style="color: ${BRAND_COLORS.primary}; text-decoration: underline; font-weight: 700;">📸 Instagram: @shreebeauty.studio</a>
+        </p>
+        <p>For inquiries, WhatsApp us at <a href="https://wa.me/919773240010">+91 97732 40010</a></p>
         <p style="margin-top: 12px; font-size: 11px; color: #94A3B8;">&copy; ${new Date().getFullYear()} Shree Beauty Studio. All rights reserved.</p>
       </div>
     </div>
@@ -339,12 +343,15 @@ export function renderAppointmentConfirmationHtml(props: AppointmentConfirmation
       </tr>` : ''}
       <tr>
         <td class="label">📍 Studio Location</td>
-        <td class="val" style="font-size: 13px;">${address || 'Shree Beauty Studio, Surat, Gujarat'}</td>
+        <td class="val" style="font-size: 13px;">
+          ${address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'}<br/>
+          <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; font-weight: 700; text-decoration: underline; font-size: 12px; display: inline-block; margin-top: 4px;">📍 Get Directions on Google Maps ↗</a>
+        </td>
       </tr>
     </table>
 
     <div style="text-align: center; margin-top: 28px;">
-      <a href="https://wa.me/919876543210" class="btn">Chat on WhatsApp</a>
+      <a href="https://wa.me/919773240010" class="btn">Chat on WhatsApp</a>
     </div>
 
     <div style="background-color: #F8FAFC; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border-left: 3px solid ${BRAND_COLORS.primary};">
@@ -400,12 +407,15 @@ export function renderAppointmentReminderHtml(props: AppointmentReminderEmailPro
       </tr>
       <tr>
         <td class="label">📍 Location</td>
-        <td class="val" style="font-size: 13px;">${address || 'Shree Beauty Studio, Surat'}</td>
+        <td class="val" style="font-size: 13px;">
+          ${address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'}<br/>
+          <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; font-weight: 700; text-decoration: underline; font-size: 12px; display: inline-block; margin-top: 4px;">📍 Open in Google Maps ↗</a>
+        </td>
       </tr>
     </table>
 
     <div style="text-align: center; margin: 24px 0;">
-      <a href="https://wa.me/919876543210" class="btn">Confirm / Reschedule via WhatsApp</a>
+      <a href="https://wa.me/919773240010" class="btn">Confirm / Reschedule via WhatsApp</a>
     </div>
 
     <p style="font-size: 13px; color: ${BRAND_COLORS.muted}; text-align: center;">

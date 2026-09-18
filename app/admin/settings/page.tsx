@@ -422,6 +422,41 @@ export default function SettingsPage() {
                 placeholder="Full studio address..."
               />
             </div>
+            <div className="form-grid" style={{ marginTop: 14 }}>
+              <div className="form-group">
+                <label className="label">📸 Instagram Account Handle</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={s.instagramHandle || '@shreebeauty.studio'}
+                  onChange={(e) => {
+                    const handle = e.target.value;
+                    update('instagramHandle', handle);
+                    const cleanHandle = handle.replace('@', '').trim();
+                    if (cleanHandle) {
+                      update('instagramUrl', `https://www.instagram.com/${cleanHandle}/`);
+                    }
+                  }}
+                  placeholder="@shreebeauty.studio"
+                />
+                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3 }}>
+                  Appears in customer footer, booking passes, WhatsApp and email templates.
+                </span>
+              </div>
+              <div className="form-group">
+                <label className="label">📍 Google Maps Link (Redirection & Reviews)</label>
+                <input
+                  type="url"
+                  className="input"
+                  value={s.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'}
+                  onChange={(e) => update('googleMapsUrl', e.target.value)}
+                  placeholder="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                />
+                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3 }}>
+                  Direct map redirection for clients to get GPS directions to the studio.
+                </span>
+              </div>
+            </div>
           </motion.div>
         )}
 

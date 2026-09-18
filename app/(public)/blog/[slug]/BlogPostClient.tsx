@@ -784,10 +784,16 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: '#0f172a', fontWeight: 700 }}>
-                <MapPin size={16} style={{ color: '#05424A' }} />
-                <span>22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat 395004</span>
-              </div>
+              <a
+                href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: '#0f172a', fontWeight: 700, textDecoration: 'none' }}
+                title="Open in Google Maps"
+              >
+                <MapPin size={16} style={{ color: '#05424A', flexShrink: 0 }} />
+                <span style={{ textDecoration: 'underline', textDecorationColor: 'rgba(5,66,74,0.3)' }}>22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat 395004 ↗</span>
+              </a>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#64748b' }}>
                 <Clock size={14} />
                 <span>Monday – Sunday: 10:00 AM – 7:00 PM • Prior appointment recommended</span>
@@ -796,7 +802,7 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <a
-                href="https://maps.google.com/?q=Radhika+Society+Katargam+Surat"
+                href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

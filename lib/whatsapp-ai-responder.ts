@@ -105,7 +105,7 @@ export async function processWhatsAppAIMessage(
   if (lower.includes('time') || lower.includes('hour') || lower.includes('open') || lower.includes('સમય')) {
     aiReplyText = `🌸 *${salonName} Hours* 🌸\nWe are open Monday to Sunday: 09:00 AM – 08:30 PM.\n📞 For instant bookings: +${salonData.settings?.whatsapp || '919773240010'}`;
   } else if (lower.includes('address') || lower.includes('location') || lower.includes('સરનામું')) {
-    aiReplyText = `📍 *${salonName} Location* 📍\nShree Beauty Studio & Bridal Lounge, Ring Road, Surat, Gujarat.\nMap: https://maps.google.com`;
+    aiReplyText = `📍 *${salonName} Location* 📍\n22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat - 395004.\n📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\n📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`;
   } else {
     aiReplyText = `🌸 *Welcome to ${salonName}!* 🌸\nDear ${recipientName},\nThank you for messaging us!\n\n✨ Type *"Bridal Rate Card"* to receive our official PDF price list.\n✨ Type *"Book Facial tomorrow 4pm"* to schedule an appointment.\n\nHow can we pamper you today? 💖`;
   }

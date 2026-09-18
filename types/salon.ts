@@ -59,6 +59,10 @@ export interface SalonSettings {
   googleClientId?: string; // OAuth 2.0 Client ID
   googleClientSecret?: string; // OAuth 2.0 Client Secret
   googleRefreshToken?: string; // OAuth 2.0 Refresh Token
+  // Social Media & Maps Redirection
+  instagramHandle?: string; // e.g. '@shreebeauty.studio'
+  instagramUrl?: string; // e.g. 'https://www.instagram.com/shreebeauty.studio/'
+  googleMapsUrl?: string; // e.g. 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'
 }
 
 export interface Service {
