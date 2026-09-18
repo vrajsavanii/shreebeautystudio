@@ -1337,8 +1337,9 @@ export default function FinanceAccountingPage() {
         </div>
       </div>
 
-      {/* ─── NAVIGATION TABS ─── */}
+      {/* ─── NAVIGATION TABS (SINGLE LINE) ─── */}
       <div
+        className="no-scrollbar"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -1347,23 +1348,28 @@ export default function FinanceAccountingPage() {
           paddingBottom: 12,
           marginBottom: 20,
           overflowX: 'auto',
+          flexWrap: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <button
           onClick={() => setActiveTab('transactions')}
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 18px',
+            padding: '9px 18px',
             borderRadius: 10,
             fontSize: 13.5,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
             background: activeTab === 'transactions' ? '#0f172a' : 'transparent',
             color: activeTab === 'transactions' ? '#ffffff' : '#64748b',
             boxShadow: activeTab === 'transactions' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           <Receipt size={16} /> All Transactions ({unifiedTransactions.length})
@@ -1372,18 +1378,21 @@ export default function FinanceAccountingPage() {
         <button
           onClick={() => setActiveTab('parties')}
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 18px',
+            padding: '9px 18px',
             borderRadius: 10,
             fontSize: 13.5,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
             background: activeTab === 'parties' ? '#0f172a' : 'transparent',
             color: activeTab === 'parties' ? '#ffffff' : '#64748b',
             boxShadow: activeTab === 'parties' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           <Users size={16} /> Parties / Khata Book ({(data.customers || []).length + (data.suppliers || []).length})
@@ -1392,18 +1401,21 @@ export default function FinanceAccountingPage() {
         <button
           onClick={() => setActiveTab('invoices')}
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 18px',
+            padding: '9px 18px',
             borderRadius: 10,
             fontSize: 13.5,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
             background: activeTab === 'invoices' ? '#0f172a' : 'transparent',
             color: activeTab === 'invoices' ? '#ffffff' : '#64748b',
             boxShadow: activeTab === 'invoices' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           <FileText size={16} /> Sales Invoices
@@ -1412,18 +1424,21 @@ export default function FinanceAccountingPage() {
         <button
           onClick={() => setActiveTab('purchases')}
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 18px',
+            padding: '9px 18px',
             borderRadius: 10,
             fontSize: 13.5,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
             background: activeTab === 'purchases' ? '#0f172a' : 'transparent',
             color: activeTab === 'purchases' ? '#ffffff' : '#64748b',
             boxShadow: activeTab === 'purchases' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           <ShoppingBag size={16} /> Purchases
@@ -1432,18 +1447,21 @@ export default function FinanceAccountingPage() {
         <button
           onClick={() => setActiveTab('rojmel')}
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 18px',
+            padding: '9px 18px',
             borderRadius: 10,
             fontSize: 13.5,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
             background: activeTab === 'rojmel' ? '#0f172a' : 'transparent',
             color: activeTab === 'rojmel' ? '#ffffff' : '#64748b',
             boxShadow: activeTab === 'rojmel' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           <BookOpen size={16} /> Daily Cash Book (Rojmel)
@@ -1452,18 +1470,21 @@ export default function FinanceAccountingPage() {
         <button
           onClick={() => setActiveTab('reports')}
           style={{
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: 8,
-            padding: '8px 18px',
+            padding: '9px 18px',
             borderRadius: 10,
             fontSize: 13.5,
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
             background: activeTab === 'reports' ? '#0f172a' : 'transparent',
             color: activeTab === 'reports' ? '#ffffff' : '#64748b',
             boxShadow: activeTab === 'reports' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
           <BarChart3 size={16} /> Financial Reports
