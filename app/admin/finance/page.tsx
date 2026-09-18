@@ -53,6 +53,7 @@ import {
   Customer,
   Supplier,
   InventoryItem,
+  BankAccount,
   SalonData,
 } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
@@ -126,6 +127,7 @@ export default function FinanceAccountingPage() {
   const [paymentOutModalOpen, setPaymentOutModalOpen] = useState(false);
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [partyModalOpen, setPartyModalOpen] = useState(false);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
 
   // Receipt Modal
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
@@ -201,6 +203,16 @@ export default function FinanceAccountingPage() {
     openingType: 'To Receive' as 'To Receive' | 'To Pay',
     address: '',
     gstin: '',
+  });
+
+  // Bank Form
+  const [bankForm, setBankForm] = useState({
+    name: '',
+    accountNo: '',
+    ifsc: '',
+    branch: '',
+    upiId: '',
+    openingBalance: '',
   });
 
   // ── Unified Transactions Compiler ──────────────────────────────────────────
@@ -842,6 +854,50 @@ export default function FinanceAccountingPage() {
     });
   };
 
+  const handleCreateBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bankForm.name.trim()) {
+      toast('Please enter bank / account name', 'error');
+      return;
+    }
+    const newBank: BankAccount = {
+      id: uid(),
+      name: bankForm.name.trim(),
+      bankName: bankForm.name.trim(),
+      accountNo: bankForm.accountNo.trim(),
+      ifsc: bankForm.ifsc.trim().toUpperCase(),
+      branch: bankForm.branch.trim(),
+      upiId: bankForm.upiId.trim(),
+      openingBalance: Number(bankForm.openingBalance || 0),
+      isActive: true,
+    };
+    updateData((prev: SalonData) => ({
+      ...prev,
+      bankAccounts: [newBank, ...(prev.bankAccounts || [])],
+    }));
+    scheduleSave();
+    toast(`✅ Bank Account "${bankForm.name}" added successfully!`);
+    setBankModalOpen(false);
+    setBankForm({
+      name: '',
+      accountNo: '',
+      ifsc: '',
+      branch: '',
+      upiId: '',
+      openingBalance: '',
+    });
+  };
+
+  const handleDeleteBank = (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete bank account "${name}"?`)) return;
+    updateData((prev: SalonData) => ({
+      ...prev,
+      bankAccounts: (prev.bankAccounts || []).filter((b: BankAccount) => b.id !== id),
+    }));
+    scheduleSave();
+    toast(`Deleted bank account "${name}"`);
+  };
+
   const handleDeleteTx = (tx: UnifiedTransaction) => {
     if (!window.confirm(`Are you sure you want to delete ${tx.type} #${tx.billNo}?`)) return;
 
@@ -883,12 +939,12 @@ export default function FinanceAccountingPage() {
 
   return (
     <div style={{ padding: '24px 28px', maxWidth: 1600, margin: '0 auto', color: '#1e293b' }}>
-      {/* ─── 6 QUICK ACTION BUTTONS (SINGLE HORIZONTAL ROW) ─── */}
+      {/* ─── 7 QUICK ACTION BUTTONS (SINGLE HORIZONTAL ROW) ─── */}
       <div
         className="no-scrollbar"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
           gap: 10,
           marginBottom: 20,
         }}
@@ -900,12 +956,12 @@ export default function FinanceAccountingPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            padding: '10px 12px',
+            padding: '10px 10px',
             borderRadius: 10,
             background: '#059669',
             color: '#ffffff',
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 12.5,
             border: 'none',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -915,7 +971,7 @@ export default function FinanceAccountingPage() {
           onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          <Plus size={15} /> + Sale
+          <Plus size={14} /> + Sale
         </button>
 
         <button
@@ -925,12 +981,12 @@ export default function FinanceAccountingPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            padding: '10px 12px',
+            padding: '10px 10px',
             borderRadius: 10,
             background: '#2563eb',
             color: '#ffffff',
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 12.5,
             border: 'none',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -940,7 +996,7 @@ export default function FinanceAccountingPage() {
           onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          <Plus size={15} /> + Purchase
+          <Plus size={14} /> + Purchase
         </button>
 
         <button
@@ -950,12 +1006,12 @@ export default function FinanceAccountingPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            padding: '10px 12px',
+            padding: '10px 10px',
             borderRadius: 10,
             background: '#0d9488',
             color: '#ffffff',
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 12.5,
             border: 'none',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -965,7 +1021,7 @@ export default function FinanceAccountingPage() {
           onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          <ArrowDownLeft size={15} /> + Payment In
+          <ArrowDownLeft size={14} /> + Payment In
         </button>
 
         <button
@@ -975,12 +1031,12 @@ export default function FinanceAccountingPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            padding: '10px 12px',
+            padding: '10px 10px',
             borderRadius: 10,
             background: '#d97706',
             color: '#ffffff',
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 12.5,
             border: 'none',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -990,7 +1046,7 @@ export default function FinanceAccountingPage() {
           onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          <ArrowUpRight size={15} /> + Payment Out
+          <ArrowUpRight size={14} /> + Payment Out
         </button>
 
         <button
@@ -1000,12 +1056,12 @@ export default function FinanceAccountingPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            padding: '10px 12px',
+            padding: '10px 10px',
             borderRadius: 10,
             background: '#e11d48',
             color: '#ffffff',
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 12.5,
             border: 'none',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -1015,7 +1071,7 @@ export default function FinanceAccountingPage() {
           onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          <Plus size={15} /> + Expense
+          <Plus size={14} /> + Expense
         </button>
 
         <button
@@ -1025,12 +1081,12 @@ export default function FinanceAccountingPage() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 6,
-            padding: '10px 12px',
+            padding: '10px 10px',
             borderRadius: 10,
             background: '#ffffff',
             color: '#7c3aed',
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 12.5,
             border: '1.5px solid #ddd6fe',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
@@ -1040,7 +1096,32 @@ export default function FinanceAccountingPage() {
           onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
           onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
-          <Users size={15} /> + Party
+          <Users size={14} /> + Party
+        </button>
+
+        <button
+          onClick={() => setBankModalOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '10px 10px',
+            borderRadius: 10,
+            background: '#ffffff',
+            color: '#0284c7',
+            fontWeight: 700,
+            fontSize: 12.5,
+            border: '1.5px solid #bae6fd',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.08)',
+            transition: 'transform 0.15s ease',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+          onMouseOut={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+        >
+          <Landmark size={14} /> + Bank
         </button>
       </div>
 
@@ -2797,6 +2878,157 @@ export default function FinanceAccountingPage() {
             Create Party
           </button>
         </form>
+      </Modal>
+
+      {/* ─── MODAL 7: BANK ACCOUNTS & UPI MANAGEMENT ─── */}
+      <Modal isOpen={bankModalOpen} onClose={() => setBankModalOpen(false)} title="🏦 Bank Accounts & UPI Management">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* Add Bank Form */}
+          <form
+            onSubmit={handleCreateBank}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              background: '#f8fafc',
+              padding: 16,
+              borderRadius: 12,
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Landmark size={16} color="#0284c7" /> + Add New Bank Account / UPI ID
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Bank / Account Name *</label>
+              <input
+                type="text"
+                placeholder="e.g. HDFC Bank, SBI Current, GPay UPI"
+                required
+                value={bankForm.name}
+                onChange={(e) => setBankForm({ ...bankForm, name: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Account Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 50200012345678"
+                  value={bankForm.accountNo}
+                  onChange={(e) => setBankForm({ ...bankForm, accountNo: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>IFSC Code</label>
+                <input
+                  type="text"
+                  placeholder="e.g. HDFC0001234"
+                  value={bankForm.ifsc}
+                  onChange={(e) => setBankForm({ ...bankForm, ifsc: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>UPI ID (VPA)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. shreebeauty@okaxis"
+                  value={bankForm.upiId}
+                  onChange={(e) => setBankForm({ ...bankForm, upiId: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Opening Balance (₹)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  value={bankForm.openingBalance}
+                  onChange={(e) => setBankForm({ ...bankForm, openingBalance: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              style={{
+                padding: '10px 16px',
+                borderRadius: 8,
+                background: '#0284c7',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: 13.5,
+                border: 'none',
+                cursor: 'pointer',
+                marginTop: 4,
+              }}
+            >
+              Add Bank Account
+            </button>
+          </form>
+
+          {/* Existing Bank Accounts List */}
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a', marginBottom: 10 }}>
+              Saved Bank &amp; UPI Accounts ({(data.bankAccounts || []).length})
+            </div>
+            {(data.bankAccounts || []).length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13, background: '#f8fafc', borderRadius: 10 }}>
+                No custom bank accounts added yet. (Default: HDFC / ICICI / Online)
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 240, overflowY: 'auto' }}>
+                {(data.bankAccounts || []).map((acc: BankAccount) => (
+                  <div
+                    key={acc.id}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      border: '1px solid #e2e8f0',
+                      background: '#ffffff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#0f172a', fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Landmark size={14} color="#0284c7" /> {acc.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                        {acc.accountNo ? `A/c: ${acc.accountNo}` : ''} {acc.ifsc ? `• IFSC: ${acc.ifsc}` : ''} {acc.upiId ? `• UPI: ${acc.upiId}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>Opening Bal</div>
+                        <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a' }}>{money(acc.openingBalance || 0)}</div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteBank(acc.id, acc.name)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: 4,
+                        }}
+                        title="Delete Bank Account"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </Modal>
 
       {/* ─── INVOICE RECEIPT MODAL ─── */}
