@@ -1086,13 +1086,14 @@ export default function FinanceAccountingPage() {
         </div>
       </div>
 
-      {/* ─── 6 COLORFUL KPI METRIC CARDS ─── */}
+      {/* ─── 6 COLORFUL KPI METRIC CARDS (SINGLE HORIZONTAL ROW) ─── */}
       <div
+        className="finance-kpis-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 16,
-          marginBottom: 24,
+          gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+          gap: 12,
+          marginBottom: 22,
         }}
       >
         {/* 1. YOU'LL GET (RECEIVABLES) */}
@@ -1100,20 +1101,22 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#f0fdf4',
             border: '1.5px solid #bbf7d0',
-            borderRadius: 16,
-            padding: '18px 20px',
+            borderRadius: 14,
+            padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 4px 12px rgba(34, 197, 94, 0.04)',
+            boxShadow: '0 2px 8px rgba(34, 197, 94, 0.05)',
+            minWidth: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#166534', letterSpacing: '0.04em' }}>
-              YOU&apos;LL GET (RECEIVABLES)
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#166534', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              YOU&apos;LL GET
             </span>
             <div
               style={{
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
+                minWidth: 24,
                 borderRadius: '50%',
                 background: '#dcfce7',
                 color: '#16a34a',
@@ -1122,13 +1125,13 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <ArrowDownLeft size={15} />
+              <ArrowDownLeft size={13} />
             </div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#14532d', margin: '8px 0 4px' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#14532d', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.receivables)}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#15803d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {metrics.dueCustomerCount} Customers Due
           </div>
         </div>
@@ -1138,20 +1141,22 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#fff1f2',
             border: '1.5px solid #fecdd3',
-            borderRadius: 16,
-            padding: '18px 20px',
+            borderRadius: 14,
+            padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 4px 12px rgba(244, 63, 94, 0.04)',
+            boxShadow: '0 2px 8px rgba(244, 63, 94, 0.05)',
+            minWidth: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#9f1239', letterSpacing: '0.04em' }}>
-              YOU&apos;LL PAY (PAYABLES)
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#9f1239', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              YOU&apos;LL PAY
             </span>
             <div
               style={{
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
+                minWidth: 24,
                 borderRadius: '50%',
                 background: '#ffe4e6',
                 color: '#e11d48',
@@ -1160,13 +1165,13 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <ArrowUpRight size={15} />
+              <ArrowUpRight size={13} />
             </div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#881337', margin: '8px 0 4px' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#881337', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.payables)}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#be123c' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#be123c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {metrics.dueSupplierCount} Suppliers Due
           </div>
         </div>
@@ -1176,20 +1181,22 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#f0f9ff',
             border: '1.5px solid #bae6fd',
-            borderRadius: 16,
-            padding: '18px 20px',
+            borderRadius: 14,
+            padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 4px 12px rgba(14, 165, 233, 0.04)',
+            boxShadow: '0 2px 8px rgba(14, 165, 233, 0.05)',
+            minWidth: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#075985', letterSpacing: '0.04em' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#075985', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               CASH IN HAND
             </span>
             <div
               style={{
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
+                minWidth: 24,
                 borderRadius: '50%',
                 background: '#e0f2fe',
                 color: '#0284c7',
@@ -1198,14 +1205,14 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <Wallet size={15} />
+              <Wallet size={13} />
             </div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#0c4a6e', margin: '8px 0 4px' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#0c4a6e', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.cashInHand)}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#0369a1' }}>
-            Counter Cash &amp; Drawer
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#0369a1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Counter &amp; Drawer
           </div>
         </div>
 
@@ -1214,20 +1221,22 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#f0fdfa',
             border: '1.5px solid #99f6e4',
-            borderRadius: 16,
-            padding: '18px 20px',
+            borderRadius: 14,
+            padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 4px 12px rgba(20, 184, 166, 0.04)',
+            boxShadow: '0 2px 8px rgba(20, 184, 166, 0.05)',
+            minWidth: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#115e59', letterSpacing: '0.04em' }}>
-              BANK &amp; UPI BALANCE
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#115e59', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              BANK &amp; UPI
             </span>
             <div
               style={{
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
+                minWidth: 24,
                 borderRadius: '50%',
                 background: '#ccfbf1',
                 color: '#0d9488',
@@ -1236,14 +1245,14 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <Landmark size={15} />
+              <Landmark size={13} />
             </div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#134e4a', margin: '8px 0 4px' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#134e4a', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.bankUpiBalance)}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#0f766e' }}>
-            HDFC / ICICI / Online
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#0f766e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Online &amp; Account
           </div>
         </div>
 
@@ -1252,20 +1261,22 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#faf5ff',
             border: '1.5px solid #e9d5ff',
-            borderRadius: 16,
-            padding: '18px 20px',
+            borderRadius: 14,
+            padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 4px 12px rgba(168, 85, 247, 0.04)',
+            boxShadow: '0 2px 8px rgba(168, 85, 247, 0.05)',
+            minWidth: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#6b21a8', letterSpacing: '0.04em' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#6b21a8', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               TODAY&apos;S SALE
             </span>
             <div
               style={{
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
+                minWidth: 24,
                 borderRadius: '50%',
                 background: '#f3e8ff',
                 color: '#9333ea',
@@ -1274,14 +1285,14 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <TrendingUp size={15} />
+              <TrendingUp size={13} />
             </div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#581c87', margin: '8px 0 4px' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#581c87', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.todaySales)}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#7e22ce' }}>
-            This Month: {money(metrics.thisMonthSales)}
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#7e22ce', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Month: {money(metrics.thisMonthSales)}
           </div>
         </div>
 
@@ -1290,20 +1301,22 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#fffbeb',
             border: '1.5px solid #fde68a',
-            borderRadius: 16,
-            padding: '18px 20px',
+            borderRadius: 14,
+            padding: '12px 14px',
             position: 'relative',
-            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.04)',
+            boxShadow: '0 2px 8px rgba(245, 158, 11, 0.05)',
+            minWidth: 0,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: '#92400e', letterSpacing: '0.04em' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#92400e', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               STOCK VALUE
             </span>
             <div
               style={{
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
+                minWidth: 24,
                 borderRadius: '50%',
                 background: '#fef3c7',
                 color: '#d97706',
@@ -1312,13 +1325,13 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <Package size={15} />
+              <Package size={13} />
             </div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#78350f', margin: '8px 0 4px' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#78350f', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.stockValuation)}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#b45309' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Warehouse Inventory
           </div>
         </div>
