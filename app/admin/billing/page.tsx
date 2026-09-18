@@ -1301,17 +1301,1445 @@ function BillingContent() {
         </div>
       )}
 
-      {/* VIEW: Split OR Builder Mode (balanced 2-column on desktop, stacked on mobile) */}
+      {/* VIEW: 2-Column POS Builder, Side-by-Side Split, or History Mode */}
       <div className={activeTab === 'history' ? '' : 'billing-layout'}>
-        {/* Invoice Builder Component */}
-        {(activeTab === 'split' || activeTab === 'builder') && (
+        {/* 1. BUILDER MODE: 2-Column Balanced POS (Items on Left, Checkout on Right) */}
+        {activeTab === 'builder' && (
+          <>
+            {/* Left Column: Client Details & Line Items List */}
+            <motion.div
+              className="card billing-builder-card billing-items-panel"
+              variants={fadeSlideUp}
+              initial="hidden"
+              animate="visible"
+              style={{
+                padding: '12px 14px',
+                border: '1px solid #e2e8f0',
+                borderRadius: 12,
+                background: '#ffffff',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 8,
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}
+              >
+                <h2
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 15,
+                    margin: 0,
+                    color: '#0f172a',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {editingInvoiceId
+                    ? `✎ Edit Invoice — ${data?.invoices?.find((i) => i.id === editingInvoiceId)?.no || ''}`
+                    : 'New POS Invoice'}
+                </h2>
+                {editingInvoiceId ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={cancelEditInvoice}
+                    style={{ fontSize: 11, padding: '2px 8px', height: 26, borderRadius: 6 }}
+                  >
+                    Cancel Edit
+                  </button>
+                ) : appointmentRef ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      background: '#e0f2fe',
+                      color: '#0369a1',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      border: '1px solid #bae6fd',
+                    }}
+                  >
+                    {appointmentRef}
+                  </span>
+                ) : null}
+              </div>
+
+              {/* Quick Import Bridal Booking (Compact pink container) */}
+              {data?.bridal && data.bridal.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: 8,
+                    padding: '6px 10px',
+                    background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)',
+                    borderRadius: 8,
+                    border: '1px solid #fbcfe8',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 4,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#9d174d',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      👑 Quick Import Bridal Booking
+                    </span>
+                    <span style={{ fontSize: 10, fontWeight: 500, color: '#be185d' }}>
+                      Auto-loads events &amp; package
+                    </span>
+                  </div>
+                  <select
+                    className="input"
+                    style={{
+                      height: 30,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      borderColor: '#f472b6',
+                      background: '#ffffff',
+                      color: '#831843',
+                      cursor: 'pointer',
+                      padding: '0 8px',
+                      borderRadius: 6,
+                    }}
+                    onChange={(e) => {
+                      const b = data.bridal?.find((x) => x.id === e.target.value);
+                      if (b) {
+                        handleImportBridal(b);
+                      }
+                    }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Select bride booking to load into bill…
+                    </option>
+                    {data.bridal.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.mobile || 'No mobile'}) — {b.packageName || 'Bridal'} ({money(b.package)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Customer Information (Compact 2-column layout) */}
+              <div
+                className="billing-customer-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 1fr)',
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label
+                    className="label"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      marginBottom: 3,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: '#1e293b',
+                    }}
+                  >
+                    <span>Customer Name</span>
+                    <span style={{ fontSize: 10, fontWeight: 400, color: '#64748b' }}>
+                      (auto-suggest)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    list="billing-cust-name-list"
+                    autoComplete="off"
+                    placeholder="Start typing name or contact…"
+                    value={customer}
+                    onChange={(e) => handleCustomerSelect(e.target.value)}
+                    style={{
+                      height: 34,
+                      fontSize: 12,
+                      borderRadius: 7,
+                      padding: '0 9px',
+                      border: '1px solid #cbd5e1',
+                    }}
+                  />
+                  <datalist id="billing-cust-name-list">
+                    {(data?.customers || []).map((c) => (
+                      <option
+                        key={c.id}
+                        value={`${formatCustomerContactName(c.name)} (${c.mobile})`}
+                      >
+                        {formatCustomerContactName(c.name)} — 📞 {c.mobile}
+                      </option>
+                    ))}
+                  </datalist>
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label
+                    className="label"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      marginBottom: 3,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      color: '#1e293b',
+                    }}
+                  >
+                    <span>Mobile Number</span>
+                    <span style={{ fontSize: 10, fontWeight: 400, color: '#64748b' }}>
+                      (10-digit)
+                    </span>
+                  </label>
+                  <input
+                    type="tel"
+                    className="input"
+                    list="billing-cust-mob-list"
+                    autoComplete="off"
+                    placeholder="10-digit mobile number"
+                    value={mobile}
+                    onChange={(e) => handleMobileSelect(e.target.value)}
+                    style={{
+                      height: 34,
+                      fontSize: 12,
+                      borderRadius: 7,
+                      padding: '0 9px',
+                      border: '1px solid #cbd5e1',
+                    }}
+                  />
+                  <datalist id="billing-cust-mob-list">
+                    {(data?.customers || []).map((c) => (
+                      <option
+                        key={c.id}
+                        value={`${c.mobile} (${formatCustomerContactName(c.name)})`}
+                      >
+                        {c.mobile} — 👤 {formatCustomerContactName(c.name)}
+                      </option>
+                    ))}
+                  </datalist>
+
+                  {/* 24-Hour Free Customer Service Window Status */}
+                  {mobile.length === 10 ? (
+                    <div
+                      style={{
+                        marginTop: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: 10.5,
+                        gap: 6,
+                      }}
+                    >
+                      {cust24hStatus.active ? (
+                        <span
+                          style={{
+                            color: '#16a34a',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            background: '#f0fdf4',
+                            padding: '1.5px 6px',
+                            borderRadius: 5,
+                            border: '1px solid #bbf7d0',
+                          }}
+                          title={`Incoming message received. Meta Cloud API dispatch is ₹0 until ${cust24hStatus.expiresAt}`}
+                        >
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                          🟢 24h Free ({cust24hStatus.formattedRemaining})
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            color: '#64748b',
+                            fontSize: 10.5,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                          }}
+                          title="Customer has not messaged recently."
+                        >
+                          <span>⚪ Outside 24h</span>
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setQrModalOpen(true)}
+                        style={{
+                          background: '#ffffff',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 5,
+                          padding: '1.5px 6px',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: '#05424A',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                        }}
+                        title="Show Reception Desk QR Code to customer"
+                      >
+                        <QrCode size={10} />
+                        <span>{cust24hStatus.active ? 'Desk QR' : '📱 Desk QR'}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => setQrModalOpen(true)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: '#05424A',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          padding: 0,
+                        }}
+                      >
+                        <QrCode size={10} />
+                        <span>Reception Desk QR</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Barcode / Product Scanning Area (Compact & Action-Oriented) */}
+              <div
+                className="billing-barcode-container"
+                style={{
+                  display: 'flex',
+                  gap: 6,
+                  alignItems: 'center',
+                  background: '#f8fafc',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: 8,
+                  padding: '5px 8px',
+                  margin: '4px 0 8px',
+                }}
+              >
+                <div
+                  className="billing-barcode-input-row"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}
+                >
+                  <Barcode size={16} color="#05424A" style={{ flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    className="input billing-barcode-input"
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      height: 30,
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 6,
+                      padding: '0 8px',
+                      fontSize: 11.5,
+                    }}
+                    placeholder="Scan barcode or type item & press Enter…"
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleScanBarcode();
+                      }
+                    }}
+                  />
+                </div>
+                <div
+                  className="billing-barcode-actions"
+                  style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}
+                >
+                  <button
+                    className="btn btn-primary btn-sm"
+                    type="button"
+                    style={{
+                      height: 30,
+                      padding: '0 10px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      borderRadius: 6,
+                    }}
+                    onClick={() => handleScanBarcode()}
+                  >
+                    Scan Item
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    type="button"
+                    style={{
+                      height: 30,
+                      padding: '0 8px',
+                      fontSize: 11.5,
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 6,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                    onClick={() => setCameraModalOpen(true)}
+                  >
+                    <Camera size={12} /> <span>Camera</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Line Items Section */}
+              <div style={{ marginBottom: 4, display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 6,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <label className="label" style={{ margin: 0, fontWeight: 800, fontSize: 12.5 }}>
+                      Invoice Line Items
+                    </label>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        padding: '1px 6px',
+                        borderRadius: 99,
+                      }}
+                    >
+                      {lines.filter((l) => l.name && l.name.trim() !== '').length}
+                    </span>
+                  </div>
+                  <motion.button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setLines((p) => [...p, EMPTY_LINE()])}
+                    whileTap={{ scale: 0.96 }}
+                    style={{
+                      height: 26,
+                      padding: '0 9px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      borderRadius: 6,
+                      border: '1px solid #cbd5e1',
+                      background: '#f8fafc',
+                      color: '#05424A',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Plus size={12} /> <span>Add Item</span>
+                  </motion.button>
+                </div>
+
+                {/* 1. Desktop & Tablet Grid Table */}
+                <div className="billing-lines-desktop">
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(130px, 2.3fr) 42px 68px 84px 68px 26px',
+                      gap: 5,
+                      padding: '5px 8px',
+                      background: '#f1f5f9',
+                      borderRadius: '6px 6px 0 0',
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      color: '#64748b',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      marginBottom: 4,
+                      alignItems: 'center',
+                      border: '1px solid #e2e8f0',
+                      borderBottom: 'none',
+                    }}
+                  >
+                    <span>Service / Product Description</span>
+                    <span style={{ textAlign: 'center' }}>Qty</span>
+                    <span style={{ textAlign: 'right' }}>Price (₹)</span>
+                    <span style={{ textAlign: 'center' }}>Disc (₹ / %)</span>
+                    <span style={{ textAlign: 'right' }}>Total (₹)</span>
+                    <span></span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 5,
+                      maxHeight: 'calc(100vh - 360px)',
+                      minHeight: '130px',
+                      overflowY: 'auto',
+                      paddingRight: 4,
+                    }}
+                  >
+                    {lines.map((line, idx) => (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(130px, 2.3fr) 42px 68px 84px 68px 26px',
+                          gap: 5,
+                          alignItems: 'center',
+                        }}
+                      >
+                        {/* Item Name + Type Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            type="button"
+                            className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
+                            style={{
+                              cursor: 'pointer',
+                              fontSize: 10,
+                              padding: '2px 5px',
+                              border: 'none',
+                              flexShrink: 0,
+                              borderRadius: 5,
+                            }}
+                            title={
+                              line.type === 'P'
+                                ? 'Retail Product (Click to switch to Service)'
+                                : 'Salon Service (Click to switch to Product)'
+                            }
+                            onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
+                          >
+                            {line.type === 'P' ? '📦' : '💄'}
+                          </button>
+                          <input
+                            type="text"
+                            id={`billing-line-name-${idx}`}
+                            className="input"
+                            list="billing-items-list"
+                            placeholder="Select service or scan product…"
+                            value={line.name}
+                            onChange={(e) => handleItemSelect(idx, e.target.value)}
+                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                            style={{
+                              height: 32,
+                              fontSize: 11.5,
+                              padding: '0 7px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: 6,
+                            }}
+                          />
+                        </div>
+
+                        {/* Qty */}
+                        <input
+                          type="number"
+                          min={1}
+                          className="input"
+                          title="Quantity"
+                          placeholder="Qty"
+                          value={line.qty}
+                          onChange={(e) =>
+                            setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
+                          }
+                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                          style={{
+                            textAlign: 'center',
+                            height: 32,
+                            fontSize: 11.5,
+                            padding: '0 2px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: 6,
+                          }}
+                        />
+
+                        {/* Price */}
+                        <input
+                          type="number"
+                          min={0}
+                          className="input"
+                          title="Rate (₹)"
+                          placeholder="0"
+                          value={line.price || ''}
+                          onChange={(e) =>
+                            setLine(idx, { price: Number(e.target.value) || 0 })
+                          }
+                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                          style={{
+                            textAlign: 'right',
+                            height: 32,
+                            fontSize: 11.5,
+                            padding: '0 5px',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: 6,
+                          }}
+                        />
+
+                        {/* Item Discount Input + Unit Toggle (₹ or %) */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <input
+                            type="number"
+                            min={0}
+                            className="input"
+                            title="Discount on this item"
+                            placeholder="0"
+                            value={line.discount || ''}
+                            onChange={(e) =>
+                              setLine(idx, { discount: Number(e.target.value) || 0 })
+                            }
+                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                            style={{
+                              textAlign: 'right',
+                              height: 32,
+                              fontSize: 11.5,
+                              padding: '0 3px',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: 6,
+                              color: Number(line.discount || 0) > 0 ? '#16a34a' : 'inherit',
+                              fontWeight: Number(line.discount || 0) > 0 ? 700 : 400,
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            style={{
+                              padding: 0,
+                              width: 22,
+                              height: 32,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              borderRadius: 5,
+                              color: (line.discountType || '₹') === '%' ? '#2563eb' : '#05424A',
+                              background:
+                                (line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4',
+                              border: '1px solid #cbd5e1',
+                              flexShrink: 0,
+                            }}
+                            title={`Toggle Discount Unit: currently ${line.discountType || '₹'}`}
+                            onClick={() =>
+                              setLine(idx, {
+                                discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
+                              })
+                            }
+                          >
+                            {line.discountType || '₹'}
+                          </button>
+                        </div>
+
+                        {/* Line Net Total */}
+                        <div style={{ textAlign: 'right', paddingRight: 3 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>
+                            {money(calcLineTotal(line))}
+                          </span>
+                        </div>
+
+                        {/* Delete Line */}
+                        <button
+                          type="button"
+                          className="btn-icon danger"
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          onClick={() =>
+                            setLines((p) => {
+                              const remaining = p.filter((_, i) => i !== idx);
+                              return remaining.length === 0 ? [EMPTY_LINE()] : remaining;
+                            })
+                          }
+                          disabled={lines.length === 1 && !lines[0].name}
+                          title="Remove item"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Mobile Responsive Cards View */}
+                <div className="billing-lines-mobile" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                  {lines.map((line, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 8,
+                        padding: 8,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
+                          style={{
+                            fontSize: 10,
+                            padding: '2px 5px',
+                            border: 'none',
+                            borderRadius: 5,
+                            flexShrink: 0,
+                          }}
+                          onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
+                        >
+                          {line.type === 'P' ? '📦' : '💄'}
+                        </button>
+                        <input
+                          type="text"
+                          className="input"
+                          list="billing-items-list"
+                          placeholder="Select service or scan product…"
+                          value={line.name}
+                          onChange={(e) => handleItemSelect(idx, e.target.value)}
+                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                          style={{ flex: 1, height: 32, fontSize: 11.5, padding: '0 8px' }}
+                        />
+                        <button
+                          type="button"
+                          className="btn-icon danger"
+                          style={{ width: 26, height: 26, borderRadius: 5, flexShrink: 0 }}
+                          onClick={() =>
+                            setLines((p) => {
+                              const remaining = p.filter((_, i) => i !== idx);
+                              return remaining.length === 0 ? [EMPTY_LINE()] : remaining;
+                            })
+                          }
+                          disabled={lines.length === 1 && !lines[0].name}
+                          title="Remove item"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '42px 68px 1fr auto',
+                          gap: 5,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
+                            QTY
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            className="input"
+                            value={line.qty}
+                            onChange={(e) =>
+                              setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
+                            }
+                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                            style={{ textAlign: 'center', height: 28, fontSize: 11.5, padding: 0 }}
+                          />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
+                            RATE (₹)
+                          </span>
+                          <input
+                            type="number"
+                            min={0}
+                            className="input"
+                            placeholder="0"
+                            value={line.price || ''}
+                            onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
+                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                            style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 4px' }}
+                          />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
+                            DISCOUNT
+                          </span>
+                          <div style={{ display: 'flex', gap: 2 }}>
+                            <input
+                              type="number"
+                              min={0}
+                              className="input"
+                              placeholder="0"
+                              value={line.discount || ''}
+                              onChange={(e) =>
+                                setLine(idx, { discount: Number(e.target.value) || 0 })
+                              }
+                              onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                              style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 4px', flex: 1 }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              style={{
+                                padding: 0,
+                                width: 20,
+                                height: 28,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                borderRadius: 4,
+                              }}
+                              onClick={() =>
+                                setLine(idx, {
+                                  discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
+                                })
+                              }
+                            >
+                              {line.discountType || '₹'}
+                            </button>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', minWidth: 55 }}>
+                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
+                            TOTAL
+                          </span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: '#0f172a' }}>
+                            {money(calcLineTotal(line))}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <datalist id="billing-items-list">
+                  {allItems.map((item, i) => (
+                    <option key={i} value={item.name}>
+                      {item.label}
+                    </option>
+                  ))}
+                </datalist>
+              </div>
+            </motion.div>
+
+            {/* Right Column: Checkout, Discounts, Payment & Instant Print */}
+            <motion.div
+              className="card billing-builder-card billing-checkout-panel"
+              variants={fadeSlideUp}
+              initial="hidden"
+              animate="visible"
+              style={{
+                padding: '12px 14px',
+                border: '1px solid #e2e8f0',
+                borderRadius: 12,
+                background: '#ffffff',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 8,
+                }}
+              >
+                <h2
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 15,
+                    margin: 0,
+                    color: '#0f172a',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  Checkout &amp; Settlement
+                </h2>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    background: 'var(--teal-subtle)',
+                    color: 'var(--teal)',
+                    padding: '2px 7px',
+                    borderRadius: 99,
+                  }}
+                >
+                  {lines.filter((l) => l.name && l.name.trim() !== '').length} items • {money(rawSubtotal)}
+                </span>
+              </div>
+
+              {/* Loyalty & Wallet Banner */}
+              {selectedCustomerObj &&
+                (data?.settings?.loyaltyEnabled || data?.settings?.walletEnabled) && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      background: 'linear-gradient(135deg, #05424a10, #eaba3815)',
+                      border: '1px solid #05424A',
+                      borderRadius: 8,
+                      padding: '5px 8px',
+                      marginBottom: 8,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Sparkles size={13} color="#05424A" />
+                    <span style={{ fontWeight: 700, fontSize: 11.5, color: '#05424A', flex: 1 }}>
+                      {selectedCustomerObj.name}
+                    </span>
+                    {data?.settings?.loyaltyEnabled && (
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          background: '#eaba3825',
+                          borderRadius: 5,
+                          padding: '1.5px 5px',
+                          fontWeight: 700,
+                          color: '#92741a',
+                        }}
+                      >
+                        ⭐ {selectedCustomerObj.loyaltyPoints || 0} pts
+                      </span>
+                    )}
+                    {data?.settings?.walletEnabled && (
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          background: '#05424a15',
+                          borderRadius: 5,
+                          padding: '1.5px 5px',
+                          fontWeight: 700,
+                          color: '#05424A',
+                        }}
+                      >
+                        💳 Wallet: {money(selectedCustomerObj.walletBalance || 0)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+              {/* Totals & Discounts Summary Card */}
+              <div className="billing-totals" style={{ marginTop: 0 }}>
+                <div className="total-row">
+                  <span>Gross Subtotal</span>
+                  <span style={{ fontWeight: 600 }}>{money(rawSubtotal)}</span>
+                </div>
+
+                {serviceDiscountTotal > 0 && (
+                  <div className="total-row" style={{ color: '#16a34a', fontSize: 11.5 }}>
+                    <span>💄 Service Discounts</span>
+                    <span style={{ fontWeight: 700 }}>−{money(serviceDiscountTotal)}</span>
+                  </div>
+                )}
+
+                {productDiscountTotal > 0 && (
+                  <div className="total-row" style={{ color: '#16a34a', fontSize: 11.5 }}>
+                    <span>📦 Product Discounts</span>
+                    <span style={{ fontWeight: 700 }}>−{money(productDiscountTotal)}</span>
+                  </div>
+                )}
+
+                {itemDiscountTotal > 0 && (
+                  <div
+                    className="total-row"
+                    style={{
+                      color: '#05424A',
+                      fontWeight: 600,
+                      fontSize: 11.5,
+                      borderTop: '1px dashed #e2e8f0',
+                      paddingTop: 3,
+                    }}
+                  >
+                    <span>Net Items Subtotal</span>
+                    <span>{money(lineNetTotal)}</span>
+                  </div>
+                )}
+
+                <div className="total-row" style={{ alignItems: 'center' }}>
+                  <span style={{ fontSize: 11.5 }}>Additional Bill Discount (₹)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    className="input"
+                    style={{
+                      width: 80,
+                      height: 26,
+                      textAlign: 'right',
+                      padding: '0 6px',
+                      fontSize: 11.5,
+                      borderRadius: 6,
+                    }}
+                    placeholder="₹ 0"
+                    value={discount || ''}
+                    onChange={(e) => setDiscount(Number(e.target.value))}
+                  />
+                </div>
+
+                {totalAllDiscount > 0 && (
+                  <div
+                    className="total-row"
+                    style={{ color: '#16a34a', fontWeight: 700, fontSize: 11.5 }}
+                  >
+                    <span>Total Savings &amp; Discounts</span>
+                    <span>−{money(totalAllDiscount)}</span>
+                  </div>
+                )}
+
+                {/* Loyalty Points Redemption */}
+                {selectedCustomerObj &&
+                  data?.settings?.loyaltyEnabled &&
+                  (selectedCustomerObj.loyaltyPoints || 0) >=
+                    (data?.settings?.loyaltyMinRedeem || 50) && (
+                    <div
+                      className="total-row"
+                      style={{
+                        alignItems: 'center',
+                        background: '#fefce8',
+                        borderRadius: 7,
+                        padding: '3px 6px',
+                      }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          color: '#92741a',
+                        }}
+                      >
+                        ⭐ Redeem Points ({selectedCustomerObj.loyaltyPoints || 0} pts)
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          min={0}
+                          max={selectedCustomerObj.loyaltyPoints || 0}
+                          step={data?.settings?.loyaltyMinRedeem || 50}
+                          className="input"
+                          style={{ width: 68, height: 24, padding: '0 4px', fontSize: 11 }}
+                          value={redeemPoints || ''}
+                          placeholder="0 pts"
+                          onChange={(e) =>
+                            setRedeemPoints(
+                              Math.min(
+                                Number(e.target.value) || 0,
+                                selectedCustomerObj.loyaltyPoints || 0
+                              )
+                            )
+                          }
+                        />
+                        {pointsDiscountAmount > 0 && (
+                          <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 700 }}>
+                            = −{money(pointsDiscountAmount)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Wallet Usage */}
+                {selectedCustomerObj &&
+                  data?.settings?.walletEnabled &&
+                  (selectedCustomerObj.walletBalance || 0) > 0 && (
+                    <div
+                      className="total-row"
+                      style={{
+                        alignItems: 'center',
+                        background: '#f0fdf4',
+                        borderRadius: 7,
+                        padding: '3px 6px',
+                      }}
+                    >
+                      <label
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          color: '#15803d',
+                        }}
+                      >
+                        💳 Pay from Wallet ({money(selectedCustomerObj.walletBalance || 0)})
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <input
+                          type="number"
+                          min={0}
+                          max={Math.min(
+                            selectedCustomerObj.walletBalance || 0,
+                            roundedTotal - pointsDiscountAmount
+                          )}
+                          className="input"
+                          style={{ width: 75, height: 24, padding: '0 4px', fontSize: 11 }}
+                          value={useWallet || ''}
+                          placeholder="₹ 0"
+                          onChange={(e) =>
+                            setUseWallet(
+                              Math.min(
+                                Number(e.target.value) || 0,
+                                selectedCustomerObj.walletBalance || 0,
+                                roundedTotal
+                              )
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                {advance > 0 && (
+                  <div
+                    className="total-row"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span>Advance Deducted:</span>
+                      <select
+                        value={advanceMode}
+                        onChange={(e) => setAdvanceMode(e.target.value)}
+                        style={{
+                          fontSize: 10,
+                          padding: '1px 4px',
+                          borderRadius: 4,
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                        }}
+                      >
+                        <option value="Cash">💵 Cash</option>
+                        <option value="GPay UPI">📱 GPay</option>
+                        <option value="PhonePe UPI">📲 PhonePe</option>
+                        <option value="Card">💳 Card</option>
+                        <option value="Bank Transfer">🏦 Bank</option>
+                      </select>
+                    </div>
+                    <span style={{ color: '#05424A', fontWeight: 700 }}>−{money(advance)}</span>
+                  </div>
+                )}
+
+                {/* Vyapar Auto Round Off Toggle */}
+                <div className="total-row" style={{ fontSize: 11, color: '#64748b' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={autoRoundOff}
+                      onChange={(e) => setAutoRoundOff(e.target.checked)}
+                    />
+                    <span>Auto Round Off (₹0.50)</span>
+                  </label>
+                  <span>
+                    {roundOffDiff !== 0
+                      ? roundOffDiff > 0
+                        ? `+₹${roundOffDiff.toFixed(2)}`
+                        : `−₹${Math.abs(roundOffDiff).toFixed(2)}`
+                      : '₹0.00'}
+                  </span>
+                </div>
+
+                {/* Final Payable — Primary visual register emphasis */}
+                <div
+                  className="total-row grand"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(5, 66, 74, 0.08) 0%, rgba(234, 186, 56, 0.12) 100%)',
+                    padding: '6px 8px',
+                    borderRadius: 7,
+                    border: '1.5px solid #05424A',
+                    margin: '2px 0',
+                  }}
+                >
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a' }}>
+                    Final Payable
+                  </span>
+                  <span style={{ fontSize: 19, fontWeight: 900, color: '#05424A' }}>
+                    {money(totalAfterLoyalty - Number(advance || 0))}
+                  </span>
+                </div>
+
+                {/* Payment Section (Split or Single Method) */}
+                <div
+                  style={{
+                    marginTop: 2,
+                    background: '#ffffff',
+                    padding: '6px 8px',
+                    borderRadius: 7,
+                    border: '1px solid #e2e8f0',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 4,
+                    }}
+                  >
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>
+                      Payment Method
+                    </span>
+                    <label
+                      style={{
+                        fontSize: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        cursor: 'pointer',
+                        color: '#05424A',
+                        fontWeight: 600,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSplitPayment}
+                        onChange={(e) => setIsSplitPayment(e.target.checked)}
+                      />
+                      <span>Split Payment (Cash + UPI)</span>
+                    </label>
+                  </div>
+
+                  {isSplitPayment ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
+                      <div>
+                        <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                          Cash (₹)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="input"
+                          placeholder="Cash"
+                          value={splitCash}
+                          onChange={(e) => setSplitCash(Number(e.target.value) || '')}
+                          style={{ padding: '0 4px', height: 28, fontSize: 11 }}
+                        />
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: 1,
+                          }}
+                        >
+                          <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                            UPI (₹)
+                          </label>
+                          <select
+                            value={splitUpiMode}
+                            onChange={(e) => setSplitUpiMode(e.target.value)}
+                            style={{
+                              fontSize: 8.5,
+                              padding: '1px 2px',
+                              borderRadius: 4,
+                              border: '1px solid #cbd5e1',
+                              background: '#ffffff',
+                            }}
+                          >
+                            <option value="GPay UPI">GPay</option>
+                            <option value="PhonePe UPI">PhonePe</option>
+                          </select>
+                        </div>
+                        <input
+                          type="number"
+                          min={0}
+                          className="input"
+                          placeholder="UPI"
+                          value={splitUpi}
+                          onChange={(e) => setSplitUpi(Number(e.target.value) || '')}
+                          style={{ padding: '0 4px', height: 28, fontSize: 11 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                          Card (₹)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          className="input"
+                          placeholder="Card"
+                          value={splitCard}
+                          onChange={(e) => setSplitCard(Number(e.target.value) || '')}
+                          style={{ padding: '0 4px', height: 28, fontSize: 11 }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 4 }}>
+                        <div style={{ flex: 1 }}>
+                          <input
+                            type="text"
+                            className="input"
+                            list="pos-payment-accounts"
+                            placeholder="Pick payment method…"
+                            value={mode}
+                            onChange={(e) => setMode(e.target.value)}
+                            style={{ height: 28, fontSize: 11.5, padding: '0 6px' }}
+                          />
+                          <datalist id="pos-payment-accounts">
+                            {(
+                              data?.settings?.payments || [
+                                'Cash',
+                                'GPay UPI',
+                                'PhonePe UPI',
+                                'Card',
+                                'Bank Transfer',
+                                'HDFC Bank',
+                              ]
+                            ).map((p) => (
+                              <option key={p} value={p}>
+                                {p}
+                              </option>
+                            ))}
+                          </datalist>
+                        </div>
+                        <div style={{ width: 95 }}>
+                          <input
+                            type="number"
+                            min={0}
+                            className="input"
+                            placeholder="Paid ₹"
+                            value={paid}
+                            onChange={(e) => setPaid(Number(e.target.value) || '')}
+                            style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 5px' }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Quick Pick Pills */}
+                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                        {(
+                          data?.settings?.payments || [
+                            'Cash',
+                            'GPay UPI',
+                            'PhonePe UPI',
+                            'Card',
+                            'Bank Transfer',
+                            'HDFC Bank',
+                          ]
+                        ).map((p) => {
+                          const isSelected = mode === p;
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setMode(p)}
+                              style={{
+                                padding: '2px 5px',
+                                borderRadius: 4,
+                                border: isSelected ? '1.5px solid #05424A' : '1px solid #cbd5e1',
+                                background: isSelected ? '#05424A' : '#ffffff',
+                                color: isSelected ? '#ffffff' : '#334155',
+                                fontWeight: isSelected ? 700 : 500,
+                                fontSize: 10,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {p}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Balance Due Status */}
+                <div
+                  className="total-row"
+                  style={{
+                    marginTop: 3,
+                    fontWeight: 700,
+                    fontSize: 11,
+                    color: balance > 0 ? '#dc2626' : '#16a34a',
+                  }}
+                >
+                  <span>{balance > 0 ? 'Balance Due' : 'Status'}</span>
+                  <span>{balance > 0 ? money(balance) : '✅ Fully Paid'}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                {editingInvoiceId && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    style={{ flex: 1, padding: '6px 10px', height: 38, fontSize: 12, borderRadius: 7 }}
+                    onClick={cancelEditInvoice}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+                <motion.button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{
+                    flex: editingInvoiceId ? 2 : 1,
+                    height: 38,
+                    padding: '8px 14px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    borderRadius: 7,
+                    background: 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
+                    boxShadow: '0 2px 8px rgba(5, 66, 74, 0.25)',
+                  }}
+                  onClick={handleSave}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Printer size={15} />{' '}
+                  <span>{editingInvoiceId ? 'Update Invoice & Print' : 'Save & Print Receipt'}</span>
+                </motion.button>
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* 2. SPLIT MODE: Left Combined Builder, Right History */}
+        {activeTab === 'split' && (
           <motion.div
             className="card billing-builder-card"
             variants={fadeSlideUp}
             initial="hidden"
             animate="visible"
             style={{
-              padding: '16px 18px',
+              padding: '14px 16px',
               border: '1px solid #e2e8f0',
               borderRadius: 12,
               background: '#ffffff',
@@ -1323,7 +2751,7 @@ function BillingContent() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 12,
+                marginBottom: 10,
                 flexWrap: 'wrap',
                 gap: 8,
               }}
@@ -1331,7 +2759,7 @@ function BillingContent() {
               <h2
                 style={{
                   fontWeight: 800,
-                  fontSize: 16,
+                  fontSize: 15,
                   margin: 0,
                   color: '#0f172a',
                   letterSpacing: '-0.01em',
@@ -1346,7 +2774,7 @@ function BillingContent() {
                   type="button"
                   className="btn btn-ghost btn-sm"
                   onClick={cancelEditInvoice}
-                  style={{ fontSize: 11.5, padding: '3px 10px', height: 28, borderRadius: 6 }}
+                  style={{ fontSize: 11, padding: '2px 8px', height: 26, borderRadius: 6 }}
                 >
                   Cancel Edit
                 </button>
@@ -1356,7 +2784,7 @@ function BillingContent() {
                     fontSize: 11,
                     background: '#e0f2fe',
                     color: '#0369a1',
-                    padding: '3px 8px',
+                    padding: '2px 8px',
                     borderRadius: 6,
                     fontWeight: 700,
                     border: '1px solid #bae6fd',
@@ -1367,69 +2795,33 @@ function BillingContent() {
               ) : null}
             </div>
 
-            {/* Quick Import Bridal Booking (Compact pink container) */}
+            {/* Bridal Selector */}
             {data?.bridal && data.bridal.length > 0 && (
               <div
                 style={{
-                  marginBottom: 12,
-                  padding: '8px 12px',
+                  marginBottom: 8,
+                  padding: '6px 10px',
                   background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)',
-                  borderRadius: 10,
+                  borderRadius: 8,
                   border: '1px solid #fbcfe8',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 6,
+                  gap: 4,
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: 4,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 11.5,
-                      fontWeight: 700,
-                      color: '#9d174d',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                    }}
-                  >
-                    👑 Quick Import Bridal Booking
-                  </span>
-                  <span style={{ fontSize: 10.5, fontWeight: 500, color: '#be185d' }}>
-                    Auto-loads ceremony events &amp; package into bill
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9d174d' }}>👑 Quick Import Bridal Booking</span>
                 </div>
                 <select
                   className="input"
-                  style={{
-                    height: 34,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    borderColor: '#f472b6',
-                    background: '#ffffff',
-                    color: '#831843',
-                    cursor: 'pointer',
-                    padding: '0 10px',
-                    borderRadius: 7,
-                  }}
+                  style={{ height: 30, fontSize: 11.5, fontWeight: 600, borderColor: '#f472b6', background: '#ffffff', color: '#831843', padding: '0 8px', borderRadius: 6 }}
                   onChange={(e) => {
                     const b = data.bridal?.find((x) => x.id === e.target.value);
-                    if (b) {
-                      handleImportBridal(b);
-                    }
+                    if (b) handleImportBridal(b);
                   }}
                   defaultValue=""
                 >
-                  <option value="" disabled>
-                    Select bride booking to load into bill…
-                  </option>
+                  <option value="" disabled>Select bride booking to load into bill…</option>
                   {data.bridal.map((b) => (
                     <option key={b.id} value={b.id}>
                       {b.name} ({b.mobile || 'No mobile'}) — {b.packageName || 'Bridal'} ({money(b.package)})
@@ -1439,1230 +2831,122 @@ function BillingContent() {
               </div>
             )}
 
-            {/* Customer Information (Compact 2-column layout) */}
-            <div
-              className="billing-customer-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr)',
-                gap: 10,
-                marginBottom: 10,
-              }}
-            >
+            {/* Customer Inputs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 1fr)', gap: 8, marginBottom: 8 }}>
               <div className="form-group" style={{ margin: 0 }}>
-                <label
-                  className="label"
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    marginBottom: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    color: '#1e293b',
-                  }}
-                >
-                  <span>Customer Name</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 400, color: '#64748b' }}>
-                    (auto-suggest)
-                  </span>
+                <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3, color: '#1e293b' }}>
+                  Customer Name
                 </label>
                 <input
                   type="text"
                   className="input"
                   list="billing-cust-name-list"
-                  autoComplete="off"
                   placeholder="Start typing name or contact…"
                   value={customer}
                   onChange={(e) => handleCustomerSelect(e.target.value)}
-                  style={{
-                    height: 38,
-                    fontSize: 12.5,
-                    borderRadius: 8,
-                    padding: '0 10px',
-                    border: '1px solid #cbd5e1',
-                  }}
+                  style={{ height: 34, fontSize: 12, borderRadius: 7, padding: '0 9px', border: '1px solid #cbd5e1' }}
                 />
-                <datalist id="billing-cust-name-list">
-                  {(data?.customers || []).map((c) => (
-                    <option
-                      key={c.id}
-                      value={`${formatCustomerContactName(c.name)} (${c.mobile})`}
-                    >
-                      {formatCustomerContactName(c.name)} — 📞 {c.mobile}
-                    </option>
-                  ))}
-                </datalist>
               </div>
               <div className="form-group" style={{ margin: 0 }}>
-                <label
-                  className="label"
-                  style={{
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    marginBottom: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    color: '#1e293b',
-                  }}
-                >
-                  <span>Mobile Number</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 400, color: '#64748b' }}>
-                    (10-digit)
-                  </span>
+                <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3, color: '#1e293b' }}>
+                  Mobile Number
                 </label>
                 <input
                   type="tel"
                   className="input"
                   list="billing-cust-mob-list"
-                  autoComplete="off"
                   placeholder="10-digit mobile number"
                   value={mobile}
                   onChange={(e) => handleMobileSelect(e.target.value)}
-                  style={{
-                    height: 38,
-                    fontSize: 12.5,
-                    borderRadius: 8,
-                    padding: '0 10px',
-                    border: '1px solid #cbd5e1',
-                  }}
+                  style={{ height: 34, fontSize: 12, borderRadius: 7, padding: '0 9px', border: '1px solid #cbd5e1' }}
                 />
-                <datalist id="billing-cust-mob-list">
-                  {(data?.customers || []).map((c) => (
-                    <option
-                      key={c.id}
-                      value={`${c.mobile} (${formatCustomerContactName(c.name)})`}
-                    >
-                      {c.mobile} — 👤 {formatCustomerContactName(c.name)}
-                    </option>
-                  ))}
-                </datalist>
-
-                {/* 24-Hour Free Customer Service Window Status */}
-                {mobile.length === 10 ? (
-                  <div
-                    style={{
-                      marginTop: 6,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: 11,
-                      gap: 6,
-                    }}
-                  >
-                    {cust24hStatus.active ? (
-                      <span
-                        style={{
-                          color: '#16a34a',
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          background: '#f0fdf4',
-                          padding: '2px 7px',
-                          borderRadius: 6,
-                          border: '1px solid #bbf7d0',
-                        }}
-                        title={`Incoming message received. Meta Cloud API dispatch is ₹0 until ${cust24hStatus.expiresAt}`}
-                      >
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                        🟢 24h Free Active ({cust24hStatus.formattedRemaining})
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          color: '#64748b',
-                          fontSize: 11,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                        title="Customer has not messaged recently. Free automated Meta API window is closed."
-                      >
-                        <span>⚪ Outside 24h Window</span>
-                      </span>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setQrModalOpen(true)}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: 6,
-                        padding: '2px 7px',
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        color: '#05424A',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 3,
-                      }}
-                      title="Show Reception Desk QR Code to customer"
-                    >
-                      <QrCode size={11} />
-                      <span>{cust24hStatus.active ? 'Desk QR' : '📱 Scan Desk QR'}</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ marginTop: 4, display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      onClick={() => setQrModalOpen(true)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        color: '#05424A',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 3,
-                        padding: 0,
-                      }}
-                    >
-                      <QrCode size={11} />
-                      <span>Reception Desk QR</span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Loyalty & Wallet Banner */}
-            {selectedCustomerObj &&
-              (data?.settings?.loyaltyEnabled || data?.settings?.walletEnabled) && (
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: 10,
-                    flexWrap: 'wrap',
-                    background: 'linear-gradient(135deg, #05424a10, #eaba3815)',
-                    border: '1px solid #05424A',
-                    borderRadius: 8,
-                    padding: '8px 12px',
-                    marginBottom: 10,
-                    alignItems: 'center',
-                  }}
-                >
-                  <Sparkles size={15} color="#05424A" />
-                  <span style={{ fontWeight: 700, fontSize: 12.5, color: '#05424A', flex: 1 }}>
-                    {selectedCustomerObj.name}
-                  </span>
-                  {data?.settings?.loyaltyEnabled && (
-                    <span
-                      style={{
-                        fontSize: 11.5,
-                        background: '#eaba3825',
-                        borderRadius: 6,
-                        padding: '2px 7px',
-                        fontWeight: 700,
-                        color: '#92741a',
-                      }}
-                    >
-                      ⭐ {selectedCustomerObj.loyaltyPoints || 0} pts
-                    </span>
-                  )}
-                  {data?.settings?.walletEnabled && (
-                    <span
-                      style={{
-                        fontSize: 11.5,
-                        background: '#05424a15',
-                        borderRadius: 6,
-                        padding: '2px 7px',
-                        fontWeight: 700,
-                        color: '#05424A',
-                      }}
-                    >
-                      💳 Wallet: {money(selectedCustomerObj.walletBalance || 0)}
-                    </span>
-                  )}
-                </div>
-              )}
-
-            {/* Barcode / Product Scanning Area (Compact & Action-Oriented) */}
-            <div
-              className="billing-barcode-container"
-              style={{
-                display: 'flex',
-                gap: 8,
-                alignItems: 'center',
-                background: '#f8fafc',
-                border: '1px dashed #cbd5e1',
-                borderRadius: 8,
-                padding: '6px 10px',
-                margin: '10px 0 14px',
-              }}
-            >
-              <div
-                className="billing-barcode-input-row"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}
-              >
-                <Barcode size={18} color="#05424A" style={{ flexShrink: 0 }} />
-                <input
-                  type="text"
-                  className="input billing-barcode-input"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    height: 34,
-                    border: '1px solid #e2e8f0',
-                    borderRadius: 6,
-                    padding: '0 10px',
-                    fontSize: 12,
-                  }}
-                  placeholder="Scan barcode or type item & press Enter…"
-                  value={barcodeInput}
-                  onChange={(e) => setBarcodeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleScanBarcode();
-                    }
-                  }}
-                />
-              </div>
-              <div
-                className="billing-barcode-actions"
-                style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}
-              >
-                <button
-                  className="btn btn-primary btn-sm"
-                  type="button"
-                  style={{
-                    height: 34,
-                    padding: '0 12px',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    borderRadius: 6,
-                  }}
-                  onClick={() => handleScanBarcode()}
-                >
-                  Scan Item
-                </button>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  type="button"
-                  style={{
-                    height: 34,
-                    padding: '0 10px',
-                    fontSize: 12,
-                    border: '1px solid #cbd5e1',
-                    borderRadius: 6,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                  onClick={() => setCameraModalOpen(true)}
-                >
-                  <Camera size={13} /> <span>Camera</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Line Items Section */}
-            <div style={{ marginBottom: 12 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 8,
+            {/* Barcode row */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 8, padding: '5px 8px', margin: '4px 0 8px' }}>
+              <Barcode size={16} color="#05424A" style={{ flexShrink: 0 }} />
+              <input
+                type="text"
+                className="input"
+                style={{ flex: 1, height: 30, border: '1px solid #e2e8f0', borderRadius: 6, padding: '0 8px', fontSize: 11.5 }}
+                placeholder="Scan barcode or type item & press Enter…"
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleScanBarcode();
+                  }
                 }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <label className="label" style={{ margin: 0, fontWeight: 800, fontSize: 13 }}>
-                    Invoice Line Items
-                  </label>
-                  <span
-                    style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      background: '#f1f5f9',
-                      color: '#475569',
-                      padding: '1px 6px',
-                      borderRadius: 99,
-                    }}
-                  >
-                    {lines.filter((l) => l.name && l.name.trim() !== '').length}
-                  </span>
-                </div>
-                <motion.button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setLines((p) => [...p, EMPTY_LINE()])}
-                  whileTap={{ scale: 0.96 }}
-                  style={{
-                    height: 28,
-                    padding: '0 10px',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    borderRadius: 6,
-                    border: '1px solid #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#05424A',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <Plus size={13} /> <span>Add Item</span>
-                </motion.button>
+              />
+              <button className="btn btn-primary btn-sm" type="button" style={{ height: 30, padding: '0 10px', fontSize: 11.5, fontWeight: 700, borderRadius: 6 }} onClick={() => handleScanBarcode()}>
+                Scan
+              </button>
+            </div>
+
+            {/* Line Items Table */}
+            <div style={{ marginBottom: 6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontWeight: 800, fontSize: 12.5 }}>Invoice Line Items ({lines.filter((l) => l.name && l.name.trim() !== '').length})</span>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLines((p) => [...p, EMPTY_LINE()])} style={{ height: 26, padding: '0 8px', fontSize: 11, borderRadius: 6, border: '1px solid #cbd5e1' }}>
+                  <Plus size={12} /> Add
+                </button>
               </div>
-
-              {/* 1. Desktop & Tablet Grid Table (Screens > 640px) */}
-              <div className="billing-lines-desktop">
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(140px, 2.3fr) 46px 72px 90px 72px 28px',
-                    gap: 6,
-                    padding: '6px 8px',
-                    background: '#f1f5f9',
-                    borderRadius: '7px 7px 0 0',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    marginBottom: 6,
-                    alignItems: 'center',
-                    border: '1px solid #e2e8f0',
-                    borderBottom: 'none',
-                  }}
-                >
-                  <span>Service / Product Description</span>
-                  <span style={{ textAlign: 'center' }}>Qty</span>
-                  <span style={{ textAlign: 'right' }}>Price (₹)</span>
-                  <span style={{ textAlign: 'center' }}>Disc (₹ / %)</span>
-                  <span style={{ textAlign: 'right' }}>Total (₹)</span>
-                  <span></span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {lines.map((line, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'minmax(140px, 2.3fr) 46px 72px 90px 72px 28px',
-                        gap: 6,
-                        alignItems: 'center',
-                      }}
-                    >
-                      {/* Item Name + Type Badge */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <button
-                          type="button"
-                          className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
-                          style={{
-                            cursor: 'pointer',
-                            fontSize: 11,
-                            padding: '3px 6px',
-                            border: 'none',
-                            flexShrink: 0,
-                            borderRadius: 6,
-                          }}
-                          title={
-                            line.type === 'P'
-                              ? 'Retail Product (Click to switch to Service)'
-                              : 'Salon Service (Click to switch to Product)'
-                          }
-                          onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
-                        >
-                          {line.type === 'P' ? '📦' : '💄'}
-                        </button>
-                        <input
-                          type="text"
-                          id={`billing-line-name-${idx}`}
-                          className="input"
-                          list="billing-items-list"
-                          placeholder="Select service or scan product…"
-                          value={line.name}
-                          onChange={(e) => handleItemSelect(idx, e.target.value)}
-                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                          style={{
-                            height: 34,
-                            fontSize: 12,
-                            padding: '0 8px',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
-                          }}
-                        />
-                      </div>
-
-                      {/* Qty */}
-                      <input
-                        type="number"
-                        min={1}
-                        className="input"
-                        title="Quantity"
-                        placeholder="Qty"
-                        value={line.qty}
-                        onChange={(e) =>
-                          setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
-                        }
-                        onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                        style={{
-                          textAlign: 'center',
-                          height: 34,
-                          fontSize: 12,
-                          padding: '0 2px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 6,
-                        }}
-                      />
-
-                      {/* Price */}
-                      <input
-                        type="number"
-                        min={0}
-                        className="input"
-                        title="Rate (₹)"
-                        placeholder="0"
-                        value={line.price || ''}
-                        onChange={(e) =>
-                          setLine(idx, { price: Number(e.target.value) || 0 })
-                        }
-                        onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                        style={{
-                          textAlign: 'right',
-                          height: 34,
-                          fontSize: 12,
-                          padding: '0 6px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 6,
-                        }}
-                      />
-
-                      {/* Item Discount Input + Unit Toggle (₹ or %) */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <input
-                          type="number"
-                          min={0}
-                          className="input"
-                          title="Discount on this item"
-                          placeholder="0"
-                          value={line.discount || ''}
-                          onChange={(e) =>
-                            setLine(idx, { discount: Number(e.target.value) || 0 })
-                          }
-                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                          style={{
-                            textAlign: 'right',
-                            height: 34,
-                            fontSize: 12,
-                            padding: '0 4px',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
-                            color: Number(line.discount || 0) > 0 ? '#16a34a' : 'inherit',
-                            fontWeight: Number(line.discount || 0) > 0 ? 700 : 400,
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          style={{
-                            padding: 0,
-                            width: 24,
-                            height: 34,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            borderRadius: 6,
-                            color: (line.discountType || '₹') === '%' ? '#2563eb' : '#05424A',
-                            background:
-                              (line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4',
-                            border: '1px solid #cbd5e1',
-                            flexShrink: 0,
-                          }}
-                          title={`Toggle Discount Unit: currently ${line.discountType || '₹'}`}
-                          onClick={() =>
-                            setLine(idx, {
-                              discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
-                            })
-                          }
-                        >
-                          {line.discountType || '₹'}
-                        </button>
-                      </div>
-
-                      {/* Line Net Total */}
-                      <div style={{ textAlign: 'right', paddingRight: 4 }}>
-                        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>
-                          {money(calcLineTotal(line))}
-                        </span>
-                      </div>
-
-                      {/* Delete Line */}
-                      <button
-                        type="button"
-                        className="btn-icon danger"
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 6,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                        onClick={() =>
-                          setLines((p) => {
-                            const remaining = p.filter((_, i) => i !== idx);
-                            return remaining.length === 0 ? [EMPTY_LINE()] : remaining;
-                          })
-                        }
-                        disabled={lines.length === 1 && !lines[0].name}
-                        title="Remove item"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 2. Mobile Responsive Cards View (Screens <= 640px) */}
-              <div className="billing-lines-mobile">
+              <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {lines.map((line, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      background: '#ffffff',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 8,
-                      padding: 10,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <button
-                        type="button"
-                        className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
-                        style={{
-                          fontSize: 11,
-                          padding: '3px 6px',
-                          border: 'none',
-                          borderRadius: 6,
-                          flexShrink: 0,
-                        }}
-                        onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
-                      >
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 2fr) 38px 60px 75px 60px 24px', gap: 4, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <button type="button" className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`} style={{ fontSize: 9.5, padding: '2px 4px', border: 'none', borderRadius: 4 }} onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}>
                         {line.type === 'P' ? '📦' : '💄'}
                       </button>
-                      <input
-                        type="text"
-                        className="input"
-                        list="billing-items-list"
-                        placeholder="Select service or scan product…"
-                        value={line.name}
-                        onChange={(e) => handleItemSelect(idx, e.target.value)}
-                        onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                        style={{ flex: 1, height: 34, fontSize: 12, padding: '0 8px' }}
-                      />
-                      <button
-                        type="button"
-                        className="btn-icon danger"
-                        style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }}
-                        onClick={() =>
-                          setLines((p) => {
-                            const remaining = p.filter((_, i) => i !== idx);
-                            return remaining.length === 0 ? [EMPTY_LINE()] : remaining;
-                          })
-                        }
-                        disabled={lines.length === 1 && !lines[0].name}
-                        title="Remove item"
-                      >
-                        <Trash2 size={13} />
+                      <input type="text" className="input" list="billing-items-list" placeholder="Service / product…" value={line.name} onChange={(e) => handleItemSelect(idx, e.target.value)} style={{ height: 30, fontSize: 11, padding: '0 6px' }} />
+                    </div>
+                    <input type="number" min={1} className="input" value={line.qty} onChange={(e) => setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })} style={{ textAlign: 'center', height: 30, fontSize: 11, padding: 0 }} />
+                    <input type="number" min={0} className="input" value={line.price || ''} onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })} style={{ textAlign: 'right', height: 30, fontSize: 11, padding: '0 4px' }} placeholder="0" />
+                    <div style={{ display: 'flex', gap: 1 }}>
+                      <input type="number" min={0} className="input" value={line.discount || ''} onChange={(e) => setLine(idx, { discount: Number(e.target.value) || 0 })} style={{ textAlign: 'right', height: 30, fontSize: 11, padding: '0 3px', flex: 1 }} placeholder="0" />
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding: 0, width: 20, height: 30, fontSize: 9.5, fontWeight: 700 }} onClick={() => setLine(idx, { discountType: (line.discountType || '₹') === '₹' ? '%' : '₹' })}>
+                        {line.discountType || '₹'}
                       </button>
                     </div>
-
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '46px 72px 1fr auto',
-                        gap: 6,
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontSize: 9.5, color: '#64748b', display: 'block', fontWeight: 700 }}>
-                          QTY
-                        </span>
-                        <input
-                          type="number"
-                          min={1}
-                          className="input"
-                          value={line.qty}
-                          onChange={(e) =>
-                            setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
-                          }
-                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                          style={{ textAlign: 'center', height: 32, fontSize: 12, padding: 0 }}
-                        />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: 9.5, color: '#64748b', display: 'block', fontWeight: 700 }}>
-                          RATE (₹)
-                        </span>
-                        <input
-                          type="number"
-                          min={0}
-                          className="input"
-                          placeholder="0"
-                          value={line.price || ''}
-                          onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
-                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                          style={{ textAlign: 'right', height: 32, fontSize: 12, padding: '0 4px' }}
-                        />
-                      </div>
-                      <div>
-                        <span style={{ fontSize: 9.5, color: '#64748b', display: 'block', fontWeight: 700 }}>
-                          DISCOUNT
-                        </span>
-                        <div style={{ display: 'flex', gap: 2 }}>
-                          <input
-                            type="number"
-                            min={0}
-                            className="input"
-                            placeholder="0"
-                            value={line.discount || ''}
-                            onChange={(e) =>
-                              setLine(idx, { discount: Number(e.target.value) || 0 })
-                            }
-                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                            style={{ textAlign: 'right', height: 32, fontSize: 12, padding: '0 4px', flex: 1 }}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
-                            style={{
-                              padding: 0,
-                              width: 22,
-                              height: 32,
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              borderRadius: 5,
-                            }}
-                            onClick={() =>
-                              setLine(idx, {
-                                discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
-                              })
-                            }
-                          >
-                            {line.discountType || '₹'}
-                          </button>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right', minWidth: 60 }}>
-                        <span style={{ fontSize: 9.5, color: '#64748b', display: 'block', fontWeight: 700 }}>
-                          TOTAL
-                        </span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>
-                          {money(calcLineTotal(line))}
-                        </span>
-                      </div>
-                    </div>
+                    <div style={{ textAlign: 'right', fontSize: 11.5, fontWeight: 700 }}>{money(calcLineTotal(line))}</div>
+                    <button type="button" className="btn-icon danger" style={{ width: 24, height: 24, borderRadius: 5 }} onClick={() => setLines((p) => { const r = p.filter((_, i) => i !== idx); return r.length === 0 ? [EMPTY_LINE()] : r; })}>
+                      <Trash2 size={11} />
+                    </button>
                   </div>
                 ))}
               </div>
-
-              <datalist id="billing-items-list">
-                {allItems.map((item, i) => (
-                  <option key={i} value={item.name}>
-                    {item.label}
-                  </option>
-                ))}
-              </datalist>
             </div>
 
-            {/* Totals & Discounts Summary Card */}
-            <div className="billing-totals" style={{ marginTop: 14 }}>
-              <div className="total-row">
-                <span>Gross Subtotal</span>
-                <span style={{ fontWeight: 600 }}>{money(rawSubtotal)}</span>
+            {/* Combined Totals & Payment for Split Tab */}
+            <div className="billing-totals" style={{ marginTop: 8 }}>
+              <div className="total-row"><span>Gross Subtotal</span><span style={{ fontWeight: 600 }}>{money(rawSubtotal)}</span></div>
+              <div className="total-row grand" style={{ padding: '6px 8px', borderRadius: 7, border: '1.5px solid #05424A', margin: '2px 0' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 800 }}>Final Payable</span>
+                <span style={{ fontSize: 18, fontWeight: 900, color: '#05424A' }}>{money(totalAfterLoyalty - Number(advance || 0))}</span>
               </div>
-
-              {serviceDiscountTotal > 0 && (
-                <div className="total-row" style={{ color: '#16a34a', fontSize: 12 }}>
-                  <span>💄 Service Discounts</span>
-                  <span style={{ fontWeight: 700 }}>−{money(serviceDiscountTotal)}</span>
-                </div>
-              )}
-
-              {productDiscountTotal > 0 && (
-                <div className="total-row" style={{ color: '#16a34a', fontSize: 12 }}>
-                  <span>📦 Product Discounts</span>
-                  <span style={{ fontWeight: 700 }}>−{money(productDiscountTotal)}</span>
-                </div>
-              )}
-
-              {itemDiscountTotal > 0 && (
-                <div
-                  className="total-row"
-                  style={{
-                    color: '#05424A',
-                    fontWeight: 600,
-                    fontSize: 12,
-                    borderTop: '1px dashed #e2e8f0',
-                    paddingTop: 4,
-                  }}
-                >
-                  <span>Net Items Subtotal</span>
-                  <span>{money(lineNetTotal)}</span>
-                </div>
-              )}
-
-              <div className="total-row" style={{ alignItems: 'center' }}>
-                <span style={{ fontSize: 12 }}>Additional Bill Discount (₹)</span>
-                <input
-                  type="number"
-                  min={0}
-                  className="input"
-                  style={{
-                    width: 90,
-                    height: 30,
-                    textAlign: 'right',
-                    padding: '0 8px',
-                    fontSize: 12,
-                    borderRadius: 6,
-                  }}
-                  placeholder="₹ 0"
-                  value={discount || ''}
-                  onChange={(e) => setDiscount(Number(e.target.value))}
-                />
-              </div>
-
-              {totalAllDiscount > 0 && (
-                <div
-                  className="total-row"
-                  style={{ color: '#16a34a', fontWeight: 700, fontSize: 12 }}
-                >
-                  <span>Total Savings &amp; Discounts</span>
-                  <span>−{money(totalAllDiscount)}</span>
-                </div>
-              )}
-
-              {/* Loyalty Points Redemption */}
-              {selectedCustomerObj &&
-                data?.settings?.loyaltyEnabled &&
-                (selectedCustomerObj.loyaltyPoints || 0) >=
-                  (data?.settings?.loyaltyMinRedeem || 50) && (
-                  <div
-                    className="total-row"
-                    style={{
-                      alignItems: 'center',
-                      background: '#fefce8',
-                      borderRadius: 8,
-                      padding: '5px 8px',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        color: '#92741a',
-                      }}
-                    >
-                      ⭐ Redeem Points ({selectedCustomerObj.loyaltyPoints || 0} pts)
-                    </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <input
-                        type="number"
-                        min={0}
-                        max={selectedCustomerObj.loyaltyPoints || 0}
-                        step={data?.settings?.loyaltyMinRedeem || 50}
-                        className="input"
-                        style={{ width: 75, height: 28, padding: '0 6px', fontSize: 11.5 }}
-                        value={redeemPoints || ''}
-                        placeholder="0 pts"
-                        onChange={(e) =>
-                          setRedeemPoints(
-                            Math.min(
-                              Number(e.target.value) || 0,
-                              selectedCustomerObj.loyaltyPoints || 0
-                            )
-                          )
-                        }
-                      />
-                      {pointsDiscountAmount > 0 && (
-                        <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700 }}>
-                          = −{money(pointsDiscountAmount)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-              {/* Wallet Usage */}
-              {selectedCustomerObj &&
-                data?.settings?.walletEnabled &&
-                (selectedCustomerObj.walletBalance || 0) > 0 && (
-                  <div
-                    className="total-row"
-                    style={{
-                      alignItems: 'center',
-                      background: '#f0fdf4',
-                      borderRadius: 8,
-                      padding: '5px 8px',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        color: '#15803d',
-                      }}
-                    >
-                      💳 Pay from Wallet ({money(selectedCustomerObj.walletBalance || 0)})
-                    </label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <input
-                        type="number"
-                        min={0}
-                        max={Math.min(
-                          selectedCustomerObj.walletBalance || 0,
-                          roundedTotal - pointsDiscountAmount
-                        )}
-                        className="input"
-                        style={{ width: 85, height: 28, padding: '0 6px', fontSize: 11.5 }}
-                        value={useWallet || ''}
-                        placeholder="₹ 0"
-                        onChange={(e) =>
-                          setUseWallet(
-                            Math.min(
-                              Number(e.target.value) || 0,
-                              selectedCustomerObj.walletBalance || 0,
-                              roundedTotal
-                            )
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-              {advance > 0 && (
-                <div
-                  className="total-row"
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>Advance Deducted:</span>
-                    <select
-                      value={advanceMode}
-                      onChange={(e) => setAdvanceMode(e.target.value)}
-                      style={{
-                        fontSize: 11,
-                        padding: '2px 6px',
-                        borderRadius: 4,
-                        border: '1px solid #cbd5e1',
-                        background: '#ffffff',
-                      }}
-                    >
-                      <option value="Cash">💵 Cash</option>
-                      <option value="GPay UPI">📱 GPay</option>
-                      <option value="PhonePe UPI">📲 PhonePe</option>
-                      <option value="Card">💳 Card</option>
-                      <option value="Bank Transfer">🏦 Bank</option>
-                    </select>
-                  </div>
-                  <span style={{ color: '#05424A', fontWeight: 700 }}>−{money(advance)}</span>
-                </div>
-              )}
-
-              {/* Vyapar Auto Round Off Toggle */}
-              <div className="total-row" style={{ fontSize: 11.5, color: '#64748b' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={autoRoundOff}
-                    onChange={(e) => setAutoRoundOff(e.target.checked)}
-                  />
-                  <span>Auto Round Off (₹0.50)</span>
-                </label>
-                <span>
-                  {roundOffDiff !== 0
-                    ? roundOffDiff > 0
-                      ? `+₹${roundOffDiff.toFixed(2)}`
-                      : `−₹${Math.abs(roundOffDiff).toFixed(2)}`
-                    : '₹0.00'}
-                </span>
-              </div>
-
-              {/* Final Payable — Primary visual emphasis */}
-              <div className="total-row grand">
-                <span style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
-                  Final Payable
-                </span>
-                <span style={{ fontSize: 18, fontWeight: 900, color: '#05424A' }}>
-                  {money(totalAfterLoyalty - Number(advance || 0))}
-                </span>
-              </div>
-
-              {/* Payment Section (Split or Single Method) */}
-              <div
-                style={{
-                  marginTop: 8,
-                  background: '#f1f5f9',
-                  padding: 10,
-                  borderRadius: 8,
-                  border: '1px solid #e2e8f0',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 6,
-                  }}
-                >
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>
-                    Payment Method
-                  </span>
-                  <label
-                    style={{
-                      fontSize: 11,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      cursor: 'pointer',
-                      color: '#05424A',
-                      fontWeight: 600,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSplitPayment}
-                      onChange={(e) => setIsSplitPayment(e.target.checked)}
-                    />
-                    <span>Split Payment (Cash + UPI)</span>
-                  </label>
-                </div>
-
-                {isSplitPayment ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-                    <div>
-                      <label style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>
-                        Cash (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="input"
-                        placeholder="Cash"
-                        value={splitCash}
-                        onChange={(e) => setSplitCash(Number(e.target.value) || '')}
-                        style={{ padding: '0 6px', height: 32, fontSize: 12 }}
-                      />
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: 1,
-                        }}
-                      >
-                        <label style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>
-                          UPI (₹)
-                        </label>
-                        <select
-                          value={splitUpiMode}
-                          onChange={(e) => setSplitUpiMode(e.target.value)}
-                          style={{
-                            fontSize: 9.5,
-                            padding: '1px 3px',
-                            borderRadius: 4,
-                            border: '1px solid #cbd5e1',
-                            background: '#ffffff',
-                          }}
-                        >
-                          <option value="GPay UPI">GPay</option>
-                          <option value="PhonePe UPI">PhonePe</option>
-                        </select>
-                      </div>
-                      <input
-                        type="number"
-                        min={0}
-                        className="input"
-                        placeholder="UPI"
-                        value={splitUpi}
-                        onChange={(e) => setSplitUpi(Number(e.target.value) || '')}
-                        style={{ padding: '0 6px', height: 32, fontSize: 12 }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: 10, color: '#64748b', fontWeight: 600 }}>
-                        Card (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        className="input"
-                        placeholder="Card"
-                        value={splitCard}
-                        onChange={(e) => setSplitCard(Number(e.target.value) || '')}
-                        style={{ padding: '0 6px', height: 32, fontSize: 12 }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-                      <div style={{ flex: 1 }}>
-                        <input
-                          type="text"
-                          className="input"
-                          list="pos-payment-accounts"
-                          placeholder="Pick payment method…"
-                          value={mode}
-                          onChange={(e) => setMode(e.target.value)}
-                          style={{ height: 32, fontSize: 12, padding: '0 8px' }}
-                        />
-                        <datalist id="pos-payment-accounts">
-                          {(
-                            data?.settings?.payments || [
-                              'Cash',
-                              'GPay UPI',
-                              'PhonePe UPI',
-                              'Card',
-                              'Bank Transfer',
-                              'HDFC Bank',
-                            ]
-                          ).map((p) => (
-                            <option key={p} value={p}>
-                              {p}
-                            </option>
-                          ))}
-                        </datalist>
-                      </div>
-                      <div style={{ width: 110 }}>
-                        <input
-                          type="number"
-                          min={0}
-                          className="input"
-                          placeholder="Paid ₹"
-                          value={paid}
-                          onChange={(e) => setPaid(Number(e.target.value) || '')}
-                          style={{ textAlign: 'right', height: 32, fontSize: 12, padding: '0 6px' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Quick Pick Pills */}
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {(
-                        data?.settings?.payments || [
-                          'Cash',
-                          'GPay UPI',
-                          'PhonePe UPI',
-                          'Card',
-                          'Bank Transfer',
-                          'HDFC Bank',
-                        ]
-                      ).map((p) => {
-                        const isSelected = mode === p;
-                        return (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => setMode(p)}
-                            style={{
-                              padding: '3px 7px',
-                              borderRadius: 5,
-                              border: isSelected ? '1.5px solid #05424A' : '1px solid #cbd5e1',
-                              background: isSelected ? '#05424A' : '#ffffff',
-                              color: isSelected ? '#ffffff' : '#334155',
-                              fontWeight: isSelected ? 700 : 500,
-                              fontSize: 11,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {p}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Balance Due Status */}
-              <div
-                className="total-row"
-                style={{
-                  marginTop: 6,
-                  fontWeight: 700,
-                  color: balance > 0 ? '#dc2626' : '#16a34a',
-                }}
-              >
-                <span>{balance > 0 ? 'Balance Due' : 'Status'}</span>
-                <span>{balance > 0 ? money(balance) : '✅ Fully Paid'}</span>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginTop: 4 }}>
+                <input type="text" className="input" list="pos-payment-accounts" placeholder="Payment method…" value={mode} onChange={(e) => setMode(e.target.value)} style={{ flex: 1, height: 28, fontSize: 11.5, padding: '0 6px' }} />
+                <input type="number" min={0} className="input" placeholder="Paid ₹" value={paid} onChange={(e) => setPaid(Number(e.target.value) || '')} style={{ width: 90, textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 5px' }} />
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-              {editingInvoiceId && (
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  style={{ flex: 1, padding: '10px 14px', height: 42, fontSize: 13, borderRadius: 8 }}
-                  onClick={cancelEditInvoice}
-                >
-                  Cancel Edit
-                </button>
-              )}
-              <motion.button
-                type="button"
-                className="btn btn-primary"
-                style={{
-                  flex: editingInvoiceId ? 2 : 1,
-                  height: 42,
-                  padding: '10px 16px',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  borderRadius: 8,
-                  background: 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
-                  boxShadow: '0 2px 8px rgba(5, 66, 74, 0.25)',
-                }}
-                onClick={handleSave}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Printer size={16} />{' '}
-                <span>{editingInvoiceId ? 'Update Invoice & Print' : 'Save & Print Receipt'}</span>
+            <div style={{ marginTop: 8 }}>
+              <motion.button type="button" className="btn btn-primary" style={{ width: '100%', height: 38, fontSize: 13, fontWeight: 700, borderRadius: 7, background: 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)' }} onClick={handleSave} whileTap={{ scale: 0.98 }}>
+                <Printer size={15} /> <span>{editingInvoiceId ? 'Update Invoice & Print' : 'Save & Print Receipt'}</span>
               </motion.button>
             </div>
           </motion.div>
         )}
 
-        {/* Invoice Receipts History Panel */}
+        {/* 3. Invoice Receipts History Panel */}
         {(activeTab === 'split' || activeTab === 'history') && (
           <motion.div className="card billing-builder-card" variants={fadeSlideUp} initial="hidden" animate="visible">
             {/* Header & Search */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0, color: 'var(--text)' }}>
+                <h2 style={{ fontWeight: 700, fontSize: 15.5, margin: 0, color: 'var(--text)' }}>
                   Recent Invoices
                 </h2>
                 <span
@@ -2687,7 +2971,7 @@ function BillingContent() {
                   placeholder="Search invoice…"
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
-                  style={{ padding: '6px 10px 6px 30px', fontSize: 12, height: 32 }}
+                  style={{ padding: '5px 10px 5px 28px', fontSize: 11.5, height: 30 }}
                 />
               </div>
             </div>
@@ -2698,84 +2982,84 @@ function BillingContent() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: 8,
-                marginBottom: 16,
+                marginBottom: 12,
               }}
             >
               <div
                 style={{
                   background: '#f8fafc',
-                  padding: '10px 12px',
+                  padding: '8px 10px',
                   borderRadius: 8,
                   border: '1px solid #e2e8f0',
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 10.5, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Invoices
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 3, lineHeight: 1.2 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginTop: 2, lineHeight: 1.2 }}>
                   {invoiceStats.count}
                 </div>
               </div>
               <div
                 style={{
                   background: '#f0fdf4',
-                  padding: '10px 12px',
+                  padding: '8px 10px',
                   borderRadius: 8,
                   border: '1px solid #bbf7d0',
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 10.5, color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Collected
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#16a34a', marginTop: 3, lineHeight: 1.2 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#16a34a', marginTop: 2, lineHeight: 1.2 }}>
                   {money(invoiceStats.totalCollected)}
                 </div>
               </div>
               <div
                 style={{
                   background: invoiceStats.totalDue > 0 ? '#fef2f2' : '#f8fafc',
-                  padding: '10px 12px',
+                  padding: '8px 10px',
                   borderRadius: 8,
                   border: invoiceStats.totalDue > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
                   textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 10.5, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ fontSize: 10, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Due Balance
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#0f172a', marginTop: 3, lineHeight: 1.2 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#0f172a', marginTop: 2, lineHeight: 1.2 }}>
                   {money(invoiceStats.totalDue)}
                 </div>
               </div>
             </div>
 
             {filteredInvoices.length === 0 ? (
-              <div className="empty-state" style={{ padding: '30px 16px' }}>
-                <History size={36} />
-                <h3 style={{ fontSize: 14, marginTop: 8 }}>No invoices found</h3>
-                <p style={{ fontSize: 12 }}>Generated bills and receipts will appear here.</p>
+              <div className="empty-state" style={{ padding: '24px 16px' }}>
+                <History size={32} />
+                <h3 style={{ fontSize: 13.5, marginTop: 6 }}>No invoices found</h3>
+                <p style={{ fontSize: 11.5 }}>Generated bills and receipts will appear here.</p>
               </div>
             ) : (
               <>
                 {/* Desktop & Tablet Table (>= 681px) */}
                 <div className="billing-invoices-desktop">
-                  <div className="table-wrap" style={{ maxHeight: 520, overflowY: 'auto', overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                  <div className="table-wrap" style={{ maxHeight: 'calc(100vh - 340px)', minHeight: 220, overflowY: 'auto', overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
                       <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         <tr>
-                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
-                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer</th>
-                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Amount &amp; Status</th>
-                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'right', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', width: activeTab === 'history' ? 'auto' : 92 }}>Actions</th>
+                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
+                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer</th>
+                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Amount &amp; Status</th>
+                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'right', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', width: activeTab === 'history' ? 'auto' : 92 }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredInvoices.map((inv) => (
                           <tr key={inv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '10px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                              <div style={{ height: 22, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <td style={{ padding: '8px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                              <div style={{ height: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <button
                                   type="button"
                                   onClick={() => setReceiptModalInv(inv)}
@@ -2786,7 +3070,7 @@ function BillingContent() {
                                     fontWeight: 800,
                                     color: '#05424A',
                                     cursor: 'pointer',
-                                    fontSize: 12.5,
+                                    fontSize: 12,
                                     fontFamily: 'monospace, sans-serif',
                                   }}
                                   title="Click to view receipt"
@@ -2794,49 +3078,49 @@ function BillingContent() {
                                   {inv.no}
                                 </button>
                                 {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
-                                  <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1.5px 6px', borderRadius: 4 }}>
+                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1px 5px', borderRadius: 4 }}>
                                     👑 Bridal
                                   </span>
                                 ) : (
-                                  <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1.5px 6px', borderRadius: 4 }}>
+                                  <span style={{ fontSize: 9, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: 4 }}>
                                     🛍️ POS
                                   </span>
                                 )}
                               </div>
-                              <div style={{ height: 20, display: 'flex', alignItems: 'center', marginTop: 4, fontSize: 11, color: '#64748b' }}>
+                              <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 10.5, color: '#64748b' }}>
                                 {fmtDate(inv.date)}
                               </div>
                             </td>
-                            <td style={{ padding: '10px 8px', verticalAlign: 'top' }}>
-                              <div style={{ height: 22, display: 'flex', alignItems: 'center' }}>
+                            <td style={{ padding: '8px 8px', verticalAlign: 'top' }}>
+                              <div style={{ height: 20, display: 'flex', alignItems: 'center' }}>
                                 <span
-                                  style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: activeTab === 'history' ? 220 : 105 }}
+                                  style={{ fontWeight: 700, fontSize: 12, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: activeTab === 'history' ? 220 : 105 }}
                                   title={inv.customer}
                                 >
                                   {inv.customer}
                                 </span>
                               </div>
-                              <div style={{ height: 20, display: 'flex', alignItems: 'center', marginTop: 4, fontSize: 11, color: '#64748b' }}>
+                              <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 10.5, color: '#64748b' }}>
                                 {inv.mobile || '—'}
                               </div>
                             </td>
-                            <td style={{ padding: '10px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                              <div style={{ height: 22, display: 'flex', alignItems: 'center' }}>
-                                <span style={{ fontWeight: 800, fontSize: 13, color: '#0f172a' }}>{money(inv.total)}</span>
+                            <td style={{ padding: '8px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                              <div style={{ height: 20, display: 'flex', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 800, fontSize: 12.5, color: '#0f172a' }}>{money(inv.total)}</span>
                               </div>
-                              <div style={{ height: 20, display: 'flex', alignItems: 'center', marginTop: 4 }}>
+                              <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2 }}>
                                 {Number(inv.balance) > 0 ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                    <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 11 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 10.5 }}>
                                       Due: {money(inv.balance)}
                                     </span>
                                     <button
                                       type="button"
                                       className="btn btn-xs"
                                       style={{
-                                        fontSize: 10,
-                                        padding: '1px 6px',
-                                        height: 19,
+                                        fontSize: 9.5,
+                                        padding: '1px 5px',
+                                        height: 18,
                                         borderRadius: 4,
                                         background: '#f0fdf4',
                                         color: '#15803d',
@@ -2853,18 +3137,18 @@ function BillingContent() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span style={{ color: '#16a34a', fontSize: 11, fontWeight: 600 }}>
+                                  <span style={{ color: '#16a34a', fontSize: 10.5, fontWeight: 600 }}>
                                     Paid: {money(inv.paid)}
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td style={{ padding: '10px 8px', verticalAlign: 'top', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '8px 8px', verticalAlign: 'top', textAlign: 'right', whiteSpace: 'nowrap' }}>
                               <div
                                 style={
                                   activeTab === 'history'
-                                    ? { display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'flex-end', height: 46 }
-                                    : { display: 'grid', gridTemplateColumns: 'repeat(3, 26px)', gap: 4, justifyContent: 'flex-end', width: 86, marginLeft: 'auto' }
+                                    ? { display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end', height: 40 }
+                                    : { display: 'grid', gridTemplateColumns: 'repeat(3, 24px)', gap: 3, justifyContent: 'flex-end', width: 80, marginLeft: 'auto' }
                                 }
                               >
                                 <button
@@ -2875,16 +3159,13 @@ function BillingContent() {
                                     background: '#f0f9ff',
                                     color: '#0284c7',
                                     borderColor: '#bae6fd',
-                                    height: activeTab === 'history' ? 28 : 21,
-                                    width: 26,
+                                    height: activeTab === 'history' ? 26 : 20,
+                                    width: 24,
                                     padding: 0,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
                                   }}
                                   onClick={() => setReceiptModalInv(inv)}
                                 >
-                                  <Eye size={12} />
+                                  <Eye size={11} />
                                 </button>
                                 <button
                                   type="button"
@@ -2894,16 +3175,13 @@ function BillingContent() {
                                     background: '#fffbeb',
                                     color: '#b45309',
                                     borderColor: '#fde68a',
-                                    height: activeTab === 'history' ? 28 : 21,
-                                    width: 26,
+                                    height: activeTab === 'history' ? 26 : 20,
+                                    width: 24,
                                     padding: 0,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
                                   }}
                                   onClick={() => downloadInvoicePDF(inv, data)}
                                 >
-                                  <Download size={12} />
+                                  <Download size={11} />
                                 </button>
                                 <button
                                   type="button"
@@ -2913,16 +3191,13 @@ function BillingContent() {
                                     background: '#f8fafc',
                                     color: '#475569',
                                     borderColor: '#cbd5e1',
-                                    height: activeTab === 'history' ? 28 : 21,
-                                    width: 26,
+                                    height: activeTab === 'history' ? 26 : 20,
+                                    width: 24,
                                     padding: 0,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
                                   }}
                                   onClick={() => handlePrint(inv)}
                                 >
-                                  <Printer size={12} />
+                                  <Printer size={11} />
                                 </button>
                                 {/* 1. Send PDF Invoice via WhatsApp */}
                                 <button
@@ -2958,30 +3233,26 @@ function BillingContent() {
                                         : '#a7f3d0',
                                     opacity: waPdfStatus[inv.id] === 'sending' ? 0.6 : 1,
                                     cursor: waPdfStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
-                                    height: activeTab === 'history' ? 28 : 21,
-                                    minWidth: 26,
-                                    padding: '0 4px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 2,
-                                    fontSize: 10,
+                                    height: activeTab === 'history' ? 26 : 20,
+                                    minWidth: 24,
+                                    padding: '0 3px',
+                                    fontSize: 9.5,
                                     fontWeight: 700,
                                   }}
                                   disabled={waPdfStatus[inv.id] === 'sending'}
                                   onClick={() => handleSendInvoicePDF(inv)}
                                 >
                                   {waPdfStatus[inv.id] === 'sending' ? (
-                                    <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                                    <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />
                                   ) : (
                                     <>
-                                      <FileText size={11} />
-                                      <span style={{ fontSize: 9 }}>PDF</span>
+                                      <FileText size={10} />
+                                      <span style={{ fontSize: 8.5 }}>PDF</span>
                                     </>
                                   )}
                                 </button>
 
-                                {/* 2. Send Text Receipt via WhatsApp (Approved Template) */}
+                                {/* 2. Send Text Receipt via WhatsApp */}
                                 <button
                                   type="button"
                                   className="pos-action-btn"
@@ -2992,7 +3263,7 @@ function BillingContent() {
                                       ? '✅ Text Sent!'
                                       : waTextStatus[inv.id] === 'failed'
                                       ? '❌ Text Failed'
-                                      : 'Send Text Receipt via WhatsApp (Approved Template)'
+                                      : 'Send Text Receipt via WhatsApp'
                                   }
                                   style={{
                                     background:
@@ -3015,25 +3286,21 @@ function BillingContent() {
                                         : '#bfdbfe',
                                     opacity: waTextStatus[inv.id] === 'sending' ? 0.6 : 1,
                                     cursor: waTextStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
-                                    height: activeTab === 'history' ? 28 : 21,
-                                    minWidth: 26,
-                                    padding: '0 4px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 2,
-                                    fontSize: 10,
+                                    height: activeTab === 'history' ? 26 : 20,
+                                    minWidth: 24,
+                                    padding: '0 3px',
+                                    fontSize: 9.5,
                                     fontWeight: 700,
                                   }}
                                   disabled={waTextStatus[inv.id] === 'sending'}
                                   onClick={() => handleSendInvoiceText(inv)}
                                 >
                                   {waTextStatus[inv.id] === 'sending' ? (
-                                    <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                                    <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />
                                   ) : (
                                     <>
-                                      <MessageSquare size={11} />
-                                      <span style={{ fontSize: 9 }}>TXT</span>
+                                      <MessageSquare size={10} />
+                                      <span style={{ fontSize: 8.5 }}>TXT</span>
                                     </>
                                   )}
                                 </button>
@@ -3045,16 +3312,13 @@ function BillingContent() {
                                     background: '#f5f3ff',
                                     color: '#7c3aed',
                                     borderColor: '#ddd6fe',
-                                    height: activeTab === 'history' ? 28 : 21,
-                                    width: 26,
+                                    height: activeTab === 'history' ? 26 : 20,
+                                    width: 24,
                                     padding: 0,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
                                   }}
                                   onClick={() => openEditInvoice(inv)}
                                 >
-                                  <Pencil size={12} />
+                                  <Pencil size={11} />
                                 </button>
                                 <button
                                   type="button"
@@ -3064,16 +3328,13 @@ function BillingContent() {
                                     background: '#fef2f2',
                                     color: '#dc2626',
                                     borderColor: '#fecaca',
-                                    height: activeTab === 'history' ? 28 : 21,
-                                    width: 26,
+                                    height: activeTab === 'history' ? 26 : 20,
+                                    width: 24,
                                     padding: 0,
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
                                   }}
                                   onClick={() => setDeleteInvoiceId(inv.id)}
                                 >
-                                  <Trash2 size={12} />
+                                  <Trash2 size={11} />
                                 </button>
                               </div>
                             </td>
@@ -3085,24 +3346,24 @@ function BillingContent() {
                 </div>
 
                 {/* Mobile Cards View (<= 680px) */}
-                <div className="billing-invoices-mobile">
+                <div className="billing-invoices-mobile" style={{ maxHeight: '420px', overflowY: 'auto' }}>
                   {filteredInvoices.map((inv) => (
                     <div
                       key={inv.id}
                       style={{
                         background: '#ffffff',
                         border: '1px solid #e2e8f0',
-                        borderRadius: 10,
-                        padding: '12px 14px',
+                        borderRadius: 9,
+                        padding: '10px 12px',
                         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 10,
+                        gap: 8,
                       }}
                     >
                       {/* Top Row: Invoice Number, Badge, Date */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                           <button
                             type="button"
                             onClick={() => setReceiptModalInv(inv)}
@@ -3113,51 +3374,51 @@ function BillingContent() {
                               fontWeight: 800,
                               color: '#05424A',
                               cursor: 'pointer',
-                              fontSize: 13,
+                              fontSize: 12.5,
                               fontFamily: 'monospace, sans-serif',
                             }}
                           >
                             {inv.no}
                           </button>
                           {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
-                            <span style={{ fontSize: 10, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1.5px 6px', borderRadius: 4 }}>
+                            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1px 5px', borderRadius: 4 }}>
                               👑 Bridal
                             </span>
                           ) : (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1.5px 6px', borderRadius: 4 }}>
+                            <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: 4 }}>
                               🛍️ POS
                             </span>
                           )}
                         </div>
-                        <span style={{ fontSize: 11, color: '#64748b' }}>{fmtDate(inv.date)}</span>
+                        <span style={{ fontSize: 10.5, color: '#64748b' }}>{fmtDate(inv.date)}</span>
                       </div>
 
                       {/* Middle Row: Customer Info & Amount */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
+                          <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a' }}>
                             {inv.customer}
                           </div>
-                          <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
+                          <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 1 }}>
                             {inv.mobile || '—'}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a' }}>
+                          <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a' }}>
                             {money(inv.total)}
                           </div>
                           {Number(inv.balance) > 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end', marginTop: 2 }}>
-                              <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 11 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 2 }}>
+                              <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 10.5 }}>
                                 Due: {money(inv.balance)}
                               </span>
                               <button
                                 type="button"
                                 className="btn btn-xs"
                                 style={{
-                                  fontSize: 10,
-                                  padding: '2px 7px',
-                                  height: 20,
+                                  fontSize: 9.5,
+                                  padding: '1px 6px',
+                                  height: 19,
                                   borderRadius: 4,
                                   background: '#f0fdf4',
                                   color: '#15803d',
@@ -3171,7 +3432,7 @@ function BillingContent() {
                               </button>
                             </div>
                           ) : (
-                            <span style={{ color: '#16a34a', fontSize: 11, fontWeight: 600 }}>
+                            <span style={{ color: '#16a34a', fontSize: 10.5, fontWeight: 600 }}>
                               ✅ Paid: {money(inv.paid)}
                             </span>
                           )}
@@ -3183,9 +3444,9 @@ function BillingContent() {
                         style={{
                           display: 'grid',
                           gridTemplateColumns: 'repeat(4, 1fr) auto auto',
-                          gap: 6,
+                          gap: 5,
                           borderTop: '1px solid #f1f5f9',
-                          paddingTop: 10,
+                          paddingTop: 8,
                           alignItems: 'center',
                         }}
                       >
@@ -3193,36 +3454,35 @@ function BillingContent() {
                           type="button"
                           className="btn btn-ghost btn-xs"
                           onClick={() => setReceiptModalInv(inv)}
-                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
+                          style={{ height: 28, fontSize: 10.5, borderRadius: 5, background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 3px' }}
                         >
-                          <Eye size={12} /> View
+                          <Eye size={11} /> View
                         </button>
                         <button
                           type="button"
                           className="btn btn-ghost btn-xs"
                           onClick={() => downloadInvoicePDF(inv, data)}
-                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
+                          style={{ height: 28, fontSize: 10.5, borderRadius: 5, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 3px' }}
                         >
-                          <Download size={12} /> PDF
+                          <Download size={11} /> PDF
                         </button>
                         <button
                           type="button"
                           className="btn btn-ghost btn-xs"
                           onClick={() => handlePrint(inv)}
-                          style={{ height: 32, fontSize: 11, borderRadius: 6, background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '0 4px' }}
+                          style={{ height: 28, fontSize: 10.5, borderRadius: 5, background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 3px' }}
                         >
-                          <Printer size={12} /> Print
+                          <Printer size={11} /> Print
                         </button>
-                        {/* Card PDF button */}
                         <button
                           type="button"
                           className="btn btn-ghost btn-xs"
                           disabled={waPdfStatus[inv.id] === 'sending'}
                           onClick={() => handleSendInvoicePDF(inv)}
                           style={{
-                            height: 32,
-                            fontSize: 11,
-                            borderRadius: 6,
+                            height: 28,
+                            fontSize: 10.5,
+                            borderRadius: 5,
                             background:
                               waPdfStatus[inv.id] === 'sent'
                                 ? '#dcfce7'
@@ -3240,72 +3500,34 @@ function BillingContent() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 3,
-                            padding: '0 4px',
+                            gap: 2,
+                            padding: '0 3px',
                           }}
                         >
                           {waPdfStatus[inv.id] === 'sending' ? (
-                            <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                            <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
                           ) : (
-                            <FileText size={12} />
+                            <FileText size={11} />
                           )}
                           <span>PDF</span>
-                        </button>
-                        {/* Card Text button */}
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          disabled={waTextStatus[inv.id] === 'sending'}
-                          onClick={() => handleSendInvoiceText(inv)}
-                          style={{
-                            height: 32,
-                            fontSize: 11,
-                            borderRadius: 6,
-                            background:
-                              waTextStatus[inv.id] === 'sent'
-                                ? '#dcfce7'
-                                : waTextStatus[inv.id] === 'failed'
-                                ? '#fee2e2'
-                                : '#eff6ff',
-                            color:
-                              waTextStatus[inv.id] === 'sent'
-                                ? '#16a34a'
-                                : waTextStatus[inv.id] === 'failed'
-                                ? '#dc2626'
-                                : '#2563eb',
-                            border: '1px solid #bfdbfe',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 3,
-                            padding: '0 4px',
-                          }}
-                        >
-                          {waTextStatus[inv.id] === 'sending' ? (
-                            <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-                          ) : (
-                            <MessageSquare size={12} />
-                          )}
-                          <span>Text</span>
                         </button>
                         <button
                           type="button"
                           className="pos-action-btn"
                           title="Edit Invoice"
                           onClick={() => openEditInvoice(inv)}
-                          style={{ width: 32, height: 32, borderRadius: 6, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' }}
+                          style={{ width: 28, height: 28, borderRadius: 5, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' }}
                         >
-                          <Pencil size={13} />
+                          <Pencil size={12} />
                         </button>
                         <button
                           type="button"
                           className="pos-action-btn"
                           title="Delete Invoice"
                           onClick={() => setDeleteInvoiceId(inv.id)}
-                          style={{ width: 32, height: 32, borderRadius: 6, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
+                          style={{ width: 28, height: 28, borderRadius: 5, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={12} />
                         </button>
                       </div>
                     </div>
@@ -3317,23 +3539,23 @@ function BillingContent() {
             {/* Quick POS Tips & Shortcuts */}
             <div
               style={{
-                marginTop: 16,
-                padding: '12px 14px',
+                marginTop: 12,
+                padding: '10px 12px',
                 background: '#f8fafc',
                 borderRadius: 8,
                 border: '1px solid #e2e8f0',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, color: '#05424A', fontWeight: 700, fontSize: 12 }}>
-                <Sparkles size={14} style={{ color: '#EABA38' }} /> Quick POS Tips &amp; Shortcuts
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, color: '#05424A', fontWeight: 700, fontSize: 11.5 }}>
+                <Sparkles size={13} style={{ color: '#EABA38' }} /> Quick POS Tips &amp; Shortcuts
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(185px, 1fr))', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6 }}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    padding: '7px 10px',
+                    gap: 6,
+                    padding: '6px 8px',
                     background: '#ffffff',
                     borderRadius: 6,
                     border: '1px solid #e2e8f0',
@@ -3341,20 +3563,20 @@ function BillingContent() {
                 >
                   <span
                     style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 5,
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
                       background: '#f1f5f9',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 12,
+                      fontSize: 11,
                       flexShrink: 0,
                     }}
                   >
                     ⚡
                   </span>
-                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                  <span style={{ fontSize: 10.5, color: '#475569', lineHeight: 1.35 }}>
                     <strong style={{ color: '#0f172a', fontWeight: 700 }}>Fast Billing:</strong> Press Enter to add rows
                   </span>
                 </div>
@@ -3362,8 +3584,8 @@ function BillingContent() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    padding: '7px 10px',
+                    gap: 6,
+                    padding: '6px 8px',
                     background: '#ffffff',
                     borderRadius: 6,
                     border: '1px solid #e2e8f0',
@@ -3371,20 +3593,20 @@ function BillingContent() {
                 >
                   <span
                     style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 5,
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
                       background: '#fdf2f8',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 12,
+                      fontSize: 11,
                       flexShrink: 0,
                     }}
                   >
                     👰
                   </span>
-                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                  <span style={{ fontSize: 10.5, color: '#475569', lineHeight: 1.35 }}>
                     <strong style={{ color: '#0f172a', fontWeight: 700 }}>Bridal Import:</strong> Auto-fill wedding events
                   </span>
                 </div>
@@ -3392,8 +3614,8 @@ function BillingContent() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    padding: '7px 10px',
+                    gap: 6,
+                    padding: '6px 8px',
                     background: '#ffffff',
                     borderRadius: 6,
                     border: '1px solid #e2e8f0',
@@ -3401,20 +3623,20 @@ function BillingContent() {
                 >
                   <span
                     style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 5,
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
                       background: '#f0fdf4',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 12,
+                      fontSize: 11,
                       flexShrink: 0,
                     }}
                   >
                     💬
                   </span>
-                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                  <span style={{ fontSize: 10.5, color: '#475569', lineHeight: 1.35 }}>
                     <strong style={{ color: '#0f172a', fontWeight: 700 }}>WhatsApp:</strong> Send PDF bill to customer
                   </span>
                 </div>
@@ -3422,8 +3644,8 @@ function BillingContent() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    padding: '7px 10px',
+                    gap: 6,
+                    padding: '6px 8px',
                     background: '#ffffff',
                     borderRadius: 6,
                     border: '1px solid #e2e8f0',
@@ -3431,20 +3653,20 @@ function BillingContent() {
                 >
                   <span
                     style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 5,
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
                       background: '#f1f5f9',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: 12,
+                      fontSize: 11,
                       flexShrink: 0,
                     }}
                   >
                     🖨️
                   </span>
-                  <span style={{ fontSize: 11, color: '#475569', lineHeight: 1.35 }}>
+                  <span style={{ fontSize: 10.5, color: '#475569', lineHeight: 1.35 }}>
                     <strong style={{ color: '#0f172a', fontWeight: 700 }}>Thermal Print:</strong> 80mm roll auto-cut
                   </span>
                 </div>

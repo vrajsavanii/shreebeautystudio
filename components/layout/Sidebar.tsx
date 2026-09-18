@@ -47,7 +47,7 @@ export default function Sidebar() {
       {/* Direct Brand Logo Banner - Seamless Borderless Big Size */}
       <div
         style={{
-          padding: '20px 14px 16px',
+          padding: '12px 14px 6px',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -58,7 +58,7 @@ export default function Sidebar() {
           alt={salonName}
           style={{
             width: '100%',
-            maxWidth: '215px',
+            maxWidth: '190px',
             height: 'auto',
             display: 'block',
             objectFit: 'contain',
@@ -84,7 +84,7 @@ export default function Sidebar() {
                 href={href}
                 className={`sidebar-link ${isActive ? 'active' : ''}`}
               >
-                <Icon size={17} className="icon" />
+                <Icon size={15.5} className="icon" />
                 {label}
               </Link>
             </motion.div>
@@ -92,14 +92,14 @@ export default function Sidebar() {
         })}
 
         {/* Public Website Preview Link */}
-        <motion.div variants={fadeSlideUp} style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <motion.div variants={fadeSlideUp} style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <Link
             href="/"
             target="_blank"
             className="sidebar-link"
             style={{ color: '#EABA38', fontWeight: 600 }}
           >
-            <ExternalLink size={16} className="icon" color="#EABA38" />
+            <ExternalLink size={15} className="icon" color="#EABA38" />
             Public Website ↗
           </Link>
         </motion.div>
