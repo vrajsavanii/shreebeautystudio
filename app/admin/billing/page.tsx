@@ -307,7 +307,7 @@ function BillingContent() {
           discountType: '₹',
         };
       });
-      setLines(newLines);
+      setLines([...newLines, EMPTY_LINE()]);
       toast(`👰 Imported ${b.name}'s bridal booking with ${events.length} ticked function${events.length > 1 ? 's' : ''}!`);
     } else {
       setLines([
@@ -319,6 +319,7 @@ function BillingContent() {
           discount: 0,
           discountType: '₹',
         },
+        EMPTY_LINE(),
       ]);
       toast(`👰 Imported bridal package for ${b.name}!`);
     }
@@ -449,6 +450,40 @@ function BillingContent() {
 
       return updated;
     });
+  };
+
+  // Auto-append empty row whenever the last row is filled so cashier never has to click "+ Add Item"
+  useEffect(() => {
+    if (lines.length === 0) {
+      setLines([EMPTY_LINE()]);
+      return;
+    }
+    const last = lines[lines.length - 1];
+    if (last.name && last.name.trim() !== '') {
+      setLines((prev) => {
+        const lastLine = prev[prev.length - 1];
+        if (lastLine && lastLine.name && lastLine.name.trim() !== '') {
+          return [...prev, EMPTY_LINE()];
+        }
+        return prev;
+      });
+    }
+  }, [lines]);
+
+  const handleLineKeyDown = (e: React.KeyboardEvent, currentIdx: number) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const nextIdx = currentIdx + 1;
+      if (nextIdx >= lines.length) {
+        setLines((prev) => [...prev, EMPTY_LINE()]);
+      }
+      setTimeout(() => {
+        const nextInput = document.getElementById(`billing-line-name-${nextIdx}`) as HTMLInputElement | null;
+        if (nextInput) {
+          nextInput.focus();
+        }
+      }, 60);
+    }
   };
 
   const handleCustomerSelect = (val: string) => {
@@ -1660,11 +1695,13 @@ function BillingContent() {
                         </button>
                         <input
                           type="text"
+                          id={`billing-line-name-${idx}`}
                           className="input"
                           list="billing-items-list"
                           placeholder="Select service or scan product…"
                           value={line.name}
                           onChange={(e) => handleItemSelect(idx, e.target.value)}
+                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
                           style={{
                             height: 34,
                             fontSize: 12,
@@ -1686,6 +1723,7 @@ function BillingContent() {
                         onChange={(e) =>
                           setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
                         }
+                        onKeyDown={(e) => handleLineKeyDown(e, idx)}
                         style={{
                           textAlign: 'center',
                           height: 34,
@@ -1707,6 +1745,7 @@ function BillingContent() {
                         onChange={(e) =>
                           setLine(idx, { price: Number(e.target.value) || 0 })
                         }
+                        onKeyDown={(e) => handleLineKeyDown(e, idx)}
                         style={{
                           textAlign: 'right',
                           height: 34,
@@ -1729,6 +1768,7 @@ function BillingContent() {
                           onChange={(e) =>
                             setLine(idx, { discount: Number(e.target.value) || 0 })
                           }
+                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
                           style={{
                             textAlign: 'right',
                             height: 34,
@@ -1840,6 +1880,7 @@ function BillingContent() {
                         placeholder="Select service or scan product…"
                         value={line.name}
                         onChange={(e) => handleItemSelect(idx, e.target.value)}
+                        onKeyDown={(e) => handleLineKeyDown(e, idx)}
                         style={{ flex: 1, height: 34, fontSize: 12, padding: '0 8px' }}
                       />
                       <button
@@ -1879,6 +1920,7 @@ function BillingContent() {
                           onChange={(e) =>
                             setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
                           }
+                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
                           style={{ textAlign: 'center', height: 32, fontSize: 12, padding: 0 }}
                         />
                       </div>
@@ -1893,6 +1935,7 @@ function BillingContent() {
                           placeholder="0"
                           value={line.price || ''}
                           onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
+                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
                           style={{ textAlign: 'right', height: 32, fontSize: 12, padding: '0 4px' }}
                         />
                       </div>
@@ -1910,6 +1953,7 @@ function BillingContent() {
                             onChange={(e) =>
                               setLine(idx, { discount: Number(e.target.value) || 0 })
                             }
+                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
                             style={{ textAlign: 'right', height: 32, fontSize: 12, padding: '0 4px', flex: 1 }}
                           />
                           <button
@@ -2476,45 +2520,48 @@ function BillingContent() {
               <div
                 style={{
                   background: '#f8fafc',
-                  padding: '9px 12px',
+                  padding: '10px 12px',
                   borderRadius: 8,
                   border: '1px solid #e2e8f0',
+                  textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 10, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: 10.5, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Invoices
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginTop: 2, lineHeight: 1.2 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 3, lineHeight: 1.2 }}>
                   {invoiceStats.count}
                 </div>
               </div>
               <div
                 style={{
                   background: '#f0fdf4',
-                  padding: '9px 12px',
+                  padding: '10px 12px',
                   borderRadius: 8,
                   border: '1px solid #bbf7d0',
+                  textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: 10.5, color: '#15803d', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Collected
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#16a34a', marginTop: 2, lineHeight: 1.2 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#16a34a', marginTop: 3, lineHeight: 1.2 }}>
                   {money(invoiceStats.totalCollected)}
                 </div>
               </div>
               <div
                 style={{
                   background: invoiceStats.totalDue > 0 ? '#fef2f2' : '#f8fafc',
-                  padding: '9px 12px',
+                  padding: '10px 12px',
                   borderRadius: 8,
                   border: invoiceStats.totalDue > 0 ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                  textAlign: 'center',
                 }}
               >
-                <div style={{ fontSize: 10, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: 10.5, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   Due Balance
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#0f172a', marginTop: 2, lineHeight: 1.2 }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: invoiceStats.totalDue > 0 ? '#dc2626' : '#0f172a', marginTop: 3, lineHeight: 1.2 }}>
                   {money(invoiceStats.totalDue)}
                 </div>
               </div>
@@ -2534,17 +2581,17 @@ function BillingContent() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
                       <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         <tr>
-                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
-                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer</th>
-                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Amount &amp; Status</th>
-                          <th style={{ padding: '9px 10px', fontSize: 10.5, textAlign: 'right', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Actions</th>
+                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
+                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer</th>
+                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Amount &amp; Status</th>
+                          <th style={{ padding: '9px 8px', fontSize: 10.5, textAlign: 'right', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', width: activeTab === 'history' ? 'auto' : 92 }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredInvoices.map((inv) => (
                           <tr key={inv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <td style={{ padding: '10px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                              <div style={{ height: 22, display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <button
                                   type="button"
                                   onClick={() => setReceiptModalInv(inv)}
@@ -2572,77 +2619,126 @@ function BillingContent() {
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{fmtDate(inv.date)}</div>
-                            </td>
-                            <td style={{ padding: '10px 10px' }}>
-                              <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 115 }} title={inv.customer}>
-                                {inv.customer}
+                              <div style={{ height: 20, display: 'flex', alignItems: 'center', marginTop: 4, fontSize: 11, color: '#64748b' }}>
+                                {fmtDate(inv.date)}
                               </div>
-                              <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{inv.mobile || '—'}</div>
                             </td>
-                            <td style={{ padding: '10px 10px', whiteSpace: 'nowrap' }}>
-                              <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a' }}>{money(inv.total)}</div>
-                              {Number(inv.balance) > 0 ? (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-                                  <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 11 }}>
-                                    Due: {money(inv.balance)}
+                            <td style={{ padding: '10px 8px', verticalAlign: 'top' }}>
+                              <div style={{ height: 22, display: 'flex', alignItems: 'center' }}>
+                                <span
+                                  style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: activeTab === 'history' ? 220 : 105 }}
+                                  title={inv.customer}
+                                >
+                                  {inv.customer}
+                                </span>
+                              </div>
+                              <div style={{ height: 20, display: 'flex', alignItems: 'center', marginTop: 4, fontSize: 11, color: '#64748b' }}>
+                                {inv.mobile || '—'}
+                              </div>
+                            </td>
+                            <td style={{ padding: '10px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                              <div style={{ height: 22, display: 'flex', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 800, fontSize: 13, color: '#0f172a' }}>{money(inv.total)}</span>
+                              </div>
+                              <div style={{ height: 20, display: 'flex', alignItems: 'center', marginTop: 4 }}>
+                                {Number(inv.balance) > 0 ? (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 11 }}>
+                                      Due: {money(inv.balance)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      className="btn btn-xs"
+                                      style={{
+                                        fontSize: 10,
+                                        padding: '1px 6px',
+                                        height: 19,
+                                        borderRadius: 4,
+                                        background: '#f0fdf4',
+                                        color: '#15803d',
+                                        border: '1px solid #86efac',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                      }}
+                                      title="Record Payment-In"
+                                      onClick={() => openPaymentInModal(inv)}
+                                    >
+                                      + Collect
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <span style={{ color: '#16a34a', fontSize: 11, fontWeight: 600 }}>
+                                    Paid: {money(inv.paid)}
                                   </span>
-                                  <button
-                                    type="button"
-                                    className="btn btn-xs"
-                                    style={{
-                                      fontSize: 10,
-                                      padding: '1px 6px',
-                                      height: 19,
-                                      borderRadius: 4,
-                                      background: '#f0fdf4',
-                                      color: '#15803d',
-                                      border: '1px solid #86efac',
-                                      fontWeight: 700,
-                                      cursor: 'pointer',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                    }}
-                                    title="Record Payment-In"
-                                    onClick={() => openPaymentInModal(inv)}
-                                  >
-                                    + Collect
-                                  </button>
-                                </div>
-                              ) : (
-                                <div style={{ color: '#16a34a', fontSize: 11, fontWeight: 600, marginTop: 2 }}>
-                                  Paid: {money(inv.paid)}
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </td>
-                            <td style={{ padding: '10px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+                            <td style={{ padding: '10px 8px', verticalAlign: 'top', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                              <div
+                                style={
+                                  activeTab === 'history'
+                                    ? { display: 'flex', gap: 5, alignItems: 'center', justifyContent: 'flex-end', height: 46 }
+                                    : { display: 'grid', gridTemplateColumns: 'repeat(3, 26px)', gap: 4, justifyContent: 'flex-end', width: 86, marginLeft: 'auto' }
+                                }
+                              >
                                 <button
                                   type="button"
                                   className="pos-action-btn"
                                   title="View Official Bill Layout"
-                                  style={{ background: '#f0f9ff', color: '#0284c7', borderColor: '#bae6fd' }}
+                                  style={{
+                                    background: '#f0f9ff',
+                                    color: '#0284c7',
+                                    borderColor: '#bae6fd',
+                                    height: activeTab === 'history' ? 28 : 21,
+                                    width: 26,
+                                    padding: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
                                   onClick={() => setReceiptModalInv(inv)}
                                 >
-                                  <Eye size={12.5} />
+                                  <Eye size={12} />
                                 </button>
                                 <button
                                   type="button"
                                   className="pos-action-btn"
                                   title="Download PDF Bill"
-                                  style={{ background: '#fffbeb', color: '#b45309', borderColor: '#fde68a' }}
+                                  style={{
+                                    background: '#fffbeb',
+                                    color: '#b45309',
+                                    borderColor: '#fde68a',
+                                    height: activeTab === 'history' ? 28 : 21,
+                                    width: 26,
+                                    padding: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
                                   onClick={() => downloadInvoicePDF(inv, data)}
                                 >
-                                  <Download size={12.5} />
+                                  <Download size={12} />
                                 </button>
                                 <button
                                   type="button"
                                   className="pos-action-btn"
                                   title="Print Thermal / A4 Receipt"
-                                  style={{ background: '#f8fafc', color: '#475569', borderColor: '#cbd5e1' }}
+                                  style={{
+                                    background: '#f8fafc',
+                                    color: '#475569',
+                                    borderColor: '#cbd5e1',
+                                    height: activeTab === 'history' ? 28 : 21,
+                                    width: 26,
+                                    padding: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
                                   onClick={() => handlePrint(inv)}
                                 >
-                                  <Printer size={12.5} />
+                                  <Printer size={12} />
                                 </button>
                                 <button
                                   type="button"
@@ -2677,6 +2773,12 @@ function BillingContent() {
                                         : '#86efac',
                                     opacity: waInvoiceStatus[inv.id] === 'sending' ? 0.6 : 1,
                                     cursor: waInvoiceStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
+                                    height: activeTab === 'history' ? 28 : 21,
+                                    width: 26,
+                                    padding: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                   }}
                                   disabled={waInvoiceStatus[inv.id] === 'sending'}
                                   onClick={async () => {
@@ -2703,25 +2805,45 @@ function BillingContent() {
                                     }
                                   }}
                                 >
-                                  <MessageCircle size={12.5} />
+                                  <MessageCircle size={12} />
                                 </button>
                                 <button
                                   type="button"
                                   className="pos-action-btn"
                                   title="Edit Invoice"
-                                  style={{ background: '#f5f3ff', color: '#7c3aed', borderColor: '#ddd6fe' }}
+                                  style={{
+                                    background: '#f5f3ff',
+                                    color: '#7c3aed',
+                                    borderColor: '#ddd6fe',
+                                    height: activeTab === 'history' ? 28 : 21,
+                                    width: 26,
+                                    padding: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
                                   onClick={() => openEditInvoice(inv)}
                                 >
-                                  <Pencil size={12.5} />
+                                  <Pencil size={12} />
                                 </button>
                                 <button
                                   type="button"
                                   className="pos-action-btn"
                                   title="Delete Invoice & Return Stock"
-                                  style={{ background: '#fef2f2', color: '#dc2626', borderColor: '#fecaca' }}
+                                  style={{
+                                    background: '#fef2f2',
+                                    color: '#dc2626',
+                                    borderColor: '#fecaca',
+                                    height: activeTab === 'history' ? 28 : 21,
+                                    width: 26,
+                                    padding: 0,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
                                   onClick={() => setDeleteInvoiceId(inv.id)}
                                 >
-                                  <Trash2 size={12.5} />
+                                  <Trash2 size={12} />
                                 </button>
                               </div>
                             </td>

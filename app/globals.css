@@ -1022,7 +1022,7 @@ tbody tr.today-row {
 /* ─── Billing Layout ─────────────────────────────────────────────── */
 .billing-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
