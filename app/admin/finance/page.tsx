@@ -1604,10 +1604,6 @@ export default function FinanceAccountingPage() {
                 This Month
               </button>
             </div>
-
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#64748b' }}>
-              Total Transactions: <span style={{ color: '#0f172a' }}>{filteredTransactions.length}</span>
-            </div>
           </div>
 
           {/* Transactions Table */}
