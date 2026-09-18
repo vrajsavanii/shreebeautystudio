@@ -1490,43 +1490,43 @@ export default function FinanceAccountingPage() {
               />
             </div>
 
-            {/* Type Filter Pills */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap', flexShrink: 0 }}>
-              {(['All', 'Sale', 'Purchase', 'Payment In', 'Payment Out', 'Expense'] as TxTypeFilter[]).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTypeFilter(t)}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    border: '1px solid',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    background: typeFilter === t ? '#0f172a' : '#ffffff',
-                    color: typeFilter === t ? '#ffffff' : '#475569',
-                    borderColor: typeFilter === t ? '#0f172a' : '#e2e8f0',
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            {/* Filters Group (Type & Time Dropdowns) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              {/* Type Filter Dropdown */}
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value as TxTypeFilter)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  outline: 'none',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                }}
+              >
+                <option value="All">All Types</option>
+                <option value="Sale">Sale (વેચાણ)</option>
+                <option value="Purchase">Purchase (ખરીદી)</option>
+                <option value="Payment In">Payment In (આવક)</option>
+                <option value="Payment Out">Payment Out (ચુકવણી)</option>
+                <option value="Expense">Expense (ખર્ચ)</option>
+              </select>
 
-            {/* Time Filter Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {/* Time Filter Dropdown */}
               <select
                 value={timeFilter}
                 onChange={(e) => setTimeFilter(e.target.value as TimeFilter)}
                 style={{
-                  padding: '7px 14px',
-                  borderRadius: 8,
-                  fontSize: 12,
+                  padding: '8px 14px',
+                  borderRadius: 10,
+                  fontSize: 12.5,
                   fontWeight: 700,
                   cursor: 'pointer',
-                  whiteSpace: 'nowrap',
                   border: '1px solid #cbd5e1',
                   background: '#ffffff',
                   color: '#1e293b',
