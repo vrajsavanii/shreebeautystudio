@@ -2,7 +2,7 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Invoice, SalonData } from '@/types/salon';
-import { SHREE_LOGO_BASE64 } from './logo-base64';
+import { SHREE_INVOICE_BILL_LOGO_BASE64 } from './logo-base64';
 import { format, parseISO } from 'date-fns';
 import { sendWhatsAppTemplateMessage } from './whatsapp';
 
@@ -100,7 +100,7 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
   container.innerHTML = `
     <div style="width: 100%; text-align: center; margin-bottom: 12px;">
       <!-- Official High-Res Logo -->
-      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: 210px; width: 60%; height: auto; object-fit: contain; margin: 0 auto 6px; display: block;" />
+      <img src="${SHREE_INVOICE_BILL_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: 210px; width: 60%; height: auto; object-fit: contain; margin: 0 auto 6px; display: block;" />
       
       <!-- Studio Header Details -->
       <div style="font-size: 13px; color: #000000; line-height: 1.4; margin-bottom: 3px; max-width: 380px; margin-left: auto; margin-right: auto; font-weight: 500;">
@@ -308,7 +308,7 @@ function buildA4InvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
     <!-- Top Header & Luxury Branding -->
     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 3px solid #05424A; padding-bottom: 20px;">
       <div style="display: flex; flex-direction: column; gap: 4px;">
-        <img src="${SHREE_LOGO_BASE64}" alt="${salon}" style="max-width: 220px; height: auto; object-fit: contain; margin-bottom: 6px; display: block;" />
+        <img src="${SHREE_INVOICE_BILL_LOGO_BASE64}" alt="${salon}" style="max-width: 220px; height: auto; object-fit: contain; margin-bottom: 6px; display: block;" />
         <div style="font-size: 12.5px; color: #475569; max-width: 400px; line-height: 1.4; font-weight: 500;">
           ${salonAddress}
         </div>

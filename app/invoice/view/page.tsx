@@ -7,7 +7,7 @@ import { Download, Printer, MessageCircle, CheckCircle2, ShieldCheck, Sparkles, 
 import { Invoice, SalonData } from '@/types/salon';
 import { downloadInvoicePDF, formatIndianDate, cleanServiceNameForBill } from '@/lib/invoice-pdf';
 import { money } from '@/lib/utils';
-import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+import { SHREE_INVOICE_BILL_LOGO_BASE64 } from '@/lib/logo-base64';
 
 function InvoiceViewerContent() {
   const searchParams = useSearchParams();
@@ -205,9 +205,9 @@ function InvoiceViewerContent() {
         >
           {/* Header & Logo */}
           <div style={{ textAlign: 'center', paddingBottom: 6, marginBottom: 12 }}>
-            {SHREE_LOGO_BASE64 ? (
+            {SHREE_INVOICE_BILL_LOGO_BASE64 ? (
               <img
-                src={SHREE_LOGO_BASE64}
+                src={SHREE_INVOICE_BILL_LOGO_BASE64}
                 alt="Shree Beauty Studio"
                 style={{ maxWidth: 210, width: '60%', height: 'auto', margin: '0 auto 6px', display: 'block' }}
               />

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, Calendar, Sparkles } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
+import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
@@ -94,7 +95,7 @@ export default function CustomerNavbar() {
           >
             <div className="logo-img-wrap" style={{ flexShrink: 0, boxShadow: '0 0 0 2px rgba(234,186,56,0.4), 0 2px 10px rgba(0,0,0,0.2)', borderRadius: '50%' }}>
               <img
-                src="/shree-logo-transparent.png"
+                src={SHREE_ONLY_LOGO_BASE64}
                 alt={salonName}
                 style={{
                   width: 40,

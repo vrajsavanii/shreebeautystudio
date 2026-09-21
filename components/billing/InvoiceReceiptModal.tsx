@@ -22,7 +22,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
-import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+import { SHREE_INVOICE_BILL_LOGO_BASE64 } from '@/lib/logo-base64';
 import {
   downloadInvoicePDF,
   formatIndianDate,
@@ -631,7 +631,7 @@ Have a wonderful day! 🙏✨`;
             {/* Top Logo */}
             <div style={{ textAlign: 'center', marginBottom: 10 }}>
               <img
-                src={SHREE_LOGO_BASE64}
+                src={SHREE_INVOICE_BILL_LOGO_BASE64}
                 alt="Shree Beauty Studio"
                 style={{
                   maxWidth: 210,

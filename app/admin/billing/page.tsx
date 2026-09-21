@@ -39,7 +39,7 @@ import { useToast } from '@/components/ui/Toast';
 import { downloadInvoicePDF, formatIndianDate, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, cleanServiceNameForBill, shareInvoicePDFViaDirectWhatsApp } from '@/lib/invoice-pdf';
 import { isCustomerIn24HourWindow } from '@/lib/whatsapp';
 import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
-import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+import { SHREE_INVOICE_BILL_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
@@ -1185,7 +1185,7 @@ function BillingContent() {
           {/* Official Logo */}
           <div style={{ textAlign: 'center', marginBottom: 12 }}>
             <img
-              src={SHREE_LOGO_BASE64}
+              src={SHREE_INVOICE_BILL_LOGO_BASE64}
               alt="Shree Beauty Studio"
               style={{ maxWidth: 210, width: '60%', height: 'auto', margin: '0 auto 6px', display: 'block' }}
             />

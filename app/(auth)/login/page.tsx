@@ -11,6 +11,7 @@ import { scaleIn } from '@/variants';
 import { useSalonStore, DEFAULT_USERS } from '@/lib/store';
 import { UserAccount } from '@/types/salon';
 import { setAdminSession } from '@/lib/admin-auth';
+import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 
 function LoginFormContent() {
   const router = useRouter();
@@ -179,12 +180,13 @@ function LoginFormContent() {
             }}
           >
             <img
-              src="/shree-logo-transparent.png"
+              src={SHREE_ONLY_LOGO_BASE64}
               alt="Shree Beauty Studio"
               style={{
-                width: '85%',
-                height: '85%',
-                objectFit: 'contain',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                borderRadius: '50%',
               }}
             />
           </div>

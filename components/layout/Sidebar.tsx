@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { staggerContainer, fadeSlideUp } from '@/variants';
+import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 
 
 const NAV = [
@@ -54,7 +55,7 @@ export default function Sidebar() {
         }}
       >
         <img
-          src="/shree-logo-transparent.png"
+          src={SHREE_LOGO_BASE64}
           alt={salonName}
           style={{
             width: '100%',

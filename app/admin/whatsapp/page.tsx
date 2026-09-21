@@ -65,7 +65,6 @@ import {
   getReceptionWhatsAppUrl,
   getReceptionWhatsAppQrUrl,
 } from '@/lib/whatsapp';
-import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
 import { staggerContainer, fadeSlideUp } from '@/variants';
