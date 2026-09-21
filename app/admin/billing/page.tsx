@@ -1285,10 +1285,10 @@ function BillingContent() {
             </tbody>
           </table>
 
-          {/* Heartfelt Footer */}
-          <div style={{ textAlign: 'center', marginTop: 10 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 2 }}>Thank you for choosing us! 🙏</div>
-            <div style={{ fontSize: 10, color: '#4b5563', lineHeight: 1.4, maxWidth: 300, margin: '0 auto' }}>
+          {/* Heartfelt Footer with 1-row space */}
+          <div style={{ textAlign: 'center', marginTop: 22 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 5 }}>Thank you for choosing us! 🙏</div>
+            <div style={{ fontSize: 10.5, color: '#4b5563', lineHeight: 1.5, maxWidth: 300, margin: '0 auto' }}>
               We truly value your trust and hope your experience was wonderful !!
             </div>
           </div>

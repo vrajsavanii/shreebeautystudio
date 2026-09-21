@@ -313,12 +313,12 @@ function InvoiceViewerContent() {
             </tbody>
           </table>
 
-          {/* Footer Note */}
-          <div style={{ textAlign: 'center', paddingTop: 10 }}>
-            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 2 }}>
+          {/* Footer Note with 1-row space */}
+          <div style={{ textAlign: 'center', marginTop: 22, paddingTop: 4 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 5 }}>
               Thank you for choosing us! 🙏
             </div>
-            <div style={{ fontSize: 11, color: '#444', lineHeight: 1.4 }}>
+            <div style={{ fontSize: 11.5, color: '#333', lineHeight: 1.5 }}>
               We truly value your trust and hope your experience was wonderful !!
             </div>
           </div>

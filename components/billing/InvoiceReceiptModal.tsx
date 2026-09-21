@@ -1045,14 +1045,14 @@ Have a wonderful day! 🙏✨`;
               </tbody>
             </table>
 
-            {/* Heartfelt Footer */}
-            <div style={{ textAlign: 'center', marginTop: 12, paddingTop: 8 }}>
+            {/* Heartfelt Footer with 1-row space */}
+            <div style={{ textAlign: 'center', marginTop: 22, paddingTop: 4 }}>
               <div
                 style={{
                   fontSize: 12.5,
                   fontWeight: 700,
                   color: '#000000',
-                  marginBottom: 3,
+                  marginBottom: 5,
                   textAlign: 'center',
                 }}
               >
@@ -1062,7 +1062,7 @@ Have a wonderful day! 🙏✨`;
                 style={{
                   fontSize: 11.5,
                   color: '#222222',
-                  lineHeight: 1.4,
+                  lineHeight: 1.5,
                   maxWidth: 340,
                   margin: '0 auto',
                   fontWeight: 500,
