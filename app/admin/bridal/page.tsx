@@ -1145,122 +1145,127 @@ const OTHER_EVENT_OPTIONS = [
         title={editId ? '👰 Edit Bridal Booking' : '👰 New Bridal Booking'}
         wide
         footer={
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {tab > 0 && (
-                <motion.button className="btn btn-ghost btn-sm" onClick={() => setTab((t) => t - 1)} whileTap={{ scale: 0.97 }}>
-                  <ChevronLeft size={14} /> Back
-                </motion.button>
-              )}
-              {(form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate) && (
-                <a
-                  href={getBridalGoogleCalendarUrl(
-                    {
-                      name: form.name || 'Bride',
-                      mobile: form.mobile,
-                      packageName: form.packageName,
-                      weddingDate: form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate,
-                      venue: form.venue,
-                      advance: Number(form.advance || 0),
-                      totalAmount: Number(form.package || 0),
-                      event: eventSummary(form as any),
-                    },
-                    data?.settings?.salon,
-                    data?.settings?.address
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-ghost btn-sm"
-                  style={{
-                    color: '#2563eb',
-                    borderColor: '#bfdbfe',
-                    background: '#eff6ff',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    fontSize: 11.5,
-                  }}
-                  title="Open Google Calendar to save bridal event with automatic reminders"
-                >
-                  <Calendar size={13} /> 📅 Google Calendar
-                </a>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              <button type="button" className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
-              {tab < TAB_STEPS.length - 1 && (
-                <motion.button type="button" className="btn btn-primary" onClick={() => setTab((t) => t + 1)} whileTap={{ scale: 0.97 }}>
-                  Next <ChevronRight size={14} />
-                </motion.button>
-              )}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                {/* 1. Web Send and Save */}
-                <motion.button
-                  type="button"
-                  className="btn"
-                  onClick={() => handleSave('web')}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-                    color: '#ffffff',
-                    borderColor: '#128C7E',
-                    fontWeight: 800,
-                    fontSize: 12.5,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    boxShadow: '0 2px 6px rgba(37, 211, 102, 0.28)',
-                  }}
-                  title="Save bridal booking and open WhatsApp Web/App to send confirmation"
-                >
-                  🌐 Web Send &amp; Save Booking
-                </motion.button>
-
-                {/* 2. API Send and Save */}
-                <motion.button
-                  type="button"
-                  className="btn"
-                  onClick={() => handleSave('api')}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                    color: '#ffffff',
-                    borderColor: '#0369a1',
-                    fontWeight: 800,
-                    fontSize: 12.5,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    boxShadow: '0 2px 6px rgba(2, 132, 199, 0.28)',
-                  }}
-                  title="Save bridal booking and send WhatsApp confirmation automatically via Cloud API"
-                >
-                  ⚡ API Send &amp; Save Booking
-                </motion.button>
-
-                {/* 3. Only Save */}
-                <motion.button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => handleSave('none')}
-                  whileTap={{ scale: 0.97 }}
-                  style={{
-                    background: '#f1f5f9',
-                    border: '1.5px solid #cbd5e1',
-                    color: '#334155',
-                    fontWeight: 700,
-                    fontSize: 12.5,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                  title="Directly save bridal booking into records & Google Calendar without sending WhatsApp message"
-                >
-                  💾 Only Save Bookings
-                </motion.button>
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 10 }}>
+            {/* Row 1: Back / Calendar + Cancel / Next */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {tab > 0 && (
+                  <motion.button className="btn btn-ghost btn-sm" onClick={() => setTab((t) => t - 1)} whileTap={{ scale: 0.97 }}>
+                    <ChevronLeft size={14} /> Back
+                  </motion.button>
+                )}
+                {(form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate) && (
+                  <a
+                    href={getBridalGoogleCalendarUrl(
+                      {
+                        name: form.name || 'Bride',
+                        mobile: form.mobile,
+                        packageName: form.packageName,
+                        weddingDate: form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate,
+                        venue: form.venue,
+                        advance: Number(form.advance || 0),
+                        totalAmount: Number(form.package || 0),
+                        event: eventSummary(form as any),
+                      },
+                      data?.settings?.salon,
+                      data?.settings?.address
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost btn-sm"
+                    style={{
+                      color: '#2563eb',
+                      borderColor: '#bfdbfe',
+                      background: '#eff6ff',
+                      fontWeight: 700,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      fontSize: 11.5,
+                    }}
+                    title="Open Google Calendar to save bridal event with automatic reminders"
+                  >
+                    <Calendar size={13} /> 📅 Google Calendar
+                  </a>
+                )}
               </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+                {tab < TAB_STEPS.length - 1 && (
+                  <motion.button type="button" className="btn btn-primary" onClick={() => setTab((t) => t + 1)} whileTap={{ scale: 0.97 }}>
+                    Next <ChevronRight size={14} />
+                  </motion.button>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: 3 Save Buttons */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+              {/* 1. Web Send and Save */}
+              <motion.button
+                type="button"
+                className="btn"
+                onClick={() => handleSave('web')}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                  color: '#ffffff',
+                  borderColor: '#128C7E',
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 6px rgba(37, 211, 102, 0.28)',
+                }}
+                title="Save bridal booking and open WhatsApp Web/App to send confirmation"
+              >
+                🌐 Web Send &amp; Save Booking
+              </motion.button>
+
+              {/* 2. API Send and Save */}
+              <motion.button
+                type="button"
+                className="btn"
+                onClick={() => handleSave('api')}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: '#ffffff',
+                  borderColor: '#0369a1',
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.28)',
+                }}
+                title="Save bridal booking and send WhatsApp confirmation automatically via Cloud API"
+              >
+                ⚡ API Send &amp; Save Booking
+              </motion.button>
+
+              {/* 3. Only Save */}
+              <motion.button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => handleSave('none')}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  background: '#f1f5f9',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#334155',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                title="Directly save bridal booking into records &amp; Google Calendar without sending WhatsApp message"
+              >
+                💾 Only Save Bookings
+              </motion.button>
             </div>
           </div>
         }
