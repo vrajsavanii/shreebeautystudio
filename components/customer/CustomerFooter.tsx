@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, Clock, Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram } from 'lucide-react';
-import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+
 import { useSalonStore } from '@/lib/store';
 
 export default function CustomerFooter() {

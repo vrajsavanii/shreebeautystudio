@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Users, Wallet, Star, Gift, X, PlusCircle, Download, Mail } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
@@ -9,7 +10,7 @@ import { uid, fmtDate, money, todayISO, formatCustomerContactName } from '@/lib/
 import { Customer, WalletTransaction } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { sendDirectWhatsAppMessage, customerReminderMessage } from '@/lib/whatsapp';
+import { openWAApp, customerReminderMessage } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
@@ -110,6 +111,14 @@ export default function CustomersPage() {
     reset({ id: '', name: '', mobile: '', birthday: '', anniversary: '', sagaiDate: '', notes: '' });
     setModalOpen(true);
   };
+
+  // Auto-open Add Customer modal if ?new=1 is in URL
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams?.get('new') === '1' || searchParams?.get('action') === 'add') {
+      openNew();
+    }
+  }, [searchParams]);
 
   const openEdit = (c: Customer) => {
     setEditId(c.id);
@@ -483,14 +492,11 @@ export default function CustomersPage() {
                         <button className="btn-icon edit" onClick={() => openEdit(c)} title="Edit Customer Profile"><Pencil size={13} /></button>
                         <button
                           className="btn-icon wa"
-                          title="Send WhatsApp via Meta API"
+                          title="📲 Send via WhatsApp App"
                           onClick={() => {
                             const msg = customerReminderMessage(c.name, data?.settings?.salon || 'Shree Beauty Studio', data?.settings?.address || '');
-                            toast(`⏳ Sending Meta API message to ${c.name}…`);
-                            sendDirectWhatsAppMessage(c.mobile, msg).then((r) => {
-                              if (r.success) toast(`✅ Message sent to ${c.name} via Meta API!`);
-                              else toast(`❌ ${r.message}`, 'error');
-                            });
+                            openWAApp(c.mobile, msg);
+                            toast(`📲 Opening WhatsApp App for ${c.name}…`);
                           }}
                         >
                           <MessageCircle size={13} />

@@ -600,6 +600,29 @@ export function loyaltyBalanceMessage(name: string, points: number, walletOrSalo
   return `⭐ *LOYALTY REWARDS & WALLET BALANCE — ${salon}* ⭐\nDear ${name}, you currently have ${points} VIP Loyalty Points!${walletText}\nRedeem them on your next salon service. ✨`;
 }
 
+export function advanceReceiptMessage(
+  customerName: string,
+  serviceName: string,
+  eventDate: string,
+  advanceAmount: number,
+  totalAmount: number,
+  salon: string
+): string {
+  const balance = Math.max(0, totalAmount - advanceAmount);
+  return `✨ *ADVANCE PAYMENT RECEIPT — ${salon}* ✨
+────────────────────────────
+👤 Customer: ${customerName}
+💄 Service / Event: ${serviceName}
+📅 Date: ${fmtDate(eventDate)}
+💵 Advance Received: ${money(advanceAmount)}
+💰 Total Estimated: ${money(totalAmount)}
+⏳ Balance Due: ${money(balance)}
+────────────────────────────
+✅ Your advance booking is safely recorded & confirmed!
+Thank you for choosing ${salon}! 🌸`;
+}
+
 export function festivalPromoMessage(name: string, promo: string, salon: string): string {
   return `🎉 *EXCLUSIVE FESTIVAL OFFER FOR ${name.toUpperCase()} — ${salon}* 🎉\n${promo}\nBook your slot today! Limited seats. 💖`;
 }
+

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen,
@@ -63,6 +64,7 @@ import { format, isToday, isThisMonth, parseISO } from 'date-fns';
 
 type TabType =
   | 'transactions'
+  | 'advances'
   | 'parties'
   | 'invoices'
   | 'purchases'
@@ -121,6 +123,7 @@ export default function FinanceAccountingPage() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [customerKhataFilter, setCustomerKhataFilter] = useState<'due' | 'all'>('due');
   const [supplierKhataFilter, setSupplierKhataFilter] = useState<'due' | 'all'>('due');
+  const [advanceFilter, setAdvanceFilter] = useState<'all' | 'active' | 'converted'>('active');
 
   // Modals
   const [saleModalOpen, setSaleModalOpen] = useState(false);
@@ -136,6 +139,24 @@ export default function FinanceAccountingPage() {
 
   // Daily Cashbook Date
   const [rojmelDate, setRojmelDate] = useState(todayISO());
+
+  // Auto-open requested modal if ?new=... is in URL
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const action = searchParams?.get('new');
+    if (action === 'expense' || action === '1') {
+      setExpenseModalOpen(true);
+      setActiveTab('rojmel');
+    } else if (action === 'sale') {
+      setSaleModalOpen(true);
+    } else if (action === 'in' || action === 'paymentin') {
+      setPaymentInModalOpen(true);
+    } else if (action === 'out' || action === 'paymentout') {
+      setPaymentOutModalOpen(true);
+    } else if (action === 'purchase') {
+      setPurchaseModalOpen(true);
+    }
+  }, [searchParams]);
 
   // ── Form States ─────────────────────────────────────────────────────────────
 
@@ -397,6 +418,103 @@ export default function FinanceAccountingPage() {
       else bankUpiBalance -= amt;
     });
 
+    // Advance Payments tracking (Appointments & Bridal)
+    let activeAdvances = 0;
+    let totalAdvancesCollected = 0;
+    let activeAdvanceCount = 0;
+    const advanceItems: {
+      id: string;
+      bookingType: 'Appointment' | 'Bridal';
+      customer: string;
+      mobile: string;
+      service: string;
+      date: string;
+      advance: number;
+      totalPrice: number;
+      balance: number;
+      mode: string;
+      isConverted: boolean;
+      invoiceId?: string;
+      status: string;
+      raw: any;
+    }[] = [];
+
+    (data.appointments || []).forEach((a) => {
+      const adv = Number(a.advance || 0);
+      if (adv > 0 && a.status !== 'Cancelled') {
+        totalAdvancesCollected += adv;
+        const isConverted = !!a.invoiceId || a.workStatus === 'Billed' || a.status === 'Completed';
+        if (!isConverted) {
+          activeAdvances += adv;
+          activeAdvanceCount++;
+        }
+        advanceItems.push({
+          id: `appt-adv-${a.id}`,
+          bookingType: 'Appointment',
+          customer: a.customer || 'Customer',
+          mobile: a.mobile || '',
+          service: a.service || 'Service',
+          date: a.date || todayISO(),
+          advance: adv,
+          totalPrice: Number(a.price || 0),
+          balance: Math.max(0, Number(a.price || 0) - adv),
+          mode: a.advanceMode || 'Cash',
+          isConverted,
+          invoiceId: a.invoiceId,
+          status: isConverted ? 'Converted to Sale' : (a.workStatus || a.status || 'Active'),
+          raw: a,
+        });
+
+        // Add to cash in hand / bank if not yet part of an invoice
+        if (!isConverted) {
+          const mode = (a.advanceMode || 'Cash').toLowerCase();
+          if (mode.includes('cash')) {
+            cashIn += adv;
+          } else {
+            bankUpiBalance += adv;
+          }
+        }
+      }
+    });
+
+    (data.bridal || []).forEach((b) => {
+      const adv = Number(b.advance || 0);
+      if (adv > 0 && b.status !== 'Cancelled') {
+        totalAdvancesCollected += adv;
+        const isConverted = !!(b.invoiceId || b.isCompleted);
+        if (!isConverted) {
+          activeAdvances += adv;
+          activeAdvanceCount++;
+        }
+        advanceItems.push({
+          id: `bridal-adv-${b.id}`,
+          bookingType: 'Bridal',
+          customer: b.name || 'Bride',
+          mobile: b.mobile || '',
+          service: `${b.packageType || 'Bridal'} — ${b.packageName || 'Package'}`,
+          date: b.weddingDate || todayISO(),
+          advance: adv,
+          totalPrice: Number(b.package || 0),
+          balance: Math.max(0, Number(b.package || 0) - adv),
+          mode: b.advanceAccount || 'Cash',
+          isConverted,
+          invoiceId: b.invoiceId,
+          status: isConverted ? 'Converted to Sale' : 'Active',
+          raw: b,
+        });
+
+        // Add to cash in hand / bank if not yet part of an invoice
+        if (!isConverted) {
+          const mode = (b.advanceAccount || 'Cash').toLowerCase();
+          if (mode.includes('cash')) {
+            cashIn += adv;
+          } else {
+            bankUpiBalance += adv;
+          }
+        }
+      }
+    });
+
     const cashInHand = Math.max(0, cashIn - cashOut);
 
     // Sales Today & This Month
@@ -429,6 +547,10 @@ export default function FinanceAccountingPage() {
       dueCustomerCount: dueCustomers.size,
       payables,
       dueSupplierCount: dueSuppliers.size,
+      activeAdvances,
+      activeAdvanceCount,
+      totalAdvancesCollected,
+      advanceItems,
       cashInHand,
       bankUpiBalance: Math.max(0, bankUpiBalance),
       todaySales,
@@ -443,7 +565,26 @@ export default function FinanceAccountingPage() {
     data.vouchers,
     data.expenses,
     data.inventory,
+    data.appointments,
+    data.bridal,
   ]);
+
+  // ── Filtered Advances Memo ──────────────────────────────────────────────────
+  const filteredAdvances = useMemo(() => {
+    return (metrics.advanceItems || []).filter((item) => {
+      if (advanceFilter === 'active' && item.isConverted) return false;
+      if (advanceFilter === 'converted' && !item.isConverted) return false;
+
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const mName = item.customer.toLowerCase().includes(q);
+        const mMob = item.mobile.includes(q);
+        const mSvc = item.service.toLowerCase().includes(q);
+        if (!mName && !mMob && !mSvc) return false;
+      }
+      return true;
+    });
+  }, [metrics.advanceItems, advanceFilter, search]);
 
   // ── Parties List with Balance Calculation & Filter ─────────────────────────
   const customerListWithBalance = useMemo(() => {
@@ -1174,51 +1315,47 @@ export default function FinanceAccountingPage() {
         </button>
       </div>
 
-      {/* ─── 6 COLORFUL KPI METRIC CARDS (SINGLE HORIZONTAL ROW) ─── */}
+      {/* ─── 7 COLORFUL KPI METRIC CARDS (COMPACT SINGLE ROW FIT) ─── */}
       <div
         className="finance-kpis-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
-          gap: 12,
-          marginBottom: 22,
+          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+          gap: 8,
+          marginBottom: 20,
         }}
       >
         {/* 1. YOU'LL GET (RECEIVABLES) */}
         <div
-          onClick={() => {
-            setActiveTab('parties');
-          }}
+          onClick={() => setActiveTab('parties')}
           title="Click to view Customers & Receivables"
           style={{
             background: '#f0fdf4',
             border: activeTab === 'parties' ? '2px solid #16a34a' : '1.5px solid #bbf7d0',
-            borderRadius: 14,
-            padding: '12px 14px',
+            borderRadius: 12,
+            padding: '10px 8px',
             position: 'relative',
-            boxShadow: activeTab === 'parties' ? '0 4px 14px rgba(34, 197, 94, 0.18)' : '0 2px 8px rgba(34, 197, 94, 0.05)',
+            boxShadow: activeTab === 'parties' ? '0 4px 12px rgba(34, 197, 94, 0.18)' : '0 2px 6px rgba(34, 197, 94, 0.05)',
             minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(34, 197, 94, 0.15)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = activeTab === 'parties' ? '0 4px 14px rgba(34, 197, 94, 0.18)' : '0 2px 8px rgba(34, 197, 94, 0.05)';
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#166534', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#166534', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               YOU&apos;LL GET
             </span>
             <div
               style={{
-                width: 24,
-                height: 24,
-                minWidth: 24,
+                width: 20,
+                height: 20,
+                minWidth: 20,
                 borderRadius: '50%',
                 background: '#dcfce7',
                 color: '#16a34a',
@@ -1227,52 +1364,48 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <ArrowDownLeft size={13} />
+              <ArrowDownLeft size={11} />
             </div>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#14532d', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#14532d', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.receivables)}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#15803d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#15803d', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {metrics.dueCustomerCount} Customers Due
           </div>
         </div>
 
         {/* 2. YOU'LL PAY (PAYABLES) */}
         <div
-          onClick={() => {
-            setActiveTab('purchases');
-          }}
+          onClick={() => setActiveTab('purchases')}
           title="Click to view Purchases & Payables"
           style={{
             background: '#fff1f2',
             border: activeTab === 'purchases' ? '2px solid #e11d48' : '1.5px solid #fecdd3',
-            borderRadius: 14,
-            padding: '12px 14px',
+            borderRadius: 12,
+            padding: '10px 8px',
             position: 'relative',
-            boxShadow: activeTab === 'purchases' ? '0 4px 14px rgba(244, 63, 94, 0.18)' : '0 2px 8px rgba(244, 63, 94, 0.05)',
+            boxShadow: activeTab === 'purchases' ? '0 4px 12px rgba(244, 63, 94, 0.18)' : '0 2px 6px rgba(244, 63, 94, 0.05)',
             minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(244, 63, 94, 0.15)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = activeTab === 'purchases' ? '0 4px 14px rgba(244, 63, 94, 0.18)' : '0 2px 8px rgba(244, 63, 94, 0.05)';
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#9f1239', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#9f1239', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               YOU&apos;LL PAY
             </span>
             <div
               style={{
-                width: 24,
-                height: 24,
-                minWidth: 24,
+                width: 20,
+                height: 20,
+                minWidth: 20,
                 borderRadius: '50%',
                 background: '#ffe4e6',
                 color: '#e11d48',
@@ -1281,52 +1414,98 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <ArrowUpRight size={13} />
+              <ArrowUpRight size={11} />
             </div>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#881337', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#881337', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.payables)}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#be123c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#be123c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {metrics.dueSupplierCount} Suppliers Due
           </div>
         </div>
 
-        {/* 3. CASH IN HAND */}
+        {/* 3. ADVANCE RECEIVED */}
         <div
-          onClick={() => {
-            setActiveTab('rojmel');
-          }}
-          title="Click to view Daily Rojmel & Cash Book"
+          onClick={() => setActiveTab('advances')}
+          title="Click to view Advance Bookings & Deposits"
           style={{
-            background: '#f0f9ff',
-            border: activeTab === 'rojmel' ? '2px solid #0284c7' : '1.5px solid #bae6fd',
-            borderRadius: 14,
-            padding: '12px 14px',
+            background: 'linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%)',
+            border: activeTab === 'advances' ? '2px solid #d97706' : '1.5px solid #fde68a',
+            borderRadius: 12,
+            padding: '10px 8px',
             position: 'relative',
-            boxShadow: activeTab === 'rojmel' ? '0 4px 14px rgba(14, 165, 233, 0.18)' : '0 2px 8px rgba(14, 165, 233, 0.05)',
+            boxShadow: activeTab === 'advances' ? '0 4px 12px rgba(217, 119, 6, 0.25)' : '0 2px 6px rgba(217, 119, 6, 0.08)',
             minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(14, 165, 233, 0.15)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = activeTab === 'rojmel' ? '0 4px 14px rgba(14, 165, 233, 0.18)' : '0 2px 8px rgba(14, 165, 233, 0.05)';
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#075985', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#92400e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              ADVANCE REC.
+            </span>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                minWidth: 20,
+                borderRadius: '50%',
+                background: '#fef3c7',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Sparkles size={11} />
+            </div>
+          </div>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#78350f', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {money(metrics.activeAdvances)}
+          </div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {metrics.activeAdvanceCount} Active Bookings
+          </div>
+        </div>
+
+        {/* 4. CASH IN HAND */}
+        <div
+          onClick={() => setActiveTab('rojmel')}
+          title="Click to view Daily Rojmel & Cash Book"
+          style={{
+            background: '#f0f9ff',
+            border: activeTab === 'rojmel' ? '2px solid #0284c7' : '1.5px solid #bae6fd',
+            borderRadius: 12,
+            padding: '10px 8px',
+            position: 'relative',
+            boxShadow: activeTab === 'rojmel' ? '0 4px 12px rgba(14, 165, 233, 0.18)' : '0 2px 6px rgba(14, 165, 233, 0.05)',
+            minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#075985', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               CASH IN HAND
             </span>
             <div
               style={{
-                width: 24,
-                height: 24,
-                minWidth: 24,
+                width: 20,
+                height: 20,
+                minWidth: 20,
                 borderRadius: '50%',
                 background: '#e0f2fe',
                 color: '#0284c7',
@@ -1335,18 +1514,18 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <Wallet size={13} />
+              <Wallet size={11} />
             </div>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#0c4a6e', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#0c4a6e', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.cashInHand)}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#0369a1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#0369a1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Counter &amp; Drawer
           </div>
         </div>
 
-        {/* 4. BANK & UPI BALANCE */}
+        {/* 5. BANK & UPI BALANCE */}
         <div
           onClick={() => {
             setActiveTab('transactions');
@@ -1358,32 +1537,30 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#f0fdfa',
             border: activeTab === 'transactions' && typeFilter === 'All' ? '2px solid #0d9488' : '1.5px solid #99f6e4',
-            borderRadius: 14,
-            padding: '12px 14px',
+            borderRadius: 12,
+            padding: '10px 8px',
             position: 'relative',
-            boxShadow: activeTab === 'transactions' && typeFilter === 'All' ? '0 4px 14px rgba(20, 184, 166, 0.18)' : '0 2px 8px rgba(20, 184, 166, 0.05)',
+            boxShadow: activeTab === 'transactions' && typeFilter === 'All' ? '0 4px 12px rgba(20, 184, 166, 0.18)' : '0 2px 6px rgba(20, 184, 166, 0.05)',
             minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(20, 184, 166, 0.15)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = activeTab === 'transactions' && typeFilter === 'All' ? '0 4px 14px rgba(20, 184, 166, 0.18)' : '0 2px 8px rgba(20, 184, 166, 0.05)';
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#115e59', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#115e59', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               BANK &amp; UPI
             </span>
             <div
               style={{
-                width: 24,
-                height: 24,
-                minWidth: 24,
+                width: 20,
+                height: 20,
+                minWidth: 20,
                 borderRadius: '50%',
                 background: '#ccfbf1',
                 color: '#0d9488',
@@ -1392,18 +1569,18 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <Landmark size={13} />
+              <Landmark size={11} />
             </div>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#134e4a', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#134e4a', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.bankUpiBalance)}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#0f766e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#0f766e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Online &amp; Account
           </div>
         </div>
 
-        {/* 5. TODAY'S SALE */}
+        {/* 6. TODAY'S SALE */}
         <div
           onClick={() => {
             setActiveTab('transactions');
@@ -1414,32 +1591,30 @@ export default function FinanceAccountingPage() {
           style={{
             background: '#faf5ff',
             border: activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '2px solid #9333ea' : '1.5px solid #e9d5ff',
-            borderRadius: 14,
-            padding: '12px 14px',
+            borderRadius: 12,
+            padding: '10px 8px',
             position: 'relative',
-            boxShadow: activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '0 4px 14px rgba(168, 85, 247, 0.18)' : '0 2px 8px rgba(168, 85, 247, 0.05)',
+            boxShadow: activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '0 4px 12px rgba(168, 85, 247, 0.18)' : '0 2px 6px rgba(168, 85, 247, 0.05)',
             minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(168, 85, 247, 0.15)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '0 4px 14px rgba(168, 85, 247, 0.18)' : '0 2px 8px rgba(168, 85, 247, 0.05)';
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#6b21a8', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#6b21a8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               TODAY&apos;S SALE
             </span>
             <div
               style={{
-                width: 24,
-                height: 24,
-                minWidth: 24,
+                width: 20,
+                height: 20,
+                minWidth: 20,
                 borderRadius: '50%',
                 background: '#f3e8ff',
                 color: '#9333ea',
@@ -1448,52 +1623,48 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <TrendingUp size={13} />
+              <TrendingUp size={11} />
             </div>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#581c87', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#581c87', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.todaySales)}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#7e22ce', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#7e22ce', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Month: {money(metrics.thisMonthSales)}
           </div>
         </div>
 
-        {/* 6. STOCK VALUE */}
+        {/* 7. STOCK VALUE */}
         <div
-          onClick={() => {
-            setActiveTab('reports');
-          }}
+          onClick={() => setActiveTab('reports')}
           title="Click to view Stock & Valuation Reports"
           style={{
             background: '#fffbeb',
             border: activeTab === 'reports' ? '2px solid #d97706' : '1.5px solid #fde68a',
-            borderRadius: 14,
-            padding: '12px 14px',
+            borderRadius: 12,
+            padding: '10px 8px',
             position: 'relative',
-            boxShadow: activeTab === 'reports' ? '0 4px 14px rgba(245, 158, 11, 0.18)' : '0 2px 8px rgba(245, 158, 11, 0.05)',
+            boxShadow: activeTab === 'reports' ? '0 4px 12px rgba(245, 158, 11, 0.18)' : '0 2px 6px rgba(245, 158, 11, 0.05)',
             minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(245, 158, 11, 0.15)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = activeTab === 'reports' ? '0 4px 14px rgba(245, 158, 11, 0.18)' : '0 2px 8px rgba(245, 158, 11, 0.05)';
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 10.5, fontWeight: 800, color: '#92400e', letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#92400e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               STOCK VALUE
             </span>
             <div
               style={{
-                width: 24,
-                height: 24,
-                minWidth: 24,
+                width: 20,
+                height: 20,
+                minWidth: 20,
                 borderRadius: '50%',
                 background: '#fef3c7',
                 color: '#d97706',
@@ -1502,31 +1673,28 @@ export default function FinanceAccountingPage() {
                 justifyContent: 'center',
               }}
             >
-              <Package size={13} />
+              <Package size={11} />
             </div>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#78350f', margin: '6px 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#78350f', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {money(metrics.stockValuation)}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Warehouse Inventory
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Warehouse Stock
           </div>
         </div>
       </div>
 
-      {/* ─── NAVIGATION TABS (SINGLE LINE) ─── */}
+      {/* ─── NAVIGATION TABS (NO SCROLL SINGLE ROW) ─── */}
       <div
-        className="no-scrollbar"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+          gap: 6,
           borderBottom: '1px solid #e2e8f0',
-          paddingBottom: 12,
+          paddingBottom: 10,
           marginBottom: 20,
-          overflowX: 'auto',
-          flexWrap: 'nowrap',
-          WebkitOverflowScrolling: 'touch',
+          overflow: 'visible',
         }}
       >
         <button
@@ -1534,22 +1702,49 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 7,
-            padding: '8px 16px',
-            borderRadius: 10,
-            fontSize: 13,
+            justifyContent: 'center',
+            gap: 5,
+            padding: '7px 4px',
+            borderRadius: 9,
+            fontSize: 'clamp(11px, 0.9vw, 12.5px)',
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
             whiteSpace: 'nowrap',
-            flexShrink: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             background: activeTab === 'transactions' ? '#0f172a' : 'transparent',
             color: activeTab === 'transactions' ? '#ffffff' : '#64748b',
-            boxShadow: activeTab === 'transactions' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            boxShadow: activeTab === 'transactions' ? '0 3px 10px rgba(15, 23, 42, 0.15)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
-          <Receipt size={15} /> Transactions ({unifiedTransactions.length})
+          <Receipt size={14} /> <span>Txns ({unifiedTransactions.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('advances')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 5,
+            padding: '7px 4px',
+            borderRadius: 9,
+            fontSize: 'clamp(11px, 0.9vw, 12.5px)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            border: 'none',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            background: activeTab === 'advances' ? '#d97706' : 'transparent',
+            color: activeTab === 'advances' ? '#ffffff' : '#b45309',
+            boxShadow: activeTab === 'advances' ? '0 3px 10px rgba(217, 119, 6, 0.25)' : 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Sparkles size={14} /> <span>Advances ({metrics.activeAdvanceCount})</span>
         </button>
 
         <button
@@ -1557,22 +1752,24 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 7,
-            padding: '8px 16px',
-            borderRadius: 10,
-            fontSize: 13,
+            justifyContent: 'center',
+            gap: 5,
+            padding: '7px 4px',
+            borderRadius: 9,
+            fontSize: 'clamp(11px, 0.9vw, 12.5px)',
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
             whiteSpace: 'nowrap',
-            flexShrink: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             background: activeTab === 'parties' ? '#0f172a' : 'transparent',
             color: activeTab === 'parties' ? '#ffffff' : '#64748b',
-            boxShadow: activeTab === 'parties' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            boxShadow: activeTab === 'parties' ? '0 3px 10px rgba(15, 23, 42, 0.15)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
-          <Users size={15} /> Parties / Khata ({(data.customers || []).length + (data.suppliers || []).length})
+          <Users size={14} /> <span>Khata ({(data.customers || []).length + (data.suppliers || []).length})</span>
         </button>
 
         <button
@@ -1580,22 +1777,24 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 7,
-            padding: '8px 16px',
-            borderRadius: 10,
-            fontSize: 13,
+            justifyContent: 'center',
+            gap: 5,
+            padding: '7px 4px',
+            borderRadius: 9,
+            fontSize: 'clamp(11px, 0.9vw, 12.5px)',
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
             whiteSpace: 'nowrap',
-            flexShrink: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             background: activeTab === 'invoices' ? '#0f172a' : 'transparent',
             color: activeTab === 'invoices' ? '#ffffff' : '#64748b',
-            boxShadow: activeTab === 'invoices' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            boxShadow: activeTab === 'invoices' ? '0 3px 10px rgba(15, 23, 42, 0.15)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
-          <FileText size={15} /> Invoices
+          <FileText size={14} /> <span>Invoices ({(data.invoices || []).length})</span>
         </button>
 
         <button
@@ -1603,22 +1802,24 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 7,
-            padding: '8px 16px',
-            borderRadius: 10,
-            fontSize: 13,
+            justifyContent: 'center',
+            gap: 5,
+            padding: '7px 4px',
+            borderRadius: 9,
+            fontSize: 'clamp(11px, 0.9vw, 12.5px)',
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
             whiteSpace: 'nowrap',
-            flexShrink: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             background: activeTab === 'purchases' ? '#0f172a' : 'transparent',
             color: activeTab === 'purchases' ? '#ffffff' : '#64748b',
-            boxShadow: activeTab === 'purchases' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            boxShadow: activeTab === 'purchases' ? '0 3px 10px rgba(15, 23, 42, 0.15)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
-          <ShoppingBag size={15} /> Purchases
+          <ShoppingBag size={14} /> <span>Purchases ({(data.purchases || []).length})</span>
         </button>
 
         <button
@@ -1626,22 +1827,24 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 7,
-            padding: '8px 16px',
-            borderRadius: 10,
-            fontSize: 13,
+            justifyContent: 'center',
+            gap: 5,
+            padding: '7px 4px',
+            borderRadius: 9,
+            fontSize: 'clamp(11px, 0.9vw, 12.5px)',
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
             whiteSpace: 'nowrap',
-            flexShrink: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             background: activeTab === 'rojmel' ? '#0f172a' : 'transparent',
             color: activeTab === 'rojmel' ? '#ffffff' : '#64748b',
-            boxShadow: activeTab === 'rojmel' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            boxShadow: activeTab === 'rojmel' ? '0 3px 10px rgba(15, 23, 42, 0.15)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
-          <BookOpen size={15} /> Rojmel
+          <BookOpen size={14} /> <span>Rojmel</span>
         </button>
 
         <button
@@ -1649,22 +1852,24 @@ export default function FinanceAccountingPage() {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 7,
-            padding: '8px 16px',
-            borderRadius: 10,
-            fontSize: 13,
+            justifyContent: 'center',
+            gap: 5,
+            padding: '7px 4px',
+            borderRadius: 9,
+            fontSize: 'clamp(11px, 0.9vw, 12.5px)',
             fontWeight: 700,
             cursor: 'pointer',
             border: 'none',
             whiteSpace: 'nowrap',
-            flexShrink: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             background: activeTab === 'reports' ? '#0f172a' : 'transparent',
             color: activeTab === 'reports' ? '#ffffff' : '#64748b',
-            boxShadow: activeTab === 'reports' ? '0 4px 12px rgba(15, 23, 42, 0.15)' : 'none',
+            boxShadow: activeTab === 'reports' ? '0 3px 10px rgba(15, 23, 42, 0.15)' : 'none',
             transition: 'all 0.15s ease',
           }}
         >
-          <BarChart3 size={15} /> Reports
+          <BarChart3 size={14} /> <span>Reports</span>
         </button>
       </div>
 
@@ -1894,6 +2099,340 @@ export default function FinanceAccountingPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB CONTENT 1.5: ADVANCE BOOKINGS & DEPOSITS ─── */}
+      {activeTab === 'advances' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Summary KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
+                border: '1.5px solid #fde68a',
+                borderRadius: 14,
+                padding: '14px 18px',
+                boxShadow: '0 2px 10px rgba(217, 119, 6, 0.08)',
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Active Unadjusted Advances (અનામત એડવાન્સ)
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#78350f', margin: '6px 0 2px' }}>
+                {money(metrics.activeAdvances)}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#b45309' }}>
+                {metrics.activeAdvanceCount} Bookings pending service / billing
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '1.5px solid #bbf7d0',
+                borderRadius: 14,
+                padding: '14px 18px',
+                boxShadow: '0 2px 10px rgba(22, 163, 74, 0.08)',
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Converted to Completed Sales (વેચાણમાં જમા)
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#14532d', margin: '6px 0 2px' }}>
+                {money(metrics.totalAdvancesCollected - metrics.activeAdvances)}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>
+                {metrics.advanceItems.filter((i) => i.isConverted).length} Bookings fulfilled &amp; billed
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: 14,
+                padding: '14px 18px',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Total Lifetime Advance Received (કુલ એડવાન્સ)
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
+                {money(metrics.totalAdvancesCollected)}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
+                {metrics.advanceItems.length} Total advance records
+              </div>
+            </div>
+          </div>
+
+          {/* Advances Table Card */}
+          <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            {/* Filters Bar */}
+            <div
+              className="no-scrollbar"
+              style={{
+                padding: '14px 20px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                flexWrap: 'nowrap',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                background: '#f8fafc',
+                overflowX: 'auto',
+              }}
+            >
+              {/* Search */}
+              <div style={{ position: 'relative', minWidth: 260, flex: '1 1 280px' }}>
+                <Search
+                  size={16}
+                  style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search customer, mobile, service, package..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 36px',
+                    borderRadius: 10,
+                    border: '1px solid #cbd5e1',
+                    fontSize: 13,
+                    background: '#ffffff',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div style={{ display: 'flex', background: '#e2e8f0', padding: 2, borderRadius: 8, flexShrink: 0 }}>
+                <button
+                  onClick={() => setAdvanceFilter('active')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: advanceFilter === 'active' ? '#d97706' : 'transparent',
+                    color: advanceFilter === 'active' ? '#ffffff' : '#475569',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  ⏳ Active Advances ({metrics.activeAdvanceCount})
+                </button>
+                <button
+                  onClick={() => setAdvanceFilter('converted')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: advanceFilter === 'converted' ? '#16a34a' : 'transparent',
+                    color: advanceFilter === 'converted' ? '#ffffff' : '#475569',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  ✅ Converted to Sale ({metrics.advanceItems.filter((i) => i.isConverted).length})
+                </button>
+                <button
+                  onClick={() => setAdvanceFilter('all')}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: advanceFilter === 'all' ? '#0f172a' : 'transparent',
+                    color: advanceFilter === 'all' ? '#ffffff' : '#475569',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  All ({metrics.advanceItems.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px 16px' }}>DATE</th>
+                    <th style={{ padding: '12px 16px' }}>TYPE</th>
+                    <th style={{ padding: '12px 16px' }}>CUSTOMER / CONTACT</th>
+                    <th style={{ padding: '12px 16px' }}>SERVICE / PACKAGE</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>ADVANCE PAID</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>TOTAL DEAL</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>BALANCE DUE</th>
+                    <th style={{ padding: '12px 16px' }}>STATUS</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAdvances.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'center', padding: '36px 16px', color: '#94a3b8' }}>
+                        No advance records found matching your filter
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAdvances.map((item) => {
+                      return (
+                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.1s ease' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
+                            {fmtDate(item.date)}
+                          </td>
+                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                            <span
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                background: item.bookingType === 'Bridal' ? '#ffe4e6' : '#e0f2fe',
+                                color: item.bookingType === 'Bridal' ? '#e11d48' : '#0284c7',
+                              }}
+                            >
+                              {item.bookingType === 'Bridal' ? '👰 Bridal Booking' : '💅 Appointment'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.customer}</div>
+                            {item.mobile && (
+                              <div style={{ fontSize: 11, color: '#64748b' }}>📞 {item.mobile}</div>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 16px', color: '#334155', fontWeight: 600, maxWidth: 220 }}>
+                            {item.service}
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: '#b45309' }}>
+                              {money(item.advance)}
+                            </div>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: '1px 5px',
+                                borderRadius: 4,
+                                background: '#fef3c7',
+                                color: '#92400e',
+                              }}
+                            >
+                              {item.mode}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#1e293b' }}>
+                            {money(item.totalPrice)}
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: item.balance > 0 ? '#dc2626' : '#16a34a' }}>
+                            {money(item.balance)}
+                          </td>
+                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                            {item.isConverted ? (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '3px 8px',
+                                  borderRadius: 99,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  background: '#dcfce7',
+                                  color: '#15803d',
+                                }}
+                              >
+                                ● Converted to Sale {item.invoiceId ? `(#${item.invoiceId})` : ''}
+                              </span>
+                            ) : (
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '3px 8px',
+                                  borderRadius: 99,
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  background: '#fef3c7',
+                                  color: '#b45309',
+                                }}
+                              >
+                                ● Active Advance ({item.status})
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                              {!item.isConverted && (
+                                <button
+                                  onClick={() => {
+                                    if (item.bookingType === 'Appointment') {
+                                      window.location.href = `/admin/billing?convertApptId=${item.raw.id}`;
+                                    } else {
+                                      window.location.href = `/admin/bridal`;
+                                    }
+                                  }}
+                                  title="Complete & Convert Advance to Final Bill"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    padding: '5px 9px',
+                                    borderRadius: 6,
+                                    background: '#059669',
+                                    color: '#ffffff',
+                                    fontWeight: 700,
+                                    fontSize: 11,
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <Receipt size={12} /> Complete &amp; Bill
+                                </button>
+                              )}
+
+                              {item.mobile && (
+                                <button
+                                  onClick={() => {
+                                    const cleanMobile = item.mobile.replace(/\D/g, '').slice(-10);
+                                    const salon = data.settings?.salon || 'Shree Beauty Studio';
+                                    const text = `✨ *${salon.toUpperCase()} — Advance Booking Receipt* ✨\n\nNamaste *${item.customer}*,\nThank you for booking with us! We have received your advance payment of *${money(item.advance)}* for *${item.service}* (${fmtDate(item.date)}).\n\nTotal: ${money(item.totalPrice)}\nAdvance Paid: ${money(item.advance)}\nRemaining Balance: ${money(item.balance)}\n\nSee you soon! 🌸\n📞 ${data.settings?.whatsapp || '9773240010'}`;
+                                    window.open(`https://wa.me/91${cleanMobile}?text=${encodeURIComponent(text)}`, '_blank');
+                                  }}
+                                  title="Send WhatsApp Advance Receipt"
+                                  style={{
+                                    padding: '5px 8px',
+                                    borderRadius: 6,
+                                    background: '#dcfce7',
+                                    border: '1px solid #bbf7d0',
+                                    color: '#15803d',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <MessageCircle size={13} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

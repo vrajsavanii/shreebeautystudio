@@ -1187,7 +1187,7 @@ function BillingContent() {
             <img
               src={SHREE_LOGO_BASE64}
               alt="Shree Beauty Studio"
-              style={{ maxWidth: 240, height: 'auto', margin: '0 auto 6px', display: 'block' }}
+              style={{ maxWidth: 210, width: '60%', height: 'auto', margin: '0 auto 6px', display: 'block' }}
             />
             <div style={{ fontSize: 11, color: '#4b5563', lineHeight: 1.45, maxWidth: 320, margin: '0 auto 3px' }}>
               {data?.settings?.address || '22, Radhika Society, Near Cancer Hospital, Katargam, Surat - 395004'}
@@ -1199,9 +1199,6 @@ function BillingContent() {
               Phone / WhatsApp: {data?.settings?.whatsapp ? `${data.settings.whatsapp}, 9825339924` : '9773240010, 9825339924'}
             </div>
           </div>
-
-          {/* Dashed Line Divider */}
-          <div style={{ borderTop: '1.5px dashed #9ca3af', margin: '12px 0 16px' }} />
 
           {/* Key-Value Info */}
           <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14, fontSize: 13 }}>
@@ -1292,7 +1289,7 @@ function BillingContent() {
           <div style={{ textAlign: 'center', marginTop: 10 }}>
             <div style={{ fontSize: 12.5, fontWeight: 700, color: '#111', marginBottom: 2 }}>Thank you for choosing us! 🙏</div>
             <div style={{ fontSize: 10, color: '#4b5563', lineHeight: 1.4, maxWidth: 300, margin: '0 auto' }}>
-              We truly value your trust and hope your experience was everything you imagined !!
+              We truly value your trust and hope your experience was wonderful !!
             </div>
           </div>
 

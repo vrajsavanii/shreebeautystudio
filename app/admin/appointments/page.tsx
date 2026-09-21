@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
@@ -11,7 +11,7 @@ import { Appointment, AppointmentStatus, WorkStatus, Invoice, StudioHoliday, Hol
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { openWA, appointmentStaffMessage, appointmentCustomerMessage, sendDirectWhatsAppMessage, sendWhatsAppTemplateMessage } from '@/lib/whatsapp';
+import { openWAApp, appointmentStaffMessage, appointmentCustomerMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
@@ -258,35 +258,9 @@ export default function AppointmentsPage() {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
       const msg = appointmentCustomerMessage(updatedAppt, salon, address);
-      // 1. WhatsApp Confirmation Message (Attempts shree_appointment_confirmation, falls back to approved shree_appointment_reminder)
-      sendWhatsAppTemplateMessage({
-        mobile: appt.mobile,
-        templateName: 'shree_appointment_confirmation',
-        languageCode: 'en_US',
-        bodyParameters: [appt.customer, appt.service, appt.date || 'Upcoming', appt.time || '10:00 AM', address],
-        settings: data?.settings,
-      })
-        .then(async (res1) => {
-          if (res1.success) {
-            toast(`📲 WhatsApp confirmation delivered to ${appt.customer} via Meta Official Template!`);
-            return;
-          }
-          const res2 = await sendWhatsAppTemplateMessage({
-            mobile: appt.mobile,
-            templateName: 'shree_appointment_reminder',
-            languageCode: 'en_US',
-            bodyParameters: [appt.customer, appt.service, appt.date || 'Upcoming', appt.time || '10:00 AM'],
-            settings: data?.settings,
-          });
-          if (res2.success) {
-            toast(`📲 WhatsApp confirmation delivered to ${appt.customer} via Meta Official Template!`);
-          } else {
-            sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings).catch(() => {});
-          }
-        })
-        .catch(() => {
-          sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings).catch(() => {});
-        });
+      // Send WhatsApp confirmation via WhatsApp App
+      openWAApp(appt.mobile, msg);
+      toast(`📲 WhatsApp App opened with confirmation for ${appt.customer}!`);
     }
 
     // 2. Email confirmation via Resend
@@ -351,11 +325,12 @@ export default function AppointmentsPage() {
     scheduleSave();
     toast(`❌ Appointment request rejected for ${appt.customer}`, 'info');
 
-    // WhatsApp Cancellation Notice
+    // WhatsApp Cancellation Notice via WhatsApp App
     if (appt.mobile) {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const rejectMsg = `❌ *Appointment Request Update — ${salon}*\n\nNamaste *${appt.customer}*,\n\nWe regret to inform you that your booking request for *${appt.service}* on *${fmtDate(appt.date)}* at *${appt.time}* could not be confirmed at this time due to slot unavailability.\n\nPlease contact us directly to reschedule: 📞 ${data?.settings?.whatsapp || ''}\n\nThank you! ✨`;
-      sendDirectWhatsAppMessage(appt.mobile, rejectMsg, data?.settings);
+      openWAApp(appt.mobile, rejectMsg);
+      toast('📲 WhatsApp App opened with cancellation notice…');
     }
   };
 
@@ -373,6 +348,14 @@ export default function AppointmentsPage() {
     });
     setModalOpen(true);
   };
+
+  // Auto-open new appointment modal if ?new=1 is in URL
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams?.get('new') === '1' || searchParams?.get('action') === 'add') {
+      openNew();
+    }
+  }, [searchParams]);
 
   const openEdit = (a: Appointment) => {
     setEditId(a.id);
@@ -474,7 +457,7 @@ export default function AppointmentsPage() {
     }
   };
 
-  const onSubmit = (form: Appointment) => {
+  const onSubmit = (form: Appointment, saveMode: 'web' | 'api' | 'none' = 'web') => {
     // Validate past dates & times when booking a NEW appointment
     if (!editId) {
       if (form.date < today) {
@@ -526,47 +509,36 @@ export default function AppointmentsPage() {
       return { ...d, appointments: [...d.appointments, updatedItem] };
     });
     scheduleSave();
-    toast(editId ? 'Appointment updated!' : 'Appointment booked!');
+    toast(editId ? 'Appointment updated & synced!' : 'Appointment booked & synced!');
 
-    // Auto-send WhatsApp confirmation to customer via approved official template
-    if (form.mobile && form.status !== 'Cancelled') {
-      const salon = data?.settings?.salon || 'Shree Beauty Studio';
-      const address = data?.settings?.address || 'Surat, Gujarat';
-      const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
-      
-      const primaryTemplate = editId ? 'shree_appt_update' : 'shree_appointment_confirmation';
-      const primaryParams = editId
-        ? [form.customer, form.date || 'Upcoming', form.time || '10:00 AM', form.service]
-        : [form.customer, form.service, form.date || 'Upcoming', form.time || '10:00 AM', address];
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const address = data?.settings?.address || 'Surat, Gujarat';
+    const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
 
-      sendWhatsAppTemplateMessage({
-        mobile: form.mobile,
-        templateName: primaryTemplate,
-        languageCode: 'en_US',
-        bodyParameters: primaryParams,
-        settings: data?.settings,
-      })
-        .then(async (res1) => {
-          if (res1.success) {
-            toast(`📲 WhatsApp ${editId ? 'update' : 'confirmation'} delivered to ${form.customer}!`);
-            return;
+    // 1. Web Send and Save (opens WhatsApp Web / App)
+    if (saveMode === 'web' && form.mobile && form.status !== 'Cancelled') {
+      openWAApp(form.mobile, msg);
+      toast(`🌐 WhatsApp Web / App opened for ${form.customer}!`);
+    }
+    // 2. API Send and Save (Meta WhatsApp Cloud API background send)
+    else if (saveMode === 'api' && form.mobile && form.status !== 'Cancelled') {
+      toast('⏳ Sending WhatsApp message via Cloud API...', 'info');
+      sendDirectWhatsAppMessage(form.mobile, msg, data?.settings).then((res) => {
+        if (res.success) {
+          toast(`⚡ WhatsApp confirmation sent to ${form.customer} via API!`);
+        } else {
+          toast(`⚠️ API Send: ${res.message || 'Outside 24h window'}. Fallback Web opened.`);
+          if (res.clickToChatUrl) {
+            window.open(res.clickToChatUrl, '_blank');
           }
-          const res2 = await sendWhatsAppTemplateMessage({
-            mobile: form.mobile,
-            templateName: 'shree_appointment_reminder',
-            languageCode: 'en_US',
-            bodyParameters: [form.customer, form.service, form.date || 'Upcoming', form.time || '10:00 AM'],
-            settings: data?.settings,
-          });
-          if (res2.success) {
-            toast(`📲 WhatsApp ${editId ? 'update' : 'confirmation'} delivered to ${form.customer}!`);
-          } else {
-            sendDirectWhatsAppMessage(form.mobile, msg, data?.settings).catch(() => {});
-          }
-        })
-        .catch(() => {
-          sendDirectWhatsAppMessage(form.mobile, msg, data?.settings).catch(() => {});
-        });
+        }
+      }).catch((err) => {
+        toast(`⚠️ WhatsApp API Error: ${err?.message || 'Failed'}`);
+      });
+    }
+    // 3. Only Save (Direct silent save)
+    else if (saveMode === 'none') {
+      toast('💾 Appointment saved directly (No WhatsApp sent)');
     }
 
     // Auto-send Email confirmation to customer via Resend if email is provided
@@ -1223,24 +1195,11 @@ export default function AppointmentsPage() {
                                 </a>
                                 <button
                                   className="btn-icon wa"
-                                  title="Send WhatsApp confirmation via Meta Official Template"
-                                  onClick={async () => {
-                                    toast('⏳ Dispatching WhatsApp update via Meta Official Template…');
-                                    const tmplRes = await sendWhatsAppTemplateMessage({
-                                      mobile: a.mobile,
-                                      templateName: 'shree_appointment_reminder',
-                                      languageCode: 'en_US',
-                                      bodyParameters: [a.customer, a.service, a.date || 'Upcoming', a.time || '10:00 AM'],
-                                      settings: data?.settings,
-                                    });
-                                    if (tmplRes?.success) {
-                                      toast(`✅ WhatsApp reminder delivered to ${a.customer}!`);
-                                    } else {
-                                      const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat');
-                                      const res = await sendDirectWhatsAppMessage(a.mobile, msg, data?.settings);
-                                      if (res?.success) toast(`✅ WhatsApp update delivered to ${a.customer}!`);
-                                      else toast(`⚠️ ${res?.message || 'Failed to deliver WhatsApp message'}`, 'error');
-                                    }
+                                  title="📲 Send via WhatsApp App"
+                                  onClick={() => {
+                                    const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat');
+                                    openWAApp(a.mobile, msg);
+                                    toast(`📲 Opening WhatsApp App for ${a.customer}…`);
                                   }}
                                 >
                                   <MessageCircle size={12} />
@@ -1302,14 +1261,72 @@ export default function AppointmentsPage() {
                 <Calendar size={13} /> 📅 Google Calendar Event
               </a>
             ) : <div />}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button type="button" className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
+
+              {/* 1. Web Send and Save */}
               <motion.button
-                className="btn btn-primary"
-                onClick={handleSubmit(onSubmit)}
+                type="button"
+                className="btn"
+                onClick={handleSubmit((data) => onSubmit(data, 'web'))}
                 whileTap={{ scale: 0.97 }}
+                style={{
+                  background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                  color: '#ffffff',
+                  borderColor: '#128C7E',
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 6px rgba(37, 211, 102, 0.28)',
+                }}
+                title="Save appointment and open WhatsApp Web/App to send confirmation"
               >
-                {editId ? 'Update' : 'Book Appointment'}
+                🌐 Web Send &amp; Save
+              </motion.button>
+
+              {/* 2. API Send and Save */}
+              <motion.button
+                type="button"
+                className="btn"
+                onClick={handleSubmit((data) => onSubmit(data, 'api'))}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: '#ffffff',
+                  borderColor: '#0369a1',
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.28)',
+                }}
+                title="Save appointment and send WhatsApp confirmation automatically via Cloud API"
+              >
+                ⚡ API Send &amp; Save
+              </motion.button>
+
+              {/* 3. Only Save */}
+              <motion.button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handleSubmit((data) => onSubmit(data, 'none'))}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  background: '#f1f5f9',
+                  border: '1.5px solid #cbd5e1',
+                  color: '#334155',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                title="Directly save appointment into records & Google Calendar without sending WhatsApp message"
+              >
+                💾 Only Save
               </motion.button>
             </div>
           </div>
@@ -1880,9 +1897,10 @@ export default function AppointmentsPage() {
                   appointments,
                   data?.bridal || [],
                   data?.settings?.salon,
-                  data?.settings?.address
+                  data?.settings?.address,
+                  data?.settings?.calendarDeletePastDays !== undefined ? data?.settings?.calendarDeletePastDays : 2
                 );
-                toast('📥 Downloaded .ICS file with all appointments!');
+                toast('📥 Downloaded .ICS file with appointments (cleaned older than 2 days)!');
               }}
               style={{ background: '#16a34a', borderColor: '#15803d', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >

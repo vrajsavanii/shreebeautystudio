@@ -9,7 +9,7 @@ import { uid, money, todayISO } from '@/lib/utils';
 import { Staff, AttendanceLog } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { openWA } from '@/lib/whatsapp';
+import { openWAApp } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
@@ -255,13 +255,10 @@ export default function StaffPage() {
                           {s.mobile && (
                             <button
                               className="btn-icon wa"
-                              title="Send WhatsApp via Meta API"
+                              title="📲 Send via WhatsApp App"
                               onClick={() => {
-                                toast('⏳ Sending WhatsApp message via Meta Cloud API…');
-                                openWA(s.mobile, `Hello ${s.name},\nThis is from ${data?.settings?.salon || 'Shree Beauty Studio'}.`)?.then((res: any) => {
-                                  if (res?.success) toast('✅ Message sent via Meta WhatsApp API!');
-                                  else toast(`❌ ${res?.message || 'Failed to send WhatsApp message'}`, 'error');
-                                });
+                                openWAApp(s.mobile, `Hello ${s.name},\nThis is from ${data?.settings?.salon || 'Shree Beauty Studio'}.`);
+                                toast('📲 Opening WhatsApp App…');
                               }}
                             >
                               <MessageCircle size={14} />

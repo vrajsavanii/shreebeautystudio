@@ -73,9 +73,14 @@ export const DEFAULT_DATA: SalonData = {
     // WhatsApp defaults
     whatsappMode: 'web',
     whatsappPhoneId: '1313759075154191',
-    whatsappBusinessAccountId: '3350176545369989',
     autoSendPdfWhatsApp: true,
     googleCalendarOwnerEmail: 'bhalanisandip@gmail.com',
+    calendarApptReminderMinutes1: 60,
+    calendarApptReminderMinutes2: 1440,
+    calendarBridalReminderMinutes1: 1440,
+    calendarBridalReminderMinutes2: 120,
+    calendarEmailReminderEnabled: true,
+    calendarDeletePastDays: 2,
   },
   services: [
     {

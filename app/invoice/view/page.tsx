@@ -204,21 +204,18 @@ function InvoiceViewerContent() {
           }}
         >
           {/* Header & Logo */}
-          <div style={{ textAlign: 'center', borderBottom: '1.5px dashed #000000', paddingBottom: 14, marginBottom: 14 }}>
+          <div style={{ textAlign: 'center', paddingBottom: 6, marginBottom: 12 }}>
             {SHREE_LOGO_BASE64 ? (
               <img
                 src={SHREE_LOGO_BASE64}
-                alt="Shree Logo"
-                style={{ width: 140, height: 'auto', margin: '0 auto 8px', display: 'block' }}
+                alt="Shree Beauty Studio"
+                style={{ maxWidth: 210, width: '60%', height: 'auto', margin: '0 auto 6px', display: 'block' }}
               />
             ) : null}
-            <h1 style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', margin: 0, letterSpacing: '0.02em' }}>
-              {salon}
-            </h1>
-            <p style={{ fontSize: 11, color: '#333333', margin: '4px 0 0', lineHeight: 1.4, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
+            <p style={{ fontSize: 11.5, color: '#333333', margin: '4px 0 0', lineHeight: 1.4, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
               {salonAddress}
             </p>
-            <p style={{ fontSize: 11, color: '#333333', margin: '2px 0 0', fontWeight: 600 }}>
+            <p style={{ fontSize: 11.5, color: '#333333', margin: '2px 0 0', fontWeight: 600 }}>
               📞 +91 97732 40010, 9825339924
             </p>
           </div>
@@ -318,10 +315,10 @@ function InvoiceViewerContent() {
           {/* Footer Note */}
           <div style={{ textAlign: 'center', borderTop: '1.5px dashed #000000', paddingTop: 10 }}>
             <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 2 }}>
-              Thank you for visiting {salon}! 🙏
+              Thank you for choosing us! 🙏
             </div>
             <div style={{ fontSize: 11, color: '#444', lineHeight: 1.4 }}>
-              We truly value your trust and hope your salon experience was wonderful. Visit again! ✨
+              We truly value your trust and hope your experience was wonderful !!
             </div>
           </div>
         </div>

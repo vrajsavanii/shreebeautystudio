@@ -144,7 +144,7 @@ export function getAppointmentGoogleCalendarUrl(
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: `${a.service} — ${salon} (${a.customer})`,
+    text: `💅 ${a.customer} — ${a.service}`,
     dates: `${dtStart}/${dtEnd}`,
     details: `Customer: ${a.customer}\nService: ${a.service}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
     location: address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
@@ -179,7 +179,7 @@ export function getBridalGoogleCalendarUrl(
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: `Bridal: ${pkgName} — ${b.name} (${salon})`,
+    text: `👑 ${b.name} — ${pkgName}`,
     dates: `${dtStart}/${dtEnd}`,
     details: `Bride: ${b.name}\nPackage: ${pkgName}\nVenue: ${b.venue || address}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
     location: b.venue || address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
@@ -216,6 +216,10 @@ export function generateBulkAppointmentsICS(
     mobile?: string;
     packageName?: string;
     weddingDate?: string;
+    sagaiDate?: string;
+    mandapDate?: string;
+    musicDate?: string;
+    otherDate?: string;
     date?: string;
     venue?: string;
     advance?: number;
@@ -224,17 +228,26 @@ export function generateBulkAppointmentsICS(
     status?: string;
   }> = [],
   salon: string = 'Shree Beauty Studio',
-  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004',
+  deletePastDays: number = 2
 ): string {
   const nowStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const events: string[] = [];
 
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - (deletePastDays > 0 ? deletePastDays : 0));
+  const cutoffISO = cutoffDate.toISOString().split('T')[0];
+
   (appointments || [])
-    .filter((a) => a.date && a.status !== 'Cancelled')
+    .filter((a) => {
+      if (!a.date || a.status === 'Cancelled') return false;
+      if (deletePastDays === 0) return true;
+      return a.date >= cutoffISO;
+    })
     .forEach((a) => {
       const dtStart = formatICSDate(a.date, a.time || '10:00');
       const dtEnd = addMinutes(a.date, a.time || '10:00', 60);
-      const summary = `💅 ${a.service} — ${a.customer} (${salon})`;
+      const summary = `💅 ${a.customer} — ${a.service}`;
       const desc = [
         `Appointment: ${a.service}`,
         `Customer: ${a.customer}`,
@@ -269,13 +282,26 @@ END:VEVENT`);
     });
 
   (bridals || [])
-    .filter((b) => (b.weddingDate || b.date) && b.status !== 'Cancelled')
+    .filter((b) => {
+      if (b.status === 'Cancelled') return false;
+      const bDate = b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
+      if (!bDate) return false;
+      if (deletePastDays === 0) return true;
+      return bDate >= cutoffISO;
+    })
     .forEach((b) => {
-      const bDate = b.weddingDate || b.date || todayDateString();
+      const bDate =
+        b.weddingDate ||
+        b.date ||
+        b.sagaiDate ||
+        b.mandapDate ||
+        b.musicDate ||
+        b.otherDate ||
+        todayDateString();
       const dtStart = formatICSDate(bDate, '08:00');
       const dtEnd = addMinutes(bDate, '08:00', 180);
       const pkg = b.packageName || 'Bridal Package';
-      const summary = `👑 Bridal: ${pkg} — ${b.name} (${salon})`;
+      const summary = `👑 ${b.name} — ${pkg}`;
       const desc = [
         `Bridal Makeup: ${pkg}`,
         `Bride: ${b.name}`,
@@ -335,10 +361,11 @@ export function downloadBulkAppointmentsICS(
   appointments: any[],
   bridals: any[] = [],
   salon: string = 'Shree Beauty Studio',
-  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004',
+  deletePastDays: number = 2
 ) {
   if (typeof window === 'undefined') return;
-  const ics = generateBulkAppointmentsICS(appointments, bridals, salon, address);
+  const ics = generateBulkAppointmentsICS(appointments, bridals, salon, address, deletePastDays);
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

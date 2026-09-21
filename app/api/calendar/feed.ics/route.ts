@@ -11,8 +11,12 @@ import { timeToMinutes } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-function formatICSDate(dateStr: string, timeStr: string, durationMinutes: number = 45): { start: string; end: string } {
-  const [y, m, d] = dateStr.split('-').map(Number);
+function formatICSDate(dateStr?: string, timeStr?: string, durationMinutes: number = 45): { start: string; end: string } {
+  let cleanDate = (dateStr || '').trim();
+  if (!cleanDate || !cleanDate.includes('-')) {
+    cleanDate = new Date().toISOString().split('T')[0];
+  }
+  const [y, m, d] = cleanDate.split('-').map(Number);
   const startMins = timeToMinutes(timeStr || '10:00');
   const startH = Math.floor(startMins / 60);
   const startMin = startMins % 60;
@@ -52,23 +56,50 @@ export async function GET(request: Request) {
 
     const salon = salonData.settings?.salon || 'Shree Beauty Studio';
     const address = salonData.settings?.address || 'Katargam, Surat, Gujarat';
-    const appointments: Appointment[] = (salonData.appointments || []).filter(
-      (a) => a.status !== 'Cancelled' && a.workStatus !== 'Cancelled'
-    );
-    const bridalBookings: BridalBooking[] = (salonData.bridal || []).filter(
-      (b) => b.status !== 'Cancelled'
-    );
+    const deletePastDays = salonData.settings?.calendarDeletePastDays !== undefined
+      ? salonData.settings.calendarDeletePastDays
+      : 2; // Auto delete / remove events older than 2 days
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - deletePastDays);
+    const cutoffISO = cutoffDate.toISOString().split('T')[0];
+
+    const appointments: Appointment[] = (salonData.appointments || []).filter((a) => {
+      if (a.status === 'Cancelled' || a.workStatus === 'Cancelled') return false;
+      if (deletePastDays === 0) return true;
+      return !a.date || a.date >= cutoffISO;
+    });
+
+    const bridalBookings: BridalBooking[] = (salonData.bridal || []).filter((b) => {
+      if (b.status === 'Cancelled') return false;
+      if (deletePastDays === 0) return true;
+      const bDate = b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
+      return !bDate || bDate >= cutoffISO;
+    });
 
     const nowStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
     const eventsICS: string[] = [];
 
+    const apptR1 = salonData.settings?.calendarApptReminderMinutes1 !== undefined ? salonData.settings.calendarApptReminderMinutes1 : 60;
+    const apptR2 = salonData.settings?.calendarApptReminderMinutes2 !== undefined ? salonData.settings.calendarApptReminderMinutes2 : 1440;
+    const bridalR1 = salonData.settings?.calendarBridalReminderMinutes1 !== undefined ? salonData.settings.calendarBridalReminderMinutes1 : 1440;
+    const bridalR2 = salonData.settings?.calendarBridalReminderMinutes2 !== undefined ? salonData.settings.calendarBridalReminderMinutes2 : 120;
+
     // 1. Convert regular appointments to VEVENT
     for (const a of appointments) {
       if (!a.date) continue;
       const { start, end } = formatICSDate(a.date, a.time || '10:00 AM', 60);
-      const summary = `💅 [${salon}] ${a.service} - ${a.customer}`;
+      const summary = `💅 ${a.customer} — ${a.service}`;
       const desc = `Customer: ${a.customer}\\nMobile: +91 ${a.mobile}\\nService: ${a.service}\\nStaff: ${a.staff || 'Beautician'}\\nAdvance: Rs.${a.advance || 0}\\nNotes: ${a.notes || ''}\\nLocation: ${address}`;
+
+      const alarms: string[] = [];
+      if (apptR1 > 0) {
+        alarms.push(`BEGIN:VALARM\nTRIGGER:-PT${apptR1}M\nACTION:DISPLAY\nDESCRIPTION:Appointment Reminder: ${escapeICS(summary)}\nEND:VALARM`);
+      }
+      if (apptR2 > 0 && apptR2 !== apptR1) {
+        alarms.push(`BEGIN:VALARM\nTRIGGER:-PT${apptR2}M\nACTION:DISPLAY\nDESCRIPTION:Upcoming Appointment: ${escapeICS(summary)}\nEND:VALARM`);
+      }
 
       eventsICS.push(`BEGIN:VEVENT
 UID:appt-${a.id || Math.random().toString(36).slice(2)}@shreestudio
@@ -79,26 +110,26 @@ SUMMARY:${escapeICS(summary)}
 DESCRIPTION:${escapeICS(desc)}
 LOCATION:${escapeICS(address)}
 STATUS:CONFIRMED
-BEGIN:VALARM
-TRIGGER:-PT60M
-ACTION:DISPLAY
-DESCRIPTION:Appointment Reminder: ${escapeICS(summary)}
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-PT1440M
-ACTION:DISPLAY
-DESCRIPTION:Upcoming Appointment Tomorrow: ${escapeICS(summary)}
-END:VALARM
+${alarms.join('\n')}
 END:VEVENT`);
     }
 
     // 2. Convert bridal bookings to VEVENT
     for (const b of bridalBookings) {
-      const bDate = b.weddingDate || b.date;
+      const bDate = b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
       if (!bDate) continue;
-      const { start, end } = formatICSDate(bDate, '08:00 AM', 180);
-      const summary = `👑 [${salon} Bridal] ${b.name} (${b.packageName || 'Bridal Glam'})`;
+      const bTime = b.weddingTime || b.sagaiTime || b.mandapTime || b.musicTime || b.otherTime || '08:00 AM';
+      const { start, end } = formatICSDate(bDate, bTime, 180);
+      const summary = `👑 ${b.name} — ${b.packageName || 'Bridal Glam'}`;
       const desc = `Bride: ${b.name}\\nMobile: +91 ${b.mobile}\\nPackage: ${b.packageName || 'Bridal'}\\nTotal: Rs.${b.package || 0}\\nAdvance: Rs.${b.advance || 0}\\nVenue: ${b.venue || address}\\nNotes: ${b.notes || ''}`;
+
+      const bAlarms: string[] = [];
+      if (bridalR1 > 0) {
+        bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR1}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Event Reminder: ${escapeICS(summary)}\nEND:VALARM`);
+      }
+      if (bridalR2 > 0 && bridalR2 !== bridalR1) {
+        bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR2}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Event Today: ${escapeICS(summary)}\nEND:VALARM`);
+      }
 
       eventsICS.push(`BEGIN:VEVENT
 UID:bridal-${b.id || Math.random().toString(36).slice(2)}@shreestudio
@@ -109,16 +140,7 @@ SUMMARY:${escapeICS(summary)}
 DESCRIPTION:${escapeICS(desc)}
 LOCATION:${escapeICS(b.venue || address)}
 STATUS:CONFIRMED
-BEGIN:VALARM
-TRIGGER:-PT1440M
-ACTION:DISPLAY
-DESCRIPTION:Bridal Event Reminder: ${escapeICS(summary)}
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-PT120M
-ACTION:DISPLAY
-DESCRIPTION:Bridal Event Today: ${escapeICS(summary)}
-END:VALARM
+${bAlarms.join('\n')}
 END:VEVENT`);
     }
 

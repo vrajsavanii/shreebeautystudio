@@ -100,7 +100,7 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
   container.innerHTML = `
     <div style="width: 100%; text-align: center; margin-bottom: 12px;">
       <!-- Official High-Res Logo -->
-      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: 230px; width: 65%; height: auto; object-fit: contain; margin: 0 auto 6px; display: block;" />
+      <img src="${SHREE_LOGO_BASE64}" alt="Shree Beauty Studio" style="max-width: 210px; width: 60%; height: auto; object-fit: contain; margin: 0 auto 6px; display: block;" />
       
       <!-- Studio Header Details -->
       <div style="font-size: 13px; color: #000000; line-height: 1.4; margin-bottom: 3px; max-width: 380px; margin-left: auto; margin-right: auto; font-weight: 500;">
@@ -113,9 +113,6 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
         Phone / WhatsApp: +91 ${salonPhone}
       </div>
     </div>
-
-    <!-- Solid Clear Divider -->
-    <div style="border-top: 2px dashed #000000; margin: 10px 0 12px;"></div>
 
     <!-- Key-Value Info Grid -->
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13.5px;">
@@ -232,10 +229,10 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
     <!-- Heartfelt Footer -->
     <div style="text-align: center; margin-top: 14px; border-top: 1.5px dashed #000000; padding-top: 10px;">
       <div style="font-size: 13.5px; font-weight: 700; color: #000000; margin-bottom: 4px; text-align: center;">
-        Thank you for choosing Shree Beauty Studio! 🙏
+        Thank you for choosing us! 🙏
       </div>
       <div style="font-size: 12px; color: #222222; line-height: 1.45; max-width: 380px; margin: 0 auto; font-weight: 500;">
-        We truly value your trust and hope your salon experience was wonderful. Visit again! ✨
+        We truly value your trust and hope your experience was wonderful !!
       </div>
     </div>
   `;
@@ -393,9 +390,9 @@ function buildA4InvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLElement {
     <!-- Heartfelt Footer & Terms -->
     <div style="border-top: 1.5px solid #e2e8f0; padding-top: 16px; display: flex; justify-content: space-between; align-items: flex-end;">
       <div>
-        <div style="font-size: 13px; font-weight: 800; color: #05424A; margin-bottom: 3px;">Thank you for visiting ${salon}! 🙏</div>
+        <div style="font-size: 13px; font-weight: 800; color: #05424A; margin-bottom: 3px;">Thank you for choosing us! 🙏</div>
         <div style="font-size: 11.5px; color: #64748b; line-height: 1.45; max-width: 440px;">
-          We value your trust and hope your experience was wonderful.<br />
+          We truly value your trust and hope your experience was wonderful !!<br />
           • Services rendered are non-refundable. Please preserve this invoice for reward points.<br />
           • Google Review &amp; Appointments: <b>+91 ${salonPhone.split(',')[0]}</b>
         </div>

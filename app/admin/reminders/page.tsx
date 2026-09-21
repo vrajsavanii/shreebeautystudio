@@ -6,7 +6,7 @@ import { Bell, MessageCircle, Cake, Heart, Calendar, Sparkles } from 'lucide-rea
 import { useSalonStore } from '@/lib/store';
 import { getAllUpcomingReminders, Reminder } from '@/lib/reminders';
 import {
-  openWA, birthdayMessage, anniversaryMessage,
+  openWAApp, birthdayMessage, anniversaryMessage,
   appointmentStaffMessage, bridalMessage,
 } from '@/lib/whatsapp';
 import { fmtDate } from '@/lib/utils';
@@ -51,11 +51,8 @@ export default function RemindersPage() {
       if (b) msg = bridalMessage(b.name, 'event', b.weddingDate, b.venue, salonName);
     }
     if (msg) {
-      toast('⏳ Sending WhatsApp reminder via Meta Cloud API…');
-      openWA(r.mobile, msg)?.then((res: any) => {
-        if (res?.success) toast('✅ Reminder sent via Meta WhatsApp API!');
-        else toast(`❌ ${res?.message || 'Failed to send WhatsApp reminder'}`, 'error');
-      });
+      openWAApp(r.mobile, msg);
+      toast('📲 Opening WhatsApp App with reminder…');
     }
   };
 

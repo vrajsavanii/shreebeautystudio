@@ -31,7 +31,7 @@ import {
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, money } from '@/lib/utils';
-import { openWA } from '@/lib/whatsapp';
+import { openWAApp } from '@/lib/whatsapp';
 import { Service } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -944,7 +944,7 @@ export default function ServicesPage() {
             <button
               className="btn btn-primary"
               style={{ background: '#16a34a', borderColor: '#16a34a' }}
-              onClick={() => openWA('', rateCardText)}
+              onClick={() => openWAApp('', rateCardText)}
             >
               <MessageCircle size={14} /> Share on WhatsApp
             </button>

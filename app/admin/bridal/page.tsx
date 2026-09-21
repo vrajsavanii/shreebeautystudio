@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Pencil, Trash2, Heart, Calendar, MessageCircle, ChevronRight, ChevronLeft,
@@ -13,7 +14,7 @@ import { uid, todayISO, money, fmtDate, formatCustomerContactName, FIFTEEN_MIN_T
 import { BridalBooking, BridalPackage, Invoice, InvoiceLine } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { openWA, openWAWeb, bridalMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
+import { openWAApp, bridalMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import { getBridalGoogleCalendarUrl } from '@/lib/calendar';
@@ -358,6 +359,14 @@ const OTHER_EVENT_OPTIONS = [
     setModalOpen(true);
   };
 
+  // Auto-open Bridal Booking modal if ?new=1 is in URL
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams?.get('new') === '1' || searchParams?.get('action') === 'add') {
+      openNew();
+    }
+  }, [searchParams]);
+
   const openEdit = (b: BridalBooking) => {
     setEditId(b.id);
     setTab(0);
@@ -387,7 +396,7 @@ const OTHER_EVENT_OPTIONS = [
     });
   };
 
-  const handleSave = () => {
+  const handleSave = (saveMode: 'web' | 'api' | 'none' = 'web') => {
     if (!form.name) { toast('Please enter the customer / bride name.', 'error'); setTab(0); return; }
     if (!form.mobile) { toast('Please enter a mobile number.', 'error'); setTab(0); return; }
 
@@ -528,15 +537,45 @@ const OTHER_EVENT_OPTIONS = [
     });
 
     scheduleSave();
-    toast(editId ? 'Bridal booking updated & Receipts History synced!' : 'Bridal booking saved & Receipts History synced!');
+    toast(editId ? 'Bridal booking updated & Records synced!' : 'Bridal booking saved & Records synced!');
 
-    // Auto-send WhatsApp bridal booking confirmation
-    if (booking.mobile) {
-      const salon = data?.settings?.salon || 'Shree Beauty Studio';
-      const msg = bridalMessage(booking.name, booking.packageName || 'Bridal Package', booking.weddingDate || booking.date || todayISO(), booking.venue || 'Surat Venue', salon);
-      sendDirectWhatsAppMessage(booking.mobile, msg).then((res) => {
-        if (res.success) toast('✅ Bridal booking details sent to bride WhatsApp!');
-      });
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const msg = bridalMessage(
+      booking.name,
+      booking.packageName || 'Bridal Package',
+      booking.weddingDate || booking.date || todayISO(),
+      booking.venue || 'Surat Venue',
+      salon
+    );
+
+    // 1. Web Send and Save (opens WhatsApp Web / App)
+    if (saveMode === 'web') {
+      if (booking.mobile) {
+        openWAApp(booking.mobile, msg);
+        toast('🌐 WhatsApp Web / App opened with bridal booking details!');
+      }
+    }
+    // 2. API Send and Save (Meta WhatsApp Cloud API background send)
+    else if (saveMode === 'api') {
+      if (booking.mobile) {
+        toast('⏳ Sending WhatsApp message via Cloud API...', 'info');
+        sendDirectWhatsAppMessage(booking.mobile, msg, data?.settings).then((res) => {
+          if (res.success) {
+            toast('⚡ WhatsApp confirmation sent successfully via API!');
+          } else {
+            toast(`⚠️ API Send: ${res.message || 'Outside 24h window'}. Fallback Web opened.`);
+            if (res.clickToChatUrl) {
+              window.open(res.clickToChatUrl, '_blank');
+            }
+          }
+        }).catch((err) => {
+          toast(`⚠️ WhatsApp API Error: ${err?.message || 'Failed'}`);
+        });
+      }
+    }
+    // 3. Only Save (Direct silent save)
+    else if (saveMode === 'none') {
+      toast('💾 Bridal booking saved directly (No WhatsApp message sent)');
     }
 
     // Auto-send Email confirmation to bride via Resend if email is provided
@@ -825,13 +864,10 @@ const OTHER_EVENT_OPTIONS = [
                             </a>
                             <button
                               className="btn-icon wa"
-                              title="Send WhatsApp message via Meta API"
+                              title="📲 Send via WhatsApp App"
                               onClick={() => {
-                                toast('⏳ Sending WhatsApp message via Meta Cloud API…');
-                                openWA(b.mobile, bridalMessage(b.name, eventSummary(b) || 'Bridal & Events', b.weddingDate, b.venue || '', data?.settings?.salon || 'Shree Beauty Studio'))?.then((res: any) => {
-                                  if (res?.success) toast('✅ Message sent via Meta WhatsApp API!');
-                                  else toast(`❌ ${res?.message || 'Failed to send WhatsApp message'}`, 'error');
-                                });
+                                openWAApp(b.mobile, bridalMessage(b.name, eventSummary(b) || 'Bridal & Events', b.weddingDate, b.venue || '', data?.settings?.salon || 'Shree Beauty Studio'));
+                                toast('📲 Opening WhatsApp App…');
                               }}
                             >
                               <MessageCircle size={13} />
@@ -1152,16 +1188,79 @@ const OTHER_EVENT_OPTIONS = [
                 </a>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               <button className="btn btn-ghost" onClick={() => setModalOpen(false)}>Cancel</button>
               {tab < TAB_STEPS.length - 1 ? (
                 <motion.button className="btn btn-primary" onClick={() => setTab((t) => t + 1)} whileTap={{ scale: 0.97 }}>
                   Next <ChevronRight size={14} />
                 </motion.button>
               ) : (
-                <motion.button className="btn btn-primary" onClick={handleSave} whileTap={{ scale: 0.97 }}>
-                  <Heart size={14} /> Save Booking
-                </motion.button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {/* 1. Web Send and Save */}
+                  <motion.button
+                    type="button"
+                    className="btn"
+                    onClick={() => handleSave('web')}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                      color: '#ffffff',
+                      borderColor: '#128C7E',
+                      fontWeight: 800,
+                      fontSize: 12.5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 2px 6px rgba(37, 211, 102, 0.28)',
+                    }}
+                    title="Save bridal booking and open WhatsApp Web/App to send confirmation"
+                  >
+                    🌐 Web Send &amp; Save
+                  </motion.button>
+
+                  {/* 2. API Send and Save */}
+                  <motion.button
+                    type="button"
+                    className="btn"
+                    onClick={() => handleSave('api')}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: '#ffffff',
+                      borderColor: '#0369a1',
+                      fontWeight: 800,
+                      fontSize: 12.5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 2px 6px rgba(2, 132, 199, 0.28)',
+                    }}
+                    title="Save bridal booking and send WhatsApp confirmation automatically via Cloud API"
+                  >
+                    ⚡ API Send &amp; Save
+                  </motion.button>
+
+                  {/* 3. Only Save */}
+                  <motion.button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => handleSave('none')}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      background: '#f1f5f9',
+                      border: '1.5px solid #cbd5e1',
+                      color: '#334155',
+                      fontWeight: 700,
+                      fontSize: 12.5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                    title="Directly save bridal booking into records & Google Calendar without sending WhatsApp message"
+                  >
+                    💾 Only Save
+                  </motion.button>
+                </div>
               )}
             </div>
           </div>

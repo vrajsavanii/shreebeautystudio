@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, ShieldCheck, AlertCircle, Eye, EyeOff, LogIn, Loader2 } from 'lucide-react';
-import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+
 import { useSalonStore, DEFAULT_USERS } from '@/lib/store';
 import {
   getAdminSession,
@@ -238,7 +238,7 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
               }}
             >
               <img
-                src={SHREE_ONLY_LOGO_BASE64}
+                src="/shree-logo-transparent.png"
                 alt="Shree Beauty Studio"
                 style={{ width: '85%', height: '85%', objectFit: 'contain' }}
               />

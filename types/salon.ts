@@ -66,6 +66,13 @@ export interface SalonSettings {
   googleClientId?: string; // OAuth 2.0 Client ID
   googleClientSecret?: string; // OAuth 2.0 Client Secret
   googleRefreshToken?: string; // OAuth 2.0 Refresh Token
+  // Google Calendar Notification & Reminder Timings Customization
+  calendarApptReminderMinutes1?: number; // e.g. 60 (1 hour before)
+  calendarApptReminderMinutes2?: number; // e.g. 1440 (1 day before) or 0
+  calendarBridalReminderMinutes1?: number; // e.g. 1440 (1 day before)
+  calendarBridalReminderMinutes2?: number; // e.g. 120 (2 hours before) or 0
+  calendarEmailReminderEnabled?: boolean; // Send email reminder alongside popup
+  calendarDeletePastDays?: number; // Auto delete past events older than N days from calendar (e.g. 2 days)
   // Social Media & Maps Redirection
   instagramHandle?: string; // e.g. '@shreebeauty.studio'
   instagramUrl?: string; // e.g. 'https://www.instagram.com/shreebeauty.studio/'
@@ -395,6 +402,8 @@ export interface BridalBooking {
   balance: number;
   status?: string;
   notes?: string;
+  invoiceId?: string;
+  isCompleted?: boolean;
 }
 
 // ── Loyalty ──────────────────────────────────────────────────────────────────

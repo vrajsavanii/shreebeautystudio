@@ -34,6 +34,12 @@ import {
   AlertCircle,
   QrCode,
   Printer,
+  Zap,
+  Play,
+  Check,
+  RefreshCw,
+  Coins,
+  ArrowRight,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -42,12 +48,11 @@ import { money, fmtDate, todayISO } from '@/lib/utils';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsApp, shareInvoicePDFViaDirectWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import {
-  sendDirectWhatsAppMessage,
-  openWA,
-  openWAWeb,
   openWAApp,
   invoiceMessage,
   appointmentCustomerMessage,
+  appointmentReminderMessage,
+  advanceReceiptMessage,
   birthdayMessage,
   anniversaryMessage,
   sagaiAnniversaryMessage,
@@ -64,9 +69,10 @@ import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
 import { staggerContainer, fadeSlideUp } from '@/variants';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 
-type WATab = 'composer' | 'broadcast' | 'incoming';
+type WATab = 'web_auto' | 'composer' | 'broadcast' | 'incoming';
+type WebAutoCategory = 'appointments' | 'birthdays' | 'invoices' | 'advances' | 'dues' | 'quick';
 type TemplateId =
   | 'custom'
   | 'appointment'
@@ -84,7 +90,10 @@ export default function WhatsAppHubPage() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<WATab>('composer');
+  const [activeTab, setActiveTab] = useState<WATab>('web_auto');
+  const [webAutoCategory, setWebAutoCategory] = useState<WebAutoCategory>('appointments');
+  const [autoSearch, setAutoSearch] = useState('');
+  const [sentLog, setSentLog] = useState<Record<string, boolean>>({});
 
   // Composer Form State
   const [targetPhone, setTargetPhone] = useState('');
@@ -597,7 +606,7 @@ export default function WhatsAppHubPage() {
     }
   };
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (!targetPhone) {
       toast('Please enter or select a recipient mobile number.', 'error');
       return;
@@ -612,26 +621,179 @@ export default function WhatsAppHubPage() {
     }
 
     const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
-    toast(`⏳ Sending WhatsApp message to ${targetName || targetPhone} via Meta Cloud API…`);
-    const res = await sendDirectWhatsAppMessage(targetPhone, messageToSend, data?.settings);
-    if (res.success) {
-      toast(`✅ WhatsApp message sent directly to ${targetName || targetPhone} via Meta Cloud API!`);
-      setPdfSentStatus(`✅ Message Sent via Meta API!`);
-    } else {
-      toast(`❌ Error sending Meta WhatsApp API message: ${res.message}`, 'error');
-    }
+    openWAApp(targetPhone, messageToSend);
+    toast(`📲 Opening WhatsApp App for ${targetName || targetPhone}…`);
+    setPdfSentStatus(`✅ WhatsApp App opened!`);
   };
 
   const handleDirectWebLaunch = () => {
     const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
-    openWAWeb(targetPhone, messageToSend);
-    toast('Opening WhatsApp Web with your message in a new tab…');
+    openWAApp(targetPhone, messageToSend);
+    toast('📲 Opening WhatsApp App with your message…');
   };
 
   const handleCopyMessage = () => {
     const messageToCopy = expandTemplateVariables(manualText || generatedMessage, templateContext);
     navigator.clipboard.writeText(messageToCopy);
     toast('Message copied to clipboard! Ready to paste into WhatsApp.');
+  };
+
+  // Web WhatsApp Auto Computed Datasets
+  const todayStr = todayISO();
+  const tomorrowStr = useMemo(() => format(addDays(new Date(), 1), 'yyyy-MM-dd'), []);
+  const todayMMDD = useMemo(() => format(new Date(), 'MM-dd'), []);
+
+  // 1. Appointments
+  const todayAppointments = useMemo(() => {
+    return appointments.filter((a) => a.date === todayStr);
+  }, [appointments, todayStr]);
+
+  const tomorrowAppointments = useMemo(() => {
+    return appointments.filter((a) => a.date === tomorrowStr);
+  }, [appointments, tomorrowStr]);
+
+  const upcomingAppointments = useMemo(() => {
+    return appointments
+      .filter((a) => a.date >= todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  }, [appointments, todayStr]);
+
+  // 2. Celebrations Today
+  const todayBirthdays = useMemo(() => {
+    return customers.filter((c) => c.birthday && c.birthday.endsWith(todayMMDD));
+  }, [customers, todayMMDD]);
+
+  const todayAnniversaries = useMemo(() => {
+    return customers.filter((c) => c.anniversary && c.anniversary.endsWith(todayMMDD));
+  }, [customers, todayMMDD]);
+
+  const todaySagai = useMemo(() => {
+    return customers.filter((c) => (c as any).sagaiDate && (c as any).sagaiDate.endsWith(todayMMDD));
+  }, [customers, todayMMDD]);
+
+  // 3. Advance Bookings (Bridal & Appointments with Advance Paid)
+  const advanceBookings = useMemo(() => {
+    const list: Array<{
+      id: string;
+      customer: string;
+      mobile: string;
+      service: string;
+      date: string;
+      advance: number;
+      total: number;
+      balance: number;
+      type: 'Bridal' | 'Appointment';
+    }> = [];
+
+    appointments.forEach((a) => {
+      if (Number(a.advance || 0) > 0) {
+        list.push({
+          id: a.id,
+          customer: a.customer,
+          mobile: a.mobile,
+          service: a.service || 'Salon Service',
+          date: a.date,
+          advance: Number(a.advance || 0),
+          total: Number(a.price || a.advance || 0),
+          balance: Math.max(0, Number(a.price || 0) - Number(a.advance || 0)),
+          type: (a.service || '').toLowerCase().includes('bridal') ? 'Bridal' : 'Appointment',
+        });
+      }
+    });
+
+    return list.sort((a, b) => b.date.localeCompare(a.date));
+  }, [appointments]);
+
+  // 4. Khata Dues
+  const dueCustomers = useMemo(() => {
+    return enrichedCustomers.filter((c) => c.balanceDue > 0).sort((a, b) => b.balanceDue - a.balanceDue);
+  }, [enrichedCustomers]);
+
+  // 5. Recent Invoices
+  const recentInvoices = useMemo(() => {
+    return [...invoices].reverse();
+  }, [invoices]);
+
+  // 1-Click Send via Web WhatsApp Helpers
+  const markSent = (id: string) => {
+    setSentLog((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const handleSendApptWebWA = (appt: any) => {
+    if (!appt.mobile) {
+      toast('Client phone number missing.', 'error');
+      return;
+    }
+    const msg = appointmentReminderMessage(appt, salon);
+    openWAApp(appt.mobile, msg);
+    markSent(`appt_${appt.id}`);
+    toast(`📲 Opening WhatsApp App reminder for ${appt.customer}…`);
+  };
+
+  const handleSendWishWA = (c: any, occasion: 'birthday' | 'anniversary' | 'sagai') => {
+    if (!c.mobile) {
+      toast('Customer mobile missing.', 'error');
+      return;
+    }
+    let msg = '';
+    if (occasion === 'birthday') {
+      msg = birthdayMessage(c.name, salon, 20);
+    } else if (occasion === 'anniversary') {
+      msg = anniversaryMessage(c.name, salon);
+    } else {
+      msg = sagaiAnniversaryMessage(c.name, salon);
+    }
+    openWAApp(c.mobile, msg);
+    markSent(`wish_${c.id}_${occasion}`);
+    toast(`🎉 Opening WhatsApp App wish for ${c.name}…`);
+  };
+
+  const handleSendInvoiceWA = (inv: any) => {
+    if (!inv.mobile) {
+      toast('Invoice recipient phone number is missing.', 'error');
+      return;
+    }
+    const msg = invoiceMessage(inv, salon);
+    openWAApp(inv.mobile, msg);
+    markSent(`inv_${inv.id}`);
+    toast(`🧾 Opening WhatsApp App invoice for ${inv.customer} (${inv.no})…`);
+  };
+
+  const handleSendAdvanceWA = (adv: any) => {
+    if (!adv.mobile) {
+      toast('Customer mobile is missing.', 'error');
+      return;
+    }
+    const msg = advanceReceiptMessage(adv.customer, adv.service, adv.date, adv.advance, adv.total, salon);
+    openWAApp(adv.mobile, msg);
+    markSent(`adv_${adv.id}`);
+    toast(`💰 Opening WhatsApp App Advance Receipt for ${adv.customer}…`);
+  };
+
+  const handleSendDueWA = (c: any) => {
+    if (!c.mobile) {
+      toast('Customer mobile is missing.', 'error');
+      return;
+    }
+    const msg = paymentReminderMessage(c.name, c.balanceDue, salon, '9773240010@okaxis');
+    openWAApp(c.mobile, msg);
+    markSent(`due_${c.id}`);
+    toast(`💵 Opening WhatsApp App payment due reminder for ${c.name}…`);
+  };
+
+  const handleSendAllTodayAppts = () => {
+    if (todayAppointments.length === 0) {
+      toast('No appointments scheduled for today.', 'info');
+      return;
+    }
+    todayAppointments.forEach((a, index) => {
+      setTimeout(() => {
+        const msg = appointmentReminderMessage(a, salon);
+        openWAApp(a.mobile, msg);
+        markSent(`appt_${a.id}`);
+      }, index * 1200);
+    });
+    toast(`🚀 Triggered WhatsApp App reminders for all ${todayAppointments.length} clients!`);
   };
 
   return (
@@ -676,7 +838,7 @@ export default function WhatsAppHubPage() {
                 </div>
                 <p style={{ margin: '4px 0 8px', fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.5, maxWidth: 820 }}>
                   Meta Cloud API has paused automated dispatch for WABA <code>3350176545369989</code> (+91 97732 40010) because no payment method (card or UPI) is attached.
-                  Meta requires an active payment method on file even for free conversations. Messages will resume automatically once added.
+                  Use <b>Web WhatsApp</b> for 100% free, direct and unlimited message dispatch!
                 </p>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <a
@@ -705,9 +867,6 @@ export default function WhatsAppHubPage() {
                     <ExternalLink size={14} />
                     <span>💳 Add Payment Method on Meta Business Manager</span>
                   </a>
-                  <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 600 }}>
-                    💡 In the meantime, use &quot;Open WhatsApp Web&quot; for 100% free delivery.
-                  </span>
                 </div>
               </div>
             </div>
@@ -715,11 +874,11 @@ export default function WhatsAppHubPage() {
         </motion.div>
       )}
 
-      {/* WhatsApp Web Banner & Global Controls */}
+      {/* WhatsApp App Auto Messenger Banner */}
       <div
         className="card"
         style={{
-          background: 'linear-gradient(135deg, #05424a 0%, #0d626e 100%)',
+          background: 'linear-gradient(135deg, #05424a 0%, #0d626e 50%, #16a34a 100%)',
           color: '#fff',
           padding: '18px 24px',
           marginBottom: 16,
@@ -742,26 +901,30 @@ export default function WhatsAppHubPage() {
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 4px 14px rgba(37,211,102,0.4)',
+              cursor: 'pointer',
             }}
+            onClick={() => window.open('https://api.whatsapp.com/send', '_blank')}
+            title="Open WhatsApp App"
           >
             <MessageCircle size={28} color="#fff" />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>
-                Meta WhatsApp Cloud API Messenger
+                WhatsApp App Auto Messenger · વોટ્સએપ ઍપ ઓટો સેન્ડ
               </h2>
               <span
                 style={{
                   fontSize: 10.5,
-                  fontWeight: 700,
-                  background: '#22c55e',
+                  fontWeight: 800,
+                  background: '#25D366',
                   color: '#ffffff',
-                  padding: '2px 8px',
+                  padding: '2px 9px',
                   borderRadius: 99,
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
+                  boxShadow: '0 2px 8px rgba(37,211,102,0.4)',
                 }}
               >
                 <span
@@ -773,23 +936,23 @@ export default function WhatsAppHubPage() {
                     display: 'inline-block',
                   }}
                 />
-                META API LIVE
+                APP READY
               </span>
             </div>
-            <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#d1fae5', opacity: 0.9 }}>
-              Send invoices, booking confirmations, bridal PDFs &amp; automated reminders via Meta WhatsApp Cloud API directly.
+            <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#d1fae5', opacity: 0.95 }}>
+              Send 1-Click WhatsApp reminders, bills, advance receipts &amp; wishes directly using the official WhatsApp App!
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn btn-sm"
-            onClick={() => router.push('/admin/settings')}
+            onClick={() => window.open('https://api.whatsapp.com/send', '_blank')}
             style={{
-              background: '#ffffff',
-              color: '#05424a',
+              background: '#25D366',
+              color: '#ffffff',
               fontWeight: 800,
               border: 'none',
               padding: '9px 16px',
@@ -798,11 +961,31 @@ export default function WhatsAppHubPage() {
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
               cursor: 'pointer',
             }}
           >
-            <Settings size={15} /> Meta API Settings
+            <ExternalLink size={15} /> 📲 Open WhatsApp App
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm"
+            onClick={() => router.push('/admin/settings')}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              color: '#ffffff',
+              fontWeight: 700,
+              border: '1px solid rgba(255,255,255,0.25)',
+              padding: '9px 14px',
+              fontSize: 12.5,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              cursor: 'pointer',
+            }}
+          >
+            <Settings size={14} /> Meta Settings
           </button>
         </div>
       </div>
@@ -810,8 +993,39 @@ export default function WhatsAppHubPage() {
       {/* Today's Customer Celebrations & Wishes Banner */}
       <TodayWishesBanner />
 
-      {/* Tabs */}
-      <div className="tabs">
+      {/* Primary Tabs */}
+      <div className="tabs" style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === 'web_auto' ? 'active' : ''}`}
+          onClick={() => setActiveTab('web_auto')}
+          style={
+            activeTab === 'web_auto'
+              ? {
+                  background: 'linear-gradient(135deg, #25D366, #15803d)',
+                  color: '#fff',
+                  borderColor: '#25D366',
+                  fontWeight: 800,
+                }
+              : {}
+          }
+        >
+          <Zap size={14} />
+          <span>⚡ WhatsApp App (ઓટો સેન્ડ)</span>
+          {(todayAppointments.length > 0 || todayBirthdays.length > 0) && (
+            <span
+              className="tab-badge"
+              style={{
+                background: activeTab === 'web_auto' ? '#fff' : '#25D366',
+                color: activeTab === 'web_auto' ? '#15803d' : '#fff',
+                fontWeight: 800,
+              }}
+            >
+              {todayAppointments.length + todayBirthdays.length} Today
+            </span>
+          )}
+        </button>
+
         <button
           type="button"
           className={`tab-btn ${activeTab === 'composer' ? 'active' : ''}`}
@@ -847,6 +1061,943 @@ export default function WhatsAppHubPage() {
           )}
         </button>
       </div>
+
+      {/* TAB 0: WhatsApp App 1-Click Auto Messaging Center */}
+      {activeTab === 'web_auto' && (
+        <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Sub-Category Navigation Bar */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+              gap: 10,
+            }}
+          >
+            {[
+              {
+                id: 'appointments',
+                label: "Today's Appointments",
+                sub: 'એપોઇન્ટમેન્ટ રીમાઇન્ડર',
+                count: todayAppointments.length,
+                badgeColor: '#0284c7',
+                icon: Calendar,
+              },
+              {
+                id: 'birthdays',
+                label: 'Wishes & Celebrations',
+                sub: 'જન્મદિવસ / એનિવર્સરી',
+                count: todayBirthdays.length + todayAnniversaries.length + todaySagai.length,
+                badgeColor: '#e11d48',
+                icon: Gift,
+              },
+              {
+                id: 'invoices',
+                label: 'Bills & Invoices',
+                sub: 'બિલિંગ રસીદ મોકલો',
+                count: recentInvoices.length,
+                badgeColor: '#16a34a',
+                icon: Receipt,
+              },
+              {
+                id: 'advances',
+                label: 'Advance Receipts',
+                sub: 'એડવાન્સ બુકિંગ પહોંચ',
+                count: advanceBookings.length,
+                badgeColor: '#d97706',
+                icon: Coins,
+              },
+              {
+                id: 'dues',
+                label: 'Pending Khata Dues',
+                sub: 'બાકી પેમેન્ટ ઉઘરાણી',
+                count: dueCustomers.length,
+                badgeColor: '#dc2626',
+                icon: Clock,
+              },
+              {
+                id: 'quick',
+                label: 'Fast Instant Send',
+                sub: 'ઝડપી મેસેજ મોકલો',
+                count: null,
+                badgeColor: '#25D366',
+                icon: Zap,
+              },
+            ].map((cat) => {
+              const isSelected = webAutoCategory === cat.id;
+              const Icon = cat.icon;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setWebAutoCategory(cat.id as WebAutoCategory)}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: 12,
+                    border: isSelected ? '2px solid #25D366' : '1px solid var(--border)',
+                    background: isSelected ? 'linear-gradient(135deg, rgba(37,211,102,0.12), rgba(37,211,102,0.04))' : '#ffffff',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: 4,
+                    textAlign: 'left',
+                    boxShadow: isSelected ? '0 4px 14px rgba(37,211,102,0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        background: isSelected ? '#25D366' : '#f1f5f9',
+                        color: isSelected ? '#ffffff' : 'var(--text)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Icon size={15} />
+                    </div>
+                    {cat.count !== null && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          background: cat.count > 0 ? cat.badgeColor : '#94a3b8',
+                          color: '#ffffff',
+                          padding: '1px 7px',
+                          borderRadius: 99,
+                        }}
+                      >
+                        {cat.count}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 2 }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: isSelected ? '#15803d' : 'var(--text)' }}>
+                      {cat.label}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b' }}>{cat.sub}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search Bar for Web Auto */}
+          {webAutoCategory !== 'quick' && (
+            <div className="card" style={{ padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+                <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Search by customer name, mobile number, bill no or service…"
+                  value={autoSearch}
+                  onChange={(e) => setAutoSearch(e.target.value)}
+                  style={{ paddingLeft: 36 }}
+                />
+              </div>
+              {autoSearch && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setAutoSearch('')}
+                  style={{ fontSize: 12 }}
+                >
+                  Clear Search
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* CATEGORY 1: TODAY'S & UPCOMING APPOINTMENTS */}
+          {webAutoCategory === 'appointments' && (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Calendar size={18} /> Today&apos;s Appointments · આજની એપોઇન્ટમેન્ટ્સ ({todayAppointments.length})
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: 12.5, color: '#64748b' }}>
+                    1-Click opens WhatsApp App with client name, service, timing, and Google Calendar link.
+                  </p>
+                </div>
+
+                {todayAppointments.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={handleSendAllTodayAppts}
+                    style={{
+                      background: 'linear-gradient(135deg, #25D366, #15803d)',
+                      borderColor: '#25D366',
+                      fontWeight: 800,
+                      padding: '8px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 4px 12px rgba(37,211,102,0.3)',
+                    }}
+                  >
+                    <Zap size={14} /> ⚡ Send Reminders to All Today&apos;s Clients (WhatsApp App)
+                  </button>
+                )}
+              </div>
+
+              {todayAppointments.length === 0 && !autoSearch ? (
+                <div style={{ textAlign: 'center', padding: '32px 16px', background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1' }}>
+                  <Calendar size={36} color="#94a3b8" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#475569' }}>No appointments scheduled for today.</div>
+                  <p style={{ margin: '4px 0 12px', fontSize: 12.5, color: '#94a3b8' }}>
+                    You can view tomorrow&apos;s or upcoming appointments below:
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {todayAppointments
+                    .filter((a) => !autoSearch || a.customer.toLowerCase().includes(autoSearch.toLowerCase()) || a.mobile.includes(autoSearch) || (a.service || '').toLowerCase().includes(autoSearch.toLowerCase()))
+                    .map((a) => {
+                      const isSent = sentLog[`appt_${a.id}`];
+                      return (
+                        <div
+                          key={a.id}
+                          style={{
+                            padding: '14px 16px',
+                            borderRadius: 10,
+                            border: '1px solid var(--border)',
+                            background: isSent ? 'rgba(37,211,102,0.05)' : '#ffffff',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: 12,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div
+                              style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: 10,
+                                background: '#f0fdf4',
+                                color: '#16a34a',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                fontSize: 12,
+                                border: '1px solid #bbf7d0',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Clock size={14} />
+                              <span style={{ fontSize: 10 }}>{a.time}</span>
+                            </div>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>{a.customer}</span>
+                                <span style={{ fontSize: 11, background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: 4 }}>
+                                  📞 {a.mobile}
+                                </span>
+                                {Number(a.advance || 0) > 0 && (
+                                  <span style={{ fontSize: 10.5, fontWeight: 700, background: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: 4 }}>
+                                    Adv: {money(a.advance || 0)}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                                💄 <b>{a.service}</b> {a.staff ? `• Specialist: ${a.staff}` : ''}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            {isSent && (
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <Check size={14} /> Sent
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              onClick={() => handleSendApptWebWA(a)}
+                              style={{
+                                background: '#25D366',
+                                color: '#ffffff',
+                                fontWeight: 800,
+                                border: 'none',
+                                padding: '7px 14px',
+                                fontSize: 12,
+                                borderRadius: 8,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(37,211,102,0.3)',
+                              }}
+                            >
+                              <ExternalLink size={13} /> 📲 Send Reminder (WhatsApp)
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+
+              {/* Tomorrow's Appointments Section */}
+              {tomorrowAppointments.length > 0 && (
+                <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px dashed var(--border)' }}>
+                  <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Calendar size={16} /> Tomorrow&apos;s Appointments ({tomorrowAppointments.length})
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {tomorrowAppointments.map((a) => (
+                      <div
+                        key={a.id}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: 8,
+                          border: '1px solid #e2e8f0',
+                          background: '#f8fafc',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 10,
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 700, fontSize: 13 }}>{a.customer}</span>
+                          <span style={{ fontSize: 11.5, color: '#64748b', marginLeft: 8 }}>
+                            ⏰ {a.time} • 💄 {a.service}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => handleSendApptWebWA(a)}
+                          style={{
+                            background: '#0284c7',
+                            color: '#ffffff',
+                            fontWeight: 700,
+                            border: 'none',
+                            padding: '5px 12px',
+                            fontSize: 11.5,
+                            borderRadius: 6,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <ExternalLink size={12} /> 📲 Send Reminder
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CATEGORY 2: BIRTHDAYS & CELEBRATIONS */}
+          {webAutoCategory === 'birthdays' && (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#e11d48', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Gift size={18} /> Birthday &amp; Anniversary Wishes · જન્મદિવસ / એનિવર્સરી શુભેચ્છા
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12.5, color: '#64748b' }}>
+                  Auto-composed warm wishes with 20% celebratory salon treat discount voucher sent directly via WhatsApp.
+                </p>
+              </div>
+
+              {todayBirthdays.length === 0 && todayAnniversaries.length === 0 && todaySagai.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 16px', background: '#fff1f2', borderRadius: 12, border: '1px dashed #fecdd3' }}>
+                  <Gift size={36} color="#fb7185" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#9f1239' }}>No customer birthdays or anniversaries today!</div>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#be123c' }}>
+                    Customer celebrations occurring on today&apos;s date ({format(new Date(), 'dd MMMM')}) will automatically pop up here for 1-click wishing.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Today Birthdays */}
+                  {todayBirthdays.map((c) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: 10,
+                        border: '1.5px solid #fecdd3',
+                        background: '#fff1f2',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#ffe4e6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                          🎂
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: '#9f1239' }}>
+                            {c.name} — <span style={{ fontSize: 12, fontWeight: 700 }}>🎉 Birthday Today!</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#be123c' }}>📞 {c.mobile} • Send 20% Birthday Discount Treat</div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => handleSendWishWA(c, 'birthday')}
+                        style={{
+                          background: '#e11d48',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          border: 'none',
+                          padding: '8px 16px',
+                          fontSize: 12,
+                          borderRadius: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px rgba(225,29,72,0.3)',
+                        }}
+                      >
+                        <ExternalLink size={13} /> 🎁 Send Birthday Wish (WhatsApp)
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Today Anniversaries */}
+                  {todayAnniversaries.map((c) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        padding: '14px 16px',
+                        borderRadius: 10,
+                        border: '1.5px solid #e9d5ff',
+                        background: '#faf5ff',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                          💍
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: '#6b21a8' }}>
+                            {c.name} — <span style={{ fontSize: 12, fontWeight: 700 }}>💕 Wedding Anniversary Today!</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#7e22ce' }}>📞 {c.mobile}</div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        onClick={() => handleSendWishWA(c, 'anniversary')}
+                        style={{
+                          background: '#9333ea',
+                          color: '#ffffff',
+                          fontWeight: 800,
+                          border: 'none',
+                          padding: '8px 16px',
+                          fontSize: 12,
+                          borderRadius: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px rgba(147,51,234,0.3)',
+                        }}
+                      >
+                        <ExternalLink size={13} /> 💍 Send Anniversary Wish (WhatsApp)
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CATEGORY 3: BILLS & INVOICES */}
+          {webAutoCategory === 'invoices' && (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Receipt size={18} /> Invoices &amp; Digital Bills · બિલિંગ રસીદ મોકલો
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12.5, color: '#64748b' }}>
+                  Send itemized bill breakdown or PDF download link directly to customer via WhatsApp App.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {recentInvoices
+                  .filter((inv) => !autoSearch || inv.customer.toLowerCase().includes(autoSearch.toLowerCase()) || inv.no.toLowerCase().includes(autoSearch.toLowerCase()) || (inv.mobile || '').includes(autoSearch))
+                  .slice(0, 20)
+                  .map((inv) => {
+                    const isSent = sentLog[`inv_${inv.id}`];
+                    return (
+                      <div
+                        key={inv.id}
+                        style={{
+                          padding: '14px 16px',
+                          borderRadius: 10,
+                          border: '1px solid var(--border)',
+                          background: isSent ? 'rgba(37,211,102,0.05)' : '#ffffff',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 12,
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 800, fontSize: 14 }}>{inv.no}</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>{inv.customer}</span>
+                            <span style={{ fontSize: 11, background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: 4 }}>
+                              📞 {inv.mobile}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
+                            📅 {fmtDate(inv.date)} • 💵 Total: <b>{money(inv.total)}</b> (Paid: {money(inv.paid || 0)}
+                            {Number(inv.balance || 0) > 0 ? `, Due: ${money(inv.balance)}` : ''})
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => handleSendInvoiceWA(inv)}
+                            style={{
+                              background: '#25D366',
+                              color: '#ffffff',
+                              fontWeight: 800,
+                              border: 'none',
+                              padding: '7px 14px',
+                              fontSize: 12,
+                              borderRadius: 8,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(37,211,102,0.25)',
+                            }}
+                          >
+                            <ExternalLink size={13} /> 📲 Send WhatsApp Bill
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={async () => {
+                              await downloadInvoicePDF(inv, data);
+                              toast('✅ PDF Bill Downloaded!');
+                            }}
+                            style={{ fontSize: 11.5, padding: '7px 10px' }}
+                            title="Download PDF Invoice"
+                          >
+                            <Download size={13} /> PDF
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* CATEGORY 4: ADVANCE BOOKING RECEIPTS */}
+          {webAutoCategory === 'advances' && (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#d97706', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Coins size={18} /> Advance Payment Receipts · એડવાન્સ બુકિંગ પહોંચ ({advanceBookings.length})
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12.5, color: '#64748b' }}>
+                  Send official advance payment token confirmation receipts with date lock &amp; remaining balance details.
+                </p>
+              </div>
+
+              {advanceBookings.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 16px', background: '#fffbeb', borderRadius: 12, border: '1px dashed #fde68a' }}>
+                  <Coins size={36} color="#d97706" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e' }}>No active advance bookings found.</div>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#b45309' }}>
+                    When a client pays advance for bridal or salon appointments, it will appear here for instant WhatsApp receipt dispatch.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {advanceBookings
+                    .filter((adv) => !autoSearch || adv.customer.toLowerCase().includes(autoSearch.toLowerCase()) || adv.mobile.includes(autoSearch) || adv.service.toLowerCase().includes(autoSearch.toLowerCase()))
+                    .map((adv) => {
+                      const isSent = sentLog[`adv_${adv.id}`];
+                      return (
+                        <div
+                          key={adv.id}
+                          style={{
+                            padding: '14px 16px',
+                            borderRadius: 10,
+                            border: '1.5px solid #fde68a',
+                            background: '#fffbeb',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: 12,
+                          }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontWeight: 800, fontSize: 14, color: '#78350f' }}>{adv.customer}</span>
+                              <span style={{ fontSize: 11, background: '#fef3c7', color: '#92400e', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                📞 {adv.mobile}
+                              </span>
+                              <span style={{ fontSize: 10.5, fontWeight: 800, background: '#25D366', color: '#fff', padding: '1px 6px', borderRadius: 4 }}>
+                                Advance: {money(adv.advance)}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 12, color: '#92400e', marginTop: 3 }}>
+                              💄 {adv.service} • 📅 Event Date: <b>{fmtDate(adv.date)}</b> • ⏳ Due: {money(adv.balance)}
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            onClick={() => handleSendAdvanceWA(adv)}
+                            style={{
+                              background: '#25D366',
+                              color: '#ffffff',
+                              fontWeight: 800,
+                              border: 'none',
+                              padding: '8px 16px',
+                              fontSize: 12,
+                              borderRadius: 8,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(37,211,102,0.3)',
+                            }}
+                          >
+                            <ExternalLink size={13} /> 💰 Send Advance Receipt (WhatsApp)
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CATEGORY 5: KHATA / DUE PAYMENTS */}
+          {webAutoCategory === 'dues' && (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Clock size={18} /> Khata &amp; Pending Balance Reminders · બાકી પેમેન્ટ ઉઘરાણી ({dueCustomers.length})
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12.5, color: '#64748b' }}>
+                  Send polite payment due reminders with UPI ID (9773240010@okaxis) via WhatsApp App.
+                </p>
+              </div>
+
+              {dueCustomers.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px 16px', background: '#f0fdf4', borderRadius: 12, border: '1px dashed #bbf7d0' }}>
+                  <CheckCircle2 size={36} color="#16a34a" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#166534' }}>All customer accounts are 100% clear!</div>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#15803d' }}>No pending balances or khata dues at this time.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {dueCustomers
+                    .filter((c) => !autoSearch || c.name.toLowerCase().includes(autoSearch.toLowerCase()) || c.mobile.includes(autoSearch))
+                    .map((c) => (
+                      <div
+                        key={c.id}
+                        style={{
+                          padding: '14px 16px',
+                          borderRadius: 10,
+                          border: '1.5px solid #fecaca',
+                          background: '#fef2f2',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: 12,
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 800, fontSize: 14, color: '#991b1b' }}>{c.name}</span>
+                            <span style={{ fontSize: 11, background: '#fee2e2', color: '#991b1b', padding: '1px 6px', borderRadius: 4 }}>
+                              📞 {c.mobile}
+                            </span>
+                            <span style={{ fontSize: 11, fontWeight: 800, background: '#dc2626', color: '#fff', padding: '1px 7px', borderRadius: 4 }}>
+                              Due: {money(c.balanceDue)}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 3 }}>
+                            Total Spend: {money(c.totalSpend)} • Visits: {c.visitCount}
+                            {c.lastVisit ? ` • Last Visit: ${fmtDate(c.lastVisit)}` : ''}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() => handleSendDueWA(c)}
+                          style={{
+                            background: '#dc2626',
+                            color: '#ffffff',
+                            fontWeight: 800,
+                            border: 'none',
+                            padding: '8px 16px',
+                            fontSize: 12,
+                            borderRadius: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 8px rgba(220,38,38,0.25)',
+                          }}
+                        >
+                          <ExternalLink size={13} /> 💵 Send Due Reminder (WhatsApp)
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* CATEGORY 6: FAST INSTANT WHATSAPP SENDER */}
+          {webAutoCategory === 'quick' && (
+            <div className="card" style={{ padding: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#15803d', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Zap size={18} /> Fast Instant WhatsApp Sender · ઝડપી મેસેજ મોકલો
+                </h3>
+                <p style={{ margin: '3px 0 0', fontSize: 12.5, color: '#64748b' }}>
+                  Pick customer, choose template, and launch directly into WhatsApp App with 1 click!
+                </p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1.2fr) minmax(300px, 1fr)', gap: 16, alignItems: 'start' }}>
+                <div>
+                  <div className="form-grid" style={{ marginBottom: 12 }}>
+                    <div className="form-group">
+                      <label className="label">Select Customer Name</label>
+                      <input
+                        type="text"
+                        className="input"
+                        list="wa-quick-cust-names"
+                        placeholder="Search customer name…"
+                        value={targetName}
+                        onChange={(e) => handleSelectCustomerName(e.target.value)}
+                      />
+                      <datalist id="wa-quick-cust-names">
+                        {customers.map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name} — 📞 {c.mobile}
+                          </option>
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="form-group">
+                      <label className="label">Mobile Number (10 digits) *</label>
+                      <input
+                        type="tel"
+                        className="input"
+                        list="wa-quick-cust-mobiles"
+                        placeholder="e.g. 9898012345"
+                        value={targetPhone}
+                        onChange={(e) => handleSelectCustomer(e.target.value)}
+                      />
+                      <datalist id="wa-quick-cust-mobiles">
+                        {customers.map((c) => (
+                          <option key={c.id} value={c.mobile}>
+                            {c.mobile} — 👤 {c.name}
+                          </option>
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 12 }}>
+                    <label className="label">Choose Message Template:</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                      {[
+                        { id: 'appointment', label: '📅 Booking Confirm' },
+                        { id: 'invoice', label: '🧾 Bill Receipt' },
+                        { id: 'birthday', label: '🎂 Birthday Wish' },
+                        { id: 'anniversary', label: '💍 Anniversary' },
+                        { id: 'review', label: '⭐ Google Review' },
+                        { id: 'payment', label: '💳 Payment Reminder' },
+                        { id: 'loyalty', label: '🌟 Points & Wallet' },
+                        { id: 'bridal', label: '👰 Bridal Package' },
+                        { id: 'custom', label: '✍️ Custom Text' },
+                      ].map((tpl) => (
+                        <button
+                          key={tpl.id}
+                          type="button"
+                          onClick={() => handleTemplateSelect(tpl.id as TemplateId)}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 8,
+                            border: selectedTemplate === tpl.id ? '2px solid #25D366' : '1px solid var(--border)',
+                            background: selectedTemplate === tpl.id ? 'rgba(37,211,102,0.1)' : '#f8fafc',
+                            color: selectedTemplate === tpl.id ? '#15803d' : 'var(--text)',
+                            fontWeight: selectedTemplate === tpl.id ? 800 : 500,
+                            fontSize: 11.5,
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          {tpl.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 14 }}>
+                    <label className="label">Live Message Content:</label>
+                    <textarea
+                      className="input"
+                      rows={6}
+                      value={manualText}
+                      onChange={(e) => {
+                        setManualText(e.target.value);
+                        setIsManualEdited(true);
+                      }}
+                      style={{ fontFamily: 'inherit', fontSize: 13, lineHeight: 1.5 }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (!targetPhone) {
+                          toast('Please enter or select a mobile number.', 'error');
+                          return;
+                        }
+                        const msg = expandTemplateVariables(manualText || generatedMessage, templateContext);
+                        openWAApp(targetPhone, msg);
+                        toast(`📲 Opening WhatsApp App for ${targetName || targetPhone}…`);
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #25D366, #15803d)',
+                        borderColor: '#25D366',
+                        fontWeight: 800,
+                        fontSize: 13,
+                        padding: '10px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
+                      }}
+                    >
+                      <ExternalLink size={16} /> 📲 Send via WhatsApp App
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={handleCopyMessage}
+                      style={{ fontSize: 12.5 }}
+                    >
+                      <Copy size={14} /> Copy Message
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Column: WhatsApp Mockup */}
+                <div
+                  style={{
+                    background: '#e5ddd5',
+                    borderRadius: 16,
+                    padding: 16,
+                    border: '1px solid #d1d5db',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      background: '#075e54',
+                      color: '#fff',
+                      padding: '10px 14px',
+                      borderRadius: '12px 12px 0 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      fontWeight: 700,
+                      fontSize: 13,
+                    }}
+                  >
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                      🌸
+                    </div>
+                    <div>
+                      <div>{targetName || 'Customer'}</div>
+                      <div style={{ fontSize: 10, opacity: 0.85 }}>+91 {targetPhone || '98980XXXXX'}</div>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      background: '#efeae2',
+                      padding: 14,
+                      minHeight: 220,
+                      borderRadius: '0 0 12px 12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'flex-end',
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        padding: '10px 12px',
+                        borderRadius: '8px 8px 0 8px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                        maxWidth: '92%',
+                        alignSelf: 'flex-end',
+                        whiteSpace: 'pre-wrap',
+                        fontSize: 12.5,
+                        lineHeight: 1.45,
+                        color: '#111827',
+                      }}
+                    >
+                      {expandTemplateVariables(manualText || generatedMessage, templateContext)}
+                      <div style={{ textAlign: 'right', fontSize: 10, color: '#9ca3af', marginTop: 4 }}>
+                        {format(new Date(), 'hh:mm a')} ✓✓
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* TAB 1: Composer & Live WhatsApp Preview */}
       {activeTab === 'composer' && (
@@ -1354,10 +2505,10 @@ export default function WhatsAppHubPage() {
             >
               <div>
                 <div style={{ fontWeight: 800, fontSize: 13, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  🟢 Meta WhatsApp Cloud API — Direct Background Dispatch System
+                  📲 WhatsApp App — 1-Click Direct Send (ઓટો સેન્ડ)
                 </div>
                 <div style={{ fontSize: 11, color: '#15803d', marginTop: 2 }}>
-                  Zero browser popups, zero wa.me redirects. Sent directly to client WhatsApp chat via Meta API!
+                  Opens WhatsApp App directly with prefilled message — just tap Send!
                 </div>
               </div>
             </div>
@@ -1371,7 +2522,7 @@ export default function WhatsAppHubPage() {
                 style={{ flex: 1, padding: '11px 16px', fontSize: 13, display: 'flex', justifyContent: 'center', gap: 6 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <Send size={15} /> Send via Meta WhatsApp API
+                <Send size={15} /> 📲 Send via WhatsApp App
               </motion.button>
               <button
                 type="button"
@@ -1599,7 +2750,7 @@ export default function WhatsAppHubPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  <Send size={13} /> Send via Meta WhatsApp Cloud API
+                  <Send size={13} /> 📲 Send via WhatsApp App
                 </button>
               </div>
             </div>
@@ -1750,14 +2901,11 @@ export default function WhatsAppHubPage() {
                                   : broadcastFilter === 'anniversaries'
                                   ? anniversaryMessage(c.name, salon)
                                   : festivalPromoMessage(c.name, promoOffer, salon);
-                              toast(`⏳ Sending Meta API message to ${c.name}…`);
-                              sendDirectWhatsAppMessage(c.mobile, msg).then((res) => {
-                                if (res.success) toast(`✅ Sent to ${c.name} via Meta API!`);
-                                else toast(`❌ ${res.message}`, 'error');
-                              });
+                              openWAApp(c.mobile, msg);
+                              toast(`📲 Opening WhatsApp App for ${c.name}…`);
                             }}
                           >
-                            <Send size={13} /> Send via Meta API
+                            <Send size={13} /> 📲 Send (WhatsApp App)
                           </button>
 
                           <button

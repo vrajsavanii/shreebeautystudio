@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Loader2, LogIn, ShieldCheck, UserCheck, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { scaleIn } from '@/variants';
-import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+
 import { useSalonStore, DEFAULT_USERS } from '@/lib/store';
 import { UserAccount } from '@/types/salon';
 import { setAdminSession } from '@/lib/admin-auth';
@@ -179,7 +179,7 @@ function LoginFormContent() {
             }}
           >
             <img
-              src={SHREE_ONLY_LOGO_BASE64}
+              src="/shree-logo-transparent.png"
               alt="Shree Beauty Studio"
               style={{
                 width: '85%',

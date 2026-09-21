@@ -634,8 +634,8 @@ Have a wonderful day! 🙏✨`;
                 src={SHREE_LOGO_BASE64}
                 alt="Shree Beauty Studio"
                 style={{
-                  maxWidth: 200,
-                  width: '70%',
+                  maxWidth: 210,
+                  width: '60%',
                   height: 'auto',
                   objectFit: 'contain',
                   margin: '0 auto 6px',
@@ -661,14 +661,6 @@ Have a wonderful day! 🙏✨`;
                 Phone / WhatsApp: +91 {salonPhone}
               </div>
             </div>
-
-            {/* Dashed Line Divider */}
-            <div
-              style={{
-                borderTop: '2px dashed #000000',
-                margin: '8px 0 10px',
-              }}
-            />
 
             {/* Header Info Left Column */}
             <table
@@ -1046,7 +1038,7 @@ Have a wonderful day! 🙏✨`;
                   textAlign: 'center',
                 }}
               >
-                Thank you for choosing Shree Beauty Studio! 🙏
+                Thank you for choosing us! 🙏
               </div>
               <div
                 style={{
@@ -1058,7 +1050,7 @@ Have a wonderful day! 🙏✨`;
                   fontWeight: 500,
                 }}
               >
-                We truly value your trust and hope your experience was wonderful !! ✨
+                We truly value your trust and hope your experience was wonderful !!
               </div>
             </div>
           </div>

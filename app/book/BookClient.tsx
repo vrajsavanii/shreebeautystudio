@@ -27,7 +27,7 @@ import { uid, todayISO, fmtDate, money, isPastTimeForDate, getFirstFutureSlot } 
 import { Appointment, BridalBooking, BridalPackage } from '@/types/salon';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage } from '@/lib/whatsapp';
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
-import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+
 import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl, downloadICS } from '@/lib/calendar';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
@@ -417,7 +417,7 @@ export default function PublicBookingPage() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <img
-              src={SHREE_ONLY_LOGO_BASE64}
+              src="/shree-logo-transparent.png"
               alt={salon}
               style={{
                 width: 54,
@@ -812,7 +812,7 @@ export default function PublicBookingPage() {
                   onClick={() => {
                     if (confirmedBridal) {
                       downloadICS({
-                        title: `👑 Bridal: ${confirmedBridal.packageName} — ${salon}`,
+                        title: `👑 ${confirmedBridal.name} — ${confirmedBridal.packageName || 'Bridal'}`,
                         description: `Bridal Booking for ${confirmedBridal.name}\nVenue: ${confirmedBridal.venue || address}\nTotal: ₹${confirmedBridal.totalAmount || confirmedBridal.package || 0}`,
                         location: confirmedBridal.venue || address,
                         startDate: confirmedBridal.weddingDate || confirmedBridal.date,
@@ -821,7 +821,7 @@ export default function PublicBookingPage() {
                       });
                     } else if (confirmedAppt) {
                       downloadICS({
-                        title: `💅 ${confirmedAppt.service} — ${salon}`,
+                        title: `💅 ${confirmedAppt.customer} — ${confirmedAppt.service}`,
                         description: `Appointment for ${confirmedAppt.customer}\nService: ${confirmedAppt.service}`,
                         location: address,
                         startDate: confirmedAppt.date,

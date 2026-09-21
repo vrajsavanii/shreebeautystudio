@@ -25,8 +25,8 @@ export const BUSINESS = {
     longitude: 72.8258,
   },
   openingHours: ['Mo-Su 10:00-19:00'],
-  image: `${BASE_URL}/logo-with-name.png`,
-  logo: `${BASE_URL}/shree-logo.png`,
+  image: `${BASE_URL}/shree-logo-transparent.png`,
+  logo: `${BASE_URL}/shree-logo-transparent.png`,
   description:
     'Shree Beauty Studio is a premium beauty salon and bridal makeup studio in Katargam, Surat, Gujarat. Offering bridal packages, party makeup, hair treatments, skincare facials, and professional beauty services for over 10 years.',
   areaServed: ['Surat', 'Gujarat', 'India'],

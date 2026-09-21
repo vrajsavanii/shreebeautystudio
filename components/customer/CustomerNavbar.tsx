@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Calendar, Sparkles } from 'lucide-react';
-import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+
 import { useSalonStore } from '@/lib/store';
 
 const NAV_LINKS = [
@@ -94,7 +94,7 @@ export default function CustomerNavbar() {
           >
             <div className="logo-img-wrap" style={{ flexShrink: 0, boxShadow: '0 0 0 2px rgba(234,186,56,0.4), 0 2px 10px rgba(0,0,0,0.2)', borderRadius: '50%' }}>
               <img
-                src={SHREE_ONLY_LOGO_BASE64}
+                src="/shree-logo-transparent.png"
                 alt={salonName}
                 style={{
                   width: 40,

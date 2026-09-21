@@ -48,7 +48,10 @@ export async function POST(request: Request) {
       }
 
       for (const b of bridalList) {
-        if ((b.weddingDate || b.date) && b.status !== 'Cancelled') {
+        if (
+          (b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate) &&
+          b.status !== 'Cancelled'
+        ) {
           await autoSyncBridalToGoogleCalendar(b, settings);
           syncedCount++;
         }

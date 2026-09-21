@@ -9,21 +9,21 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { staggerContainer, fadeSlideUp } from '@/variants';
-import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+
 
 const NAV = [
   { href: '/admin',              label: 'Dashboard',          icon: LayoutDashboard, role: 'all' },
   { href: '/admin/appointments',  label: 'Appointments',       icon: Calendar,        role: 'all' },
   { href: '/admin/bridal',        label: 'Bridal Bookings',    icon: Heart,           role: 'all' },
   { href: '/admin/customers',     label: 'Customers',          icon: Users,           role: 'all' },
-  { href: '/admin/services',      label: 'Services & Menu',    icon: Sparkles,        role: 'admin' },
   { href: '/admin/billing',       label: 'Billing (POS)',      icon: Receipt,         role: 'all' },
+  { href: '/admin/whatsapp',      label: 'WhatsApp (ઓટો સેન્ડ)', icon: MessageCircle,   role: 'all' },
   { href: '/admin/finance',       label: 'Finance & Rojmel',   icon: BookOpen,        role: 'admin' },
+  { href: '/admin/services',      label: 'Services & Menu',    icon: Sparkles,        role: 'admin' },
   { href: '/admin/inventory',     label: 'Inventory',          icon: Package,         role: 'all' },
   { href: '/admin/purchases',     label: 'Product Purchase',   icon: ShoppingBag,     role: 'all' },
   { href: '/admin/suppliers',     label: 'Suppliers',          icon: Building2,       role: 'admin' },
   { href: '/admin/staff',         label: 'Staff & Users',      icon: UserCog,         role: 'admin' },
-  { href: '/admin/whatsapp',      label: 'WhatsApp Meta Hub',  icon: MessageCircle,   role: 'admin' },
   { href: '/admin/reminders',     label: 'Reminders',          icon: Bell,            role: 'admin' },
   { href: '/admin/reports',       label: 'Reports & GST',      icon: BarChart3,       role: 'admin' },
   { href: '/admin/settings',      label: 'Settings',           icon: Settings,        role: 'admin' },
@@ -54,7 +54,7 @@ export default function Sidebar() {
         }}
       >
         <img
-          src={SHREE_LOGO_BASE64}
+          src="/shree-logo-transparent.png"
           alt={salonName}
           style={{
             width: '100%',

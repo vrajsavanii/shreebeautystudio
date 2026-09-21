@@ -1385,21 +1385,22 @@ export default function SettingsPage() {
                 </span>
               </div>
 
-              {/* Owner Gmail */}
+              {/* Owner / Multi-Account Gmail */}
               <div className="form-group" style={{ marginBottom: 14 }}>
-                <label className="label" style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a' }}>
-                  Studio Owner / Admin Gmail Address (તમારું ગૂગલ / જીમેઇલ એકાઉન્ટ) *
+                <label className="label" style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Google Account / Gmail Addresses (Multi-Account Supported) *</span>
+                  <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600 }}>Comma (,) થી અલગ કરો</span>
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   className="input"
-                  placeholder="e.g. bhalanisandip@gmail.com"
+                  placeholder="e.g. bhalanisandip@gmail.com, staff@gmail.com, studio@gmail.com"
                   value={s.googleCalendarOwnerEmail || ''}
                   onChange={(e) => update('googleCalendarOwnerEmail', e.target.value)}
                   style={{ background: '#fff', fontSize: 13, fontWeight: 600 }}
                 />
                 <span style={{ fontSize: 11.5, color: '#64748b', marginTop: 4, display: 'block' }}>
-                  નવા બુકિંગની ઇવેન્ટ્સ અને રિમાઇન્ડર્સ આ ગૂગલ એકાઉન્ટના કેલેન્ડરમાં સીધા સેવ થશે.
+                  👥 <b>Multi-Account:</b> તમે એક કરતાં વધુ Gmail/Google Calendar emails અલ્પવિરામ (,) થી ઉમેરી શકો છો. બધી અપોઇન્ટમેન્ટ્સ આ બધા જ Google Accounts માં ઓટોમેટિક સિંક થશે.
                 </span>
               </div>
 
@@ -1410,9 +1411,141 @@ export default function SettingsPage() {
                 </div>
                 <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#334155', lineHeight: 1.7 }}>
                   <li><b>ડાયરેક્ટ ૧-ક્લિક સેવ</b>: Appointment અને Bridal Booking માં સીધું <b>&quot;📅 Save to Google Calendar&quot;</b> બટન મળશે.</li>
-                  <li><b>ઓટોમેટિક રિમાઇન્ડર</b>: તમારા ફોન અને ડેસ્કટોપ ગૂગલ કેલેન્ડરમાં ૧ દિવસ અને ૧ કલાક પહેલા ઓટો-નોટિફિકેશન આવશે.</li>
+                  <li><b>ઓટોમેટિક રિમાઇન્ડર</b>: નીચે સેટ કરેલા ટાઈમિંગ મુજબ તમારા ફોન અને ડેસ્કટોપ ગૂગલ કેલેન્ડરમાં ઓટો-નોટિફિકેશન આવશે.</li>
                   <li><b>WhatsApp લિંક</b>: ગ્રાહક અને સ્ટાફને મોકલાતા WhatsApp કન્ફર્મેશન મેસેજમાં ગૂગલ કેલેન્ડર લિંક ઓટોમેટિક સામેલ રહેશે.</li>
                 </ul>
+              </div>
+
+              {/* Notification & Auto-Reminder Timing Customization */}
+              <div style={{ background: '#ffffff', border: '1.5px solid #bae6fd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Bell size={16} color="#0284c7" /> 🔔 Notification &amp; Auto-Reminder Timings (રિમાઇન્ડર ક્યારે મળવું જોઈએ)
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '3px 8px', borderRadius: 6, border: '1px solid #bae6fd' }}>
+                    ⚙️ Edit Option
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: '#475569', marginBottom: 14, lineHeight: 1.5 }}>
+                  અપોઇન્ટમેન્ટ અને બ્રાઇડલ બુકિંગના કેટલા સમય પહેલા તમારા અને સ્ટાફના ફોનમાં Google Calendar નોટિફિકેશન રિમાઇન્ડર આવવું જોઈએ તે અહીંથી પસંદ કરો:
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14, marginBottom: 14 }}>
+                  {/* Appointment Reminders */}
+                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: 14 }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      💅 Regular Appointment Reminders
+                    </div>
+                    
+                    <div className="form-group" style={{ marginBottom: 10 }}>
+                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>૧. પહેલું રિમાઇન્ડર (1st Notification)</label>
+                      <select
+                        className="input"
+                        value={s.calendarApptReminderMinutes1 !== undefined ? s.calendarApptReminderMinutes1 : 60}
+                        onChange={(e) => update('calendarApptReminderMinutes1', Number(e.target.value))}
+                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
+                      >
+                        <option value={15}>⏱️ 15 મિનિટ પહેલા (15 mins before)</option>
+                        <option value={30}>⏱️ 30 મિનિટ પહેલા (30 mins before)</option>
+                        <option value={45}>⏱️ 45 મિનિટ પહેલા (45 mins before)</option>
+                        <option value={60}>⏰ 1 કલાક પહેલા (1 hour before - Default)</option>
+                        <option value={120}>⏰ 2 કલાક પહેલા (2 hours before)</option>
+                        <option value={180}>⏰ 3 કલાક પહેલા (3 hours before)</option>
+                        <option value={1440}>📅 1 દિવસ પહેલા (24 hours before)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>૨. બીજું રિમાઇન્ડર (2nd Notification)</label>
+                      <select
+                        className="input"
+                        value={s.calendarApptReminderMinutes2 !== undefined ? s.calendarApptReminderMinutes2 : 1440}
+                        onChange={(e) => update('calendarApptReminderMinutes2', Number(e.target.value))}
+                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
+                      >
+                        <option value={0}>❌ બંધ / જરૂર નથી (None)</option>
+                        <option value={30}>⏱️ 30 મિનિટ પહેલા (30 mins before)</option>
+                        <option value={60}>⏰ 1 કલાક પહેલા (1 hour before)</option>
+                        <option value={120}>⏰ 2 કલાક પહેલા (2 hours before)</option>
+                        <option value={1440}>📅 1 દિવસ પહેલા (1 day before - Default)</option>
+                        <option value={2880}>📅 2 દિવસ પહેલા (2 days before)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Bridal Reminders */}
+                  <div style={{ background: '#fdf4ff', border: '1.5px solid #f5d0fe', borderRadius: 10, padding: 14 }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, color: '#86198f', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      👑 Bridal Booking Reminders
+                    </div>
+                    
+                    <div className="form-group" style={{ marginBottom: 10 }}>
+                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#701a75' }}>૧. અગાઉનું રિમાઇન્ડર (Early Reminder)</label>
+                      <select
+                        className="input"
+                        value={s.calendarBridalReminderMinutes1 !== undefined ? s.calendarBridalReminderMinutes1 : 1440}
+                        onChange={(e) => update('calendarBridalReminderMinutes1', Number(e.target.value))}
+                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
+                      >
+                        <option value={1440}>📅 1 દિવસ પહેલા (1 day before - Default)</option>
+                        <option value={2880}>📅 2 દિવસ પહેલા (2 days before)</option>
+                        <option value={4320}>📅 3 દિવસ પહેલા (3 days before)</option>
+                        <option value={10080}>🗓️ 1 અઠવાડિયું પહેલા (7 days before)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#701a75' }}>૨. ઇવેન્ટના દિવસે રિમાઇન્ડર (Event Day Reminder)</label>
+                      <select
+                        className="input"
+                        value={s.calendarBridalReminderMinutes2 !== undefined ? s.calendarBridalReminderMinutes2 : 120}
+                        onChange={(e) => update('calendarBridalReminderMinutes2', Number(e.target.value))}
+                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
+                      >
+                        <option value={0}>❌ બંધ / જરૂર નથી (None)</option>
+                        <option value={60}>⏰ 1 કલાક પહેલા (1 hour before)</option>
+                        <option value={120}>⏰ 2 કલાક પહેલા (2 hours before - Default)</option>
+                        <option value={240}>⏰ 4 કલાક પહેલા (4 hours before)</option>
+                        <option value={1440}>📅 1 દિવસ પહેલા (1 day before)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Reminder Toggle */}
+                <label className="toggle-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.calendarEmailReminderEnabled !== false}
+                    onChange={(e) => update('calendarEmailReminderEnabled', e.target.checked)}
+                  />
+                  <span>📧 સાથે Gmail / Email પર પણ ઇવેન્ટ રિમાઇન્ડર નોટિફિકેશન મેળવો (Also receive Email reminder)</span>
+                </label>
+
+                {/* Auto-Delete Past Calendar Events (Delete after 2 days) */}
+                <div style={{ paddingTop: 12, borderTop: '1px dashed #bae6fd' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="label" style={{ fontSize: 12, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>🧹 Auto-Delete Past Calendar Events (પાછલી ઇવેન્ટ ઓટો-ડિલીટ)</span>
+                    </label>
+                    <select
+                      className="input"
+                      value={s.calendarDeletePastDays !== undefined ? s.calendarDeletePastDays : 2}
+                      onChange={(e) => update('calendarDeletePastDays', Number(e.target.value))}
+                      style={{ fontSize: 12.5, background: '#fff', fontWeight: 700, borderColor: '#38bdf8' }}
+                    >
+                      <option value={2}>🗑️ 2 દિવસ પછી આપમેળે ડીલીટ કરો (Auto-delete 2 days after event date - Default)</option>
+                      <option value={1}>🗑️ 1 દિવસ પછી આપમેળે ડીલીટ કરો (Auto-delete after 1 day)</option>
+                      <option value={3}>🗑️ 3 દિવસ પછી આપમેળે ડીલીટ કરો (Auto-delete after 3 days)</option>
+                      <option value={7}>🗑️ 7 દિવસ પછી આપમેળે ડીલીટ કરો (Auto-delete after 7 days)</option>
+                      <option value={30}>🗑️ 30 દિવસ પછી આપમેળે ડીલીટ કરો (Auto-delete after 30 days)</option>
+                      <option value={0}>♾️ ક્યારેય ડીલીટ ના કરો / બધું રાખો (Keep all past events)</option>
+                    </select>
+                    <span style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'block' }}>
+                      ઇવેન્ટ પતી ગયા પછી નિર્ધારિત દિવસો (૨ દિવસ) પછી તે તમારા કેલેન્ડરમાંથી આપમેળે હટી જશે જેથી કેલેન્ડર હંમેશાં ક્લીન રહે.
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Optional Webhook for Background Cloud Push */}

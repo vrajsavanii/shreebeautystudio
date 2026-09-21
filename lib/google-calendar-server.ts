@@ -139,8 +139,20 @@ export async function insertGoogleCalendarV3Event(
 /**
  * Converts a 12-hour or 24-hour time and date string to ISO datetime with +05:30 IST timezone.
  */
-export function formatISTDateTime(dateStr: string, timeStr: string, durationMinutes: number = 45): { startISO: string; endISO: string } {
-  const [year, month, day] = dateStr.split('-').map(Number);
+export function formatISTDateTime(
+  dateStr?: string,
+  timeStr?: string,
+  durationMinutes: number = 45
+): { startISO: string; endISO: string } {
+  let cleanDate = (dateStr || '').trim();
+  if (!cleanDate || !cleanDate.includes('-')) {
+    cleanDate = new Date().toISOString().split('T')[0];
+  }
+  const parts = cleanDate.split('-').map(Number);
+  const year = parts[0] || new Date().getFullYear();
+  const month = parts[1] || new Date().getMonth() + 1;
+  const day = parts[2] || new Date().getDate();
+
   const startTotalMinutes = timeToMinutes(timeStr || '10:00');
   const startHour = Math.floor(startTotalMinutes / 60);
   const startMin = startTotalMinutes % 60;
@@ -186,23 +198,36 @@ export function buildAppointmentEventPayload(
   if (a.email?.trim() && a.email.includes('@')) {
     attendees.push({ email: a.email.trim(), displayName: a.customer });
   }
-  if (settings?.googleCalendarOwnerEmail?.trim() && settings.googleCalendarOwnerEmail.includes('@')) {
-    attendees.push({ email: settings.googleCalendarOwnerEmail.trim(), displayName: salon });
+  if (settings?.googleCalendarOwnerEmail?.trim()) {
+    const ownerEmails = settings.googleCalendarOwnerEmail
+      .split(/[,;\n]+/)
+      .map((e) => e.trim())
+      .filter((e) => e.includes('@'));
+    for (const em of ownerEmails) {
+      attendees.push({ email: em, displayName: salon });
+    }
+  }
+
+  const r1 = settings?.calendarApptReminderMinutes1 !== undefined ? settings.calendarApptReminderMinutes1 : 60;
+  const r2 = settings?.calendarApptReminderMinutes2 !== undefined ? settings.calendarApptReminderMinutes2 : 1440;
+  const emailEnabled = settings?.calendarEmailReminderEnabled !== false;
+
+  const overrides: Array<{ method: 'popup' | 'email'; minutes: number }> = [];
+  if (r1 > 0) overrides.push({ method: 'popup', minutes: r1 });
+  if (r2 > 0 && r2 !== r1) overrides.push({ method: 'popup', minutes: r2 });
+  if (emailEnabled && (r1 > 0 || r2 > 0)) {
+    overrides.push({ method: 'email', minutes: Math.max(r1, r2, 1440) });
   }
 
   return {
-    summary: `💅 [${salon}] ${a.service} — ${a.customer}`,
+    summary: `💅 ${a.customer} — ${a.service}`,
     description: lines.join('\n'),
     location: address,
     start: { dateTime: startISO, timeZone: 'Asia/Kolkata' },
     end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
     reminders: {
       useDefault: false,
-      overrides: [
-        { method: 'popup', minutes: 120 }, // 2 hours before
-        { method: 'popup', minutes: 30 },  // 30 mins before
-        { method: 'email', minutes: 1440 }, // 1 day before
-      ],
+      overrides: overrides.length > 0 ? overrides : [{ method: 'popup', minutes: 60 }],
     },
     attendees: attendees.length > 0 ? attendees : undefined,
   };
@@ -217,7 +242,24 @@ export function buildBridalEventPayload(
 ): GoogleCalendarEventPayload {
   const salon = settings?.salon || 'Shree Beauty Studio';
   const address = b.venue || settings?.address || 'Surat, Gujarat';
-  const { startISO, endISO } = formatISTDateTime(b.weddingDate || b.date, '08:00 AM', 180);
+  const primaryDate =
+    b.weddingDate ||
+    b.date ||
+    b.sagaiDate ||
+    b.mandapDate ||
+    b.musicDate ||
+    b.otherDate ||
+    new Date().toISOString().split('T')[0];
+  const primaryTime = b.weddingTime || b.sagaiTime || b.mandapTime || b.musicTime || b.otherTime || '08:00 AM';
+  const { startISO, endISO } = formatISTDateTime(primaryDate, primaryTime, 180);
+
+  const eventDatesList = [
+    b.weddingDate ? `💍 Wedding: ${b.weddingDate}` : '',
+    b.sagaiDate ? `✨ Sagai: ${b.sagaiDate}` : '',
+    b.mandapDate ? `🌿 Mandap: ${b.mandapDate}` : '',
+    b.musicDate ? `🎶 Sangeet / Music: ${b.musicDate}` : '',
+    b.otherDate ? `🌸 Other Event: ${b.otherDate}` : '',
+  ].filter(Boolean);
 
   const lines = [
     `👑 SHREE BEAUTY STUDIO — BRIDAL BOOKING`,
@@ -225,10 +267,9 @@ export function buildBridalEventPayload(
     `👰 Bride / Client: ${b.name}`,
     `📞 Mobile: +91 ${b.mobile}`,
     `👑 Package: ${b.packageName || 'Bridal Glam'}`,
-    `💍 Wedding Date: ${b.weddingDate || b.date}`,
-    b.sagaiDate ? `✨ Sagai Date: ${b.sagaiDate}` : '',
+    eventDatesList.length > 0 ? eventDatesList.join('\n') : `💍 Date: ${primaryDate}`,
     `📍 Venue / Location: ${b.venue || address}`,
-    `💰 Total Package: ₹${b.package || 0}`,
+    `💰 Total Package: ₹${b.package || b.totalAmount || 0}`,
     b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
     b.notes ? `📝 Notes: ${b.notes}` : '',
     `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
@@ -238,23 +279,36 @@ export function buildBridalEventPayload(
   if (b.email?.trim() && b.email.includes('@')) {
     attendees.push({ email: b.email.trim(), displayName: b.name });
   }
-  if (settings?.googleCalendarOwnerEmail?.trim() && settings.googleCalendarOwnerEmail.includes('@')) {
-    attendees.push({ email: settings.googleCalendarOwnerEmail.trim(), displayName: salon });
+  if (settings?.googleCalendarOwnerEmail?.trim()) {
+    const ownerEmails = settings.googleCalendarOwnerEmail
+      .split(/[,;\n]+/)
+      .map((e) => e.trim())
+      .filter((e) => e.includes('@'));
+    for (const em of ownerEmails) {
+      attendees.push({ email: em, displayName: salon });
+    }
+  }
+
+  const br1 = settings?.calendarBridalReminderMinutes1 !== undefined ? settings.calendarBridalReminderMinutes1 : 1440;
+  const br2 = settings?.calendarBridalReminderMinutes2 !== undefined ? settings.calendarBridalReminderMinutes2 : 120;
+  const bridalEmailEnabled = settings?.calendarEmailReminderEnabled !== false;
+
+  const bridalOverrides: Array<{ method: 'popup' | 'email'; minutes: number }> = [];
+  if (br1 > 0) bridalOverrides.push({ method: 'popup', minutes: br1 });
+  if (br2 > 0 && br2 !== br1) bridalOverrides.push({ method: 'popup', minutes: br2 });
+  if (bridalEmailEnabled && (br1 > 0 || br2 > 0)) {
+    bridalOverrides.push({ method: 'email', minutes: Math.max(br1, 2880) });
   }
 
   return {
-    summary: `👑 [${salon} Bridal] ${b.name} (${b.packageName || 'Bridal Package'})`,
+    summary: `👑 ${b.name} — ${b.packageName || 'Bridal Package'}`,
     description: lines.join('\n'),
     location: b.venue || address,
     start: { dateTime: startISO, timeZone: 'Asia/Kolkata' },
     end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
     reminders: {
       useDefault: false,
-      overrides: [
-        { method: 'popup', minutes: 1440 }, // 1 day before
-        { method: 'popup', minutes: 120 },  // 2 hours before
-        { method: 'email', minutes: 2880 }, // 2 days before
-      ],
+      overrides: bridalOverrides.length > 0 ? bridalOverrides : [{ method: 'popup', minutes: 1440 }, { method: 'popup', minutes: 120 }],
     },
     attendees: attendees.length > 0 ? attendees : undefined,
   };
@@ -331,12 +385,14 @@ export async function syncEventToGoogleCalendar(
   // 3. Priority 3: Google Apps Script Webhook
   if (webhookUrl) {
     try {
+      const deletePastDays = settings?.calendarDeletePastDays !== undefined ? settings.calendarDeletePastDays : 2;
       const res = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'create_event',
           event: eventPayload,
+          deletePastDays,
           timestamp: new Date().toISOString(),
         }),
       });
@@ -391,7 +447,7 @@ export async function autoSyncBridalToGoogleCalendar(
 /**
  * Ready-to-use Google Apps Script Code snippet for 1-click free Google Calendar integration.
  */
-export const SAMPLE_GOOGLE_APPS_SCRIPT_CODE = `// 📋 GOOGLE APPS SCRIPT CODE (Paste in script.google.com & Deploy as Web App)
+export const SAMPLE_GOOGLE_APPS_SCRIPT_CODE = `// 📋 MULTI-ACCOUNT & AUTO-CLEANUP GOOGLE APPS SCRIPT CODE (Paste in script.google.com & Deploy as Web App)
 // 1. Go to https://script.google.com -> Click "New Project"
 // 2. Replace everything with this code:
 
@@ -401,22 +457,71 @@ function doPost(e) {
     var ev = data.event;
     var cal = CalendarApp.getDefaultCalendar();
     
+    // 🧹 Auto-Delete Past Salon Events Older Than 2 Days (2 દિવસ જૂની ઇવેન્ટ ઓટો-ડિલીટ)
+    var deletePastDays = (data && data.deletePastDays !== undefined) ? data.deletePastDays : 2;
+    if (deletePastDays > 0) {
+      try {
+        cleanupPastSalonEvents(cal, deletePastDays);
+      } catch (cleanErr) {
+        Logger.log("Cleanup error: " + cleanErr);
+      }
+    }
+    
     var startTime = new Date(ev.start.dateTime);
     var endTime = new Date(ev.end.dateTime);
     
-    var createdEvent = cal.createEvent(ev.summary, startTime, endTime, {
-      description: ev.description,
-      location: ev.location
-    });
+    // 👥 Multi-Account Guest Emails (All attendees + extra staff/owners)
+    var guestList = [];
+    if (ev.attendees && Array.isArray(ev.attendees)) {
+      for (var i = 0; i < ev.attendees.length; i++) {
+        if (ev.attendees[i] && ev.attendees[i].email) {
+          guestList.push(ev.attendees[i].email.trim());
+        }
+      }
+    }
     
-    // Add pop-up reminder 1 hour before
-    createdEvent.addPopupReminder(60);
-    createdEvent.addEmailReminder(1440); // 1 day before
+    var eventOptions = {
+      description: ev.description,
+      location: ev.location,
+      guests: guestList.join(','),
+      sendInvites: false // Automatically adds to all accounts without spam emails
+    };
+    
+    // 1. Create event in Primary Google Calendar
+    var createdEvent = cal.createEvent(ev.summary, startTime, endTime, eventOptions);
+    
+    // Dynamic Reminders from Salon Settings (Pop-up & Email)
+    if (ev.reminders && ev.reminders.overrides && ev.reminders.overrides.length > 0) {
+      for (var r = 0; r < ev.reminders.overrides.length; r++) {
+        var rem = ev.reminders.overrides[r];
+        if (rem.method === 'email') {
+          createdEvent.addEmailReminder(rem.minutes);
+        } else {
+          createdEvent.addPopupReminder(rem.minutes);
+        }
+      }
+    } else {
+      createdEvent.addPopupReminder(60);
+      createdEvent.addEmailReminder(1440);
+    }
+    
+    // 2. (Optional) Direct Multi-Calendar IDs Support:
+    var extraCalendarIds = [];
+    for (var k = 0; k < extraCalendarIds.length; k++) {
+      try {
+        var extraCal = CalendarApp.getCalendarById(extraCalendarIds[k]);
+        if (extraCal) {
+          extraCal.createEvent(ev.summary, startTime, endTime, eventOptions);
+          if (deletePastDays > 0) cleanupPastSalonEvents(extraCal, deletePastDays);
+        }
+      } catch (eCal) {}
+    }
     
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       eventId: createdEvent.getId(),
-      message: "Event added to Google Calendar successfully!"
+      syncedAccounts: guestList.length + 1,
+      message: "Event added to Multi-Account Google Calendar successfully & old events cleaned up!"
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
@@ -424,6 +529,34 @@ function doPost(e) {
       error: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// 🧹 Automatic function to delete past salon events older than N days (Default: 2 days)
+function cleanupPastSalonEvents(cal, daysOld) {
+  if (!cal) cal = CalendarApp.getDefaultCalendar();
+  if (daysOld === undefined || daysOld <= 0) daysOld = 2;
+  
+  var now = new Date();
+  var cutoffDate = new Date(now.getTime() - (daysOld * 24 * 60 * 60 * 1000));
+  var lookbackStart = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000)); // check past 90 days
+  
+  var pastEvents = cal.getEvents(lookbackStart, cutoffDate);
+  for (var j = 0; j < pastEvents.length; j++) {
+    var item = pastEvents[j];
+    var title = item.getTitle() || "";
+    // Delete only salon appointment / bridal events (starting with 💅, 👑 or containing studio markers)
+    if (title.indexOf('💅') === 0 || title.indexOf('👑') === 0 || title.indexOf('Shree') !== -1 || title.indexOf('—') !== -1) {
+      try {
+        item.deleteEvent();
+      } catch (eDel) {}
+    }
+  }
+}
+
+// ⏰ Standalone Daily Auto-Cleanup Trigger (Runs automatically every night):
+// Go to script.google.com -> Triggers (⏰ icon on left) -> Add Trigger -> Choose "dailyAutoCleanup" -> Time-driven -> Day timer (1am to 2am)
+function dailyAutoCleanup() {
+  cleanupPastSalonEvents(CalendarApp.getDefaultCalendar(), 2);
 }
 
 // 3. Click "Deploy" -> "New deployment" -> Select type: "Web app"
