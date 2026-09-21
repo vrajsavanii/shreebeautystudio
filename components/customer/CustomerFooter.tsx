@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { MapPin, Clock, Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
+import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 
 export default function CustomerFooter() {
   const currentYear = new Date().getFullYear();
@@ -55,6 +56,20 @@ export default function CustomerFooter() {
       >
         {/* Column 1: Brand & Bio */}
         <div>
+          <div style={{ marginBottom: 14 }}>
+            <img
+              src={SHREE_LOGO_BASE64}
+              alt={salonName}
+              style={{
+                width: '100%',
+                maxWidth: 180,
+                height: 'auto',
+                display: 'block',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',
+              }}
+            />
+          </div>
           <h3
             style={{
               fontSize: 20,

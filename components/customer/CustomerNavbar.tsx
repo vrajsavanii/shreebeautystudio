@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, Calendar, Sparkles } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
-import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
+import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
@@ -88,57 +88,22 @@ export default function CustomerNavbar() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
               textDecoration: 'none',
               minWidth: 0,
             }}
           >
-            <div className="logo-img-wrap" style={{ flexShrink: 0, boxShadow: '0 0 0 2px rgba(234,186,56,0.4), 0 2px 10px rgba(0,0,0,0.2)', borderRadius: '50%' }}>
-              <img
-                src={SHREE_ONLY_LOGO_BASE64}
-                alt={salonName}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  display: 'block',
-                }}
-              />
-            </div>
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
-              <span
-                className="cust-navbar-brand"
-                style={{
-                  color: '#ffffff',
-                  fontSize: 'clamp(14px, 3.5vw, 17px)',
-                  fontWeight: 800,
-                  letterSpacing: '-0.2px',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: 'block',
-                }}
-              >
-                {salonName}
-              </span>
-              <span
-                className="cust-navbar-tagline"
-                style={{
-                  color: '#EABA38',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: 'block',
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Katargam, Surat
-              </span>
-            </div>
+            <img
+              src={SHREE_LOGO_BASE64}
+              alt={salonName}
+              style={{
+                height: '46px',
+                width: 'auto',
+                maxWidth: '175px',
+                objectFit: 'contain',
+                display: 'block',
+                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',
+              }}
+            />
           </Link>
 
           {/* Desktop Navigation Links */}
