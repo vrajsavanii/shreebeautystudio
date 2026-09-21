@@ -1028,7 +1028,7 @@ Have a wonderful day! 🙏✨`;
             </table>
 
             {/* Heartfelt Footer */}
-            <div style={{ textAlign: 'center', marginTop: 12, borderTop: '1.5px dashed #000000', paddingTop: 8 }}>
+            <div style={{ textAlign: 'center', marginTop: 12, paddingTop: 8 }}>
               <div
                 style={{
                   fontSize: 12.5,

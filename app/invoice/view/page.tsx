@@ -313,7 +313,7 @@ function InvoiceViewerContent() {
           </table>
 
           {/* Footer Note */}
-          <div style={{ textAlign: 'center', borderTop: '1.5px dashed #000000', paddingTop: 10 }}>
+          <div style={{ textAlign: 'center', paddingTop: 10 }}>
             <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 2 }}>
               Thank you for choosing us! 🙏
             </div>

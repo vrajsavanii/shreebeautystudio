@@ -227,7 +227,7 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
     </table>
 
     <!-- Heartfelt Footer -->
-    <div style="text-align: center; margin-top: 14px; border-top: 1.5px dashed #000000; padding-top: 10px;">
+    <div style="text-align: center; margin-top: 14px; padding-top: 6px;">
       <div style="font-size: 13.5px; font-weight: 700; color: #000000; margin-bottom: 4px; text-align: center;">
         Thank you for choosing us! 🙏
       </div>
