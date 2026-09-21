@@ -1782,6 +1782,12 @@ const OTHER_EVENT_OPTIONS = [
                 />
               </div>
               <div className="form-group">
+                <label className="label">Remaining Balance Due</label>
+                <div style={{ fontSize: 18, fontWeight: 800, color: Number(form.balance || 0) > 0 ? 'var(--red)' : 'var(--green)', paddingTop: 6 }}>
+                  {money(form.balance || 0)}
+                </div>
+              </div>
+              <div className="form-group">
                 <label className="label">Advance Received (₹)</label>
                 <input
                   type="number"
@@ -1826,12 +1832,6 @@ const OTHER_EVENT_OPTIONS = [
                       {p}
                     </button>
                   ))}
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="label">Remaining Balance Due</label>
-                <div style={{ fontSize: 18, fontWeight: 800, color: Number(form.balance || 0) > 0 ? 'var(--red)' : 'var(--green)', paddingTop: 6 }}>
-                  {money(form.balance || 0)}
                 </div>
               </div>
             </div>

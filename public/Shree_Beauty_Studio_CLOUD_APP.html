@@ -1567,15 +1567,15 @@ setTimeout(()=>initCloudClient(true),250);
         </div>
 
         <div class="field"><label>Package ₹</label><input type="number" id="bPackage" value="${pkg}" oninput="updateBridalBalanceV6()"></div>
-        <div class="field"><label>Advance ₹</label><input type="number" min="0" id="bAdvance" value="${Number(b.advance||0)}" oninput="updateBridalBalanceV6()"></div>
-
         <div class="field">
-          <label>Advance Payment Account</label>
-          <select id="bAdvanceAccount"><option value="">-- Select Account --</option>${accountOptsV6(acct)}</select>
-        </div>
-        <div class="field">
-          <label>Balance</label>
+          <label>Remaining Balance</label>
           <div id="bBalancePreview" class="bridal-pkg-note" style="font-weight:800">${money(Math.max(0,pkg-Number(b.advance||0)))}</div>
+        </div>
+
+        <div class="field"><label>Advance ₹</label><input type="number" min="0" id="bAdvance" value="${Number(b.advance||0)}" oninput="updateBridalBalanceV6()"></div>
+        <div class="field">
+          <label>Payment Account / Received In</label>
+          <select id="bAdvanceAccount"><option value="">-- Select Account --</option>${accountOptsV6(acct)}</select>
         </div>
 
         <div class="field" style="grid-column:1/-1"><label>Notes</label><textarea id="bNotes">${esc(b.notes||'')}</textarea></div>
