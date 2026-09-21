@@ -101,7 +101,6 @@ export default function CustomerNavbar() {
                 maxWidth: '175px',
                 objectFit: 'contain',
                 display: 'block',
-                filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))',
               }}
             />
           </Link>
