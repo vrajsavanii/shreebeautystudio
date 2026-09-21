@@ -752,6 +752,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
+                      verticalAlign: 'middle',
                       letterSpacing: '0.02em',
                       width: '46%',
                       color: '#000000',
@@ -766,6 +767,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
+                      verticalAlign: 'middle',
                       width: '14%',
                       color: '#000000',
                     }}
@@ -779,6 +781,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
+                      verticalAlign: 'middle',
                       width: '18%',
                       color: '#000000',
                     }}
@@ -792,6 +795,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 12,
                       fontWeight: 800,
                       textAlign: 'center',
+                      verticalAlign: 'middle',
                       width: '22%',
                       color: '#000000',
                     }}
@@ -823,6 +827,7 @@ Have a wonderful day! 🙏✨`;
                           fontSize: 12.5,
                           fontWeight: 600,
                           textAlign: 'left',
+                          verticalAlign: 'middle',
                           color: '#000000',
                           lineHeight: 1.3,
                         }}
@@ -842,6 +847,7 @@ Have a wonderful day! 🙏✨`;
                           fontSize: 12.5,
                           fontWeight: 600,
                           textAlign: 'center',
+                          verticalAlign: 'middle',
                           color: '#000000',
                         }}
                       >
@@ -854,6 +860,7 @@ Have a wonderful day! 🙏✨`;
                           fontSize: 12.5,
                           fontWeight: 600,
                           textAlign: 'right',
+                          verticalAlign: 'middle',
                           color: '#000000',
                         }}
                       >
@@ -866,6 +873,7 @@ Have a wonderful day! 🙏✨`;
                           fontSize: 13,
                           fontWeight: 700,
                           textAlign: 'right',
+                          verticalAlign: 'middle',
                           color: '#000000',
                         }}
                       >
@@ -885,6 +893,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 13,
                       fontWeight: 800,
                       textAlign: 'left',
+                      verticalAlign: 'middle',
                       color: '#000000',
                     }}
                   >
@@ -897,6 +906,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 14,
                       fontWeight: 800,
                       textAlign: 'right',
+                      verticalAlign: 'middle',
                       color: '#000000',
                     }}
                   >
@@ -915,6 +925,7 @@ Have a wonderful day! 🙏✨`;
                         fontSize: 12.5,
                         fontWeight: 700,
                         textAlign: 'left',
+                        verticalAlign: 'middle',
                         color: '#000000',
                       }}
                     >
@@ -927,6 +938,7 @@ Have a wonderful day! 🙏✨`;
                         fontSize: 13,
                         fontWeight: 700,
                         textAlign: 'right',
+                        verticalAlign: 'middle',
                         color: '#000000',
                       }}
                     >
@@ -946,6 +958,7 @@ Have a wonderful day! 🙏✨`;
                         fontSize: 12.5,
                         fontWeight: 700,
                         textAlign: 'left',
+                        verticalAlign: 'middle',
                         color: '#000000',
                       }}
                     >
@@ -958,6 +971,7 @@ Have a wonderful day! 🙏✨`;
                         fontSize: 13,
                         fontWeight: 700,
                         textAlign: 'right',
+                        verticalAlign: 'middle',
                         color: '#000000',
                       }}
                     >
@@ -976,6 +990,7 @@ Have a wonderful day! 🙏✨`;
                         fontSize: 12.5,
                         fontWeight: 700,
                         textAlign: 'left',
+                        verticalAlign: 'middle',
                         color: '#000000',
                       }}
                     >
@@ -988,6 +1003,7 @@ Have a wonderful day! 🙏✨`;
                         fontSize: 13,
                         fontWeight: 700,
                         textAlign: 'right',
+                        verticalAlign: 'middle',
                         color: '#000000',
                       }}
                     >
@@ -1006,6 +1022,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 13,
                       fontWeight: 800,
                       textAlign: 'left',
+                      verticalAlign: 'middle',
                       color: '#000000',
                     }}
                   >
@@ -1018,6 +1035,7 @@ Have a wonderful day! 🙏✨`;
                       fontSize: 14,
                       fontWeight: 900,
                       textAlign: 'right',
+                      verticalAlign: 'middle',
                       color: balanceDue > 0 ? '#b91c1c' : '#15803d',
                     }}
                   >

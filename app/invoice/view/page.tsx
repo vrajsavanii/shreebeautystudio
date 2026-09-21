@@ -235,10 +235,10 @@ function InvoiceViewerContent() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: 14 }}>
             <thead>
               <tr style={{ background: '#f1f5f9' }}>
-                <th style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'left', fontWeight: 800 }}>SERVICE</th>
-                <th style={{ border: '1.5px solid #000000', padding: '6px 4px', textAlign: 'center', width: 40, fontWeight: 800 }}>QTY</th>
-                <th style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', width: 70, fontWeight: 800 }}>PRICE</th>
-                <th style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', width: 80, fontWeight: 800 }}>TOTAL</th>
+                <th style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'left', verticalAlign: 'middle', fontWeight: 800 }}>SERVICE</th>
+                <th style={{ border: '1.5px solid #000000', padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle', width: 40, fontWeight: 800 }}>QTY</th>
+                <th style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', verticalAlign: 'middle', width: 70, fontWeight: 800 }}>PRICE</th>
+                <th style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', verticalAlign: 'middle', width: 80, fontWeight: 800 }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -248,16 +248,16 @@ function InvoiceViewerContent() {
                 const sub = p * q;
                 return (
                   <tr key={idx}>
-                    <td style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 600 }}>
+                    <td style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 600, verticalAlign: 'middle' }}>
                       {cleanServiceNameForBill(line.name)}
                     </td>
-                    <td style={{ border: '1.5px solid #000000', padding: '6px 4px', textAlign: 'center', fontWeight: 700 }}>
+                    <td style={{ border: '1.5px solid #000000', padding: '6px 4px', textAlign: 'center', verticalAlign: 'middle', fontWeight: 700 }}>
                       {q}
                     </td>
-                    <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right' }}>
+                    <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', verticalAlign: 'middle' }}>
                       ₹{p.toLocaleString('en-IN')}
                     </td>
-                    <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>
+                    <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700 }}>
                       ₹{sub.toLocaleString('en-IN')}
                     </td>
                   </tr>
@@ -265,35 +265,35 @@ function InvoiceViewerContent() {
               })}
               {/* Grand Total */}
               <tr>
-                <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '7px 8px', fontWeight: 800, textAlign: 'left' }}>
+                <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '7px 8px', fontWeight: 800, textAlign: 'left', verticalAlign: 'middle' }}>
                   Grand Total
                 </td>
-                <td style={{ border: '1.5px solid #000000', padding: '7px 8px', fontWeight: 900, textAlign: 'right', fontSize: 13 }}>
+                <td style={{ border: '1.5px solid #000000', padding: '7px 8px', fontWeight: 900, textAlign: 'right', verticalAlign: 'middle', fontSize: 13 }}>
                   ₹{totalAmt.toLocaleString('en-IN')}
                 </td>
               </tr>
               {advanceAmt > 0 && (
                 <tr>
-                  <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'left' }}>
+                  <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'left', verticalAlign: 'middle' }}>
                     Advance Received
                   </td>
-                  <td style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'right' }}>
+                  <td style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'right', verticalAlign: 'middle' }}>
                     ₹{advanceAmt.toLocaleString('en-IN')}
                   </td>
                 </tr>
               )}
               {paymentPaid > 0 && (
                 <tr>
-                  <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'left' }}>
+                  <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'left', verticalAlign: 'middle' }}>
                     Amount Paid
                   </td>
-                  <td style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'right' }}>
+                  <td style={{ border: '1.5px solid #000000', padding: '5px 8px', fontWeight: 700, textAlign: 'right', verticalAlign: 'middle' }}>
                     ₹{paymentPaid.toLocaleString('en-IN')}
                   </td>
                 </tr>
               )}
               <tr style={{ background: balanceDue > 0 ? '#fff1f2' : '#f0fdf4' }}>
-                <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '7px 8px', fontWeight: 800, textAlign: 'left' }}>
+                <td colSpan={3} style={{ border: '1.5px solid #000000', padding: '7px 8px', fontWeight: 800, textAlign: 'left', verticalAlign: 'middle' }}>
                   Balance Due
                 </td>
                 <td
@@ -302,6 +302,7 @@ function InvoiceViewerContent() {
                     padding: '7px 8px',
                     fontWeight: 900,
                     textAlign: 'right',
+                    verticalAlign: 'middle',
                     fontSize: 13,
                     color: balanceDue > 0 ? '#b91c1c' : '#15803d',
                   }}

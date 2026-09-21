@@ -69,18 +69,18 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
 
       return `
         <tr>
-          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 13.5px; font-weight: 600; text-align: left; color: #000000; line-height: 1.35;">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 13.5px; font-weight: 600; text-align: left; vertical-align: middle; color: #000000; line-height: 1.35;">
             <div>${displayName}</div>
             ${l.staff ? `<div style="font-size: 11.5px; color: #333333; font-weight: 500; margin-top: 2px;">Beautician: ${l.staff}</div>` : ''}
             ${discAmt > 0 ? `<div style="font-size: 11.5px; color: #000000; font-weight: 600; margin-top: 2px;">(Disc: -₹${discAmt.toLocaleString('en-IN')})</div>` : ''}
           </td>
-          <td style="border: 1.5px solid #000000; padding: 7px 4px; font-size: 13.5px; font-weight: 600; text-align: center; color: #000000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 4px; font-size: 13.5px; font-weight: 600; text-align: center; vertical-align: middle; color: #000000;">
             ${qty}
           </td>
-          <td style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13.5px; font-weight: 600; text-align: right; color: #000000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13.5px; font-weight: 600; text-align: right; vertical-align: middle; color: #000000;">
             ${price.toLocaleString('en-IN')}
           </td>
-          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 700; text-align: right; vertical-align: middle; color: #000000;">
             ${lineTotal.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -146,16 +146,16 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; border: 1.5px solid #000000; font-size: 13.5px;">
       <thead>
         <tr style="background: #f1f5f9;">
-          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.03em; color: #000000;">
+          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; vertical-align: middle; text-transform: uppercase; letter-spacing: 0.03em; color: #000000;">
             SERVICE
           </th>
-          <th style="border: 1.5px solid #000000; padding: 7px 4px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; width: 44px; color: #000000;">
+          <th style="border: 1.5px solid #000000; padding: 7px 4px; font-size: 13px; font-weight: 800; text-align: center; vertical-align: middle; text-transform: uppercase; width: 44px; color: #000000;">
             QTY
           </th>
-          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; width: 75px; color: #000000;">
+          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; vertical-align: middle; text-transform: uppercase; width: 75px; color: #000000;">
             PRICE
           </th>
-          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; text-transform: uppercase; width: 90px; color: #000000;">
+          <th style="border: 1.5px solid #000000; padding: 7px 6px; font-size: 13px; font-weight: 800; text-align: center; vertical-align: middle; text-transform: uppercase; width: 90px; color: #000000;">
             TOTAL
           </th>
         </tr>
@@ -165,10 +165,10 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
 
         <!-- Total Rows -->
         <tr>
-          <td colspan="3" style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 800; text-align: left; color: #000000;">
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 800; text-align: left; vertical-align: middle; color: #000000;">
             Grand Total
           </td>
-          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 15px; font-weight: 800; text-align: right; color: #000000;">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 15px; font-weight: 800; text-align: right; vertical-align: middle; color: #000000;">
             ₹${totalAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -176,10 +176,10 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
           advanceAmt > 0
             ? `
         <tr>
-          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; color: #000000;">
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; vertical-align: middle; color: #000000;">
             Advance Received
           </td>
-          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; vertical-align: middle; color: #000000;">
             ₹${advanceAmt.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -190,10 +190,10 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
           paymentPaid > 0 && paymentPaid !== totalAmt
             ? `
         <tr>
-          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; color: #000000;">
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; vertical-align: middle; color: #000000;">
             Paid Amount
           </td>
-          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; vertical-align: middle; color: #000000;">
             ₹${paymentPaid.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -204,10 +204,10 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
           advanceAmt === 0 && paymentPaid >= totalAmt
             ? `
         <tr>
-          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; color: #000000;">
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: left; vertical-align: middle; color: #000000;">
             Received / Paid (${inv.mode || 'Cash'})
           </td>
-          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; color: #000000;">
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 14px; font-weight: 700; text-align: right; vertical-align: middle; color: #000000;">
             ₹${paymentPaid.toLocaleString('en-IN')}
           </td>
         </tr>
@@ -216,10 +216,10 @@ function buildThermalInvoiceHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
         }
         <!-- Balance Due row -->
         <tr style="${balanceDue > 0 ? 'background: #fff1f2;' : 'background: #f0fdf4;'}">
-          <td colspan="3" style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 800; text-align: left; color: #000000;">
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 14px; font-weight: 800; text-align: left; vertical-align: middle; color: #000000;">
             Balance Due
           </td>
-          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 15px; font-weight: 900; text-align: right; color: ${balanceDue > 0 ? '#b91c1c' : '#15803d'};">
+          <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 15px; font-weight: 900; text-align: right; vertical-align: middle; color: ${balanceDue > 0 ? '#b91c1c' : '#15803d'};">
             ₹${balanceDue.toLocaleString('en-IN')}
           </td>
         </tr>

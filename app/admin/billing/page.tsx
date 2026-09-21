@@ -1234,10 +1234,10 @@ function BillingContent() {
           <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #222' }}>
             <thead>
               <tr style={{ background: '#fdfefe' }}>
-                <th style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 11.5, fontWeight: 800, textAlign: 'center' }}>SERVICE</th>
-                <th style={{ border: '1.5px solid #222', padding: '6px 4px', fontSize: 11.5, fontWeight: 800, textAlign: 'center', width: 45 }}>QTY</th>
-                <th style={{ border: '1.5px solid #222', padding: '6px 6px', fontSize: 11.5, fontWeight: 800, textAlign: 'center', width: 65 }}>PRICE</th>
-                <th style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 11.5, fontWeight: 800, textAlign: 'center', width: 75 }}>TOTAL</th>
+                <th style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 11.5, fontWeight: 800, textAlign: 'center', verticalAlign: 'middle' }}>SERVICE</th>
+                <th style={{ border: '1.5px solid #222', padding: '6px 4px', fontSize: 11.5, fontWeight: 800, textAlign: 'center', verticalAlign: 'middle', width: 45 }}>QTY</th>
+                <th style={{ border: '1.5px solid #222', padding: '6px 6px', fontSize: 11.5, fontWeight: 800, textAlign: 'center', verticalAlign: 'middle', width: 65 }}>PRICE</th>
+                <th style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 11.5, fontWeight: 800, textAlign: 'center', verticalAlign: 'middle', width: 75 }}>TOTAL</th>
               </tr>
             </thead>
             <tbody>
@@ -1246,13 +1246,13 @@ function BillingContent() {
                 const netAmt = calcLineTotal(l);
                 return (
                   <tr key={i}>
-                    <td style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 12, fontWeight: 600 }}>
+                    <td style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 12, fontWeight: 600, verticalAlign: 'middle' }}>
                       <div>{cleanServiceNameForBill(l.name)}</div>
                       {discAmt > 0 && <div style={{ fontSize: 9.5, color: '#16a34a' }}>(Disc: −₹{discAmt})</div>}
                     </td>
-                    <td style={{ border: '1.5px solid #222', textAlign: 'center', padding: '6px 4px', fontSize: 12, fontWeight: 600 }}>{l.qty}</td>
-                    <td style={{ border: '1.5px solid #222', textAlign: 'right', padding: '6px 6px', fontSize: 12, fontWeight: 600 }}>{Number(l.price).toLocaleString('en-IN')}</td>
-                    <td style={{ border: '1.5px solid #222', textAlign: 'right', padding: '6px 8px', fontSize: 12.5, fontWeight: 800 }}>{netAmt.toLocaleString('en-IN')}</td>
+                    <td style={{ border: '1.5px solid #222', textAlign: 'center', verticalAlign: 'middle', padding: '6px 4px', fontSize: 12, fontWeight: 600 }}>{l.qty}</td>
+                    <td style={{ border: '1.5px solid #222', textAlign: 'right', verticalAlign: 'middle', padding: '6px 6px', fontSize: 12, fontWeight: 600 }}>{Number(l.price).toLocaleString('en-IN')}</td>
+                    <td style={{ border: '1.5px solid #222', textAlign: 'right', verticalAlign: 'middle', padding: '6px 8px', fontSize: 12.5, fontWeight: 800 }}>{netAmt.toLocaleString('en-IN')}</td>
                   </tr>
                 );
               })}
@@ -1263,23 +1263,23 @@ function BillingContent() {
           <table style={{ width: '100%', borderCollapse: 'collapse', border: '1.5px solid #222', borderTop: 'none', marginBottom: 18 }}>
             <tbody>
               <tr>
-                <td style={{ border: '1.5px solid #222', borderTop: 'none', padding: '6px 10px', fontSize: 12.5, fontWeight: 800 }}>Total</td>
-                <td style={{ border: '1.5px solid #222', borderTop: 'none', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right' }}>₹{Number(printInv.total || 0).toLocaleString('en-IN')}</td>
+                <td style={{ border: '1.5px solid #222', borderTop: 'none', padding: '6px 10px', fontSize: 12.5, fontWeight: 800, verticalAlign: 'middle' }}>Total</td>
+                <td style={{ border: '1.5px solid #222', borderTop: 'none', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right', verticalAlign: 'middle' }}>₹{Number(printInv.total || 0).toLocaleString('en-IN')}</td>
               </tr>
               {Number(printInv.advance || 0) > 0 && (
                 <tr>
-                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 12.5, fontWeight: 800 }}>Advance</td>
-                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right' }}>₹{Number(printInv.advance).toLocaleString('en-IN')}</td>
+                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 12.5, fontWeight: 800, verticalAlign: 'middle' }}>Advance</td>
+                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right', verticalAlign: 'middle' }}>₹{Number(printInv.advance).toLocaleString('en-IN')}</td>
                 </tr>
               )}
               <tr>
-                <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 12.5, fontWeight: 800 }}>{Number(printInv.balance || 0) > 0 ? 'Received / Paid' : 'Payment'}</td>
-                <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right' }}>₹{(Number(printInv.paid || 0) > 0 ? Number(printInv.paid) : Number(printInv.total || 0) - Number(printInv.advance || 0)).toLocaleString('en-IN')}</td>
+                <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 12.5, fontWeight: 800, verticalAlign: 'middle' }}>{Number(printInv.balance || 0) > 0 ? 'Received / Paid' : 'Payment'}</td>
+                <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right', verticalAlign: 'middle' }}>₹{(Number(printInv.paid || 0) > 0 ? Number(printInv.paid) : Number(printInv.total || 0) - Number(printInv.advance || 0)).toLocaleString('en-IN')}</td>
               </tr>
               {Number(printInv.balance || 0) > 0 && (
                 <tr style={{ background: '#fff1f2' }}>
-                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 12.5, fontWeight: 800, color: '#dc2626' }}>Balance Due</td>
-                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right', color: '#dc2626' }}>₹{Number(printInv.balance).toLocaleString('en-IN')}</td>
+                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 12.5, fontWeight: 800, color: '#dc2626', verticalAlign: 'middle' }}>Balance Due</td>
+                  <td style={{ border: '1.5px solid #222', padding: '6px 10px', fontSize: 13.5, fontWeight: 800, textAlign: 'right', color: '#dc2626', verticalAlign: 'middle' }}>₹{Number(printInv.balance).toLocaleString('en-IN')}</td>
                 </tr>
               )}
             </tbody>
