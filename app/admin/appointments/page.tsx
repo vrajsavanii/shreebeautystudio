@@ -1283,7 +1283,7 @@ export default function AppointmentsPage() {
                 }}
                 title="Save appointment and open WhatsApp Web/App to send confirmation"
               >
-                🌐 Web Send &amp; Save
+                🌐 Web Send &amp; Save Booking
               </motion.button>
 
               {/* 2. API Send and Save */}
@@ -1305,7 +1305,7 @@ export default function AppointmentsPage() {
                 }}
                 title="Save appointment and send WhatsApp confirmation automatically via Cloud API"
               >
-                ⚡ API Send &amp; Save
+                ⚡ API Send &amp; Save Booking
               </motion.button>
 
               {/* 3. Only Save */}
@@ -1326,7 +1326,7 @@ export default function AppointmentsPage() {
                 }}
                 title="Directly save appointment into records & Google Calendar without sending WhatsApp message"
               >
-                💾 Only Save
+                💾 Only Save Bookings
               </motion.button>
             </div>
           </div>

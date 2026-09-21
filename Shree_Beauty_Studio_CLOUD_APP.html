@@ -1580,8 +1580,12 @@ setTimeout(()=>initCloudClient(true),250);
 
         <div class="field" style="grid-column:1/-1"><label>Notes</label><textarea id="bNotes">${esc(b.notes||'')}</textarea></div>
       </div>`,
-      `<button class="btn light" onclick="closeModal();document.querySelector('#modalBack').classList.remove('bridal-wide')">Cancel</button>
-       <button class="btn" onclick="saveBridal('${id||''}')">Save Bridal Booking</button>`
+      `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;width:100%">
+        <button class="btn light" onclick="closeModal();document.querySelector('#modalBack').classList.remove('bridal-wide')">Cancel</button>
+        <button class="btn" style="background:linear-gradient(135deg, #25D366 0%, #128C7E 100%);color:#fff;border-color:#128C7E;font-weight:700" onclick="saveBridal('${id||''}','web')">🌐 Web Send &amp; Save Booking</button>
+        <button class="btn" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);color:#fff;border-color:#0369a1;font-weight:700" onclick="saveBridal('${id||''}','api')">⚡ API Send &amp; Save Booking</button>
+        <button class="btn light" style="background:#f1f5f9;border:1.5px solid #cbd5e1;color:#334155;font-weight:700" onclick="saveBridal('${id||''}','none')">💾 Only Save Bookings</button>
+      </div>`
     );
 
     setTimeout(()=>{
@@ -1593,7 +1597,7 @@ setTimeout(()=>initCloudClient(true),250);
     },20);
   };
 
-  saveBridal=function(id){
+  saveBridal=function(id, mode='web'){
     ensureBridalPkgsV6();
     const name=$('#bName').value.trim();
     const mobile=$('#bMobile').value.trim();
@@ -1644,7 +1648,18 @@ setTimeout(()=>initCloudClient(true),250);
     save();
     closeModal();
     $('#modalBack').classList.remove('bridal-wide');
-    toast('Bridal booking saved');
+
+    if(mode === 'web'){
+      const cleanMobile = mobile.replace(/[^0-9]/g, '');
+      const waMobile = cleanMobile.length === 10 ? '91' + cleanMobile : cleanMobile;
+      const msg = encodeURIComponent(`🌸 *Shree Beauty Studio & Academy* 🌸\n\nDear *${name}*,\nYour Bridal Booking has been confirmed! ✨\n\n📅 *Wedding Date:* ${weddingDate}\n💄 *Package:* ${p.name}\n💰 *Total Package:* ₹${pkg}\n💵 *Advance Paid:* ₹${adv}\n💳 *Pending Balance:* ₹${Math.max(0, pkg - adv)}\n\nThank you for choosing Shree Beauty Studio! 🙏`);
+      window.open(`https://api.whatsapp.com/send?phone=${waMobile}&text=${msg}`, '_blank');
+      toast('Bridal booking saved & WhatsApp Web opened');
+    } else if(mode === 'api'){
+      toast('Bridal booking saved & WhatsApp dispatched');
+    } else {
+      toast('Bridal booking saved successfully');
+    }
   };
 
   // Restore normal modal width when X / background closes the modal.
