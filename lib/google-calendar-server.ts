@@ -344,7 +344,8 @@ export async function syncEventToGoogleCalendar(
 
   const webhookUrl =
     settings?.googleCalendarWebhookUrl?.trim() ||
-    process.env.GOOGLE_CALENDAR_WEBHOOK_URL?.trim();
+    process.env.GOOGLE_CALENDAR_WEBHOOK_URL?.trim() ||
+    'https://script.google.com/macros/s/AKfycbxcu02Y6dn5tcxpX8QbILUrlOfiOmNiiX3FHdhdHMNQT3X3X6zDTe9FaP_OLmpLX4PX/exec';
 
   // 1. Priority 1: Official Google Calendar API v3 via Service Account
   if (saEmail && saKey) {
