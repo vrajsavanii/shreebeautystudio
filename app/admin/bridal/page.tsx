@@ -621,10 +621,14 @@ const OTHER_EVENT_OPTIONS = [
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.provider !== 'feed_and_invite') {
-          toast('📅 Bridal event auto-saved to Google Calendar in Cloud!');
+          toast('📅 Bridal event Google Calendar માં Auto-Save થયું!');
+        } else if (!res.success) {
+          console.error('[Bridal Calendar Auto-Sync Failed]:', res.error || res.message);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error('[Bridal Calendar Auto-Sync Error]:', err);
+      });
 
     setModalOpen(false);
   };

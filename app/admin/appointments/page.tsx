@@ -600,10 +600,14 @@ export default function AppointmentsPage() {
         .then((res) => res.json())
         .then((res) => {
           if (res.success && res.provider !== 'feed_and_invite') {
-            toast('📅 Auto-saved to Google Calendar in Cloud!');
+            toast('📅 Google Calendar માં Auto-Save થયું!');
+          } else if (!res.success) {
+            console.error('[Calendar Auto-Sync Failed]:', res.error || res.message);
           }
         })
-        .catch(() => {});
+        .catch((err) => {
+          console.error('[Calendar Auto-Sync Error]:', err);
+        });
     }
 
     setModalOpen(false);
