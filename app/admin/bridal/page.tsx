@@ -31,6 +31,7 @@ export default function BridalPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [prevBridal, setPrevBridal] = useState<BridalBooking | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [tab, setTab] = useState(0);
   const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
@@ -318,6 +319,7 @@ const OTHER_EVENT_OPTIONS = [
 
   const openNew = () => {
     setEditId(null);
+    setPrevBridal(null);
     setTab(0);
     const defaultPkg = bridalPackages.find((p) => p.type === 'Bridal Package') || bridalPackages[0];
     const today = todayISO();
@@ -356,6 +358,7 @@ const OTHER_EVENT_OPTIONS = [
       advance: 0,
       advanceAccount: data?.settings?.payments?.[0] || 'Cash',
       balance: defaultPkg ? defaultPkg.price : 0,
+      status: 'Confirmed',
       notes: '',
     });
     setModalOpen(true);
@@ -371,10 +374,12 @@ const OTHER_EVENT_OPTIONS = [
 
   const openEdit = (b: BridalBooking) => {
     setEditId(b.id);
+    setPrevBridal(b);
     setTab(0);
     setForm({
       ...b,
       email: b.email || '',
+      status: b.status || 'Confirmed',
       includeWedding: b.includeWedding !== undefined ? b.includeWedding : !!b.weddingDate,
       includeSagai: b.includeSagai !== undefined ? b.includeSagai : !!b.sagaiDate,
       includeMandap: b.includeMandap !== undefined ? b.includeMandap : !!b.mandapDate,
@@ -452,6 +457,7 @@ const OTHER_EVENT_OPTIONS = [
       advance: Number(form.advance || 0),
       advanceAccount: form.advanceAccount || 'Cash',
       balance: Math.max(0, Number(form.package || 0) - Number(form.advance || 0)),
+      status: form.status || 'Confirmed',
       notes: form.notes || '',
     };
 
@@ -544,8 +550,6 @@ const OTHER_EVENT_OPTIONS = [
     const salon = data?.settings?.salon || 'Shree Beauty Studio';
     const address = data?.settings?.address || 'Surat, Gujarat';
 
-    // Auto download calendar file to save time
-    downloadBridalICS(booking, salon, address);
     const msg = bridalMessage(
       booking.name,
       booking.packageName || 'Bridal Package',
@@ -585,7 +589,7 @@ const OTHER_EVENT_OPTIONS = [
     }
 
     // Auto-send Email confirmation to bride via Resend if email is provided
-    if (cleanEmail && cleanEmail.includes('@') && !editId) {
+    if (cleanEmail && cleanEmail.includes('@') && !editId && booking.status !== 'Cancelled') {
       fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -611,7 +615,46 @@ const OTHER_EVENT_OPTIONS = [
     }
 
     // Auto-sync directly to Google Calendar in the cloud
-    if (booking.status !== 'Cancelled') {
+    if (booking.status === 'Cancelled') {
+      // If status is Cancelled, remove event from Google Calendar
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'delete_bridal',
+          bridal: booking,
+          settings: data?.settings,
+        }),
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success) {
+            toast(`🗑️ Google Calendar માંથી "${booking.name}" ની Bridal Events કાઢી નાખવામાં આવી!`, 'info');
+          }
+        })
+        .catch(() => {});
+    } else {
+      // If previous booking dates or bride name changed, delete old calendar events first
+      if (
+        prevBridal &&
+        (prevBridal.name !== booking.name ||
+          prevBridal.weddingDate !== booking.weddingDate ||
+          prevBridal.sagaiDate !== booking.sagaiDate ||
+          prevBridal.mandapDate !== booking.mandapDate ||
+          prevBridal.musicDate !== booking.musicDate ||
+          prevBridal.otherDate !== booking.otherDate)
+      ) {
+        fetch('/api/calendar/auto-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'delete_bridal',
+            bridal: prevBridal,
+            settings: data?.settings,
+          }),
+        }).catch(() => {});
+      }
+
       fetch('/api/calendar/auto-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -624,7 +667,7 @@ const OTHER_EVENT_OPTIONS = [
         .then((res) => res.json())
         .then((res) => {
           if (res.success && res.provider !== 'feed_and_invite') {
-            toast('📅 Bridal event Google Calendar માં Auto-Save થયું!');
+            toast('📅 Bridal events Google Calendar માં Auto-Save થઈ!');
           } else if (!res.success) {
             console.error('[Bridal Calendar Auto-Sync Failed]:', res.error || res.message);
           }
@@ -632,28 +675,13 @@ const OTHER_EVENT_OPTIONS = [
         .catch((err) => {
           console.error('[Bridal Calendar Auto-Sync Error]:', err);
         });
-    } else {
-      // If status is Cancelled, remove event from Google Calendar
-      fetch('/api/calendar/auto-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'delete_bridal',
-          bridal: booking,
-          settings: data?.settings,
-        }),
-      })
-        .then(() => {
-          toast('🗑️ Bridal event Google Calendar માંથી હટાવી દેવામાં આવી!', 'info');
-        })
-        .catch(() => {});
     }
 
     setModalOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    const target = data?.bridal?.find((b) => b.id === id);
+    const target = (data?.bridal || []).find((b) => b.id === id);
     if (target) {
       fetch('/api/calendar/auto-sync', {
         method: 'POST',
@@ -1956,6 +1984,22 @@ const OTHER_EVENT_OPTIONS = [
         {/* Step 3: Notes & Finalize */}
         {tab === 3 && (
           <div>
+            <div className="form-group">
+              <label className="label">Booking Status (બુકિંગ સ્થિતિ)</label>
+              <select
+                className="input"
+                value={form.status || 'Confirmed'}
+                onChange={(e) => set('status', e.target.value)}
+                style={{
+                  fontWeight: 700,
+                  color: form.status === 'Cancelled' ? '#dc2626' : form.status === 'Completed' ? '#16a34a' : '#2563eb',
+                }}
+              >
+                <option value="Confirmed">✅ Confirmed (સક્રિય બુકિંગ)</option>
+                <option value="Completed">✓ Completed (પૂર્ણ)</option>
+                <option value="Cancelled">❌ Cancelled (કેન્સલ કરો &amp; કેલેન્ડરમાંથી હટાવો)</option>
+              </select>
+            </div>
             <div className="form-group">
               <label className="label">Special Instructions & Notes</label>
               <textarea

@@ -547,7 +547,66 @@ export async function autoSyncBridalToGoogleCalendar(
 }
 
 /**
- * Delete / Remove event from Google Calendar via Webhook or API
+ * Deletes an event directly from Google Calendar via Official Google Calendar REST API v3.
+ */
+export async function deleteGoogleCalendarV3Event(
+  accessToken: string,
+  calendarId: string = 'primary',
+  eventId: string
+): Promise<boolean> {
+  const targetCalId = calendarId || 'primary';
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalId)}/events/${encodeURIComponent(eventId)}`;
+
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  return res.ok || res.status === 404;
+}
+
+/**
+ * Searches and deletes matching events in Google Calendar via Official Google Calendar REST API v3.
+ */
+export async function findAndDeleteGoogleCalendarV3Events(
+  accessToken: string,
+  calendarId: string = 'primary',
+  searchQuery: string
+): Promise<number> {
+  try {
+    if (!searchQuery || searchQuery.trim().length < 2) return 0;
+    const targetCalId = calendarId || 'primary';
+    const now = new Date();
+    const timeMin = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const timeMax = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalId)}/events?q=${encodeURIComponent(searchQuery.trim())}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) return 0;
+    const data = await res.json();
+    let count = 0;
+    if (data.items && Array.isArray(data.items)) {
+      for (const item of data.items) {
+        if (item.id) {
+          await deleteGoogleCalendarV3Event(accessToken, targetCalId, item.id);
+          count++;
+        }
+      }
+    }
+    return count;
+  } catch (err) {
+    return 0;
+  }
+}
+
+/**
+ * Delete / Remove event from Google Calendar via Official API v3 or Cloud Webhook
  */
 export async function deleteEventFromGoogleCalendar(
   deletePayload: {
@@ -556,11 +615,73 @@ export async function deleteEventFromGoogleCalendar(
     phone?: string;
     bookingId?: string;
     date?: string;
+    [key: string]: any;
   },
   settings?: Partial<SalonSettings>
 ): Promise<{ success: boolean; message: string }> {
+  const saEmail =
+    settings?.googleServiceAccountEmail?.trim() ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
+  const saKey =
+    settings?.googlePrivateKey?.trim() ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.trim() ||
+    process.env.GOOGLE_PRIVATE_KEY?.trim();
+  const calendarId =
+    settings?.googleCalendarId?.trim() ||
+    process.env.GOOGLE_CALENDAR_ID?.trim() ||
+    'primary';
+
+  const oauthClientId =
+    settings?.googleClientId?.trim() ||
+    process.env.GOOGLE_CLIENT_ID?.trim();
+  const oauthSecret =
+    settings?.googleClientSecret?.trim() ||
+    process.env.GOOGLE_CLIENT_SECRET?.trim();
+  const oauthRefreshToken =
+    settings?.googleRefreshToken?.trim() ||
+    process.env.GOOGLE_REFRESH_TOKEN?.trim();
+
   const webhookUrl = resolveValidWebhookUrl(settings?.googleCalendarWebhookUrl);
 
+  // 1. Official Google Calendar API v3 via Service Account
+  if (saEmail && saKey) {
+    try {
+      const accessToken = await getServiceAccountAccessToken(saEmail, saKey);
+      const query = deletePayload.customerName || deletePayload.phone || deletePayload.title || '';
+      if (query) {
+        const deleted = await findAndDeleteGoogleCalendarV3Events(accessToken, calendarId, query);
+        if (deleted > 0) {
+          return {
+            success: true,
+            message: `${deleted} event(s) removed from Google Calendar via Official API!`,
+          };
+        }
+      }
+    } catch (err: any) {
+      console.error('[Google Calendar API Service Account Delete Error]:', err?.message);
+    }
+  }
+
+  // 2. Official Google Calendar API v3 via OAuth 2.0
+  if (oauthClientId && oauthSecret && oauthRefreshToken) {
+    try {
+      const accessToken = await getOAuthAccessToken(oauthClientId, oauthSecret, oauthRefreshToken);
+      const query = deletePayload.customerName || deletePayload.phone || deletePayload.title || '';
+      if (query) {
+        const deleted = await findAndDeleteGoogleCalendarV3Events(accessToken, calendarId, query);
+        if (deleted > 0) {
+          return {
+            success: true,
+            message: `${deleted} event(s) removed from Google Calendar via OAuth API!`,
+          };
+        }
+      }
+    } catch (err: any) {
+      console.error('[Google Calendar OAuth2 Delete Error]:', err?.message);
+    }
+  }
+
+  // 3. Cloud Webhook Deletion
   if (webhookUrl) {
     try {
       const res = await fetch(webhookUrl, {
@@ -568,6 +689,7 @@ export async function deleteEventFromGoogleCalendar(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'delete_event',
+          type: 'delete_event',
           ...deletePayload,
           timestamp: new Date().toISOString(),
         }),
@@ -601,10 +723,16 @@ export async function autoSyncDeleteAppointment(
   return deleteEventFromGoogleCalendar(
     {
       title,
+      summary: title,
       customerName: cleanCustomer || a.customer,
+      name: cleanCustomer || a.customer,
+      customer: cleanCustomer || a.customer,
       phone: cleanPhone || a.mobile,
+      mobile: cleanPhone || a.mobile,
       bookingId: a.id,
+      id: a.id,
       date: normalizeDateToYYYYMMDD(a.date),
+      appointment: a,
     },
     settings
   );
@@ -620,9 +748,15 @@ export async function autoSyncDeleteBridal(
   return deleteEventFromGoogleCalendar(
     {
       title,
+      summary: title,
       customerName: cleanName || b.name,
+      name: cleanName || b.name,
       phone: cleanPhone || b.mobile,
+      mobile: cleanPhone || b.mobile,
       bookingId: b.id,
+      id: b.id,
+      date: normalizeDateToYYYYMMDD(b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate),
+      bridal: b,
     },
     settings
   );

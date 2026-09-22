@@ -20,41 +20,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { type, appointment, bridal, appointments, bridals, action } = body;
 
-    // 1. Handle Event Deletion / Cancellation
-    if (
-      action === 'delete_event' ||
-      action === 'cancel_event' ||
-      type === 'delete_appointment' ||
-      type === 'cancel_appointment' ||
-      type === 'delete_bridal' ||
-      type === 'cancel_bridal'
-    ) {
-      if (type === 'delete_appointment' || type === 'cancel_appointment' || appointment) {
-        const appt = appointment || body.appt;
-        if (appt) {
-          const res = await autoSyncDeleteAppointment(appt, body.settings);
-          return NextResponse.json({ success: true, message: res.message });
-        }
-      }
-      if (type === 'delete_bridal' || type === 'cancel_bridal' || bridal) {
-        const b = bridal;
-        if (b) {
-          const res = await autoSyncDeleteBridal(b, body.settings);
-          return NextResponse.json({ success: true, message: res.message });
-        }
-      }
-      const res = await deleteEventFromGoogleCalendar(body, body.settings);
-      return NextResponse.json({ success: true, message: res.message });
-    }
-
-    if (!appointment && !bridal && !appointments && !bridals) {
-      return NextResponse.json(
-        { success: false, error: 'Appointment, Bridal, or Bulk payload required' },
-        { status: 400 }
-      );
-    }
-
-    // 1. Fetch salon settings
+    // 1. Fetch salon settings from database
     const supabase = getSupabaseAdmin();
     const { data: rows } = await supabase
       .from('salon_state')
@@ -67,6 +33,40 @@ export async function POST(request: Request) {
       : { ...DEFAULT_DATA };
 
     const settings = { ...(salonData.settings || {}), ...(body.settings || {}) };
+
+    // 2. Handle Event Deletion / Cancellation
+    if (
+      action === 'delete_event' ||
+      action === 'cancel_event' ||
+      type === 'delete_appointment' ||
+      type === 'cancel_appointment' ||
+      type === 'delete_bridal' ||
+      type === 'cancel_bridal'
+    ) {
+      if (type === 'delete_appointment' || type === 'cancel_appointment' || appointment) {
+        const appt = appointment || body.appt;
+        if (appt) {
+          const res = await autoSyncDeleteAppointment(appt, settings);
+          return NextResponse.json({ success: true, message: res.message });
+        }
+      }
+      if (type === 'delete_bridal' || type === 'cancel_bridal' || bridal) {
+        const b = bridal;
+        if (b) {
+          const res = await autoSyncDeleteBridal(b, settings);
+          return NextResponse.json({ success: true, message: res.message });
+        }
+      }
+      const res = await deleteEventFromGoogleCalendar(body, settings);
+      return NextResponse.json({ success: true, message: res.message });
+    }
+
+    if (!appointment && !bridal && !appointments && !bridals) {
+      return NextResponse.json(
+        { success: false, error: 'Appointment, Bridal, or Bulk payload required' },
+        { status: 400 }
+      );
+    }
 
     if (type === 'bulk' || appointments || bridals) {
       const apptList = appointments || salonData.appointments || [];

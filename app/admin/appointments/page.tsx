@@ -56,6 +56,7 @@ export default function AppointmentsPage() {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [prevAppt, setPrevAppt] = useState<Appointment | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
   const [isSplitAdvance, setIsSplitAdvance] = useState(false);
@@ -354,6 +355,7 @@ export default function AppointmentsPage() {
 
   const openNew = () => {
     setEditId(null);
+    setPrevAppt(null);
     setIsSplitAdvance(false);
     setSplitAdvanceAmounts({});
     const nextLiveTime = getCurrentRoundedTimeHHMM(15);
@@ -377,6 +379,7 @@ export default function AppointmentsPage() {
 
   const openEdit = (a: Appointment) => {
     setEditId(a.id);
+    setPrevAppt(a);
     const foundSvc = (data?.services || []).find((s) => s.name.toLowerCase() === a.service?.toLowerCase());
     reset({
       ...a,
@@ -605,7 +608,38 @@ export default function AppointmentsPage() {
     }
 
     // Auto-sync directly to Google Calendar in the cloud
-    if (form.status !== 'Cancelled') {
+    if (form.status === 'Cancelled' || form.workStatus === 'Cancelled') {
+      // If status is Cancelled, remove event from Google Calendar
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'delete_appointment',
+          appointment: { ...form, id, email: cleanEmail },
+          settings: data?.settings,
+        }),
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success) {
+            toast(`🗑️ Google Calendar માંથી "${form.customer}" ની ઇવેન્ટ કાઢી નાખવામાં આવી!`, 'info');
+          }
+        })
+        .catch(() => {});
+    } else {
+      // If previous appointment date/time/customer changed, delete the old calendar event first
+      if (prevAppt && (prevAppt.date !== form.date || prevAppt.time !== form.time || prevAppt.customer !== form.customer)) {
+        fetch('/api/calendar/auto-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'delete_appointment',
+            appointment: prevAppt,
+            settings: data?.settings,
+          }),
+        }).catch(() => {});
+      }
+
       fetch('/api/calendar/auto-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -626,28 +660,13 @@ export default function AppointmentsPage() {
         .catch((err) => {
           console.error('[Calendar Auto-Sync Error]:', err);
         });
-    } else {
-      // If status is Cancelled, remove event from Google Calendar
-      fetch('/api/calendar/auto-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'delete_appointment',
-          appointment: { ...form, id, email: cleanEmail },
-          settings: data?.settings,
-        }),
-      })
-        .then(() => {
-          toast('🗑️ Google Calendar માંથી ઇવેન્ટ હટાવી દેવામાં આવી!', 'info');
-        })
-        .catch(() => {});
     }
 
     setModalOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    const target = data?.appointments?.find((a) => a.id === id);
+    const target = (data?.appointments || []).find((a) => a.id === id);
     if (target) {
       fetch('/api/calendar/auto-sync', {
         method: 'POST',
@@ -666,7 +685,7 @@ export default function AppointmentsPage() {
         })
         .catch(() => {});
     }
-    updateData((d) => ({ ...d, appointments: d.appointments.filter((a) => a.id !== id) }));
+    updateData((d) => ({ ...d, appointments: (d.appointments || []).filter((a) => a.id !== id) }));
     scheduleSave();
     toast('Appointment deleted & removed from Google Calendar', 'info');
     setDeleteId(null);
