@@ -74,7 +74,7 @@ export const DEFAULT_DATA: SalonData = {
     whatsappMode: 'web',
     whatsappPhoneId: '1313759075154191',
     autoSendPdfWhatsApp: true,
-    googleCalendarOwnerEmail: 'bhalanisandip@gmail.com',
+    googleCalendarOwnerEmail: 'bhalanisandip@gmail.com, bhalaniamita9@gmail.com, amiqusvendor@gmail.com',
     googleCalendarWebhookUrl: 'https://script.google.com/macros/s/AKfycbxcu02Y6dn5tcxpX8QbILUrlOfiOmNiiX3FHdhdHMNQT3X3X6zDTe9FaP_OLmpLX4PX/exec',
     calendarApptReminderMinutes1: 60,
     calendarApptReminderMinutes2: 1440,
