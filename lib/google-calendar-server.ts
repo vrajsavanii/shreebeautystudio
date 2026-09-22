@@ -470,10 +470,7 @@ export async function deleteEventFromGoogleCalendar(
   },
   settings?: Partial<SalonSettings>
 ): Promise<{ success: boolean; message: string }> {
-  const webhookUrl =
-    settings?.googleCalendarWebhookUrl?.trim() ||
-    process.env.GOOGLE_CALENDAR_WEBHOOK_URL?.trim() ||
-    'https://script.google.com/macros/s/AKfycbxcu02Y6dn5tcxpX8QbILUrlOfiOmNiiX3FHdhdHMNQT3X3X6zDTe9FaP_OLmpLX4PX/exec';
+  const webhookUrl = resolveValidWebhookUrl(settings?.googleCalendarWebhookUrl);
 
   if (webhookUrl) {
     try {
