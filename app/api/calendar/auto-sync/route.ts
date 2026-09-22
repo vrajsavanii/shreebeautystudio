@@ -5,14 +5,47 @@ import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData } from '@/types/salon';
-import { autoSyncAppointmentToGoogleCalendar, autoSyncBridalToGoogleCalendar } from '@/lib/google-calendar-server';
+import {
+  autoSyncAppointmentToGoogleCalendar,
+  autoSyncBridalToGoogleCalendar,
+  autoSyncDeleteAppointment,
+  autoSyncDeleteBridal,
+  deleteEventFromGoogleCalendar,
+} from '@/lib/google-calendar-server';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { type, appointment, bridal, appointments, bridals } = body;
+    const { type, appointment, bridal, appointments, bridals, action } = body;
+
+    // 1. Handle Event Deletion / Cancellation
+    if (
+      action === 'delete_event' ||
+      action === 'cancel_event' ||
+      type === 'delete_appointment' ||
+      type === 'cancel_appointment' ||
+      type === 'delete_bridal' ||
+      type === 'cancel_bridal'
+    ) {
+      if (type === 'delete_appointment' || type === 'cancel_appointment' || appointment) {
+        const appt = appointment || body.appt;
+        if (appt) {
+          const res = await autoSyncDeleteAppointment(appt, body.settings);
+          return NextResponse.json({ success: true, message: res.message });
+        }
+      }
+      if (type === 'delete_bridal' || type === 'cancel_bridal' || bridal) {
+        const b = bridal;
+        if (b) {
+          const res = await autoSyncDeleteBridal(b, body.settings);
+          return NextResponse.json({ success: true, message: res.message });
+        }
+      }
+      const res = await deleteEventFromGoogleCalendar(body, body.settings);
+      return NextResponse.json({ success: true, message: res.message });
+    }
 
     if (!appointment && !bridal && !appointments && !bridals) {
       return NextResponse.json(

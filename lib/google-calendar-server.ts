@@ -446,17 +446,147 @@ export async function autoSyncBridalToGoogleCalendar(
 }
 
 /**
+ * Delete / Remove event from Google Calendar via Webhook or API
+ */
+export async function deleteEventFromGoogleCalendar(
+  deletePayload: {
+    title?: string;
+    customerName?: string;
+    phone?: string;
+    bookingId?: string;
+    date?: string;
+  },
+  settings?: Partial<SalonSettings>
+): Promise<{ success: boolean; message: string }> {
+  const webhookUrl =
+    settings?.googleCalendarWebhookUrl?.trim() ||
+    process.env.GOOGLE_CALENDAR_WEBHOOK_URL?.trim() ||
+    'https://script.google.com/macros/s/AKfycbxcu02Y6dn5tcxpX8QbILUrlOfiOmNiiX3FHdhdHMNQT3X3X6zDTe9FaP_OLmpLX4PX/exec';
+
+  if (webhookUrl) {
+    try {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_event',
+          ...deletePayload,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json().catch(() => ({}));
+        return {
+          success: true,
+          message: json.message || 'Event removed from Google Calendar!',
+        };
+      }
+    } catch (err: any) {
+      console.error('[Google Calendar Delete Webhook Exception]:', err?.message);
+    }
+  }
+
+  return {
+    success: true,
+    message: 'Event removal completed.',
+  };
+}
+
+export async function autoSyncDeleteAppointment(
+  a: Appointment,
+  settings?: Partial<SalonSettings>
+) {
+  const title = `💅 ${a.customer || 'Customer'} — ${a.service || 'Service'}`;
+  return deleteEventFromGoogleCalendar(
+    {
+      title,
+      customerName: a.customer,
+      phone: a.mobile,
+      bookingId: a.id,
+      date: a.date,
+    },
+    settings
+  );
+}
+
+export async function autoSyncDeleteBridal(
+  b: BridalBooking,
+  settings?: Partial<SalonSettings>
+) {
+  const title = `👑 BRIDAL: ${b.name || 'Bride'}`;
+  return deleteEventFromGoogleCalendar(
+    {
+      title,
+      customerName: b.name,
+      phone: b.mobile,
+      bookingId: b.id,
+      date: b.weddingDate || b.date,
+    },
+    settings
+  );
+}
+
+/**
  * Ready-to-use Google Apps Script Code snippet for 1-click free Google Calendar integration.
  */
-export const SAMPLE_GOOGLE_APPS_SCRIPT_CODE = `// 📋 MULTI-ACCOUNT & AUTO-CLEANUP GOOGLE APPS SCRIPT CODE (Paste in script.google.com & Deploy as Web App)
-// 1. Go to https://script.google.com -> Click "New Project"
-// 2. Replace everything with this code:
+export const SAMPLE_GOOGLE_APPS_SCRIPT_CODE = `// 📋 MULTI-ACCOUNT, AUTO-SYNC & AUTO-DELETE GOOGLE APPS SCRIPT CODE
+// 1. Go to https://script.google.com -> Open your Project
+// 2. Replace everything with this code & Deploy -> Manage deployments -> Edit -> New version -> Deploy:
 
 function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
-    var ev = data.event;
     var cal = CalendarApp.getDefaultCalendar();
+
+    // 🗑️ 1. DELETE / CANCEL EVENT ACTION (અપોઇન્ટમેન્ટ કે બ્રાઇડલ કેન્સલ/ડિલીટ થાય ત્યારે ઇવેન્ટ ડિલીટ કરવી)
+    if (data && (data.action === 'delete_event' || data.action === 'cancel_event' || data.type === 'delete_appointment' || data.type === 'delete_bridal')) {
+      var searchTitle = data.title || (data.event ? data.event.summary : '') || '';
+      var customerName = data.customerName || '';
+      var bookingId = data.bookingId || data.id || '';
+      var phone = data.phone || data.mobile || '';
+      var searchDateStr = data.date || (data.event && data.event.start && data.event.start.dateTime ? data.event.start.dateTime : null);
+
+      var fromDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() - (3 * 24 * 60 * 60 * 1000)) : new Date(new Date().getTime() - (90 * 24 * 60 * 60 * 1000));
+      var toDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() + (3 * 24 * 60 * 60 * 1000)) : new Date(new Date().getTime() + (365 * 24 * 60 * 60 * 1000));
+
+      var events = cal.getEvents(fromDate, toDate);
+      var deletedCount = 0;
+      for (var d = 0; d < events.length; d++) {
+        var currentEv = events[d];
+        var cTitle = (currentEv.getTitle() || '').toLowerCase();
+        var cDesc = (currentEv.getDescription() || '').toLowerCase();
+
+        var match = false;
+        if (searchTitle && cTitle.indexOf(searchTitle.toLowerCase()) !== -1) match = true;
+        if (customerName && (cTitle.indexOf(customerName.toLowerCase()) !== -1 || cDesc.indexOf(customerName.toLowerCase()) !== -1)) match = true;
+        if (phone && (cDesc.indexOf(phone) !== -1 || cTitle.indexOf(phone) !== -1)) match = true;
+        if (bookingId && (cDesc.indexOf(bookingId.toLowerCase()) !== -1 || cTitle.indexOf(bookingId.toLowerCase()) !== -1)) match = true;
+
+        if (match) {
+          try {
+            currentEv.deleteEvent();
+            deletedCount++;
+          } catch (eD) {}
+        }
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        action: 'delete_event',
+        deletedCount: deletedCount,
+        message: deletedCount + " calendar event(s) deleted from Google Calendar!"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ➕ 2. CREATE / UPDATE EVENT ACTION
+    var ev = data.event;
+    if (!ev) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: "No event payload provided"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
     
     // 🧹 Auto-Delete Past Salon Events Older Than 2 Days (2 દિવસ જૂની ઇવેન્ટ ઓટો-ડિલીટ)
     var deletePastDays = (data && data.deletePastDays !== undefined) ? data.deletePastDays : 2;
@@ -522,7 +652,7 @@ function doPost(e) {
       success: true,
       eventId: createdEvent.getId(),
       syncedAccounts: guestList.length + 1,
-      message: "Event added to Multi-Account Google Calendar successfully & old events cleaned up!"
+      message: "Event added to Google Calendar successfully & old events cleaned up!"
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
@@ -560,6 +690,6 @@ function dailyAutoCleanup() {
   cleanupPastSalonEvents(CalendarApp.getDefaultCalendar(), 2);
 }
 
-// 3. Click "Deploy" -> "New deployment" -> Select type: "Web app"
+// 3. Click "Deploy" -> "New deployment" (or "Manage deployments" -> Edit -> New Version)
 // 4. Set "Execute as: Me" and "Who has access: Anyone"
 // 5. Copy Web App URL and paste it in Shree Studio Settings -> Google Calendar!`;

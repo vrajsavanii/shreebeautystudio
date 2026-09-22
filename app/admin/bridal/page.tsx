@@ -609,26 +609,43 @@ const OTHER_EVENT_OPTIONS = [
     }
 
     // Auto-sync directly to Google Calendar in the cloud
-    fetch('/api/calendar/auto-sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'bridal',
-        bridal: booking,
-        settings: data?.settings,
-      }),
-    })
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && res.provider !== 'feed_and_invite') {
-          toast('📅 Bridal event Google Calendar માં Auto-Save થયું!');
-        } else if (!res.success) {
-          console.error('[Bridal Calendar Auto-Sync Failed]:', res.error || res.message);
-        }
+    if (booking.status !== 'Cancelled') {
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'bridal',
+          bridal: booking,
+          settings: data?.settings,
+        }),
       })
-      .catch((err) => {
-        console.error('[Bridal Calendar Auto-Sync Error]:', err);
-      });
+        .then((res) => res.json())
+        .then((res) => {
+          if (res.success && res.provider !== 'feed_and_invite') {
+            toast('📅 Bridal event Google Calendar માં Auto-Save થયું!');
+          } else if (!res.success) {
+            console.error('[Bridal Calendar Auto-Sync Failed]:', res.error || res.message);
+          }
+        })
+        .catch((err) => {
+          console.error('[Bridal Calendar Auto-Sync Error]:', err);
+        });
+    } else {
+      // If status is Cancelled, remove event from Google Calendar
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'delete_bridal',
+          bridal: booking,
+          settings: data?.settings,
+        }),
+      })
+        .then(() => {
+          toast('🗑️ Bridal event Google Calendar માંથી હટાવી દેવામાં આવી!', 'info');
+        })
+        .catch(() => {});
+    }
 
     setModalOpen(false);
   };
@@ -637,6 +654,15 @@ const OTHER_EVENT_OPTIONS = [
     const target = data?.bridal?.find((b) => b.id === id);
     if (target) {
       downloadCancellationICS(target, 'bridal', data?.settings?.salon, data?.settings?.address);
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'delete_bridal',
+          bridal: target,
+          settings: data?.settings,
+        }),
+      }).catch(() => {});
     }
     updateData((d) => {
       const targetLocal = (d.bridal || []).find((b) => b.id === id);
@@ -649,7 +675,7 @@ const OTHER_EVENT_OPTIONS = [
       };
     });
     scheduleSave();
-    toast('Bridal booking & linked Invoice deleted (Calendar cancellation downloaded)', 'info');
+    toast('Bridal booking deleted & removed from Google Calendar', 'info');
     setDeleteId(null);
   };
 

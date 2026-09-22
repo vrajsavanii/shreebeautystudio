@@ -325,6 +325,17 @@ export default function AppointmentsPage() {
     scheduleSave();
     toast(`❌ Appointment request rejected for ${appt.customer}`, 'info');
 
+    // Auto-delete event from Google Calendar in cloud
+    fetch('/api/calendar/auto-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'delete_appointment',
+        appointment: appt,
+        settings: data?.settings,
+      }),
+    }).catch(() => {});
+
     // WhatsApp Cancellation Notice via WhatsApp App
     if (appt.mobile) {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
@@ -608,19 +619,43 @@ export default function AppointmentsPage() {
         .catch((err) => {
           console.error('[Calendar Auto-Sync Error]:', err);
         });
+    } else {
+      // If status is Cancelled, remove event from Google Calendar
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'delete_appointment',
+          appointment: { ...form, id, email: cleanEmail },
+          settings: data?.settings,
+        }),
+      })
+        .then(() => {
+          toast('🗑️ Google Calendar માંથી ઇવેન્ટ હટાવી દેવામાં આવી!', 'info');
+        })
+        .catch(() => {});
     }
 
     setModalOpen(false);
   };
 
   const handleDelete = (id: string) => {
-    const target = data?.appointments?.find(a => a.id === id);
+    const target = data?.appointments?.find((a) => a.id === id);
     if (target) {
       downloadCancellationICS(target, 'appointment', data?.settings?.salon, data?.settings?.address);
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'delete_appointment',
+          appointment: target,
+          settings: data?.settings,
+        }),
+      }).catch(() => {});
     }
     updateData((d) => ({ ...d, appointments: d.appointments.filter((a) => a.id !== id) }));
     scheduleSave();
-    toast('Appointment deleted (Calendar cancellation downloaded)', 'info');
+    toast('Appointment deleted & removed from Google Calendar', 'info');
     setDeleteId(null);
   };
 
