@@ -890,7 +890,10 @@ function doPost(e) {
     if (ev.attendees && Array.isArray(ev.attendees)) {
       for (var i = 0; i < ev.attendees.length; i++) {
         if (ev.attendees[i] && ev.attendees[i].email) {
-          guestList.push(ev.attendees[i].email.trim());
+          var em = ev.attendees[i].email.trim();
+          if (em && guestList.indexOf(em) === -1) {
+            guestList.push(em);
+          }
         }
       }
     }
@@ -899,11 +902,18 @@ function doPost(e) {
       description: ev.description,
       location: ev.location,
       guests: guestList.join(','),
-      sendInvites: false // Automatically adds to all accounts without spam emails
+      sendInvites: true // Sends Google Calendar invite to all accounts so it immediately appears in their calendar!
     };
     
     // 1. Create event in Primary Google Calendar
     var createdEvent = cal.createEvent(ev.summary, startTime, endTime, eventOptions);
+    
+    // Explicitly add each guest to guarantee invitation delivery
+    for (var g = 0; g < guestList.length; g++) {
+      try {
+        createdEvent.addGuest(guestList[g]);
+      } catch (eG) {}
+    }
     
     // Dynamic Reminders from Salon Settings (Pop-up & Email)
     if (ev.reminders && ev.reminders.overrides && ev.reminders.overrides.length > 0) {
@@ -920,13 +930,15 @@ function doPost(e) {
       createdEvent.addEmailReminder(1440);
     }
     
-    // 2. (Optional) Direct Multi-Calendar IDs Support:
-    var extraCalendarIds = [];
-    for (var k = 0; k < extraCalendarIds.length; k++) {
+    // 2. Direct Multi-Calendar IDs Support (If shared with write access):
+    for (var k = 0; k < guestList.length; k++) {
       try {
-        var extraCal = CalendarApp.getCalendarById(extraCalendarIds[k]);
-        if (extraCal) {
-          extraCal.createEvent(ev.summary, startTime, endTime, eventOptions);
+        var extraCal = CalendarApp.getCalendarById(guestList[k]);
+        if (extraCal && extraCal.getId() !== cal.getId()) {
+          extraCal.createEvent(ev.summary, startTime, endTime, {
+            description: ev.description,
+            location: ev.location
+          });
           if (deletePastDays > 0) cleanupPastSalonEvents(extraCal, deletePastDays);
         }
       } catch (eCal) {}
