@@ -288,9 +288,9 @@ export default function AppointmentsPage() {
         .then((r) => r.json())
         .then((res) => {
           if (res.success) {
-            toast(`📧 Confirmation email delivered to ${cleanEmail} via Resend!`);
+            toast(`📧 Confirmation email delivered to ${cleanEmail}!`);
           } else if (res.isDomainRestriction) {
-            toast('ℹ️ Resend Sandbox: External emails require domain verification at resend.com/domains', 'info');
+            console.log('[Resend Sandbox]: External emails require domain verification at resend.com/domains');
           }
         })
         .catch(() => {});
@@ -589,9 +589,9 @@ export default function AppointmentsPage() {
         .then((res) => res.json())
         .then((res) => {
           if (res.success) {
-            toast(`📧 Confirmation email sent to ${cleanEmail} via Resend!`);
+            toast(`📧 Confirmation email sent to ${cleanEmail}!`);
           } else if (res.isDomainRestriction) {
-            toast('ℹ️ Resend Sandbox: External emails require domain verification at resend.com/domains', 'info');
+            console.log('[Resend Sandbox]: External emails require domain verification at resend.com/domains');
           }
         })
         .catch(() => {});
