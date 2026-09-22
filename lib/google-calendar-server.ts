@@ -137,6 +137,32 @@ export async function insertGoogleCalendarV3Event(
 }
 
 /**
+ * Normalizes any date format (YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, ISO string) to standard YYYY-MM-DD.
+ */
+export function normalizeDateToYYYYMMDD(dateStr?: string): string {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  const clean = dateStr.trim().split('T')[0];
+  const parts = clean.split(/[-/.]/).map((p) => p.trim());
+  if (parts.length === 3) {
+    // If first part is 4 digits -> YYYY-MM-DD
+    if (parts[0].length === 4) {
+      const y = parts[0];
+      const m = parts[1].padStart(2, '0');
+      const d = parts[2].padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    // If third part is 4 digits -> DD-MM-YYYY
+    if (parts[2].length === 4) {
+      const y = parts[2];
+      const m = parts[1].padStart(2, '0');
+      const d = parts[0].padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+  }
+  return new Date().toISOString().split('T')[0];
+}
+
+/**
  * Converts a 12-hour or 24-hour time and date string to ISO datetime with +05:30 IST timezone.
  */
 export function formatISTDateTime(
@@ -144,22 +170,19 @@ export function formatISTDateTime(
   timeStr?: string,
   durationMinutes: number = 45
 ): { startISO: string; endISO: string } {
-  let cleanDate = (dateStr || '').trim();
-  if (!cleanDate || !cleanDate.includes('-')) {
-    cleanDate = new Date().toISOString().split('T')[0];
-  }
+  const cleanDate = normalizeDateToYYYYMMDD(dateStr);
   const parts = cleanDate.split('-').map(Number);
   const year = parts[0] || new Date().getFullYear();
   const month = parts[1] || new Date().getMonth() + 1;
   const day = parts[2] || new Date().getDate();
 
   const startTotalMinutes = timeToMinutes(timeStr || '10:00');
-  const startHour = Math.floor(startTotalMinutes / 60);
+  const startHour = Math.min(23, Math.floor(startTotalMinutes / 60));
   const startMin = startTotalMinutes % 60;
 
   const endTotalMinutes = startTotalMinutes + (durationMinutes || 45);
-  const endHour = Math.floor(endTotalMinutes / 60);
-  const endMin = endTotalMinutes % 60;
+  const endHour = Math.min(23, Math.floor(endTotalMinutes / 60));
+  const endMin = endTotalMinutes >= 24 * 60 ? 59 : endTotalMinutes % 60;
 
   const pad = (n: number) => n.toString().padStart(2, '0');
 
@@ -234,46 +257,15 @@ export function buildAppointmentEventPayload(
 }
 
 /**
- * Builds standard Google Calendar event payload from a BridalBooking record.
+ * Builds standard Google Calendar event payloads for all active events within a BridalBooking record.
+ * Supports multi-event scheduling (Wedding, Sagai, Mandap, Music, Other / Haldi).
  */
-export function buildBridalEventPayload(
+export function buildBridalEventPayloads(
   b: BridalBooking,
   settings?: Partial<SalonSettings>
-): GoogleCalendarEventPayload {
+): GoogleCalendarEventPayload[] {
   const salon = settings?.salon || 'Shree Beauty Studio';
   const address = b.venue || settings?.address || 'Surat, Gujarat';
-  const primaryDate =
-    b.weddingDate ||
-    b.date ||
-    b.sagaiDate ||
-    b.mandapDate ||
-    b.musicDate ||
-    b.otherDate ||
-    new Date().toISOString().split('T')[0];
-  const primaryTime = b.weddingTime || b.sagaiTime || b.mandapTime || b.musicTime || b.otherTime || '08:00 AM';
-  const { startISO, endISO } = formatISTDateTime(primaryDate, primaryTime, 180);
-
-  const eventDatesList = [
-    b.weddingDate ? `💍 Wedding: ${b.weddingDate}` : '',
-    b.sagaiDate ? `✨ Sagai: ${b.sagaiDate}` : '',
-    b.mandapDate ? `🌿 Mandap: ${b.mandapDate}` : '',
-    b.musicDate ? `🎶 Sangeet / Music: ${b.musicDate}` : '',
-    b.otherDate ? `🌸 Other Event: ${b.otherDate}` : '',
-  ].filter(Boolean);
-
-  const lines = [
-    `👑 SHREE BEAUTY STUDIO — BRIDAL BOOKING`,
-    `─────────────────────────────────`,
-    `👰 Bride / Client: ${b.name}`,
-    `📞 Mobile: +91 ${b.mobile}`,
-    `👑 Package: ${b.packageName || 'Bridal Glam'}`,
-    eventDatesList.length > 0 ? eventDatesList.join('\n') : `💍 Date: ${primaryDate}`,
-    `📍 Venue / Location: ${b.venue || address}`,
-    `💰 Total Package: ₹${b.package || b.totalAmount || 0}`,
-    b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
-    b.notes ? `📝 Notes: ${b.notes}` : '',
-    `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
-  ].filter(Boolean);
 
   const attendees: Array<{ email: string; displayName?: string }> = [];
   if (b.email?.trim() && b.email.includes('@')) {
@@ -300,18 +292,97 @@ export function buildBridalEventPayload(
     bridalOverrides.push({ method: 'email', minutes: Math.max(br1, 2880) });
   }
 
-  return {
-    summary: `👑 ${b.name} — ${b.packageName || 'Bridal Package'}`,
-    description: lines.join('\n'),
-    location: b.venue || address,
-    start: { dateTime: startISO, timeZone: 'Asia/Kolkata' },
-    end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
-    reminders: {
-      useDefault: false,
-      overrides: bridalOverrides.length > 0 ? bridalOverrides : [{ method: 'popup', minutes: 1440 }, { method: 'popup', minutes: 120 }],
-    },
-    attendees: attendees.length > 0 ? attendees : undefined,
+  const allSelectedEventsSummary = [
+    b.weddingDate ? `💍 Wedding: ${b.weddingDate} (${b.weddingTime || '16:00'})` : '',
+    b.sagaiDate ? `✨ Sagai: ${b.sagaiDate} (${b.sagaiTime || '11:00'})` : '',
+    b.mandapDate ? `🌿 Mandap: ${b.mandapDate} (${b.mandapTime || '10:00'})` : '',
+    b.musicDate ? `🎶 Sangeet / Music: ${b.musicDate} (${b.musicTime || '19:00'})` : '',
+    b.otherDate ? `🌸 Other Event: ${b.otherDate} (${b.otherTime || '11:00'})` : '',
+  ].filter(Boolean);
+
+  const buildSinglePayload = (
+    dateStr: string,
+    timeStr: string,
+    eventLabel: string,
+    icon: string,
+    durationMins: number = 180
+  ): GoogleCalendarEventPayload => {
+    const { startISO, endISO } = formatISTDateTime(dateStr, timeStr, durationMins);
+    const lines = [
+      `👑 SHREE BEAUTY STUDIO — ${eventLabel.toUpperCase()}`,
+      `─────────────────────────────────`,
+      `👰 Bride / Client: ${b.name}`,
+      `📞 Mobile: +91 ${b.mobile}`,
+      `👑 Package: ${b.packageName || 'Bridal Glam'}`,
+      `🎉 Event: ${eventLabel} (${dateStr} @ ${timeStr})`,
+      allSelectedEventsSummary.length > 1 ? `\n📋 All Functions in Package:\n${allSelectedEventsSummary.join('\n')}\n` : '',
+      `📍 Venue / Location: ${b.venue || address}`,
+      `💰 Total Package: ₹${b.package || b.totalAmount || 0}`,
+      b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
+      b.notes ? `📝 Special Notes: ${b.notes}` : '',
+      `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
+    ].filter(Boolean);
+
+    return {
+      summary: `${icon} ${b.name} — ${eventLabel} (${b.packageName || 'Bridal Package'})`,
+      description: lines.join('\n'),
+      location: b.venue || address,
+      start: { dateTime: startISO, timeZone: 'Asia/Kolkata' },
+      end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
+      reminders: {
+        useDefault: false,
+        overrides: bridalOverrides.length > 0 ? bridalOverrides : [{ method: 'popup', minutes: 1440 }, { method: 'popup', minutes: 120 }],
+      },
+      attendees: attendees.length > 0 ? attendees : undefined,
+    };
   };
+
+  const payloads: GoogleCalendarEventPayload[] = [];
+
+  // 1. Wedding Event
+  if (b.includeWedding !== false && b.weddingDate) {
+    payloads.push(buildSinglePayload(b.weddingDate, b.weddingTime || '16:00', 'Wedding', '👑', 180));
+  }
+
+  // 2. Sagai / Engagement
+  if (b.includeSagai && b.sagaiDate) {
+    payloads.push(buildSinglePayload(b.sagaiDate, b.sagaiTime || '11:00', 'Sagai Ceremony', '✨', 120));
+  }
+
+  // 3. Mandap Muhurat
+  if (b.includeMandap !== false && b.mandapDate) {
+    payloads.push(buildSinglePayload(b.mandapDate, b.mandapTime || '10:00', 'Mandap Muhurat', '🌿', 120));
+  }
+
+  // 4. Music / Sangeet
+  if (b.includeMusic !== false && b.musicDate) {
+    payloads.push(buildSinglePayload(b.musicDate, b.musicTime || '19:00', 'Sangeet / Music Night', '🎶', 120));
+  }
+
+  // 5. Other Event (Haldi / Carnival / Pool Party)
+  if (b.includeOther && b.otherDate) {
+    payloads.push(buildSinglePayload(b.otherDate, b.otherTime || '11:00', b.otherEventName || 'Pre-Wedding Event', '🌸', 120));
+  }
+
+  // Fallback: If no event matched flags, use primary date
+  if (payloads.length === 0) {
+    const primaryDate = b.date || b.weddingDate || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate || new Date().toISOString().split('T')[0];
+    const primaryTime = b.weddingTime || b.sagaiTime || b.mandapTime || b.musicTime || b.otherTime || '10:00';
+    payloads.push(buildSinglePayload(primaryDate, primaryTime, b.packageName || 'Bridal Booking', '👑', 180));
+  }
+
+  return payloads;
+}
+
+/**
+ * Builds standard Google Calendar event payload for the primary date of a BridalBooking record.
+ */
+export function buildBridalEventPayload(
+  b: BridalBooking,
+  settings?: Partial<SalonSettings>
+): GoogleCalendarEventPayload {
+  const payloads = buildBridalEventPayloads(b, settings);
+  return payloads[0];
 }
 
 const DEFAULT_WEBHOOK_URL =
@@ -446,14 +517,33 @@ export async function autoSyncAppointmentToGoogleCalendar(
 }
 
 /**
- * Auto-syncs a Bridal Booking to Google Calendar.
+ * Auto-syncs all active events for a Bridal Booking to Google Calendar.
  */
 export async function autoSyncBridalToGoogleCalendar(
   b: BridalBooking,
   settings?: Partial<SalonSettings>
 ): Promise<CalendarSyncResult> {
-  const payload = buildBridalEventPayload(b, settings);
-  return syncEventToGoogleCalendar(payload, settings);
+  const payloads = buildBridalEventPayloads(b, settings);
+  let lastResult: CalendarSyncResult = {
+    success: true,
+    provider: 'webhook',
+    message: 'Bridal events auto-saved to Google Calendar!',
+  };
+
+  let syncedCount = 0;
+  for (const payload of payloads) {
+    const res = await syncEventToGoogleCalendar(payload, settings);
+    if (res.success) {
+      syncedCount++;
+      lastResult = res;
+    }
+  }
+
+  return {
+    ...lastResult,
+    success: syncedCount > 0,
+    message: `${syncedCount} bridal event(s) successfully added to Google Calendar!`,
+  };
 }
 
 /**
@@ -522,14 +612,13 @@ export async function autoSyncDeleteBridal(
   b: BridalBooking,
   settings?: Partial<SalonSettings>
 ) {
-  const title = `👑 BRIDAL: ${b.name || 'Bride'}`;
+  const title = b.name || 'Bride';
   return deleteEventFromGoogleCalendar(
     {
       title,
       customerName: b.name,
       phone: b.mobile,
       bookingId: b.id,
-      date: b.weddingDate || b.date,
     },
     settings
   );

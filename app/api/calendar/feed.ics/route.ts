@@ -114,25 +114,26 @@ ${alarms.join('\n')}
 END:VEVENT`);
     }
 
-    // 2. Convert bridal bookings to VEVENT
+    // 2. Convert bridal bookings to VEVENT (Multi-event support: Wedding, Sagai, Mandap, Music, Other)
     for (const b of bridalBookings) {
-      const bDate = b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
-      if (!bDate) continue;
-      const bTime = b.weddingTime || b.sagaiTime || b.mandapTime || b.musicTime || b.otherTime || '08:00 AM';
-      const { start, end } = formatICSDate(bDate, bTime, 180);
-      const summary = `👑 ${b.name} — ${b.packageName || 'Bridal Glam'}`;
-      const desc = `Bride: ${b.name}\\nMobile: +91 ${b.mobile}\\nPackage: ${b.packageName || 'Bridal'}\\nTotal: Rs.${b.package || 0}\\nAdvance: Rs.${b.advance || 0}\\nVenue: ${b.venue || address}\\nNotes: ${b.notes || ''}`;
+      const addBridalVEvent = (dateStr?: string, timeStr?: string, eventLabel: string = 'Wedding', icon: string = '👑', duration: number = 180) => {
+        if (!dateStr) return;
+        if (deletePastDays > 0 && dateStr < cutoffISO) return;
 
-      const bAlarms: string[] = [];
-      if (bridalR1 > 0) {
-        bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR1}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Event Reminder: ${escapeICS(summary)}\nEND:VALARM`);
-      }
-      if (bridalR2 > 0 && bridalR2 !== bridalR1) {
-        bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR2}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Event Today: ${escapeICS(summary)}\nEND:VALARM`);
-      }
+        const { start, end } = formatICSDate(dateStr, timeStr || '10:00', duration);
+        const summary = `${icon} ${b.name} — ${eventLabel} (${b.packageName || 'Bridal Package'})`;
+        const desc = `Bride: ${b.name}\\nMobile: +91 ${b.mobile}\\nEvent: ${eventLabel}\\nPackage: ${b.packageName || 'Bridal'}\\nTotal: Rs.${b.package || 0}\\nAdvance: Rs.${b.advance || 0}\\nVenue: ${b.venue || address}\\nNotes: ${b.notes || ''}`;
 
-      eventsICS.push(`BEGIN:VEVENT
-UID:bridal-${b.id || Math.random().toString(36).slice(2)}@shreestudio
+        const bAlarms: string[] = [];
+        if (bridalR1 > 0) {
+          bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR1}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Reminder: ${escapeICS(summary)}\nEND:VALARM`);
+        }
+        if (bridalR2 > 0 && bridalR2 !== bridalR1) {
+          bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR2}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Event Today: ${escapeICS(summary)}\nEND:VALARM`);
+        }
+
+        eventsICS.push(`BEGIN:VEVENT
+UID:bridal-${b.id || Math.random().toString(36).slice(2)}-${eventLabel.replace(/\s+/g, '')}@shreestudio
 DTSTAMP:${nowStamp}
 DTSTART;TZID=Asia/Kolkata:${start}
 DTEND;TZID=Asia/Kolkata:${end}
@@ -142,6 +143,36 @@ LOCATION:${escapeICS(b.venue || address)}
 STATUS:CONFIRMED
 ${bAlarms.join('\n')}
 END:VEVENT`);
+      };
+
+      let addedAny = false;
+      if (b.includeWedding !== false && b.weddingDate) {
+        addBridalVEvent(b.weddingDate, b.weddingTime || '16:00', 'Wedding', '👑', 180);
+        addedAny = true;
+      }
+      if (b.includeSagai && b.sagaiDate) {
+        addBridalVEvent(b.sagaiDate, b.sagaiTime || '11:00', 'Sagai Ceremony', '✨', 120);
+        addedAny = true;
+      }
+      if (b.includeMandap !== false && b.mandapDate) {
+        addBridalVEvent(b.mandapDate, b.mandapTime || '10:00', 'Mandap Muhurat', '🌿', 120);
+        addedAny = true;
+      }
+      if (b.includeMusic !== false && b.musicDate) {
+        addBridalVEvent(b.musicDate, b.musicTime || '19:00', 'Sangeet / Music Night', '🎶', 120);
+        addedAny = true;
+      }
+      if (b.includeOther && b.otherDate) {
+        addBridalVEvent(b.otherDate, b.otherTime || '11:00', b.otherEventName || 'Pre-Wedding Event', '🌸', 120);
+        addedAny = true;
+      }
+
+      if (!addedAny) {
+        const fallbackDate = b.date || b.weddingDate || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
+        if (fallbackDate) {
+          addBridalVEvent(fallbackDate, b.weddingTime || '10:00', b.packageName || 'Bridal Booking', '👑', 180);
+        }
+      }
     }
 
     const icsContent = `BEGIN:VCALENDAR

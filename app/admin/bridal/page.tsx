@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Pencil, Trash2, Heart, Calendar, MessageCircle, ChevronRight, ChevronLeft,
   Sparkles, Check, Crown, User, CalendarDays, ShoppingBag, FileText, CheckCircle,
-  Receipt, Download, Eye
+  Receipt, Download, Eye, Loader2, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -34,6 +34,8 @@ export default function BridalPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [tab, setTab] = useState(0);
   const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
+  const [bulkSyncing, setBulkSyncing] = useState(false);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   // Package Management State
   const [packageModalOpen, setPackageModalOpen] = useState(false);
@@ -679,6 +681,58 @@ const OTHER_EVENT_OPTIONS = [
     setDeleteId(null);
   };
 
+  const handleSyncSingleBridal = async (b: BridalBooking) => {
+    setSyncingId(b.id);
+    try {
+      const res = await fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'bridal',
+          bridal: b,
+          settings: data?.settings,
+        }),
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        toast(`📅 "${b.name}" નું Bridal Booking Google Calendar માં Sync થઈ ગયું! (${resData.message || 'Saved'})`);
+      } else {
+        toast(`❌ Sync failed: ${resData.error || 'Unknown error'}`, 'error');
+      }
+    } catch (err: any) {
+      toast(`❌ Error: ${err?.message || 'Sync failed'}`, 'error');
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
+  const handleBulkSyncBridal = async () => {
+    setBulkSyncing(true);
+    try {
+      const activeBridals = (data?.bridal || []).filter((b) => b.status !== 'Cancelled');
+      toast('⏳ બધા Bridal Bookings Google Calendar માં sync થઈ રહ્યા છે...', 'info');
+      const res = await fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'bulk',
+          bridals: activeBridals,
+          settings: data?.settings,
+        }),
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        toast(`✅ ${resData.message || 'બધા Bridal Bookings Google Calendar માં Sync થઈ ગયા!'}`);
+      } else {
+        toast(resData.error || 'Failed to sync to Google Calendar', 'error');
+      }
+    } catch (err: any) {
+      toast('Network error during Google Calendar sync', 'error');
+    } finally {
+      setBulkSyncing(false);
+    }
+  };
+
   const eventSummary = (b: BridalBooking) => [
     (b.includeWedding !== false && b.weddingDate) && `Wedding: ${fmtDate(b.weddingDate)}${b.weddingTime ? ` @ ${b.weddingTime}` : ''}`,
     (b.includeSagai && b.sagaiDate) && `Sagai: ${fmtDate(b.sagaiDate)}${b.sagaiTime ? ` @ ${b.sagaiTime}` : ''}`,
@@ -770,11 +824,35 @@ const OTHER_EVENT_OPTIONS = [
   return (
     <div>
       {/* Header Toolbar */}
-      <div className="toolbar" style={{ justifyContent: 'space-between' }}>
+      <div className="toolbar" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
         <div className="toolbar-title">👰 Bridal &amp; Event Studio</div>
-        <motion.button className="btn btn-primary btn-glow" onClick={openNew} whileTap={{ scale: 0.97 }}>
-          <Plus size={15} /> New Bridal Booking
-        </motion.button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {(data?.bridal || []).length > 0 && (
+            <motion.button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={handleBulkSyncBridal}
+              disabled={bulkSyncing}
+              whileTap={{ scale: 0.97 }}
+              style={{
+                background: '#eff6ff',
+                borderColor: '#bfdbfe',
+                color: '#1d4ed8',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+              title="Sync all active bridal bookings directly into Google Calendar in the cloud"
+            >
+              {bulkSyncing ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />}
+              {bulkSyncing ? 'Syncing to Google Calendar...' : '☁️ Sync All Bridal to Google Calendar'}
+            </motion.button>
+          )}
+          <motion.button className="btn btn-primary btn-glow" onClick={openNew} whileTap={{ scale: 0.97 }}>
+            <Plus size={15} /> New Bridal Booking
+          </motion.button>
+        </div>
       </div>
 
       {/* Main Sub Tabs */}
@@ -871,20 +949,37 @@ const OTHER_EVENT_OPTIONS = [
                             </button>
                             <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit"><Pencil size={13} /></button>
                             <button
-                              onClick={() => downloadBridalICS(b, data?.settings?.salon, data?.settings?.address)}
+                              onClick={() => handleSyncSingleBridal(b)}
+                              disabled={syncingId === b.id}
                               className="btn-icon"
-                              title="📅 Download Schedule to Calendar"
+                              title="📅 1-Click Sync to Google Calendar (Cloud)"
                               style={{
                                 background: '#eff6ff',
-                                color: '#2563eb',
+                                color: '#1d4ed8',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              {syncingId === b.id ? <Loader2 size={13} className="spin" /> : <Calendar size={13} />}
+                            </button>
+                            <a
+                              href={getBridalGoogleCalendarUrl(b, data?.settings?.salon, data?.settings?.address)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn-icon"
+                              title="🌐 Open in Google Calendar (Web)"
+                              style={{
+                                background: '#f0fdf4',
+                                color: '#16a34a',
                                 textDecoration: 'none',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
                             >
-                              <Calendar size={13} />
-                            </button>
+                              <ExternalLink size={13} />
+                            </a>
                             <button
                               className="btn-icon wa"
                               title="📲 Send via WhatsApp App"
@@ -1178,9 +1273,10 @@ const OTHER_EVENT_OPTIONS = [
                   </motion.button>
                 )}
                 {(form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate) && (
-                  <button
-                    onClick={() => downloadBridalICS(form, data?.settings?.salon, data?.settings?.address)}
-                    type="button"
+                  <a
+                    href={getBridalGoogleCalendarUrl(form as any, data?.settings?.salon, data?.settings?.address)}
+                    target="_blank"
+                    rel="noreferrer"
                     className="btn btn-ghost btn-sm"
                     style={{
                       color: '#2563eb',
@@ -1193,10 +1289,10 @@ const OTHER_EVENT_OPTIONS = [
                       gap: 5,
                       fontSize: 11.5,
                     }}
-                    title="Open Google Calendar to save bridal event with automatic reminders"
+                    title="Open Google Calendar to preview and save bridal event with automatic reminders"
                   >
-                    <Calendar size={13} /> 📅 Google Calendar
-                  </button>
+                    <ExternalLink size={13} /> 📅 Google Calendar
+                  </a>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
