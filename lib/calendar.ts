@@ -115,6 +115,7 @@ export function getGoogleCalendarUrl(event: CalendarEvent): string {
     details: event.description,
     location: event.location,
     crm: 'BUSY',
+    ctz: 'Asia/Kolkata',
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -148,6 +149,7 @@ export function getAppointmentGoogleCalendarUrl(
     dates: `${dtStart}/${dtEnd}`,
     details: `Customer: ${a.customer}\nService: ${a.service}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
     location: address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
+    ctz: 'Asia/Kolkata',
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -183,6 +185,7 @@ export function getBridalGoogleCalendarUrl(
     dates: `${dtStart}/${dtEnd}`,
     details: `Bride: ${b.name}\nPackage: ${pkgName}\nVenue: ${b.venue || address}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
     location: b.venue || address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
+    ctz: 'Asia/Kolkata',
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -377,3 +380,198 @@ export function downloadBulkAppointmentsICS(
   URL.revokeObjectURL(url);
 }
 
+export function generateSingleBridalICS(
+  b: any,
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+): string {
+  const nowStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}/, '');
+  const events: string[] = [];
+
+  const addEvent = (date: string | undefined, time: string | undefined, eventName: string, include?: boolean) => {
+    if (include === false || !date) return;
+    const dtStart = formatICSDate(date, time || '08:00');
+    const dtEnd = addMinutes(date, time || '08:00', 180);
+    const pkg = b.packageName || 'Bridal Package';
+    const summary = `👑 ${b.name} — ${eventName}`;
+    const desc = [
+      `Event: ${eventName}`,
+      `Bridal Makeup: ${pkg}`,
+      `Bride: ${b.name}`,
+      b.mobile ? `Mobile: +91 ${b.mobile}` : '',
+      `Total: ₹${b.totalAmount || b.package || 0}`,
+      b.advance ? `Advance: ₹${b.advance}` : '',
+      b.venue ? `Venue: ${b.venue}` : `Studio: ${address}`,
+    ].filter(Boolean).join('\\n');
+
+    events.push(`BEGIN:VEVENT
+UID:bridal-${b.id || Math.random().toString(36).slice(2)}-${eventName.replace(/\\s+/g, '')}@shreebeautystudio
+DTSTAMP:${nowStamp}
+DTSTART;TZID=Asia/Kolkata:${dtStart}
+DTEND;TZID=Asia/Kolkata:${dtEnd}
+SUMMARY:${summary.replace(/,/g, '\\,')}
+DESCRIPTION:${desc}
+LOCATION:${(b.venue || address).replace(/,/g, '\\,')}
+STATUS:CONFIRMED
+BEGIN:VALARM
+TRIGGER:-PT1440M
+ACTION:DISPLAY
+DESCRIPTION:Bridal Event Tomorrow: ${b.name} (${eventName})
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-PT120M
+ACTION:DISPLAY
+DESCRIPTION:Bridal Event Today: ${b.name} (${eventName}) in 2 hours
+END:VALARM
+END:VEVENT`);
+  };
+
+  addEvent(b.weddingDate, b.weddingTime, 'Wedding', b.includeWedding);
+  addEvent(b.sagaiDate, b.sagaiTime, 'Sagai', b.includeSagai);
+  addEvent(b.mandapDate, b.mandapTime, 'Mandap', b.includeMandap);
+  addEvent(b.musicDate, b.musicTime, 'Music', b.includeMusic);
+  addEvent(b.otherDate, b.otherTime, b.otherEventName || 'Pre-Event', b.includeOther);
+
+  if (events.length === 0) {
+    addEvent(b.date || todayDateString(), b.weddingTime, 'Bridal Makeup');
+  }
+
+  return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Shree Beauty Studio//Salon Management//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:${b.name} - Bridal Booking
+X-WR-TIMEZONE:Asia/Kolkata
+BEGIN:VTIMEZONE
+TZID:Asia/Kolkata
+X-LIC-LOCATION:Asia/Kolkata
+BEGIN:STANDARD
+TZOFFSETFROM:+0530
+TZOFFSETTO:+0530
+TZNAME:IST
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE
+${events.join('\n')}
+END:VCALENDAR`;
+}
+
+export function downloadBridalICS(
+  b: any,
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+) {
+  if (typeof window === 'undefined') return;
+  const ics = generateSingleBridalICS(b, salon, address);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bridal-${b.name.replace(/\\s+/g, '-').toLowerCase()}-events.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+export function generateSingleAppointmentICS(
+  a: any,
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+): string {
+  const nowStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}/, '');
+  const dtStart = formatICSDate(a.date, a.time || '10:00');
+  const dtEnd = addMinutes(a.date, a.time || '10:00', 60);
+  const summary = `💅 ${a.customer} — ${a.service}`;
+  const desc = [
+    `Appointment: ${a.service}`,
+    `Customer: ${a.customer}`,
+    a.mobile ? `Mobile: +91 ${a.mobile}` : '',
+    a.staff ? `Beautician: ${a.staff}` : '',
+    a.price ? `Price: ₹${a.price}` : '',
+    a.advance ? `Advance: ₹${a.advance}` : '',
+    a.notes ? `Notes: ${a.notes}` : '',
+    `Address: ${address}`,
+  ].filter(Boolean).join('\\n');
+
+  return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Shree Beauty Studio//Salon Management//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:${a.customer} - Appointment
+X-WR-TIMEZONE:Asia/Kolkata
+BEGIN:VTIMEZONE
+TZID:Asia/Kolkata
+X-LIC-LOCATION:Asia/Kolkata
+BEGIN:STANDARD
+TZOFFSETFROM:+0530
+TZOFFSETTO:+0530
+TZNAME:IST
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:appt-${a.id || Math.random().toString(36).slice(2)}@shreebeautystudio
+DTSTAMP:${nowStamp}
+DTSTART;TZID=Asia/Kolkata:${dtStart}
+DTEND;TZID=Asia/Kolkata:${dtEnd}
+SUMMARY:${summary.replace(/,/g, '\\,')}
+DESCRIPTION:${desc}
+LOCATION:${address.replace(/,/g, '\\,')}
+STATUS:CONFIRMED
+BEGIN:VALARM
+TRIGGER:-PT30M
+ACTION:DISPLAY
+DESCRIPTION:Reminder: ${a.service} for ${a.customer} in 30 minutes
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+}
+
+export function downloadAppointmentICS(
+  a: any,
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+) {
+  if (typeof window === 'undefined') return;
+  const ics = generateSingleAppointmentICS(a, salon, address);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `appointment-${a.customer.replace(/\\s+/g, '-').toLowerCase()}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function downloadCancellationICS(
+  item: any,
+  type: 'appointment' | 'bridal',
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+) {
+  if (typeof window === 'undefined') return;
+  
+  // Generate the exact same ICS, but replace PUBLISH with CANCEL and CONFIRMED with CANCELLED
+  let ics = type === 'bridal' 
+    ? generateSingleBridalICS(item, salon, address) 
+    : generateSingleAppointmentICS(item, salon, address);
+    
+  ics = ics.replace('METHOD:PUBLISH', 'METHOD:CANCEL');
+  ics = ics.replace(/STATUS:CONFIRMED/g, 'STATUS:CANCELLED');
+
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const name = type === 'bridal' ? item.name : item.customer;
+  a.download = `cancel-${type}-${(name || 'event').replace(/\\s+/g, '-').toLowerCase()}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

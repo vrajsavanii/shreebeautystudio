@@ -7,6 +7,15 @@ export const metadata: Metadata = {
   description:
     'Cloud-first salon management platform for Shree Beauty Studio, Surat. Book appointments, manage billing, inventory, bridal bookings and more.',
   keywords: ['salon', 'beauty studio', 'parlour management', 'Shree Beauty Studio', 'Surat'],
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export const viewport: Viewport = {
@@ -38,6 +47,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Shree Beauty" />
         <meta name="application-name" content="Shree Beauty" />
         <meta name="format-detection" content="telephone=no" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <script

@@ -17,7 +17,7 @@ import { useToast } from '@/components/ui/Toast';
 import { openWAApp, bridalMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
-import { getBridalGoogleCalendarUrl } from '@/lib/calendar';
+import { getBridalGoogleCalendarUrl, downloadBridalICS, downloadCancellationICS } from '@/lib/calendar';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { subDays, format, parseISO } from 'date-fns';
@@ -540,6 +540,10 @@ const OTHER_EVENT_OPTIONS = [
     toast(editId ? 'Bridal booking updated & Records synced!' : 'Bridal booking saved & Records synced!');
 
     const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const address = data?.settings?.address || 'Surat, Gujarat';
+
+    // Auto download calendar file to save time
+    downloadBridalICS(booking, salon, address);
     const msg = bridalMessage(
       booking.name,
       booking.packageName || 'Bridal Package',
@@ -626,18 +630,22 @@ const OTHER_EVENT_OPTIONS = [
   };
 
   const handleDelete = (id: string) => {
+    const target = data?.bridal?.find((b) => b.id === id);
+    if (target) {
+      downloadCancellationICS(target, 'bridal', data?.settings?.salon, data?.settings?.address);
+    }
     updateData((d) => {
-      const target = (d.bridal || []).find((b) => b.id === id);
+      const targetLocal = (d.bridal || []).find((b) => b.id === id);
       return {
         ...d,
         bridal: (d.bridal || []).filter((b) => b.id !== id),
         invoices: (d.invoices || []).filter(
-          (inv) => inv.bridalBookingId !== id && !(target && inv.mobile === target.mobile && inv.customer === target.name)
+          (inv) => inv.bridalBookingId !== id && !(targetLocal && inv.mobile === targetLocal.mobile && inv.customer === targetLocal.name)
         ),
       };
     });
     scheduleSave();
-    toast('Bridal booking & linked Invoice Receipts History deleted', 'info');
+    toast('Bridal booking & linked Invoice deleted (Calendar cancellation downloaded)', 'info');
     setDeleteId(null);
   };
 
@@ -832,25 +840,10 @@ const OTHER_EVENT_OPTIONS = [
                               <Receipt size={12} /> Bill
                             </button>
                             <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit"><Pencil size={13} /></button>
-                            <a
-                              href={getBridalGoogleCalendarUrl(
-                                {
-                                  name: b.name,
-                                  mobile: b.mobile,
-                                  packageName: b.packageName,
-                                  weddingDate: b.weddingDate || b.date,
-                                  venue: b.venue,
-                                  advance: Number(b.advance || 0),
-                                  totalAmount: Number(b.package || 0),
-                                  event: eventSummary(b),
-                                },
-                                data?.settings?.salon,
-                                data?.settings?.address
-                              )}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              onClick={() => downloadBridalICS(b, data?.settings?.salon, data?.settings?.address)}
                               className="btn-icon"
-                              title="📅 Save & Remind in Google Calendar"
+                              title="📅 Download Schedule to Calendar"
                               style={{
                                 background: '#eff6ff',
                                 color: '#2563eb',
@@ -861,7 +854,7 @@ const OTHER_EVENT_OPTIONS = [
                               }}
                             >
                               <Calendar size={13} />
-                            </a>
+                            </button>
                             <button
                               className="btn-icon wa"
                               title="📲 Send via WhatsApp App"
@@ -1155,23 +1148,9 @@ const OTHER_EVENT_OPTIONS = [
                   </motion.button>
                 )}
                 {(form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate) && (
-                  <a
-                    href={getBridalGoogleCalendarUrl(
-                      {
-                        name: form.name || 'Bride',
-                        mobile: form.mobile,
-                        packageName: form.packageName,
-                        weddingDate: form.weddingDate || form.sagaiDate || form.mandapDate || form.musicDate || form.otherDate,
-                        venue: form.venue,
-                        advance: Number(form.advance || 0),
-                        totalAmount: Number(form.package || 0),
-                        event: eventSummary(form as any),
-                      },
-                      data?.settings?.salon,
-                      data?.settings?.address
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => downloadBridalICS(form, data?.settings?.salon, data?.settings?.address)}
+                    type="button"
                     className="btn btn-ghost btn-sm"
                     style={{
                       color: '#2563eb',
@@ -1187,7 +1166,7 @@ const OTHER_EVENT_OPTIONS = [
                     title="Open Google Calendar to save bridal event with automatic reminders"
                   >
                     <Calendar size={13} /> 📅 Google Calendar
-                  </a>
+                  </button>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

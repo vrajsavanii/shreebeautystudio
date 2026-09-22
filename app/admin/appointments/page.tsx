@@ -15,7 +15,7 @@ import { openWAApp, appointmentStaffMessage, appointmentCustomerMessage, sendDir
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
-import { getAppointmentGoogleCalendarUrl, downloadBulkAppointmentsICS } from '@/lib/calendar';
+import { getAppointmentGoogleCalendarUrl, downloadBulkAppointmentsICS, downloadCancellationICS, downloadAppointmentICS } from '@/lib/calendar';
 import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
@@ -513,6 +513,18 @@ export default function AppointmentsPage() {
 
     const salon = data?.settings?.salon || 'Shree Beauty Studio';
     const address = data?.settings?.address || 'Surat, Gujarat';
+
+    if (form.status === 'Cancelled') {
+      const prevStatus = data?.appointments?.find(a => a.id === editId)?.status;
+      if (prevStatus !== 'Cancelled') {
+        downloadCancellationICS({ ...form, id }, 'appointment', salon, address);
+        toast('Calendar cancellation file downloaded', 'info');
+      }
+    } else {
+      // Auto download calendar file to save time
+      downloadAppointmentICS({ ...form, id }, salon, address);
+    }
+
     const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
 
     // 1. Web Send and Save (opens WhatsApp Web / App)
@@ -598,9 +610,13 @@ export default function AppointmentsPage() {
   };
 
   const handleDelete = (id: string) => {
+    const target = data?.appointments?.find(a => a.id === id);
+    if (target) {
+      downloadCancellationICS(target, 'appointment', data?.settings?.salon, data?.settings?.address);
+    }
     updateData((d) => ({ ...d, appointments: d.appointments.filter((a) => a.id !== id) }));
     scheduleSave();
-    toast('Appointment deleted', 'info');
+    toast('Appointment deleted (Calendar cancellation downloaded)', 'info');
     setDeleteId(null);
   };
 
