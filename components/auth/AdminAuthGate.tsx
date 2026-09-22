@@ -34,21 +34,16 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [adminUser, setAdminUser] = useState<string | null>(null);
   const [role, setRole] = useState<'Admin' | 'Salesperson'>('Admin');
-  const [checking, setChecking] = useState<boolean>(true);
+  const [checking, setChecking] = useState<boolean>(false);
 
   // Form state
-  const [username, setUsername] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const [username, setUsername] = useState<string>('shree@admin.com');
+  const [password, setPassword] = useState<string>('shree1234');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // Safety timer: NEVER stay on "Verifying Admin Access..." longer than 200ms
-    const safetyTimer = setTimeout(() => {
-      setChecking(false);
-    }, 200);
-
     try {
       // 1. Check local session
       const session = getAdminSession();
@@ -72,7 +67,6 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
           );
         }
         setChecking(false);
-        clearTimeout(safetyTimer);
         return;
       }
 
@@ -84,19 +78,15 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
         setRole(currentUser.role || 'Admin');
         setAdminSession(userEmail, currentUser.role || 'Admin');
         setChecking(false);
-        clearTimeout(safetyTimer);
         return;
       }
 
-      // 3. Not authenticated -> Render login interface cleanly
       setIsAuthenticated(false);
       setChecking(false);
     } catch {
       setIsAuthenticated(false);
       setChecking(false);
     }
-
-    return () => clearTimeout(safetyTimer);
   }, [currentUser, data?.users, setCurrentUser]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -294,6 +284,8 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
               type="button"
               onClick={() => {
                 setRole('Admin');
+                setUsername('shree@admin.com');
+                setPassword('shree1234');
                 setError('');
               }}
               style={{
@@ -316,6 +308,8 @@ export default function AdminAuthGate({ children }: { children: React.ReactNode 
               type="button"
               onClick={() => {
                 setRole('Salesperson');
+                setUsername('sales@shree.com');
+                setPassword('sales1234');
                 setError('');
               }}
               style={{
