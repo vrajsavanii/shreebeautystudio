@@ -338,9 +338,8 @@ export async function syncEventToGoogleCalendar(
     settings?.googleServiceAccountEmail?.trim() ||
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
   const saKey =
-    settings?.googleServiceAccountPrivateKey?.trim() ||
-    process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.trim() ||
     settings?.googlePrivateKey?.trim() ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.trim() ||
     process.env.GOOGLE_PRIVATE_KEY?.trim();
   const calendarId =
     settings?.googleCalendarId?.trim() ||
