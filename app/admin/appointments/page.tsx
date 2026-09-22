@@ -1944,6 +1944,39 @@ export default function AppointmentsPage() {
             >
               <ExternalLink size={14} /> 2. Open Google Calendar Import Page ↗
             </a>
+            {data?.settings?.googleCalendarWebhookUrl && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  toast('⏳ બધા orders Google Calendar માં sync થઈ રહ્યા છે...', 'info');
+                  fetch('/api/calendar/auto-sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      type: 'bulk',
+                      appointments: appointments.filter((a) => a.status !== 'Cancelled'),
+                      bridals: data?.bridal?.filter((b: any) => b.status !== 'Cancelled') || [],
+                      settings: data?.settings,
+                    }),
+                  })
+                    .then((res) => res.json())
+                    .then((res) => {
+                      if (res.success) {
+                        toast(`✅ ${res.syncedCount} orders Google Calendar માં sync થઈ ગયા!`);
+                      } else {
+                        toast(`❌ Sync failed: ${res.error || 'Unknown error'}`, 'error');
+                      }
+                    })
+                    .catch((err) => {
+                      toast(`❌ Error: ${err?.message || 'Failed'}`, 'error');
+                    });
+                }}
+                style={{ background: '#7c3aed', borderColor: '#6d28d9', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <RefreshCw size={14} /> ☁️ Sync ALL Old Orders to Google Calendar
+              </button>
+            )}
           </div>
           <div style={{ background: '#ffffff', borderRadius: 8, padding: '10px 12px', border: '1px solid #bbf7d0', marginTop: 12, fontSize: 11.5, color: '#14532d' }}>
             <b>Step-by-step Gujarati Guide (Google Calendar માં બધી અપોઇન્ટમેન્ટ્સ કેવી રીતે સેવ કરવી):</b>
