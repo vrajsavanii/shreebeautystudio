@@ -315,7 +315,7 @@ export default function AppointmentsPage() {
       .catch(() => {});
   };
 
-  const handleRejectAppointment = (appt: Appointment) => {
+  const handleRejectAppointment = async (appt: Appointment) => {
     updateData((d) => ({
       ...d,
       appointments: d.appointments.map((a) =>
@@ -325,7 +325,7 @@ export default function AppointmentsPage() {
     scheduleSave();
     toast(`❌ Appointment request rejected for ${appt.customer}`, 'info');
 
-    // Auto-delete event from Google Calendar in cloud
+    // Auto-delete event directly from Google Calendar in cloud
     fetch('/api/calendar/auto-sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -334,7 +334,14 @@ export default function AppointmentsPage() {
         appointment: appt,
         settings: data?.settings,
       }),
-    }).catch(() => {});
+    })
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData.success) {
+          toast(`🗑️ Google Calendar માંથી "${appt.customer}" ની Event કાઢી નાખવામાં આવી!`);
+        }
+      })
+      .catch(() => {});
 
     // WhatsApp Cancellation Notice via WhatsApp App
     if (appt.mobile) {
@@ -642,7 +649,6 @@ export default function AppointmentsPage() {
   const handleDelete = (id: string) => {
     const target = data?.appointments?.find((a) => a.id === id);
     if (target) {
-      downloadCancellationICS(target, 'appointment', data?.settings?.salon, data?.settings?.address);
       fetch('/api/calendar/auto-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -651,7 +657,14 @@ export default function AppointmentsPage() {
           appointment: target,
           settings: data?.settings,
         }),
-      }).catch(() => {});
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success) {
+            toast(`🗑️ Google Calendar માંથી "${target.customer}" ની ઇવેન્ટ કાઢી નાખવામાં આવી!`);
+          }
+        })
+        .catch(() => {});
     }
     updateData((d) => ({ ...d, appointments: d.appointments.filter((a) => a.id !== id) }));
     scheduleSave();

@@ -655,7 +655,6 @@ const OTHER_EVENT_OPTIONS = [
   const handleDelete = (id: string) => {
     const target = data?.bridal?.find((b) => b.id === id);
     if (target) {
-      downloadCancellationICS(target, 'bridal', data?.settings?.salon, data?.settings?.address);
       fetch('/api/calendar/auto-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -664,7 +663,14 @@ const OTHER_EVENT_OPTIONS = [
           bridal: target,
           settings: data?.settings,
         }),
-      }).catch(() => {});
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          if (resData.success) {
+            toast(`🗑️ Google Calendar માંથી "${target.name}" નું Bridal Booking કાઢી નાખવામાં આવ્યું!`);
+          }
+        })
+        .catch(() => {});
     }
     updateData((d) => {
       const targetLocal = (d.bridal || []).find((b) => b.id === id);

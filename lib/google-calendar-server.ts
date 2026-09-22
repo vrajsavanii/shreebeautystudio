@@ -595,14 +595,16 @@ export async function autoSyncDeleteAppointment(
   a: Appointment,
   settings?: Partial<SalonSettings>
 ) {
-  const title = `💅 ${a.customer || 'Customer'} — ${a.service || 'Service'}`;
+  const cleanCustomer = (a.customer || '').replace(/^Z\d{2}\s+/i, '').trim();
+  const cleanPhone = (a.mobile || '').replace(/\D/g, '').slice(-10);
+  const title = `💅 ${cleanCustomer || a.customer || 'Customer'} — ${a.service || 'Service'}`;
   return deleteEventFromGoogleCalendar(
     {
       title,
-      customerName: a.customer,
-      phone: a.mobile,
+      customerName: cleanCustomer || a.customer,
+      phone: cleanPhone || a.mobile,
       bookingId: a.id,
-      date: a.date,
+      date: normalizeDateToYYYYMMDD(a.date),
     },
     settings
   );
@@ -612,12 +614,14 @@ export async function autoSyncDeleteBridal(
   b: BridalBooking,
   settings?: Partial<SalonSettings>
 ) {
-  const title = b.name || 'Bride';
+  const cleanName = (b.name || '').replace(/^Z\d{2}\s+/i, '').trim();
+  const cleanPhone = (b.mobile || '').replace(/\D/g, '').slice(-10);
+  const title = cleanName || b.name || 'Bride';
   return deleteEventFromGoogleCalendar(
     {
       title,
-      customerName: b.name,
-      phone: b.mobile,
+      customerName: cleanName || b.name,
+      phone: cleanPhone || b.mobile,
       bookingId: b.id,
     },
     settings
@@ -638,33 +642,82 @@ function doPost(e) {
 
     // 🗑️ 1. DELETE / CANCEL EVENT ACTION (અપોઇન્ટમેન્ટ કે બ્રાઇડલ કેન્સલ/ડિલીટ થાય ત્યારે ઇવેન્ટ ડિલીટ કરવી)
     if (data && (data.action === 'delete_event' || data.action === 'cancel_event' || data.type === 'delete_appointment' || data.type === 'delete_bridal')) {
-      var searchTitle = data.title || (data.event ? data.event.summary : '') || '';
-      var customerName = data.customerName || '';
-      var bookingId = data.bookingId || data.id || '';
-      var phone = data.phone || data.mobile || '';
+      var searchTitle = (data.title || (data.event ? data.event.summary : '') || '').toLowerCase();
+      var customerName = (data.customerName || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
+      var bookingId = (data.bookingId || data.id || '').toLowerCase();
+      var rawPhone = data.phone || data.mobile || '';
+      var cleanPhone = rawPhone.toString().replace(/\D/g, '').slice(-10);
       var searchDateStr = data.date || (data.event && data.event.start && data.event.start.dateTime ? data.event.start.dateTime : null);
 
-      var fromDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() - (3 * 24 * 60 * 60 * 1000)) : new Date(new Date().getTime() - (90 * 24 * 60 * 60 * 1000));
-      var toDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() + (3 * 24 * 60 * 60 * 1000)) : new Date(new Date().getTime() + (365 * 24 * 60 * 60 * 1000));
+      var now = new Date();
+      var fromDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() - (30 * 24 * 60 * 60 * 1000)) : new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+      var toDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() + (90 * 24 * 60 * 60 * 1000)) : new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
+
+      if (isNaN(fromDate.getTime())) fromDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+      if (isNaN(toDate.getTime())) toDate = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
 
       var events = cal.getEvents(fromDate, toDate);
       var deletedCount = 0;
+      var nameWords = customerName.split(/\s+/).filter(function(w) { return w.length >= 3; });
+
       for (var d = 0; d < events.length; d++) {
         var currentEv = events[d];
         var cTitle = (currentEv.getTitle() || '').toLowerCase();
         var cDesc = (currentEv.getDescription() || '').toLowerCase();
 
         var match = false;
-        if (searchTitle && cTitle.indexOf(searchTitle.toLowerCase()) !== -1) match = true;
-        if (customerName && (cTitle.indexOf(customerName.toLowerCase()) !== -1 || cDesc.indexOf(customerName.toLowerCase()) !== -1)) match = true;
-        if (phone && (cDesc.indexOf(phone) !== -1 || cTitle.indexOf(phone) !== -1)) match = true;
-        if (bookingId && (cDesc.indexOf(bookingId.toLowerCase()) !== -1 || cTitle.indexOf(bookingId.toLowerCase()) !== -1)) match = true;
+        if (bookingId && (cDesc.indexOf(bookingId) !== -1 || cTitle.indexOf(bookingId) !== -1)) match = true;
+        if (cleanPhone && cleanPhone.length === 10 && (cDesc.indexOf(cleanPhone) !== -1 || cTitle.indexOf(cleanPhone) !== -1)) match = true;
+        if (customerName && customerName.length >= 3 && (cTitle.indexOf(customerName) !== -1 || cDesc.indexOf(customerName) !== -1)) match = true;
+        if (searchTitle && searchTitle.length > 3 && cTitle.indexOf(searchTitle) !== -1) match = true;
+
+        if (!match && nameWords.length > 0) {
+          for (var nw = 0; nw < nameWords.length; nw++) {
+            if (cTitle.indexOf(nameWords[nw]) !== -1 || cDesc.indexOf(nameWords[nw]) !== -1) {
+              match = true;
+              break;
+            }
+          }
+        }
 
         if (match) {
           try {
             currentEv.deleteEvent();
             deletedCount++;
           } catch (eD) {}
+        }
+      }
+
+      // If 0 deleted in narrow window, search wider calendar range
+      if (deletedCount === 0) {
+        var wideFrom = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+        var wideTo = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
+        var wideEvents = cal.getEvents(wideFrom, wideTo);
+        for (var w = 0; w < wideEvents.length; w++) {
+          var wEv = wideEvents[w];
+          var wTitle = (wEv.getTitle() || '').toLowerCase();
+          var wDesc = (wEv.getDescription() || '').toLowerCase();
+
+          var wMatch = false;
+          if (bookingId && (wDesc.indexOf(bookingId) !== -1 || wTitle.indexOf(bookingId) !== -1)) wMatch = true;
+          if (cleanPhone && cleanPhone.length === 10 && (wDesc.indexOf(cleanPhone) !== -1 || wTitle.indexOf(cleanPhone) !== -1)) wMatch = true;
+          if (customerName && customerName.length >= 3 && (wTitle.indexOf(customerName) !== -1 || wDesc.indexOf(customerName) !== -1)) wMatch = true;
+
+          if (!wMatch && nameWords.length > 0) {
+            for (var wnw = 0; wnw < nameWords.length; wnw++) {
+              if (wTitle.indexOf(nameWords[wnw]) !== -1 || wDesc.indexOf(nameWords[wnw]) !== -1) {
+                wMatch = true;
+                break;
+              }
+            }
+          }
+
+          if (wMatch) {
+            try {
+              wEv.deleteEvent();
+              deletedCount++;
+            } catch (eWD) {}
+          }
         }
       }
 
