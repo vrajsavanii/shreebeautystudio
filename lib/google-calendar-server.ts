@@ -314,6 +314,19 @@ export function buildBridalEventPayload(
   };
 }
 
+const DEFAULT_WEBHOOK_URL =
+  'https://script.google.com/macros/s/AKfycbxcu02Y6dn5tcxpX8QbILUrlOfiOmNiiX3FHdhdHMNQT3X3X6zDTe9FaP_OLmpLX4PX/exec';
+
+export function resolveValidWebhookUrl(url?: string): string {
+  const clean = (url || '').trim();
+  if (!clean || clean.includes('/macros/library/') || !clean.startsWith('http')) {
+    return (process.env.GOOGLE_CALENDAR_WEBHOOK_URL?.trim() && !process.env.GOOGLE_CALENDAR_WEBHOOK_URL.includes('/macros/library/'))
+      ? process.env.GOOGLE_CALENDAR_WEBHOOK_URL.trim()
+      : DEFAULT_WEBHOOK_URL;
+  }
+  return clean;
+}
+
 /**
  * Automatically syncs an event to Google Calendar via Official Google Calendar API v3 or Cloud Webhook.
  */
@@ -325,6 +338,8 @@ export async function syncEventToGoogleCalendar(
     settings?.googleServiceAccountEmail?.trim() ||
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim();
   const saKey =
+    settings?.googleServiceAccountPrivateKey?.trim() ||
+    process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.trim() ||
     settings?.googlePrivateKey?.trim() ||
     process.env.GOOGLE_PRIVATE_KEY?.trim();
   const calendarId =
@@ -342,10 +357,7 @@ export async function syncEventToGoogleCalendar(
     settings?.googleRefreshToken?.trim() ||
     process.env.GOOGLE_REFRESH_TOKEN?.trim();
 
-  const webhookUrl =
-    settings?.googleCalendarWebhookUrl?.trim() ||
-    process.env.GOOGLE_CALENDAR_WEBHOOK_URL?.trim() ||
-    'https://script.google.com/macros/s/AKfycbxcu02Y6dn5tcxpX8QbILUrlOfiOmNiiX3FHdhdHMNQT3X3X6zDTe9FaP_OLmpLX4PX/exec';
+  const webhookUrl = resolveValidWebhookUrl(settings?.googleCalendarWebhookUrl);
 
   // 1. Priority 1: Official Google Calendar API v3 via Service Account
   if (saEmail && saKey) {
