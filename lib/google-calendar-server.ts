@@ -403,7 +403,8 @@ export function resolveValidWebhookUrl(url?: string): string {
  */
 export async function syncEventToGoogleCalendar(
   eventPayload: GoogleCalendarEventPayload,
-  settings?: Partial<SalonSettings>
+  settings?: Partial<SalonSettings>,
+  metadata?: Record<string, any>
 ): Promise<CalendarSyncResult> {
   const saEmail =
     settings?.googleServiceAccountEmail?.trim() ||
@@ -475,6 +476,13 @@ export async function syncEventToGoogleCalendar(
         body: JSON.stringify({
           action: 'create_event',
           event: eventPayload,
+          bookingId: metadata?.bookingId || metadata?.id || '',
+          id: metadata?.bookingId || metadata?.id || '',
+          customerName: metadata?.customerName || metadata?.name || metadata?.customer || '',
+          customer: metadata?.customerName || metadata?.name || metadata?.customer || '',
+          phone: metadata?.phone || metadata?.mobile || '',
+          mobile: metadata?.phone || metadata?.mobile || '',
+          date: metadata?.date || '',
           deletePastDays,
           timestamp: new Date().toISOString(),
         }),
@@ -513,7 +521,17 @@ export async function autoSyncAppointmentToGoogleCalendar(
   settings?: Partial<SalonSettings>
 ): Promise<CalendarSyncResult> {
   const payload = buildAppointmentEventPayload(a, settings);
-  return syncEventToGoogleCalendar(payload, settings);
+  const cleanCustomer = (a.customer || '').replace(/^Z\d{2}\s+/i, '').trim();
+  const cleanPhone = (a.mobile || '').replace(/\D/g, '').slice(-10);
+  return syncEventToGoogleCalendar(payload, settings, {
+    bookingId: a.id,
+    id: a.id,
+    customerName: cleanCustomer || a.customer,
+    name: cleanCustomer || a.customer,
+    phone: cleanPhone || a.mobile,
+    mobile: cleanPhone || a.mobile,
+    date: normalizeDateToYYYYMMDD(a.date),
+  });
 }
 
 /**
@@ -524,6 +542,8 @@ export async function autoSyncBridalToGoogleCalendar(
   settings?: Partial<SalonSettings>
 ): Promise<CalendarSyncResult> {
   const payloads = buildBridalEventPayloads(b, settings);
+  const cleanName = (b.name || '').replace(/^Z\d{2}\s+/i, '').trim();
+  const cleanPhone = (b.mobile || '').replace(/\D/g, '').slice(-10);
   let lastResult: CalendarSyncResult = {
     success: true,
     provider: 'webhook',
@@ -532,7 +552,15 @@ export async function autoSyncBridalToGoogleCalendar(
 
   let syncedCount = 0;
   for (const payload of payloads) {
-    const res = await syncEventToGoogleCalendar(payload, settings);
+    const res = await syncEventToGoogleCalendar(payload, settings, {
+      bookingId: b.id,
+      id: b.id,
+      customerName: cleanName || b.name,
+      name: cleanName || b.name,
+      phone: cleanPhone || b.mobile,
+      mobile: cleanPhone || b.mobile,
+      date: normalizeDateToYYYYMMDD(b.weddingDate || b.date),
+    });
     if (res.success) {
       syncedCount++;
       lastResult = res;
