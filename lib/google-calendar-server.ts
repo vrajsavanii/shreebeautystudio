@@ -978,7 +978,12 @@ function doPost(e) {
     
     // 🛡️ Deduplicate on THAT EXACT DAY ONLY: Remove existing event for this same booking/customer
     var searchTitle = (ev.summary || '').toLowerCase();
-    var customerName = (data.customerName || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
+    var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
+    if (!customerName && ev.summary) {
+      var cleanSum = ev.summary.replace(/^[^\w\s]+/u, '').trim();
+      var parts = cleanSum.split('—');
+      if (parts.length > 0) customerName = parts[0].trim().toLowerCase();
+    }
     var bookingId = (data.bookingId || data.id || (data.appointment ? data.appointment.id : '') || (data.bridal ? data.bridal.id : '') || '').toLowerCase();
     
     try {
@@ -998,12 +1003,12 @@ function doPost(e) {
         if (bookingId && bookingId.length >= 3 && oldDesc.indexOf(bookingId) !== -1) {
           isDuplicate = true;
         }
-        // Match same customer & similar time on that specific day
+        // Match same customer name on that specific day (cleans up any older duplicate entries on this date)
         else if (customerName && customerName.length >= 3 && oldTitle.indexOf(customerName) !== -1) {
-          var oldStart = oldEv.getStartTime();
-          if (Math.abs(oldStart.getTime() - startTime.getTime()) < (3 * 60 * 60 * 1000) || oldTitle === searchTitle) {
-            isDuplicate = true;
-          }
+          isDuplicate = true;
+        }
+        else if (oldTitle === searchTitle) {
+          isDuplicate = true;
         }
         
         if (isDuplicate) {
