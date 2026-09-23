@@ -82,6 +82,12 @@ export const DEFAULT_DATA: SalonData = {
     calendarBridalReminderMinutes2: 120,
     calendarEmailReminderEnabled: true,
     calendarDeletePastDays: 2,
+    // AI Copilot Defaults
+    aiCopilotEnabled: true,
+    aiCopilotShortcutEnabled: true,
+    aiCopilotFloatingBtn: true,
+    aiCopilotAutoVoice: false,
+    aiCopilotVoiceReplies: true,
   },
   services: [
     {

@@ -76,8 +76,15 @@ export default function AICopilotWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  const s = data?.settings;
+  const isCopilotEnabled = s?.aiCopilotEnabled !== false;
+  const isShortcutEnabled = s?.aiCopilotShortcutEnabled !== false;
+  const isFloatingBtnEnabled = s?.aiCopilotFloatingBtn !== false;
+  const isVoiceRepliesEnabled = s?.aiCopilotVoiceReplies !== false;
+
   // Global Keyboard Shortcut: Ctrl + K or Cmd + K
   useEffect(() => {
+    if (!isCopilotEnabled || !isShortcutEnabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
@@ -89,7 +96,7 @@ export default function AICopilotWidget() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isCopilotEnabled, isShortcutEnabled]);
 
   // Initialize Speech Synthesis
   useEffect(() => {
@@ -101,7 +108,7 @@ export default function AICopilotWidget() {
   // Text-To-Speech (TTS) in Gujarati / Indian voice
   const speakText = useCallback(
     (textToSpeak: string, onEndCallback?: () => void) => {
-      if (!voiceEnabled || !speechSynthRef.current) {
+      if (!voiceEnabled || !isVoiceRepliesEnabled || !speechSynthRef.current) {
         if (onEndCallback) onEndCallback();
         return;
       }
@@ -429,12 +436,16 @@ Total Registered Customers: ${custs}`;
     }
   };
 
+  if (!isCopilotEnabled) {
+    return null;
+  }
+
   return (
     <>
       {/* ─────────────────────────────────────────────────────────────
           1. FLOATING TRIGGER BUTTON (When closed)
           ───────────────────────────────────────────────────────────── */}
-      {!isOpen && (
+      {!isOpen && isFloatingBtnEnabled && (
         <motion.button
           type="button"
           onClick={() => {

@@ -77,6 +77,12 @@ export interface SalonSettings {
   instagramHandle?: string; // e.g. '@shreebeauty.studio'
   instagramUrl?: string; // e.g. 'https://www.instagram.com/shreebeauty.studio/'
   googleMapsUrl?: string; // e.g. 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'
+  // AI Voice Copilot & Shortcut Settings
+  aiCopilotEnabled?: boolean;         // Master Switch: Enable/disable AI Copilot (Default: true)
+  aiCopilotShortcutEnabled?: boolean; // Enable/disable Ctrl+K keyboard shortcut (Default: true)
+  aiCopilotFloatingBtn?: boolean;     // Show/hide floating button on bottom-right (Default: true)
+  aiCopilotAutoVoice?: boolean;       // Auto-start microphone listening when opened
+  aiCopilotVoiceReplies?: boolean;    // Enable audio voice spoken responses
 }
 
 export interface Service {

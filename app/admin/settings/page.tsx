@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
   Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles, Calendar, CheckCircle2,
-  AlertTriangle, AlertCircle, Download, Upload, RotateCcw, ShieldAlert, Check, Users, Receipt, Wallet, ShoppingBag, Heart, Package
+  AlertTriangle, AlertCircle, Download, Upload, RotateCcw, ShieldAlert, Check, Users, Receipt, Wallet, ShoppingBag, Heart, Package,
+  Bot, Mic, MicOff, Keyboard, Volume2
 } from 'lucide-react';
 import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
 import { scheduleSave, cloudSync, forceCloudReset } from '@/lib/sync';
@@ -18,7 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { fadeSlideUp, staggerContainer } from '@/variants';
 import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 
-type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'cloud' | 'reset';
+type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'copilot' | 'cloud' | 'reset';
 
 export default function SettingsPage() {
   const { data, updateData, cloudStatus, lastSynced } = useSalonStore();
@@ -348,6 +349,7 @@ export default function SettingsPage() {
     { id: 'whatsapp', label: 'WhatsApp Webhook', icon: MessageCircle },
     { id: 'email', label: 'Email & Resend', icon: Mail },
     { id: 'calendar', label: 'Google Calendar (Auto Sync)', icon: Calendar },
+    { id: 'copilot', label: 'AI Copilot & Shortcut', icon: Bot },
     { id: 'cloud', label: 'Cloud Database', icon: CloudCog },
     { id: 'reset', label: '🗑️ Data Reset & Start Fresh', icon: Trash2 },
   ];
@@ -1628,6 +1630,305 @@ export default function SettingsPage() {
                   </span>
                 )}
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* AI Voice Copilot & Shortcut Tab */}
+        {activeTab === 'copilot' && (
+          <motion.div key="copilot" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
+            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0, color: '#05424A' }}>
+                    <Bot size={22} color="#05424A" /> 🤖 AI Voice Copilot &amp; Shortcut Controls
+                  </h2>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+                    ગુજરાતી અને હિન્દી વોઇસ આસિસ્ટન્ટ, કીબોર્ડ શોર્ટકટ (Ctrl+K) અને ફ્લોટિંગ બટનનું સંપૂર્ણ નિયંત્રણ (ON / OFF)
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      padding: '4px 10px',
+                      borderRadius: 99,
+                      background: s.aiCopilotEnabled !== false ? '#dcfce7' : '#f1f5f9',
+                      color: s.aiCopilotEnabled !== false ? '#15803d' : '#64748b',
+                      border: `1px solid ${s.aiCopilotEnabled !== false ? '#86efac' : '#cbd5e1'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: '50%',
+                        background: s.aiCopilotEnabled !== false ? '#22c55e' : '#94a3b8',
+                      }}
+                    />
+                    {s.aiCopilotEnabled !== false ? 'AI Copilot Active' : 'Copilot Disabled'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 1. Master Switch Card */}
+            <div
+              style={{
+                background: s.aiCopilotEnabled !== false ? 'linear-gradient(135deg, #032B30 0%, #05424A 100%)' : '#f8fafc',
+                color: s.aiCopilotEnabled !== false ? '#ffffff' : '#1e293b',
+                border: s.aiCopilotEnabled !== false ? '1.5px solid #EABA38' : '1.5px solid #e2e8f0',
+                borderRadius: 14,
+                padding: '20px 22px',
+                marginBottom: 20,
+                boxShadow: s.aiCopilotEnabled !== false ? '0 6px 20px rgba(3,43,48,0.25)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, maxWidth: 580 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: s.aiCopilotEnabled !== false ? 'rgba(234, 186, 56, 0.22)' : '#e2e8f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sparkles size={22} color={s.aiCopilotEnabled !== false ? '#EABA38' : '#64748b'} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.2 }}>
+                    🤖 Master AI Voice Copilot Switch (મુખ્ય ચાલુ / બંધ સ્વિચ)
+                  </div>
+                  <div style={{ fontSize: 12.5, opacity: 0.88, marginTop: 3, lineHeight: 1.45 }}>
+                    જો તમે આ બંધ કરશો તો આખા સલૂન સોફ્ટવેરમાંથી AI Copilot, તેનું ફ્લોટિંગ બટન અને કીબોર્ડ શોર્ટકટ સંપૂર્ણપણે બંધ થઈ જશે.
+                  </div>
+                </div>
+              </div>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  cursor: 'pointer',
+                  fontWeight: 800,
+                  fontSize: 14,
+                  background: s.aiCopilotEnabled !== false ? 'rgba(255,255,255,0.15)' : '#fff',
+                  padding: '8px 16px',
+                  borderRadius: 99,
+                  border: s.aiCopilotEnabled !== false ? '1px solid rgba(255,255,255,0.25)' : '1px solid #cbd5e1',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={s.aiCopilotEnabled !== false}
+                  onChange={(e) => update('aiCopilotEnabled', e.target.checked)}
+                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#EABA38' }}
+                />
+                <span>{s.aiCopilotEnabled !== false ? 'ચાલુ છે (ENABLED)' : 'બંધ છે (DISABLED)'}</span>
+              </label>
+            </div>
+
+            {/* 2. Sub Controls & Shortcuts Toggles */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
+              
+              {/* Toggle 1: Keyboard Shortcut (Ctrl+K) */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: 18,
+                  opacity: s.aiCopilotEnabled !== false ? 1 : 0.5,
+                  pointerEvents: s.aiCopilotEnabled !== false ? 'auto' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Keyboard size={17} color="#05424A" /> ⌨️ Ctrl+K Keyboard Shortcut
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={s.aiCopilotShortcutEnabled !== false}
+                    onChange={(e) => update('aiCopilotShortcutEnabled', e.target.checked)}
+                    style={{ width: 17, height: 17, cursor: 'pointer', accentColor: '#05424A' }}
+                  />
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, marginBottom: 10 }}>
+                  કીબોર્ડ પરથી ગમે ત્યારે <b>Ctrl + K</b> (અથવા Mac પર <b>Cmd + K</b>) દબાવીને AI Copilot સીધું જ ઓપન કરો.
+                </div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#e2e8f0', padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#334155' }}>
+                  <span>શોર્ટકટ:</span>
+                  <kbd style={{ background: '#0f172a', color: '#fef08a', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace' }}>Ctrl</kbd> + <kbd style={{ background: '#0f172a', color: '#fef08a', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace' }}>K</kbd>
+                </div>
+              </div>
+
+              {/* Toggle 2: Floating Button on Bottom-Right */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: 18,
+                  opacity: s.aiCopilotEnabled !== false ? 1 : 0.5,
+                  pointerEvents: s.aiCopilotEnabled !== false ? 'auto' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Sparkles size={17} color="#EABA38" /> ✨ Floating Screen Button
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={s.aiCopilotFloatingBtn !== false}
+                    onChange={(e) => update('aiCopilotFloatingBtn', e.target.checked)}
+                    style={{ width: 17, height: 17, cursor: 'pointer', accentColor: '#05424A' }}
+                  />
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, marginBottom: 10 }}>
+                  સ્ક્રીનના નીચેના જમણા ખૂણે દેખાતું ગોલ્ડ-ટીલ <b>&quot;AI Copilot&quot;</b> બટન દર્શાવવું કે છુપાવવું.
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: s.aiCopilotFloatingBtn !== false ? '#15803d' : '#94a3b8',
+                    background: s.aiCopilotFloatingBtn !== false ? '#dcfce7' : '#f1f5f9',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                  }}
+                >
+                  {s.aiCopilotFloatingBtn !== false ? '🔘 બટન દેખાશે (Visible)' : '🚫 બટન છુપાયેલું રહેશે (Hidden)'}
+                </span>
+              </div>
+
+              {/* Toggle 3: Auto Voice Listening on Open */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: 18,
+                  opacity: s.aiCopilotEnabled !== false ? 1 : 0.5,
+                  pointerEvents: s.aiCopilotEnabled !== false ? 'auto' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Mic size={17} color="#dc2626" /> 🎙️ Auto-Listen on Open
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={!!s.aiCopilotAutoVoice}
+                    onChange={(e) => update('aiCopilotAutoVoice', e.target.checked)}
+                    style={{ width: 17, height: 17, cursor: 'pointer', accentColor: '#05424A' }}
+                  />
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, marginBottom: 10 }}>
+                  જ્યારે પણ શોર્ટકટ કે બટનથી Copilot ઓપન થાય, ત્યારે માઇક્રોફોન આપોઆપ ચાલુ થઈને તમારો અવાજ સાંભળવાનું શરૂ કરે.
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: s.aiCopilotAutoVoice ? '#15803d' : '#64748b',
+                    background: s.aiCopilotAutoVoice ? '#dcfce7' : '#f1f5f9',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                  }}
+                >
+                  {s.aiCopilotAutoVoice ? '🎙️ ઓટો-માઇક ચાલુ' : '🖐️ મેન્યુઅલ માઇક ક્લિક'}
+                </span>
+              </div>
+
+              {/* Toggle 4: Voice Spoken Replies (TTS) */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: 18,
+                  opacity: s.aiCopilotEnabled !== false ? 1 : 0.5,
+                  pointerEvents: s.aiCopilotEnabled !== false ? 'auto' : 'none',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Volume2 size={17} color="#2563eb" /> 🔊 Spoken Voice Replies
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={s.aiCopilotVoiceReplies !== false}
+                    onChange={(e) => update('aiCopilotVoiceReplies', e.target.checked)}
+                    style={{ width: 17, height: 17, cursor: 'pointer', accentColor: '#05424A' }}
+                  />
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5, marginBottom: 10 }}>
+                  AI Copilot તમારું કામ પૂરું થયા પછી ગુજરાતી / હિન્દી / અંગ્રેજી અવાજમાં બોલીને કન્ફર્મેશન આપશે.
+                </div>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: s.aiCopilotVoiceReplies !== false ? '#1d4ed8' : '#64748b',
+                    background: s.aiCopilotVoiceReplies !== false ? '#dbeafe' : '#f1f5f9',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                  }}
+                >
+                  {s.aiCopilotVoiceReplies !== false ? '🔊 વોઇસ સ્પીકર ચાલુ' : '🔇 મ્યૂટ'}
+                </span>
+              </div>
+            </div>
+
+            {/* 3. Voice Commands & Capabilities Cheat Sheet */}
+            <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: 18, marginBottom: 16 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: '#166534', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                🗣️ તમે Copilot માં શું શું બોલીને કામ કરાવી શકો છો (Voice Commands Cheat Sheet):
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, fontSize: 12, color: '#14532d' }}>
+                <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 8, border: '1px solid #86efac' }}>
+                  <b>💅 Appointment બુક કરો:</b><br />
+                  &quot;સંદીપ ની કાલે બપોરે 2 વાગ્યે હેર કટ ની અપોઇન્ટમેન્ટ બુક કરો&quot;
+                </div>
+                <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 8, border: '1px solid #86efac' }}>
+                  <b>💸 રોજમેળ / ખર્ચ લખો:</b><br />
+                  &quot;ચા-નાસ્તા ના 250 રૂપિયા રોજમેળ માં લખો&quot;
+                </div>
+                <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 8, border: '1px solid #86efac' }}>
+                  <b>💍 Bridal Booking:</b><br />
+                  &quot;પૂજા નું 25 ઓક્ટોબર ના રોજ એન્ગેજમેન્ટ મેકઅપ પેકેજ બુક કરો&quot;
+                </div>
+                <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 8, border: '1px solid #86efac' }}>
+                  <b>📲 WhatsApp &amp; PDF:</b><br />
+                  &quot;બ્રાઇડલ રેટ કાર્ડ મોકલો 9601014899 પર&quot;
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Save Action */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <motion.button
+                className="btn btn-primary"
+                onClick={handleSave}
+                whileTap={{ scale: 0.97 }}
+                style={{ background: '#05424A', borderColor: '#05424A', fontWeight: 700 }}
+              >
+                <Save size={15} /> Save AI Copilot Settings
+              </motion.button>
             </div>
           </motion.div>
         )}
