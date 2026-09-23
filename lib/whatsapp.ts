@@ -423,7 +423,7 @@ We have received your online appointment booking request!
 📅 Date: ${fmtDate(a.date)}
 ⏰ Time: ${a.time}
 💄 Service: ${a.service}
-👩‍💼 Specialist: Studio Specialist
+👩‍💼 Specialist: ${a.staff || 'Studio Specialist'}
 📍 Location: ${address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
 📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
 📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
@@ -462,9 +462,31 @@ Thank you for choosing ${salon}! 👑💖`;
 export function appointmentCustomerMessage(
   a: Appointment,
   salon: string,
-  address: string
+  address: string,
+  customTemplate?: string
 ): string {
   const gcalUrl = getAppointmentGoogleCalendarUrl({ ...a, staff: undefined }, salon, address);
+  const specialist = a.staff || 'Studio Specialist';
+  const mapsUrl = 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
+  const instagramUrl = '@shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)';
+
+  if (customTemplate && customTemplate.trim()) {
+    return customTemplate
+      .replace(/{customer}/gi, a.customer || 'Valued Client')
+      .replace(/{salon}/gi, salon || 'Shree Beauty Studio')
+      .replace(/{date}/gi, fmtDate(a.date))
+      .replace(/{time}/gi, a.time)
+      .replace(/{service}/gi, a.service)
+      .replace(/{specialist}/gi, specialist)
+      .replace(/{staff}/gi, specialist)
+      .replace(/{advance}/gi, money(a.advance || 0))
+      .replace(/{address}/gi, address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat')
+      .replace(/{gcal_url}/gi, gcalUrl)
+      .replace(/{calendar_url}/gi, gcalUrl)
+      .replace(/{maps_url}/gi, mapsUrl)
+      .replace(/{instagram}/gi, instagramUrl);
+  }
+
   return `✨ *APPOINTMENT CONFIRMED — ${salon}* ✨
 ────────────────────────────
 Dear ${a.customer},
@@ -473,11 +495,11 @@ Dear ${a.customer},
 📅 Date: ${fmtDate(a.date)}
 ⏰ Time: ${a.time}
 💄 Service: ${a.service}
-👩‍💼 Specialist: Studio Specialist
+👩‍💼 Specialist: ${specialist}
 💵 Advance Paid: ${money(a.advance || 0)}
 📍 Address: ${address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
-📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
-📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
+📍 Google Map: ${mapsUrl}
+📸 Instagram: ${instagramUrl}
 
 📅 *Save to Google Calendar & Auto-Reminder:*
 👉 ${gcalUrl}

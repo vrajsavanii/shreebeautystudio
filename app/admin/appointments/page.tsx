@@ -276,7 +276,8 @@ export default function AppointmentsPage() {
     if (appt.mobile) {
       const salon = data?.settings?.salon || 'Shree Beauty Studio';
       const address = data?.settings?.address || 'Surat, Gujarat';
-      const msg = appointmentCustomerMessage(updatedAppt, salon, address);
+      const customTpl = data?.settings?.whatsappTemplates?.['appointment'] || data?.settings?.whatsappTemplates?.['confirmation'];
+      const msg = appointmentCustomerMessage(updatedAppt, salon, address, customTpl);
       // Send WhatsApp confirmation via WhatsApp App
       openWAApp(appt.mobile, msg);
       toast(`📲 WhatsApp App opened with confirmation for ${appt.customer}!`);
@@ -552,8 +553,9 @@ export default function AppointmentsPage() {
 
     const salon = data?.settings?.salon || 'Shree Beauty Studio';
     const address = data?.settings?.address || 'Surat, Gujarat';
+    const customTpl = data?.settings?.whatsappTemplates?.['appointment'] || data?.settings?.whatsappTemplates?.['confirmation'];
 
-    const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
+    const msg = appointmentCustomerMessage({ ...form, id }, salon, address, customTpl);
 
     // 1. Web Send and Save (opens WhatsApp Web / App)
     if (saveMode === 'web' && form.mobile && form.status !== 'Cancelled') {
@@ -1299,7 +1301,8 @@ export default function AppointmentsPage() {
                                   className="btn-icon wa"
                                   title="📲 Send via WhatsApp App"
                                   onClick={() => {
-                                    const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat');
+                                    const customTpl = data?.settings?.whatsappTemplates?.['appointment'] || data?.settings?.whatsappTemplates?.['confirmation'];
+                                    const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat', customTpl);
                                     openWAApp(a.mobile, msg);
                                     toast(`📲 Opening WhatsApp App for ${a.customer}…`);
                                   }}
