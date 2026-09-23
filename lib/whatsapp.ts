@@ -370,7 +370,7 @@ export async function openWA(mobile: string, message: string, settings?: any): P
   return sendDirectWhatsAppMessage(mobile, message, settings);
 }
 
-export function openWAWeb(mobile?: string, message?: string, settings?: any) {
+export function openWAWeb(mobile?: string, message?: string, settings?: any, targetName = 'shree_whatsapp_desk') {
   if (typeof window === 'undefined') {
     if (mobile && message) return sendDirectWhatsAppMessage(mobile, message, settings);
     return Promise.resolve({ success: false, method: 'none', message: 'Missing recipient or message' });
@@ -380,10 +380,12 @@ export function openWAWeb(mobile?: string, message?: string, settings?: any) {
   const url = num
     ? `https://web.whatsapp.com/send?phone=91${num}&text=${text}`
     : `https://web.whatsapp.com/`;
-  window.open(url, '_blank');
+  
+  // Reuse same target window so it does not open multiple tabs
+  window.open(url, targetName);
 }
 
-export function openWAApp(mobile: string, message: string, settings?: any) {
+export function openWAApp(mobile: string, message: string, settings?: any, targetName = 'shree_whatsapp_desk') {
   if (typeof window === 'undefined') {
     return sendDirectWhatsAppMessage(mobile, message, settings);
   }
@@ -397,9 +399,25 @@ export function openWAApp(mobile: string, message: string, settings?: any) {
   if (isMobile) {
     window.open(`https://api.whatsapp.com/send?phone=91${num}&text=${text}`, '_blank');
   } else {
-    // Desktop: Directly launch into WhatsApp Web chat without intermediary pages
-    window.open(`https://web.whatsapp.com/send?phone=91${num}&text=${text}`, '_blank');
+    // Desktop: Directly launch into WhatsApp Web in the dedicated companion target
+    window.open(`https://web.whatsapp.com/send?phone=91${num}&text=${text}`, targetName);
   }
+}
+
+/**
+ * Launch dedicated Desktop Companion Window for WhatsApp Web side-by-side on the same screen
+ */
+export function launchWhatsAppCompanionWindow(url = 'https://web.whatsapp.com', targetName = 'shree_whatsapp_desk') {
+  if (typeof window === 'undefined') return;
+  const width = Math.min(1020, window.screen?.availWidth ? window.screen.availWidth - 100 : 960);
+  const height = Math.min(840, window.screen?.availHeight ? window.screen.availHeight - 80 : 760);
+  const left = Math.max(0, window.screen?.availWidth ? window.screen.availWidth - width - 20 : 100);
+  const top = 40;
+  window.open(
+    url,
+    targetName,
+    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no`
+  );
 }
 
 export function appointmentStaffMessage(a: Appointment, salon: string): string {

@@ -50,6 +50,7 @@ import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/l
 import {
   openWAApp,
   openWAWeb,
+  launchWhatsAppCompanionWindow,
   invoiceMessage,
   appointmentCustomerMessage,
   appointmentReminderMessage,
@@ -949,7 +950,7 @@ export default function WhatsAppHubPage() {
           <button
             type="button"
             className="btn btn-sm"
-            onClick={() => window.open('https://web.whatsapp.com', '_blank')}
+            onClick={() => launchWhatsAppCompanionWindow()}
             style={{
               background: '#ffffff',
               color: '#05424A',
@@ -964,8 +965,9 @@ export default function WhatsAppHubPage() {
               boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
               cursor: 'pointer',
             }}
+            title="Opens WhatsApp Web in a dedicated side-by-side companion window on this screen"
           >
-            <Globe size={15} color="#05424A" /> 🌐 Open WhatsApp Web
+            <Globe size={15} color="#05424A" /> 🖥️ Open WhatsApp Web Window (એ જ સ્ક્રીન પર ઓપન કરો)
           </button>
           <button
             type="button"
