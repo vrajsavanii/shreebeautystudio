@@ -18,7 +18,7 @@ const NAV = [
   { href: '/admin/bridal',        label: 'Bridal Bookings',    icon: Heart,           role: 'all' },
   { href: '/admin/customers',     label: 'Customers',          icon: Users,           role: 'all' },
   { href: '/admin/billing',       label: 'Billing (POS)',      icon: Receipt,         role: 'all' },
-  { href: '/admin/whatsapp',      label: 'WhatsApp (ઓટો સેન્ડ)', icon: MessageCircle,   role: 'all' },
+  { href: '/admin/whatsapp',      label: 'WhatsApp',           icon: MessageCircle,   role: 'all' },
   { href: '/admin/finance',       label: 'Finance & Rojmel',   icon: BookOpen,        role: 'admin' },
   { href: '/admin/services',      label: 'Services & Menu',    icon: Sparkles,        role: 'admin' },
   { href: '/admin/inventory',     label: 'Inventory',          icon: Package,         role: 'all' },
