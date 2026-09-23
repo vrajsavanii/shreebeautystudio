@@ -377,7 +377,9 @@ export function openWAWeb(mobile?: string, message?: string, settings?: any) {
   }
   const num = (mobile || '').replace(/\D/g, '').slice(-10);
   const text = message ? encodeURIComponent(message) : '';
-  const url = num ? `https://wa.me/91${num}?text=${text}` : `https://web.whatsapp.com/`;
+  const url = num
+    ? `https://web.whatsapp.com/send?phone=91${num}&text=${text}`
+    : `https://web.whatsapp.com/`;
   window.open(url, '_blank');
 }
 
@@ -387,7 +389,17 @@ export function openWAApp(mobile: string, message: string, settings?: any) {
   }
   const num = (mobile || '').replace(/\D/g, '').slice(-10);
   const text = encodeURIComponent(message);
-  window.open(`https://api.whatsapp.com/send?phone=91${num}&text=${text}`, '_blank');
+
+  const isMobile =
+    typeof navigator !== 'undefined' &&
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    window.open(`https://api.whatsapp.com/send?phone=91${num}&text=${text}`, '_blank');
+  } else {
+    // Desktop: Directly launch into WhatsApp Web chat without intermediary pages
+    window.open(`https://web.whatsapp.com/send?phone=91${num}&text=${text}`, '_blank');
+  }
 }
 
 export function appointmentStaffMessage(a: Appointment, salon: string): string {

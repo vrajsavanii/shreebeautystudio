@@ -49,6 +49,7 @@ import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp, sendInvoiceTextViaWhatsA
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import {
   openWAApp,
+  openWAWeb,
   invoiceMessage,
   appointmentCustomerMessage,
   appointmentReminderMessage,
@@ -948,13 +949,34 @@ export default function WhatsAppHubPage() {
           <button
             type="button"
             className="btn btn-sm"
+            onClick={() => window.open('https://web.whatsapp.com', '_blank')}
+            style={{
+              background: '#ffffff',
+              color: '#05424A',
+              fontWeight: 800,
+              border: 'none',
+              padding: '9px 16px',
+              fontSize: 13,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+              cursor: 'pointer',
+            }}
+          >
+            <Globe size={15} color="#05424A" /> 🌐 Open WhatsApp Web
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm"
             onClick={() => window.open('https://api.whatsapp.com/send', '_blank')}
             style={{
               background: '#25D366',
               color: '#ffffff',
               fontWeight: 800,
               border: 'none',
-              padding: '9px 16px',
+              padding: '9px 15px',
               fontSize: 13,
               borderRadius: 8,
               display: 'flex',
@@ -2504,31 +2526,80 @@ export default function WhatsAppHubPage() {
             >
               <div>
                 <div style={{ fontWeight: 800, fontSize: 13, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  📲 WhatsApp App — 1-Click Direct Send (ઓટો સેન્ડ)
+                  🌐 WhatsApp Web &amp; 📲 App — 1-Click Direct Send
                 </div>
                 <div style={{ fontSize: 11, color: '#15803d', marginTop: 2 }}>
-                  Opens WhatsApp App directly with prefilled message — just tap Send!
+                  Opens WhatsApp Web or App directly with prefilled message — 100% Free &amp; Unlimited!
                 </div>
               </div>
             </div>
 
             {/* Send Actions */}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <motion.button
                 type="button"
                 className="btn btn-primary"
+                onClick={() => {
+                  if (!targetPhone) {
+                    toast('Please enter or select a recipient mobile number.', 'error');
+                    return;
+                  }
+                  const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
+                  openWAWeb(targetPhone, messageToSend);
+                  toast(`🌐 Opening WhatsApp Web for ${targetName || targetPhone}…`);
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 160,
+                  padding: '11px 16px',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+                  border: '1.5px solid #05424A',
+                  color: '#ffffff',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderRadius: 10,
+                  boxShadow: '0 4px 14px rgba(5,66,74,0.3)',
+                }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <Globe size={16} color="#EABA38" /> 🌐 Send via WhatsApp Web
+              </motion.button>
+
+              <motion.button
+                type="button"
+                className="btn"
                 onClick={handleSendMessage}
-                style={{ flex: 1, padding: '11px 16px', fontSize: 13, display: 'flex', justifyContent: 'center', gap: 6 }}
+                style={{
+                  flex: 1,
+                  minWidth: 150,
+                  padding: '11px 16px',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  background: '#25D366',
+                  border: 'none',
+                  color: '#ffffff',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderRadius: 10,
+                  boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
+                }}
                 whileTap={{ scale: 0.97 }}
               >
                 <Send size={15} /> 📲 Send via WhatsApp App
               </motion.button>
+
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={handleCopyMessage}
                 title="Copy formatted text"
-                style={{ padding: '11px 14px' }}
+                style={{ padding: '11px 14px', borderRadius: 10 }}
               >
                 <Copy size={15} />
               </button>
@@ -2726,21 +2797,31 @@ export default function WhatsAppHubPage() {
                   padding: '10px 14px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
+                  gap: 8,
                   borderTop: '1px solid #e9edef',
+                  flexWrap: 'wrap',
                 }}
               >
                 <button
                   type="button"
-                  onClick={handleSendMessage}
+                  onClick={() => {
+                    if (!targetPhone) {
+                      toast('Please enter or select a recipient mobile number.', 'error');
+                      return;
+                    }
+                    const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
+                    openWAWeb(targetPhone, messageToSend);
+                    toast(`🌐 Opening WhatsApp Web for ${targetName || targetPhone}!`);
+                  }}
                   style={{
                     flex: 1,
-                    background: '#25D366',
-                    color: '#053320',
-                    fontWeight: 700,
+                    minWidth: 140,
+                    background: '#05424A',
+                    color: '#ffffff',
+                    fontWeight: 800,
                     border: 'none',
                     borderRadius: 8,
-                    padding: '8px 14px',
+                    padding: '8px 12px',
                     fontSize: 12,
                     display: 'flex',
                     alignItems: 'center',
@@ -2749,7 +2830,29 @@ export default function WhatsAppHubPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  <Send size={13} /> 📲 Send via WhatsApp App
+                  <Globe size={13} color="#EABA38" /> 🌐 WhatsApp Web
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendMessage}
+                  style={{
+                    flex: 1,
+                    minWidth: 140,
+                    background: '#25D366',
+                    color: '#053320',
+                    fontWeight: 800,
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '8px 12px',
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Send size={13} /> 📲 WhatsApp App
                 </button>
               </div>
             </div>
