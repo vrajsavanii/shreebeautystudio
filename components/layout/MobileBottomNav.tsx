@@ -551,6 +551,45 @@ export default function MobileBottomNav() {
           )}
         </Link>
 
+        {/* Tab 3: Bridal Booking */}
+        <Link
+          href="/admin/bridal"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '6px 0',
+            textDecoration: 'none',
+            gap: 2,
+            position: 'relative',
+          }}
+        >
+          <Heart size={19} color={pathname.startsWith('/admin/bridal') ? '#e11d48' : '#94a3b8'} />
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: pathname.startsWith('/admin/bridal') ? 800 : 500,
+              color: pathname.startsWith('/admin/bridal') ? '#e11d48' : '#94a3b8',
+            }}
+          >
+            Bridal
+          </span>
+          {pathname.startsWith('/admin/bridal') && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                width: 24,
+                height: 2.5,
+                background: '#e11d48',
+                borderRadius: 99,
+              }}
+            />
+          )}
+        </Link>
+
         {/* Tab 3: CENTER GLOWING QUICK ENTRY BUTTON (+ SPEED DIAL) */}
         <div
           style={{
