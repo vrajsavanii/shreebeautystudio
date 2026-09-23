@@ -17,7 +17,7 @@ import { useToast } from '@/components/ui/Toast';
 import { openWAApp, bridalMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
-import { getBridalGoogleCalendarUrl, downloadBridalICS, downloadCancellationICS } from '@/lib/calendar';
+import { getBridalGoogleCalendarUrl } from '@/lib/calendar';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { subDays, format, parseISO } from 'date-fns';

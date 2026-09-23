@@ -28,7 +28,7 @@ import { Appointment, BridalBooking, BridalPackage } from '@/types/salon';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage } from '@/lib/whatsapp';
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 
-import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl, downloadICS } from '@/lib/calendar';
+import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl } from '@/lib/calendar';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
 const TIME_SLOTS = [
@@ -806,47 +806,6 @@ export default function PublicBookingPage() {
                   <MapPin size={18} />
                   <span>📍 Get Directions on Google Maps</span>
                 </a>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirmedBridal) {
-                      downloadICS({
-                        title: `👑 ${confirmedBridal.name} — ${confirmedBridal.packageName || 'Bridal'}`,
-                        description: `Bridal Booking for ${confirmedBridal.name}\nVenue: ${confirmedBridal.venue || address}\nTotal: ₹${confirmedBridal.totalAmount || confirmedBridal.package || 0}`,
-                        location: confirmedBridal.venue || address,
-                        startDate: confirmedBridal.weddingDate || confirmedBridal.date,
-                        startTime: '08:00',
-                        durationMinutes: 180,
-                      });
-                    } else if (confirmedAppt) {
-                      downloadICS({
-                        title: `💅 ${confirmedAppt.customer} — ${confirmedAppt.service}`,
-                        description: `Appointment for ${confirmedAppt.customer}\nService: ${confirmedAppt.service}`,
-                        location: address,
-                        startDate: confirmedAppt.date,
-                        startTime: confirmedAppt.time || '10:00',
-                        durationMinutes: 60,
-                      });
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    background: '#f8fafc',
-                    color: '#334155',
-                    fontWeight: 700,
-                    fontSize: 12.5,
-                    padding: '10px 16px',
-                    borderRadius: 12,
-                    border: '1.5px solid #cbd5e1',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span>📥 Download Calendar Invite (.ics file)</span>
-                </button>
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>

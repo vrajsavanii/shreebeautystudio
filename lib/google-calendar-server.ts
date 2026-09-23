@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { Appointment, BridalBooking, SalonSettings } from '@/types/salon';
+import { Appointment, BridalBooking, SalonSettings, StudioHoliday } from '@/types/salon';
 import { timeToMinutes } from './utils';
 
 export interface GoogleCalendarEventPayload {
@@ -757,6 +757,99 @@ export async function autoSyncDeleteBridal(
       id: b.id,
       date: normalizeDateToYYYYMMDD(b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate),
       bridal: b,
+    },
+    settings
+  );
+}
+
+/**
+ * Builds standard Google Calendar event payload for a Studio Holiday / Closed / Full Booking date.
+ */
+export function buildHolidayEventPayload(
+  h: StudioHoliday,
+  settings?: Partial<SalonSettings>
+): GoogleCalendarEventPayload {
+  const salon = settings?.salon || 'Shree Beauty Studio';
+  const address = settings?.address || 'Katargam, Surat, Gujarat 395004';
+  const startDate = normalizeDateToYYYYMMDD(h.date);
+  const endDate = normalizeDateToYYYYMMDD(h.endDate || h.date);
+
+  const startISO = `${startDate}T09:00:00+05:30`;
+  const endISO = `${endDate}T21:00:00+05:30`;
+
+  let icon = '🏖️';
+  let titlePrefix = 'Holiday (રજા)';
+  if (h.type === 'Full Booking') {
+    icon = '⛔';
+    titlePrefix = 'Slots Full (હાઉસફુલ)';
+  } else if (h.type === 'Closed') {
+    icon = '🔒';
+    titlePrefix = 'Studio Closed (બંધ)';
+  } else if (h.type === 'Maintenance') {
+    icon = '🛠️';
+    titlePrefix = 'Maintenance';
+  }
+
+  const lines = [
+    `${icon} ${salon.toUpperCase()} — ${titlePrefix.toUpperCase()}`,
+    `─────────────────────────────────`,
+    `📋 Status / Type: ${h.type}`,
+    `🎯 Reason / Occasion: ${h.reason}`,
+    h.notes ? `📝 Notes: ${h.notes}` : '',
+    `📅 Date: ${startDate}${h.endDate ? ` to ${endDate}` : ''}`,
+    `🚫 Customer Online Booking: Closed / Unavailable (Disabled)`,
+    `📍 Location: ${address}`,
+  ].filter(Boolean);
+
+  return {
+    summary: `${icon} [${titlePrefix}] ${h.reason}`,
+    description: lines.join('\n'),
+    location: address,
+    start: { dateTime: startISO, timeZone: 'Asia/Kolkata' },
+    end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
+  };
+}
+
+/**
+ * Auto-syncs a Studio Holiday / Closed / Full Booking date to Google Calendar.
+ */
+export async function autoSyncHolidayToGoogleCalendar(
+  h: StudioHoliday,
+  settings?: Partial<SalonSettings>
+): Promise<CalendarSyncResult> {
+  const payload = buildHolidayEventPayload(h, settings);
+  return syncEventToGoogleCalendar(payload, settings);
+}
+
+/**
+ * Removes a Studio Holiday / Blocked date from Google Calendar.
+ */
+export async function autoSyncDeleteHoliday(
+  h: StudioHoliday,
+  settings?: Partial<SalonSettings>
+) {
+  let icon = '🏖️';
+  let titlePrefix = 'Holiday (રજા)';
+  if (h.type === 'Full Booking') {
+    icon = '⛔';
+    titlePrefix = 'Slots Full (હાઉસફુલ)';
+  } else if (h.type === 'Closed') {
+    icon = '🔒';
+    titlePrefix = 'Studio Closed (બંધ)';
+  } else if (h.type === 'Maintenance') {
+    icon = '🛠️';
+    titlePrefix = 'Maintenance';
+  }
+
+  const title = `${icon} [${titlePrefix}] ${h.reason}`;
+  return deleteEventFromGoogleCalendar(
+    {
+      title,
+      summary: title,
+      bookingId: h.id,
+      id: h.id,
+      date: normalizeDateToYYYYMMDD(h.date),
+      holiday: h,
     },
     settings
   );

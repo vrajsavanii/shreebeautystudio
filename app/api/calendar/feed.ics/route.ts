@@ -6,10 +6,25 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
-import { SalonData, Appointment, BridalBooking } from '@/types/salon';
+import { SalonData, Appointment, BridalBooking, StudioHoliday } from '@/types/salon';
 import { timeToMinutes } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+function getICSAllDayDates(startDateStr: string, endDateStr?: string): { dtstart: string; dtend: string } {
+  const cleanStart = (startDateStr || '').trim();
+  const cleanEnd = (endDateStr || startDateStr || '').trim();
+  const dtstart = cleanStart.replace(/-/g, '');
+
+  const [y, m, d] = cleanEnd.split('-').map(Number);
+  const nextDay = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + 1));
+  const nextY = nextDay.getUTCFullYear();
+  const nextM = String(nextDay.getUTCMonth() + 1).padStart(2, '0');
+  const nextD = String(nextDay.getUTCDate()).padStart(2, '0');
+  const dtend = `${nextY}${nextM}${nextD}`;
+
+  return { dtstart, dtend };
+}
 
 function formatICSDate(dateStr?: string, timeStr?: string, durationMinutes: number = 45): { start: string; end: string } {
   let cleanDate = (dateStr || '').trim();
@@ -173,6 +188,47 @@ END:VEVENT`);
           addBridalVEvent(fallbackDate, b.weddingTime || '10:00', b.packageName || 'Bridal Booking', '👑', 180);
         }
       }
+    }
+
+    // 3. Convert Studio Holidays, Closed days & Full Booking (Housefull) dates to all-day VEVENTs
+    const holidays: StudioHoliday[] = (salonData.holidays || []).filter((h) => {
+      if (!h.date) return false;
+      if (deletePastDays === 0) return true;
+      const lastDate = h.endDate || h.date;
+      return lastDate >= cutoffISO;
+    });
+
+    for (const h of holidays) {
+      const { dtstart, dtend } = getICSAllDayDates(h.date, h.endDate);
+      let icon = '🏖️';
+      let titlePrefix = 'Holiday (રજા)';
+      if (h.type === 'Full Booking') {
+        icon = '⛔';
+        titlePrefix = 'Slots Full (હાઉસફુલ)';
+      } else if (h.type === 'Closed') {
+        icon = '🔒';
+        titlePrefix = 'Studio Closed (બંધ)';
+      } else if (h.type === 'Maintenance') {
+        icon = '🛠️';
+        titlePrefix = 'Maintenance';
+      }
+
+      const summary = `${icon} [${titlePrefix}] ${h.reason}`;
+      const desc = `Status: ${h.type}\\nReason: ${h.reason}\\n${h.notes ? `Notes: ${h.notes}\\n` : ''}Customer Online Booking: BLOCKED & UNAVAILABLE\\nStudio: ${salon}\\nAddress: ${address}`;
+
+      eventsICS.push(`BEGIN:VEVENT
+UID:holiday-${h.id || Math.random().toString(36).slice(2)}@shreestudio
+DTSTAMP:${nowStamp}
+DTSTART;VALUE=DATE:${dtstart}
+DTEND;VALUE=DATE:${dtend}
+SUMMARY:${escapeICS(summary)}
+DESCRIPTION:${escapeICS(desc)}
+LOCATION:${escapeICS(address)}
+STATUS:CONFIRMED
+TRANSP:OPAQUE
+X-MICROSOFT-CDO-ALLDAYEVENT:TRUE
+X-MICROSOFT-MSNCALENDAR-ALLDAYEVENT:TRUE
+END:VEVENT`);
     }
 
     const icsContent = `BEGIN:VCALENDAR

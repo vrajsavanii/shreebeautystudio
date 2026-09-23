@@ -15,7 +15,7 @@ import { openWAApp, appointmentStaffMessage, appointmentCustomerMessage, sendDir
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
-import { getAppointmentGoogleCalendarUrl, downloadBulkAppointmentsICS, downloadCancellationICS, downloadAppointmentICS } from '@/lib/calendar';
+import { getAppointmentGoogleCalendarUrl, downloadBulkAppointmentsICS } from '@/lib/calendar';
 import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
 
@@ -137,6 +137,14 @@ export default function AppointmentsPage() {
     }));
     scheduleSave();
     toast(`✅ Marked ${fmtDate(item.date)} as ${item.type}!`);
+
+    // Auto-sync holiday event to Google Calendar in background
+    fetch('/api/calendar/auto-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'holiday', holiday: item }),
+    }).catch(() => {});
+
     setHolidayForm({
       date: todayISO(),
       endDate: '',
@@ -147,12 +155,22 @@ export default function AppointmentsPage() {
   };
 
   const handleDeleteHoliday = (id: string) => {
+    const target = (data?.holidays || []).find((h) => h.id === id);
     updateData((d) => ({
       ...d,
       holidays: (d.holidays || []).filter((h) => h.id !== id),
     }));
     scheduleSave();
     toast('Holiday / Blocked date removed', 'info');
+
+    // Auto-sync removal from Google Calendar in background
+    if (target) {
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'delete_holiday', holiday: target }),
+      }).catch(() => {});
+    }
   };
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<Appointment>({
@@ -534,17 +552,6 @@ export default function AppointmentsPage() {
 
     const salon = data?.settings?.salon || 'Shree Beauty Studio';
     const address = data?.settings?.address || 'Surat, Gujarat';
-
-    if (form.status === 'Cancelled') {
-      const prevStatus = data?.appointments?.find(a => a.id === editId)?.status;
-      if (prevStatus !== 'Cancelled') {
-        downloadCancellationICS({ ...form, id }, 'appointment', salon, address);
-        toast('Calendar cancellation file downloaded', 'info');
-      }
-    } else {
-      // Auto download calendar file to save time
-      downloadAppointmentICS({ ...form, id }, salon, address);
-    }
 
     const msg = appointmentCustomerMessage({ ...form, id }, salon, address);
 
