@@ -900,57 +900,29 @@ function doPost(e) {
     // 🗑️ 1. DELETE / CANCEL EVENT ACTION
     if (data && (data.action === 'delete_event' || data.action === 'cancel_event' || data.type === 'delete_appointment' || data.type === 'delete_bridal' || data.type === 'delete_holiday')) {
       var searchTitle = (data.title || (data.event ? data.event.summary : '') || '').toLowerCase();
-      var customerName = (data.customerName || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
+      var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
       var bookingId = (data.bookingId || data.id || '').toLowerCase();
       var rawPhone = data.phone || data.mobile || '';
       var cleanPhone = rawPhone.toString().replace(/\D/g, '').slice(-10);
-      var searchDateStr = data.date || (data.event && data.event.start && data.event.start.dateTime ? data.event.start.dateTime.split('T')[0] : null);
+      var searchDateStr = data.date || (data.appointment ? data.appointment.date : null) || (data.event && data.event.start && data.event.start.dateTime ? data.event.start.dateTime.split('T')[0] : null);
 
       var fromDate, toDate;
       if (searchDateStr) {
-        // Strictly check only THAT SPECIFIC DAY (+/- 12 hours) so other appointments of the same customer are NEVER deleted!
         fromDate = new Date(searchDateStr + 'T00:00:00+05:30');
         toDate = new Date(searchDateStr + 'T23:59:59+05:30');
       } else {
         var now = new Date();
-        fromDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        toDate = new Date(now.getTime() + (90 * 24 * 60 * 60 * 1000));
+        fromDate = new Date(now.getTime() - (2 * 24 * 60 * 60 * 1000));
+        toDate = new Date(now.getTime() + (60 * 24 * 60 * 60 * 1000));
       }
 
-      var events = cal.getEvents(fromDate, toDate);
-      var deletedCount = 0;
-
-      for (var d = 0; d < events.length; d++) {
-        var currentEv = events[d];
-        var cTitle = (currentEv.getTitle() || '').toLowerCase();
-        var cDesc = (currentEv.getDescription() || '').toLowerCase();
-
-        var match = false;
-        // 1. Exact Booking Ref ID match in description (100% precise)
-        if (bookingId && bookingId.length >= 3 && cDesc.indexOf(bookingId) !== -1) {
-          match = true;
-        }
-        // 2. Same-day match for customer + phone or title
-        else if (searchDateStr && customerName && customerName.length >= 3 && (cTitle.indexOf(customerName) !== -1 || cDesc.indexOf(customerName) !== -1)) {
-          match = true;
-        }
-        else if (searchDateStr && cleanPhone && cleanPhone.length === 10 && (cDesc.indexOf(cleanPhone) !== -1 || cTitle.indexOf(cleanPhone) !== -1)) {
-          match = true;
-        }
-
-        if (match) {
-          try {
-            currentEv.deleteEvent();
-            deletedCount++;
-          } catch (eD) {}
-        }
-      }
+      var deletedCount = deleteMatchingEventsFromCal(cal, fromDate, toDate, bookingId, customerName, searchTitle, cleanPhone);
 
       return ContentService.createTextOutput(JSON.stringify({
         success: true,
         action: 'delete_event',
         deletedCount: deletedCount,
-        message: deletedCount + " calendar event(s) deleted from Google Calendar!"
+        message: deletedCount + " calendar event(s) deleted!"
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -968,15 +940,13 @@ function doPost(e) {
     if (deletePastDays > 0) {
       try {
         cleanupPastSalonEvents(cal, deletePastDays);
-      } catch (cleanErr) {
-        Logger.log("Cleanup error: " + cleanErr);
-      }
+      } catch (cleanErr) {}
     }
     
     var startTime = new Date(ev.start.dateTime);
     var endTime = new Date(ev.end.dateTime);
     
-    // 🛡️ Deduplicate on THAT EXACT DAY ONLY: Remove existing event for this same booking/customer
+    // 🛡️ Deduplicate on THAT EXACT DAY ONLY: Remove duplicate / old event for this customer on this date
     var searchTitle = (ev.summary || '').toLowerCase();
     var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
     if (!customerName && ev.summary) {
@@ -985,39 +955,16 @@ function doPost(e) {
       if (parts.length > 0) customerName = parts[0].trim().toLowerCase();
     }
     var bookingId = (data.bookingId || data.id || (data.appointment ? data.appointment.id : '') || (data.bridal ? data.bridal.id : '') || '').toLowerCase();
+    var rawPhone = data.phone || data.mobile || '';
+    var cleanPhone = rawPhone.toString().replace(/\D/g, '').slice(-10);
     
-    try {
-      var dayStart = new Date(startTime.getTime());
-      dayStart.setHours(0, 0, 0, 0);
-      var dayEnd = new Date(startTime.getTime());
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      var sameDayEvents = cal.getEvents(dayStart, dayEnd);
-      for (var eIdx = 0; eIdx < sameDayEvents.length; eIdx++) {
-        var oldEv = sameDayEvents[eIdx];
-        var oldDesc = (oldEv.getDescription() || '').toLowerCase();
-        var oldTitle = (oldEv.getTitle() || '').toLowerCase();
-        var isDuplicate = false;
-        
-        // Match exact booking ref ID
-        if (bookingId && bookingId.length >= 3 && oldDesc.indexOf(bookingId) !== -1) {
-          isDuplicate = true;
-        }
-        // Match same customer name on that specific day (cleans up any older duplicate entries on this date)
-        else if (customerName && customerName.length >= 3 && oldTitle.indexOf(customerName) !== -1) {
-          isDuplicate = true;
-        }
-        else if (oldTitle === searchTitle) {
-          isDuplicate = true;
-        }
-        
-        if (isDuplicate) {
-          try {
-            oldEv.deleteEvent();
-          } catch (eDelOld) {}
-        }
-      }
-    } catch (eClean) {}
+    var dayStart = new Date(startTime.getTime());
+    dayStart.setHours(0, 0, 0, 0);
+    var dayEnd = new Date(startTime.getTime());
+    dayEnd.setHours(23, 59, 59, 999);
+    
+    // Clean duplicates in Primary Calendar
+    deleteMatchingEventsFromCal(cal, dayStart, dayEnd, bookingId, customerName, searchTitle, cleanPhone);
     
     // 👥 Multi-Account Guest Emails (All attendees + extra staff/owners)
     var guestList = [];
@@ -1032,22 +979,25 @@ function doPost(e) {
       }
     }
     
+    // Clean any old duplicate manual events from other calendars if accessible
+    for (var k = 0; k < guestList.length; k++) {
+      try {
+        var extraCal = CalendarApp.getCalendarById(guestList[k]);
+        if (extraCal && extraCal.getId() !== cal.getId()) {
+          deleteMatchingEventsFromCal(extraCal, dayStart, dayEnd, bookingId, customerName, searchTitle, cleanPhone);
+        }
+      } catch (eCleanExtra) {}
+    }
+    
     var eventOptions = {
       description: ev.description,
       location: ev.location,
       guests: guestList.join(','),
-      sendInvites: true // Sends Google Calendar invite to all accounts so it immediately appears in their calendar!
+      sendInvites: true // Sends Google Calendar invite so it appears cleanly in their calendar (1 single event, never duplicate!)
     };
     
-    // 1. Create event in Primary Google Calendar
+    // 1. Create event in Primary Google Calendar (Guests automatically receive 1 shared synced event)
     var createdEvent = cal.createEvent(ev.summary, startTime, endTime, eventOptions);
-    
-    // Explicitly add each guest to guarantee invitation delivery
-    for (var g = 0; g < guestList.length; g++) {
-      try {
-        createdEvent.addGuest(guestList[g]);
-      } catch (eG) {}
-    }
     
     // Dynamic Reminders from Salon Settings (Pop-up & Email)
     if (ev.reminders && ev.reminders.overrides && ev.reminders.overrides.length > 0) {
@@ -1064,25 +1014,11 @@ function doPost(e) {
       createdEvent.addEmailReminder(1440);
     }
     
-    // 2. Direct Multi-Calendar IDs Support (If shared with write access):
-    for (var k = 0; k < guestList.length; k++) {
-      try {
-        var extraCal = CalendarApp.getCalendarById(guestList[k]);
-        if (extraCal && extraCal.getId() !== cal.getId()) {
-          extraCal.createEvent(ev.summary, startTime, endTime, {
-            description: ev.description,
-            location: ev.location
-          });
-          if (deletePastDays > 0) cleanupPastSalonEvents(extraCal, deletePastDays);
-        }
-      } catch (eCal) {}
-    }
-    
     return ContentService.createTextOutput(JSON.stringify({
       success: true,
       eventId: createdEvent.getId(),
       syncedAccounts: guestList.length + 1,
-      message: "Event added to Google Calendar successfully & old events cleaned up!"
+      message: "Event added to Google Calendar successfully (single clean event for all accounts)!"
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({
@@ -1092,6 +1028,45 @@ function doPost(e) {
   }
 }
 
+// 🛡️ Helper to cleanly delete matching duplicate events from any calendar on a specific date range
+function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, customerName, searchTitle, cleanPhone) {
+  if (!calInstance) return 0;
+  var count = 0;
+  try {
+    var events = calInstance.getEvents(fromDate, toDate);
+    for (var d = 0; d < events.length; d++) {
+      var currentEv = events[d];
+      var cTitle = (currentEv.getTitle() || '').toLowerCase();
+      var cDesc = (currentEv.getDescription() || '').toLowerCase();
+      var match = false;
+
+      // 1. Exact Booking Ref ID match in description
+      if (bookingId && bookingId.length >= 3 && cDesc.indexOf(bookingId) !== -1) {
+        match = true;
+      }
+      // 2. Same customer name on that date
+      else if (customerName && customerName.length >= 3 && cTitle.indexOf(customerName) !== -1) {
+        match = true;
+      }
+      // 3. Same title or phone
+      else if (searchTitle && cTitle === searchTitle) {
+        match = true;
+      }
+      else if (cleanPhone && cleanPhone.length === 10 && (cDesc.indexOf(cleanPhone) !== -1 || cTitle.indexOf(cleanPhone) !== -1)) {
+        match = true;
+      }
+
+      if (match) {
+        try {
+          currentEv.deleteEvent();
+          count++;
+        } catch (eD) {}
+      }
+    }
+  } catch (e) {}
+  return count;
+}
+
 // 🧹 Automatic function to delete past salon events older than N days (Default: 2 days)
 function cleanupPastSalonEvents(cal, daysOld) {
   if (!cal) cal = CalendarApp.getDefaultCalendar();
@@ -1099,13 +1074,12 @@ function cleanupPastSalonEvents(cal, daysOld) {
   
   var now = new Date();
   var cutoffDate = new Date(now.getTime() - (daysOld * 24 * 60 * 60 * 1000));
-  var lookbackStart = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000)); // check past 90 days
+  var lookbackStart = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
   
   var pastEvents = cal.getEvents(lookbackStart, cutoffDate);
   for (var j = 0; j < pastEvents.length; j++) {
     var item = pastEvents[j];
     var title = item.getTitle() || "";
-    // Delete only salon appointment / bridal events (starting with 💅, 👑 or containing studio markers)
     if (title.indexOf('💅') === 0 || title.indexOf('👑') === 0 || title.indexOf('Shree') !== -1 || title.indexOf('—') !== -1) {
       try {
         item.deleteEvent();
@@ -1120,6 +1094,5 @@ function dailyAutoCleanup() {
   cleanupPastSalonEvents(CalendarApp.getDefaultCalendar(), 2);
 }
 
-// 3. Click "Deploy" -> "New deployment" (or "Manage deployments" -> Edit -> New Version)
-// 4. Set "Execute as: Me" and "Who has access: Anyone"
-// 5. Copy Web App URL and paste it in Shree Studio Settings -> Google Calendar!`;
+// 3. Click "Deploy" -> "Manage deployments" -> Edit -> "New version" -> "Deploy"
+// 4. Set "Execute as: Me" and "Who has access: Anyone"`;
