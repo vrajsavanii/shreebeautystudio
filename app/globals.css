@@ -1516,6 +1516,10 @@ a, button, input, select, textarea {
   transition: width 0.3s, height 0.3s;
 }
 
+.mobile-bottom-nav {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .dash-grid { grid-template-columns: 1fr; }
   .billing-layout { grid-template-columns: 1fr; }
