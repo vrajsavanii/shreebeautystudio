@@ -634,8 +634,31 @@ export default function AppointmentsPage() {
         })
         .catch(() => {});
     } else {
-      // If previous appointment date/time/customer changed, delete the old calendar event first
-      if (prevAppt && (prevAppt.date !== form.date || prevAppt.time !== form.time || prevAppt.customer !== form.customer)) {
+      const syncUpdatedAppt = () => {
+        fetch('/api/calendar/auto-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'appointment',
+            appointment: { ...form, id, email: cleanEmail },
+            settings: data?.settings,
+          }),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.success && res.provider !== 'feed_and_invite') {
+              toast('📅 Google Calendar માં Auto-Save થયું!');
+            } else if (!res.success) {
+              console.error('[Calendar Auto-Sync Failed]:', res.error || res.message);
+            }
+          })
+          .catch((err) => {
+            console.error('[Calendar Auto-Sync Error]:', err);
+          });
+      };
+
+      // If editing existing appointment, remove previous event first to prevent duplicates
+      if (prevAppt) {
         fetch('/api/calendar/auto-sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -644,29 +667,14 @@ export default function AppointmentsPage() {
             appointment: prevAppt,
             settings: data?.settings,
           }),
-        }).catch(() => {});
-      }
-
-      fetch('/api/calendar/auto-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'appointment',
-          appointment: { ...form, id, email: cleanEmail },
-          settings: data?.settings,
-        }),
-      })
-        .then((res) => res.json())
-        .then((res) => {
-          if (res.success && res.provider !== 'feed_and_invite') {
-            toast('📅 Google Calendar માં Auto-Save થયું!');
-          } else if (!res.success) {
-            console.error('[Calendar Auto-Sync Failed]:', res.error || res.message);
-          }
         })
-        .catch((err) => {
-          console.error('[Calendar Auto-Sync Error]:', err);
-        });
+          .catch(() => {})
+          .finally(() => {
+            syncUpdatedAppt();
+          });
+      } else {
+        syncUpdatedAppt();
+      }
     }
 
     setModalOpen(false);

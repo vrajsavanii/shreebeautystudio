@@ -634,16 +634,31 @@ const OTHER_EVENT_OPTIONS = [
         })
         .catch(() => {});
     } else {
-      // If previous booking dates or bride name changed, delete old calendar events first
-      if (
-        prevBridal &&
-        (prevBridal.name !== booking.name ||
-          prevBridal.weddingDate !== booking.weddingDate ||
-          prevBridal.sagaiDate !== booking.sagaiDate ||
-          prevBridal.mandapDate !== booking.mandapDate ||
-          prevBridal.musicDate !== booking.musicDate ||
-          prevBridal.otherDate !== booking.otherDate)
-      ) {
+      const syncUpdatedBridal = () => {
+        fetch('/api/calendar/auto-sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'bridal',
+            bridal: booking,
+            settings: data?.settings,
+          }),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.success && res.provider !== 'feed_and_invite') {
+              toast('📅 Bridal events Google Calendar માં Auto-Save થઈ!');
+            } else if (!res.success) {
+              console.error('[Bridal Calendar Auto-Sync Failed]:', res.error || res.message);
+            }
+          })
+          .catch((err) => {
+            console.error('[Bridal Calendar Auto-Sync Error]:', err);
+          });
+      };
+
+      // If editing existing bridal booking, delete old events first to prevent duplicates
+      if (prevBridal) {
         fetch('/api/calendar/auto-sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -652,29 +667,14 @@ const OTHER_EVENT_OPTIONS = [
             bridal: prevBridal,
             settings: data?.settings,
           }),
-        }).catch(() => {});
-      }
-
-      fetch('/api/calendar/auto-sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'bridal',
-          bridal: booking,
-          settings: data?.settings,
-        }),
-      })
-        .then((res) => res.json())
-        .then((res) => {
-          if (res.success && res.provider !== 'feed_and_invite') {
-            toast('📅 Bridal events Google Calendar માં Auto-Save થઈ!');
-          } else if (!res.success) {
-            console.error('[Bridal Calendar Auto-Sync Failed]:', res.error || res.message);
-          }
         })
-        .catch((err) => {
-          console.error('[Bridal Calendar Auto-Sync Error]:', err);
-        });
+          .catch(() => {})
+          .finally(() => {
+            syncUpdatedBridal();
+          });
+      } else {
+        syncUpdatedBridal();
+      }
     }
 
     setModalOpen(false);

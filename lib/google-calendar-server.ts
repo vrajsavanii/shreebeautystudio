@@ -978,6 +978,32 @@ function doPost(e) {
     var startTime = new Date(ev.start.dateTime);
     var endTime = new Date(ev.end.dateTime);
     
+    // 🛡️ Deduplicate / Prevent Double Events on Edit: Remove any existing event for same booking/customer first
+    var searchTitle = (ev.summary || '').toLowerCase();
+    var customerName = (data.customerName || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
+    var bookingId = (data.bookingId || data.id || (data.appointment ? data.appointment.id : '') || (data.bridal ? data.bridal.id : '') || '').toLowerCase();
+    
+    try {
+      var checkFrom = new Date(startTime.getTime() - (24 * 60 * 60 * 1000));
+      var checkTo = new Date(endTime.getTime() + (24 * 60 * 60 * 1000));
+      var existingEvents = cal.getEvents(checkFrom, checkTo);
+      for (var eIdx = 0; eIdx < existingEvents.length; eIdx++) {
+        var oldEv = existingEvents[eIdx];
+        var oldDesc = (oldEv.getDescription() || '').toLowerCase();
+        var oldTitle = (oldEv.getTitle() || '').toLowerCase();
+        var isDuplicate = false;
+        if (bookingId && (oldDesc.indexOf(bookingId) !== -1 || oldTitle.indexOf(bookingId) !== -1)) isDuplicate = true;
+        if (customerName && customerName.length >= 3 && (oldTitle.indexOf(customerName) !== -1 || oldDesc.indexOf(customerName) !== -1)) isDuplicate = true;
+        if (searchTitle && searchTitle.length > 5 && oldTitle.indexOf(searchTitle) !== -1) isDuplicate = true;
+        
+        if (isDuplicate) {
+          try {
+            oldEv.deleteEvent();
+          } catch (eDelOld) {}
+        }
+      }
+    } catch (eClean) {}
+    
     // 👥 Multi-Account Guest Emails (All attendees + extra staff/owners)
     var guestList = [];
     if (ev.attendees && Array.isArray(ev.attendees)) {
