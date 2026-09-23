@@ -1420,99 +1420,175 @@ export default function SettingsPage() {
 
               {/* Notification & Auto-Reminder Timing Customization */}
               <div style={{ background: '#ffffff', border: '1.5px solid #bae6fd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <Bell size={16} color="#0284c7" /> 🔔 Notification &amp; Auto-Reminder Timings (રિમાઇન્ડર ક્યારે મળવું જોઈએ)
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#0369a1', background: '#e0f2fe', padding: '3px 8px', borderRadius: 6, border: '1px solid #bae6fd' }}>
-                    ⚙️ Edit Option
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: '#475569', marginBottom: 14, lineHeight: 1.5 }}>
-                  અપોઇન્ટમેન્ટ અને બ્રાઇડલ બુકિંગના કેટલા સમય પહેલા તમારા અને સ્ટાફના ફોનમાં Google Calendar નોટિફિકેશન રિમાઇન્ડર આવવું જોઈએ તે અહીંથી પસંદ કરો:
-                </div>
+                {(() => {
+                  const r1 = s.calendarApptReminderMinutes1 !== undefined ? s.calendarApptReminderMinutes1 : 60;
+                  const r2 = s.calendarApptReminderMinutes2 !== undefined ? s.calendarApptReminderMinutes2 : 1440;
+                  const br1 = s.calendarBridalReminderMinutes1 !== undefined ? s.calendarBridalReminderMinutes1 : 1440;
+                  const br2 = s.calendarBridalReminderMinutes2 !== undefined ? s.calendarBridalReminderMinutes2 : 120;
+                  const areAllRemindersOff = r1 === 0 && r2 === 0 && br1 === 0 && br2 === 0 && s.calendarEmailReminderEnabled === false;
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14, marginBottom: 14 }}>
-                  {/* Appointment Reminders */}
-                  <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: 14 }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      💅 Regular Appointment Reminders
-                    </div>
-                    
-                    <div className="form-group" style={{ marginBottom: 10 }}>
-                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>૧. પહેલું રિમાઇન્ડર (1st Notification)</label>
-                      <select
-                        className="input"
-                        value={s.calendarApptReminderMinutes1 !== undefined ? s.calendarApptReminderMinutes1 : 60}
-                        onChange={(e) => update('calendarApptReminderMinutes1', Number(e.target.value))}
-                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
-                      >
-                        <option value={15}>⏱️ 15 મિનિટ પહેલા (15 mins before)</option>
-                        <option value={30}>⏱️ 30 મિનિટ પહેલા (30 mins before)</option>
-                        <option value={45}>⏱️ 45 મિનિટ પહેલા (45 mins before)</option>
-                        <option value={60}>⏰ 1 કલાક પહેલા (1 hour before - Default)</option>
-                        <option value={120}>⏰ 2 કલાક પહેલા (2 hours before)</option>
-                        <option value={180}>⏰ 3 કલાક પહેલા (3 hours before)</option>
-                        <option value={1440}>📅 1 દિવસ પહેલા (24 hours before)</option>
-                      </select>
-                    </div>
+                  const handleToggleAllReminders = () => {
+                    if (areAllRemindersOff) {
+                      // Turn back ON to smart defaults
+                      update('calendarApptReminderMinutes1', 60);
+                      update('calendarApptReminderMinutes2', 1440);
+                      update('calendarBridalReminderMinutes1', 1440);
+                      update('calendarBridalReminderMinutes2', 120);
+                      update('calendarEmailReminderEnabled', true);
+                      toast('🔔 Google Calendar રિમાઇન્ડર ચાલુ કર્યા (Default Timings Restored)!', 'success');
+                    } else {
+                      // Turn completely OFF
+                      update('calendarApptReminderMinutes1', 0);
+                      update('calendarApptReminderMinutes2', 0);
+                      update('calendarBridalReminderMinutes1', 0);
+                      update('calendarBridalReminderMinutes2', 0);
+                      update('calendarEmailReminderEnabled', false);
+                      toast('🔕 બધા Google Calendar રિમાઇન્ડર સંપૂર્ણપણે બંધ (OFF) કરી દીધા છે!', 'info');
+                    }
+                  };
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>૨. બીજું રિમાઇન્ડર (2nd Notification)</label>
-                      <select
-                        className="input"
-                        value={s.calendarApptReminderMinutes2 !== undefined ? s.calendarApptReminderMinutes2 : 1440}
-                        onChange={(e) => update('calendarApptReminderMinutes2', Number(e.target.value))}
-                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
-                      >
-                        <option value={0}>❌ બંધ / જરૂર નથી (None)</option>
-                        <option value={30}>⏱️ 30 મિનિટ પહેલા (30 mins before)</option>
-                        <option value={60}>⏰ 1 કલાક પહેલા (1 hour before)</option>
-                        <option value={120}>⏰ 2 કલાક પહેલા (2 hours before)</option>
-                        <option value={1440}>📅 1 દિવસ પહેલા (1 day before - Default)</option>
-                        <option value={2880}>📅 2 દિવસ પહેલા (2 days before)</option>
-                      </select>
-                    </div>
-                  </div>
+                  return (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 7 }}>
+                          <Bell size={16} color="#0284c7" /> 🔔 Notification &amp; Auto-Reminder Timings (રિમાઇન્ડર કંટ્રોલ)
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: areAllRemindersOff ? '#991b1b' : '#0369a1',
+                              background: areAllRemindersOff ? '#fee2e2' : '#e0f2fe',
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              border: `1px solid ${areAllRemindersOff ? '#fca5a5' : '#bae6fd'}`,
+                            }}
+                          >
+                            {areAllRemindersOff ? '🔕 રિમાઇન્ડર બંધ છે (OFF)' : '🔔 રિમાઇન્ડર ચાલુ છે (Active)'}
+                          </span>
+                          <motion.button
+                            type="button"
+                            onClick={handleToggleAllReminders}
+                            whileTap={{ scale: 0.96 }}
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              padding: '5px 12px',
+                              borderRadius: 8,
+                              border: areAllRemindersOff ? '1.5px solid #16a34a' : '1.5px solid #ef4444',
+                              background: areAllRemindersOff ? '#dcfce7' : '#fef2f2',
+                              color: areAllRemindersOff ? '#15803d' : '#dc2626',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                            }}
+                          >
+                            {areAllRemindersOff ? (
+                              <>
+                                <Bell size={13} color="#15803d" /> 🔔 બધા રિમાઇન્ડર ચાલુ કરો (Turn ON)
+                              </>
+                            ) : (
+                              <>
+                                <span>🔕</span> બધા રિમાઇન્ડર બંધ કરો (Turn OFF)
+                              </>
+                            )}
+                          </motion.button>
+                        </div>
+                      </div>
 
-                  {/* Bridal Reminders */}
-                  <div style={{ background: '#fdf4ff', border: '1.5px solid #f5d0fe', borderRadius: 10, padding: 14 }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, color: '#86198f', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      👑 Bridal Booking Reminders
-                    </div>
-                    
-                    <div className="form-group" style={{ marginBottom: 10 }}>
-                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#701a75' }}>૧. અગાઉનું રિમાઇન્ડર (Early Reminder)</label>
-                      <select
-                        className="input"
-                        value={s.calendarBridalReminderMinutes1 !== undefined ? s.calendarBridalReminderMinutes1 : 1440}
-                        onChange={(e) => update('calendarBridalReminderMinutes1', Number(e.target.value))}
-                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
-                      >
-                        <option value={1440}>📅 1 દિવસ પહેલા (1 day before - Default)</option>
-                        <option value={2880}>📅 2 દિવસ પહેલા (2 days before)</option>
-                        <option value={4320}>📅 3 દિવસ પહેલા (3 days before)</option>
-                        <option value={10080}>🗓️ 1 અઠવાડિયું પહેલા (7 days before)</option>
-                      </select>
-                    </div>
+                      <div style={{ fontSize: 12, color: '#475569', marginBottom: 14, lineHeight: 1.5 }}>
+                        અપોઇન્ટમેન્ટ અને બ્રાઇડલ બુકિંગના કેટલા સમય પહેલા Google Calendar નોટિફિકેશન રિમાઇન્ડર આવવું જોઈએ તે પસંદ કરો (અથવા ઉપરના બટનથી બધા રિમાઇન્ડર ૧-ક્લિકમાં બંધ કરો):
+                      </div>
 
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#701a75' }}>૨. ઇવેન્ટના દિવસે રિમાઇન્ડર (Event Day Reminder)</label>
-                      <select
-                        className="input"
-                        value={s.calendarBridalReminderMinutes2 !== undefined ? s.calendarBridalReminderMinutes2 : 120}
-                        onChange={(e) => update('calendarBridalReminderMinutes2', Number(e.target.value))}
-                        style={{ fontSize: 12, background: '#fff', fontWeight: 600 }}
-                      >
-                        <option value={0}>❌ બંધ / જરૂર નથી (None)</option>
-                        <option value={60}>⏰ 1 કલાક પહેલા (1 hour before)</option>
-                        <option value={120}>⏰ 2 કલાક પહેલા (2 hours before - Default)</option>
-                        <option value={240}>⏰ 4 કલાક પહેલા (4 hours before)</option>
-                        <option value={1440}>📅 1 દિવસ પહેલા (1 day before)</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 14, marginBottom: 14 }}>
+                        {/* Appointment Reminders */}
+                        <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: 14 }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            💅 Regular Appointment Reminders
+                          </div>
+                          
+                          <div className="form-group" style={{ marginBottom: 10 }}>
+                            <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>૧. પહેલું રિમાઇન્ડર (1st Notification)</label>
+                            <select
+                              className="input"
+                              value={s.calendarApptReminderMinutes1 !== undefined ? s.calendarApptReminderMinutes1 : 60}
+                              onChange={(e) => update('calendarApptReminderMinutes1', Number(e.target.value))}
+                              style={{ fontSize: 12, background: '#fff', fontWeight: 600, color: (s.calendarApptReminderMinutes1 === 0) ? '#dc2626' : '#0f172a' }}
+                            >
+                              <option value={0}>❌ બંધ / કોઈ રિમાઇન્ડર નહીં (Off / None)</option>
+                              <option value={15}>⏱️ 15 મિનિટ પહેલા (15 mins before)</option>
+                              <option value={30}>⏱️ 30 મિનિટ પહેલા (30 mins before)</option>
+                              <option value={45}>⏱️ 45 મિનિટ પહેલા (45 mins before)</option>
+                              <option value={60}>⏰ 1 કલાક પહેલા (1 hour before - Default)</option>
+                              <option value={120}>⏰ 2 કલાક પહેલા (2 hours before)</option>
+                              <option value={180}>⏰ 3 કલાક પહેલા (3 hours before)</option>
+                              <option value={1440}>📅 1 દિવસ પહેલા (24 hours before)</option>
+                            </select>
+                          </div>
+
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>૨. બીજું રિમાઇન્ડર (2nd Notification)</label>
+                            <select
+                              className="input"
+                              value={s.calendarApptReminderMinutes2 !== undefined ? s.calendarApptReminderMinutes2 : 1440}
+                              onChange={(e) => update('calendarApptReminderMinutes2', Number(e.target.value))}
+                              style={{ fontSize: 12, background: '#fff', fontWeight: 600, color: (s.calendarApptReminderMinutes2 === 0) ? '#dc2626' : '#0f172a' }}
+                            >
+                              <option value={0}>❌ બંધ / કોઈ રિમાઇન્ડર નહીં (Off / None)</option>
+                              <option value={30}>⏱️ 30 મિનિટ પહેલા (30 mins before)</option>
+                              <option value={60}>⏰ 1 કલાક પહેલા (1 hour before)</option>
+                              <option value={120}>⏰ 2 કલાક પહેલા (2 hours before)</option>
+                              <option value={1440}>📅 1 દિવસ પહેલા (1 day before - Default)</option>
+                              <option value={2880}>📅 2 દિવસ પહેલા (2 days before)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Bridal Reminders */}
+                        <div style={{ background: '#fdf4ff', border: '1.5px solid #f5d0fe', borderRadius: 10, padding: 14 }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: '#86198f', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            👑 Bridal Booking Reminders
+                          </div>
+                          
+                          <div className="form-group" style={{ marginBottom: 10 }}>
+                            <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#701a75' }}>૧. અગાઉનું રિમાઇન્ડર (Early Reminder)</label>
+                            <select
+                              className="input"
+                              value={s.calendarBridalReminderMinutes1 !== undefined ? s.calendarBridalReminderMinutes1 : 1440}
+                              onChange={(e) => update('calendarBridalReminderMinutes1', Number(e.target.value))}
+                              style={{ fontSize: 12, background: '#fff', fontWeight: 600, color: (s.calendarBridalReminderMinutes1 === 0) ? '#dc2626' : '#0f172a' }}
+                            >
+                              <option value={0}>❌ બંધ / કોઈ રિમાઇન્ડર નહીં (Off / None)</option>
+                              <option value={1440}>📅 1 દિવસ પહેલા (1 day before - Default)</option>
+                              <option value={2880}>📅 2 દિવસ પહેલા (2 days before)</option>
+                              <option value={4320}>📅 3 દિવસ પહેલા (3 days before)</option>
+                              <option value={10080}>🗓️ 1 અઠવાડિયું પહેલા (7 days before)</option>
+                            </select>
+                          </div>
+
+                          <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label className="label" style={{ fontSize: 11.5, fontWeight: 700, color: '#701a75' }}>૨. ઇવેન્ટના દિવસે રિમાઇન્ડર (Event Day Reminder)</label>
+                            <select
+                              className="input"
+                              value={s.calendarBridalReminderMinutes2 !== undefined ? s.calendarBridalReminderMinutes2 : 120}
+                              onChange={(e) => update('calendarBridalReminderMinutes2', Number(e.target.value))}
+                              style={{ fontSize: 12, background: '#fff', fontWeight: 600, color: (s.calendarBridalReminderMinutes2 === 0) ? '#dc2626' : '#0f172a' }}
+                            >
+                              <option value={0}>❌ બંધ / કોઈ રિમાઇન્ડર નહીં (Off / None)</option>
+                              <option value={60}>⏰ 1 કલાક પહેલા (1 hour before)</option>
+                              <option value={120}>⏰ 2 કલાક પહેલા (2 hours before - Default)</option>
+                              <option value={240}>⏰ 4 કલાક પહેલા (4 hours before)</option>
+                              <option value={1440}>📅 1 દિવસ પહેલા (1 day before)</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* Email Reminder Toggle */}
                 <label className="toggle-label" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 12 }}>

@@ -251,7 +251,7 @@ export function buildAppointmentEventPayload(
     end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
     reminders: {
       useDefault: false,
-      overrides: overrides.length > 0 ? overrides : [{ method: 'popup', minutes: 60 }],
+      overrides: overrides,
     },
     attendees: attendees.length > 0 ? attendees : undefined,
   };
@@ -333,7 +333,7 @@ export function buildBridalEventPayloads(
       end: { dateTime: endISO, timeZone: 'Asia/Kolkata' },
       reminders: {
         useDefault: false,
-        overrides: bridalOverrides.length > 0 ? bridalOverrides : [{ method: 'popup', minutes: 1440 }, { method: 'popup', minutes: 120 }],
+        overrides: bridalOverrides,
       },
       attendees: attendees.length > 0 ? attendees : undefined,
     };
@@ -996,11 +996,11 @@ function doPost(e) {
       sendInvites: true // Sends Google Calendar invite so it appears cleanly in their calendar (1 single event, never duplicate!)
     };
     
-    // 1. Create event in Primary Google Calendar (Guests automatically receive 1 shared synced event)
+    // 1. Create single shared event in Primary Google Calendar
     var createdEvent = cal.createEvent(ev.summary, startTime, endTime, eventOptions);
     
     // Dynamic Reminders from Salon Settings (Pop-up & Email)
-    if (ev.reminders && ev.reminders.overrides && ev.reminders.overrides.length > 0) {
+    if (ev.reminders && Array.isArray(ev.reminders.overrides)) {
       for (var r = 0; r < ev.reminders.overrides.length; r++) {
         var rem = ev.reminders.overrides[r];
         if (rem.method === 'email') {
@@ -1009,7 +1009,7 @@ function doPost(e) {
           createdEvent.addPopupReminder(rem.minutes);
         }
       }
-    } else {
+    } else if (!ev.reminders) {
       createdEvent.addPopupReminder(60);
       createdEvent.addEmailReminder(1440);
     }
