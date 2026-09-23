@@ -213,6 +213,7 @@ export function buildAppointmentEventPayload(
     `📅 Date & Time: ${a.date} at ${a.time}`,
     a.advance ? `💵 Advance Paid: ₹${a.advance}` : '',
     a.notes ? `📝 Special Notes: ${a.notes}` : '',
+    `🔖 Ref ID: ${a.id}`,
     `📍 Location: ${address}`,
     `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
   ].filter(Boolean);
@@ -320,6 +321,7 @@ export function buildBridalEventPayloads(
       `💰 Total Package: ₹${b.package || b.totalAmount || 0}`,
       b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
       b.notes ? `📝 Special Notes: ${b.notes}` : '',
+      `🔖 Ref ID: ${b.id}-${eventLabel}`,
       `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
     ].filter(Boolean);
 
@@ -895,25 +897,28 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var cal = CalendarApp.getDefaultCalendar();
 
-    // 🗑️ 1. DELETE / CANCEL EVENT ACTION (અપોઇન્ટમેન્ટ કે બ્રાઇડલ કેન્સલ/ડિલીટ થાય ત્યારે ઇવેન્ટ ડિલીટ કરવી)
-    if (data && (data.action === 'delete_event' || data.action === 'cancel_event' || data.type === 'delete_appointment' || data.type === 'delete_bridal')) {
+    // 🗑️ 1. DELETE / CANCEL EVENT ACTION
+    if (data && (data.action === 'delete_event' || data.action === 'cancel_event' || data.type === 'delete_appointment' || data.type === 'delete_bridal' || data.type === 'delete_holiday')) {
       var searchTitle = (data.title || (data.event ? data.event.summary : '') || '').toLowerCase();
       var customerName = (data.customerName || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
       var bookingId = (data.bookingId || data.id || '').toLowerCase();
       var rawPhone = data.phone || data.mobile || '';
       var cleanPhone = rawPhone.toString().replace(/\D/g, '').slice(-10);
-      var searchDateStr = data.date || (data.event && data.event.start && data.event.start.dateTime ? data.event.start.dateTime : null);
+      var searchDateStr = data.date || (data.event && data.event.start && data.event.start.dateTime ? data.event.start.dateTime.split('T')[0] : null);
 
-      var now = new Date();
-      var fromDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() - (30 * 24 * 60 * 60 * 1000)) : new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-      var toDate = searchDateStr ? new Date(new Date(searchDateStr).getTime() + (90 * 24 * 60 * 60 * 1000)) : new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
-
-      if (isNaN(fromDate.getTime())) fromDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-      if (isNaN(toDate.getTime())) toDate = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
+      var fromDate, toDate;
+      if (searchDateStr) {
+        // Strictly check only THAT SPECIFIC DAY (+/- 12 hours) so other appointments of the same customer are NEVER deleted!
+        fromDate = new Date(searchDateStr + 'T00:00:00+05:30');
+        toDate = new Date(searchDateStr + 'T23:59:59+05:30');
+      } else {
+        var now = new Date();
+        fromDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        toDate = new Date(now.getTime() + (90 * 24 * 60 * 60 * 1000));
+      }
 
       var events = cal.getEvents(fromDate, toDate);
       var deletedCount = 0;
-      var nameWords = customerName.split(/\s+/).filter(function(w) { return w.length >= 3; });
 
       for (var d = 0; d < events.length; d++) {
         var currentEv = events[d];
@@ -921,18 +926,16 @@ function doPost(e) {
         var cDesc = (currentEv.getDescription() || '').toLowerCase();
 
         var match = false;
-        if (bookingId && (cDesc.indexOf(bookingId) !== -1 || cTitle.indexOf(bookingId) !== -1)) match = true;
-        if (cleanPhone && cleanPhone.length === 10 && (cDesc.indexOf(cleanPhone) !== -1 || cTitle.indexOf(cleanPhone) !== -1)) match = true;
-        if (customerName && customerName.length >= 3 && (cTitle.indexOf(customerName) !== -1 || cDesc.indexOf(customerName) !== -1)) match = true;
-        if (searchTitle && searchTitle.length > 3 && cTitle.indexOf(searchTitle) !== -1) match = true;
-
-        if (!match && nameWords.length > 0) {
-          for (var nw = 0; nw < nameWords.length; nw++) {
-            if (cTitle.indexOf(nameWords[nw]) !== -1 || cDesc.indexOf(nameWords[nw]) !== -1) {
-              match = true;
-              break;
-            }
-          }
+        // 1. Exact Booking Ref ID match in description (100% precise)
+        if (bookingId && bookingId.length >= 3 && cDesc.indexOf(bookingId) !== -1) {
+          match = true;
+        }
+        // 2. Same-day match for customer + phone or title
+        else if (searchDateStr && customerName && customerName.length >= 3 && (cTitle.indexOf(customerName) !== -1 || cDesc.indexOf(customerName) !== -1)) {
+          match = true;
+        }
+        else if (searchDateStr && cleanPhone && cleanPhone.length === 10 && (cDesc.indexOf(cleanPhone) !== -1 || cTitle.indexOf(cleanPhone) !== -1)) {
+          match = true;
         }
 
         if (match) {
@@ -940,39 +943,6 @@ function doPost(e) {
             currentEv.deleteEvent();
             deletedCount++;
           } catch (eD) {}
-        }
-      }
-
-      // If 0 deleted in narrow window, search wider calendar range
-      if (deletedCount === 0) {
-        var wideFrom = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-        var wideTo = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
-        var wideEvents = cal.getEvents(wideFrom, wideTo);
-        for (var w = 0; w < wideEvents.length; w++) {
-          var wEv = wideEvents[w];
-          var wTitle = (wEv.getTitle() || '').toLowerCase();
-          var wDesc = (wEv.getDescription() || '').toLowerCase();
-
-          var wMatch = false;
-          if (bookingId && (wDesc.indexOf(bookingId) !== -1 || wTitle.indexOf(bookingId) !== -1)) wMatch = true;
-          if (cleanPhone && cleanPhone.length === 10 && (wDesc.indexOf(cleanPhone) !== -1 || wTitle.indexOf(cleanPhone) !== -1)) wMatch = true;
-          if (customerName && customerName.length >= 3 && (wTitle.indexOf(customerName) !== -1 || wDesc.indexOf(customerName) !== -1)) wMatch = true;
-
-          if (!wMatch && nameWords.length > 0) {
-            for (var wnw = 0; wnw < nameWords.length; wnw++) {
-              if (wTitle.indexOf(nameWords[wnw]) !== -1 || wDesc.indexOf(nameWords[wnw]) !== -1) {
-                wMatch = true;
-                break;
-              }
-            }
-          }
-
-          if (wMatch) {
-            try {
-              wEv.deleteEvent();
-              deletedCount++;
-            } catch (eWD) {}
-          }
         }
       }
 
@@ -1006,23 +976,35 @@ function doPost(e) {
     var startTime = new Date(ev.start.dateTime);
     var endTime = new Date(ev.end.dateTime);
     
-    // 🛡️ Deduplicate / Prevent Double Events on Edit: Remove any existing event for same booking/customer first
+    // 🛡️ Deduplicate on THAT EXACT DAY ONLY: Remove existing event for this same booking/customer
     var searchTitle = (ev.summary || '').toLowerCase();
     var customerName = (data.customerName || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
     var bookingId = (data.bookingId || data.id || (data.appointment ? data.appointment.id : '') || (data.bridal ? data.bridal.id : '') || '').toLowerCase();
     
     try {
-      var checkFrom = new Date(startTime.getTime() - (24 * 60 * 60 * 1000));
-      var checkTo = new Date(endTime.getTime() + (24 * 60 * 60 * 1000));
-      var existingEvents = cal.getEvents(checkFrom, checkTo);
-      for (var eIdx = 0; eIdx < existingEvents.length; eIdx++) {
-        var oldEv = existingEvents[eIdx];
+      var dayStart = new Date(startTime.getTime());
+      dayStart.setHours(0, 0, 0, 0);
+      var dayEnd = new Date(startTime.getTime());
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      var sameDayEvents = cal.getEvents(dayStart, dayEnd);
+      for (var eIdx = 0; eIdx < sameDayEvents.length; eIdx++) {
+        var oldEv = sameDayEvents[eIdx];
         var oldDesc = (oldEv.getDescription() || '').toLowerCase();
         var oldTitle = (oldEv.getTitle() || '').toLowerCase();
         var isDuplicate = false;
-        if (bookingId && (oldDesc.indexOf(bookingId) !== -1 || oldTitle.indexOf(bookingId) !== -1)) isDuplicate = true;
-        if (customerName && customerName.length >= 3 && (oldTitle.indexOf(customerName) !== -1 || oldDesc.indexOf(customerName) !== -1)) isDuplicate = true;
-        if (searchTitle && searchTitle.length > 5 && oldTitle.indexOf(searchTitle) !== -1) isDuplicate = true;
+        
+        // Match exact booking ref ID
+        if (bookingId && bookingId.length >= 3 && oldDesc.indexOf(bookingId) !== -1) {
+          isDuplicate = true;
+        }
+        // Match same customer & similar time on that specific day
+        else if (customerName && customerName.length >= 3 && oldTitle.indexOf(customerName) !== -1) {
+          var oldStart = oldEv.getStartTime();
+          if (Math.abs(oldStart.getTime() - startTime.getTime()) < (3 * 60 * 60 * 1000) || oldTitle === searchTitle) {
+            isDuplicate = true;
+          }
+        }
         
         if (isDuplicate) {
           try {
