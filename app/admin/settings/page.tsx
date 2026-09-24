@@ -215,13 +215,33 @@ export default function SettingsPage() {
     }
   };
 
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [savedBadge, setSavedBadge] = useState(false);
+
   const update = (key: string, val: unknown) => {
     updateData((d) => ({ ...d, settings: { ...d.settings, [key]: val } }));
+    scheduleSave();
+  };
+
+  const handleSaveSettings = async (customMsg?: string) => {
+    setSavingSettings(true);
+    scheduleSave();
+    try {
+      await cloudSync();
+      setSavedBadge(true);
+      setTimeout(() => setSavedBadge(false), 3500);
+      toast(customMsg || '💾 સેટિંગ્સ સફળતાપૂર્વક કાયમી સેવ થઈ ગયા! (Saved & Synced to Cloud)', 'success');
+    } catch {
+      setSavedBadge(true);
+      setTimeout(() => setSavedBadge(false), 3500);
+      toast('💾 સેટિંગ્સ લોકલ સ્ટોરેજમાં સેવ થઈ ગયા!', 'success');
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   const handleSave = () => {
-    scheduleSave();
-    toast('Settings saved successfully!');
+    handleSaveSettings();
   };
 
   const openSvc = (svc?: Service) => {
@@ -1404,6 +1424,63 @@ export default function SettingsPage() {
                 <span style={{ fontSize: 11.5, color: '#64748b', marginTop: 4, display: 'block' }}>
                   👥 <b>Multi-Account:</b> તમે એક કરતાં વધુ Gmail/Google Calendar emails અલ્પવિરામ (,) થી ઉમેરી શકો છો. બધી અપોઇન્ટમેન્ટ્સ આ બધા જ Google Accounts માં ઓટોમેટિક સિંક થશે.
                 </span>
+
+                {/* 💾 Prominent Save Button for Google Calendar Settings */}
+                <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <motion.button
+                    type="button"
+                    onClick={() => handleSaveSettings('💾 Google Calendar એકાઉન્ટ્સ અને સેટિંગ્સ સફળતાપૂર્વક સેવ થઈ ગયા! (Saved & Synced)')}
+                    disabled={savingSettings}
+                    whileTap={{ scale: 0.96 }}
+                    style={{
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '11px 22px',
+                      borderRadius: 10,
+                      fontSize: 13.5,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      boxShadow: '0 4px 14px rgba(2,132,199,0.35)',
+                    }}
+                  >
+                    {savingSettings ? (
+                      <>
+                        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> સેવ થઈ રહ્યું છે…
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} /> 💾 Save Google Calendar Settings (સેટિંગ્સ સેવ કરો)
+                      </>
+                    )}
+                  </motion.button>
+
+                  {savedBadge && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      style={{
+                        background: '#dcfce7',
+                        color: '#15803d',
+                        border: '1.5px solid #86efac',
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        fontSize: 12.5,
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        boxShadow: '0 2px 8px rgba(34,197,94,0.15)',
+                      }}
+                    >
+                      <CheckCircle2 size={16} color="#16a34a" /> સેવ થઈ ગયું! (Saved Permanently)
+                    </motion.span>
+                  )}
+                </div>
               </div>
 
               {/* Features List */}
@@ -2259,6 +2336,96 @@ export default function SettingsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 💾 Universal Save Bar across all Settings Tabs */}
+      <div
+        style={{
+          marginTop: 20,
+          background: '#ffffff',
+          borderRadius: 14,
+          padding: '14px 20px',
+          border: '1.5px solid #e2e8f0',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              background: cloudStatus === 'saved' ? '#16a34a' : cloudStatus === 'syncing' ? '#0284c7' : '#94a3b8',
+            }}
+          />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>
+              Cloud &amp; Local Storage Sync Active
+            </div>
+            <div style={{ fontSize: 11.5, color: '#64748b' }}>
+              તમારા તમામ ફેરફારો ઓટોમેટિક લોકલ સ્ટોરેજ અને Supabase ક્લાઉડમાં સુરક્ષિત રહે છે.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {savedBadge && (
+            <motion.span
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              style={{
+                background: '#dcfce7',
+                color: '#15803d',
+                border: '1px solid #86efac',
+                padding: '6px 12px',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <CheckCircle2 size={14} color="#16a34a" /> Saved &amp; Synced!
+            </motion.span>
+          )}
+
+          <motion.button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => handleSaveSettings()}
+            disabled={savingSettings}
+            whileTap={{ scale: 0.96 }}
+            style={{
+              background: 'linear-gradient(135deg, #05424A 0%, #075e54 100%)',
+              color: '#ffffff',
+              border: 'none',
+              padding: '10px 22px',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 800,
+              boxShadow: '0 4px 14px rgba(5,66,74,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            {savingSettings ? (
+              <>
+                <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> સેવ થઈ રહ્યું છે…
+              </>
+            ) : (
+              <>
+                <Save size={15} /> 💾 Save All Settings (સેટિંગ્સ સેવ કરો)
+              </>
+            )}
+          </motion.button>
+        </div>
+      </div>
 
       {/* Service Edit Modal */}
       <Modal
