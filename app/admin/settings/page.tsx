@@ -200,6 +200,48 @@ export default function SettingsPage() {
     }
   };
 
+  // Google Calendar Purge / Delete State
+  const [purgeName, setPurgeName] = useState('');
+  const [purgingCalendar, setPurgingCalendar] = useState(false);
+  const [purgeResult, setPurgeResult] = useState<{ success: boolean; msg: string } | null>(null);
+
+  const handlePurgeCalendar = async () => {
+    if (!purgeName.trim()) {
+      toast('નામ અથવા મોબાઇલ નંબર દાખલ કરો', 'warning');
+      return;
+    }
+    setPurgingCalendar(true);
+    setPurgeResult(null);
+    try {
+      const res = await fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_event',
+          customerName: purgeName.trim(),
+          title: purgeName.trim(),
+          settings: s,
+        }),
+      });
+      const resJson = await res.json();
+      if (resJson.success) {
+        toast(`🗑️ "${purgeName}" ની events Google Calendar માંથી ડિલીટ કરી દેવાઈ! (${resJson.message || 'Done'})`);
+        setPurgeResult({
+          success: true,
+          msg: `✅ "${purgeName}" ની events Google Calendar માંથી સફળતાપૂર્વક હટાવી દેવામાં આવી! (${resJson.message || 'Cleaned'})`,
+        });
+      } else {
+        toast(resJson.error || 'Failed to delete events from Google Calendar', 'error');
+        setPurgeResult({ success: false, msg: `❌ ${resJson.error || 'Failed to delete'}` });
+      }
+    } catch (err: any) {
+      toast('Network error during Google Calendar delete', 'error');
+      setPurgeResult({ success: false, msg: `❌ ${err.message}` });
+    } finally {
+      setPurgingCalendar(false);
+    }
+  };
+
   const handleCopyScriptCode = () => {
     if (typeof window !== 'undefined') {
       navigator.clipboard.writeText(SAMPLE_GOOGLE_APPS_SCRIPT_CODE);
@@ -1782,6 +1824,84 @@ export default function SettingsPage() {
                     {calendarTestResult.msg}
                   </span>
                 )}
+              </div>
+            </div>
+
+            {/* 🧹 Instant Purge / Delete Events from Google Calendar */}
+            <div style={{ background: '#fff', border: '1.5px solid #fecaca', borderRadius: 14, padding: 18, marginTop: 14 }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Trash2 size={16} color="#dc2626" /> 🧹 Google Calendar માંથી ઇવેન્ટ હટાવો (Delete / Purge Tool)
+              </h3>
+              <div style={{ fontSize: 12.5, color: '#7f1d1d', marginBottom: 12 }}>
+                કોઈપણ ગ્રાહકનું નામ (જેમ કે <strong>SANDIP</strong> અથવા <strong>pk</strong>) અથવા મોબાઇલ નંબર લખીને Google Calendar માંથી બધી જ ઇવેન્ટ એક ક્લિકમાં ડિલીટ કરો.
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="ગ્રાહકનું નામ લખો (e.g. SANDIP, pk)"
+                  value={purgeName}
+                  onChange={(e) => setPurgeName(e.target.value)}
+                  style={{ maxWidth: 280, fontSize: 13 }}
+                />
+                <motion.button
+                  type="button"
+                  className="btn"
+                  onClick={handlePurgeCalendar}
+                  disabled={purgingCalendar || !purgeName.trim()}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    background: '#dc2626',
+                    borderColor: '#b91c1c',
+                    color: '#fff',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  {purgingCalendar ? (
+                    <>
+                      <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      Deleting Events…
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> Delete from Calendar
+                    </>
+                  )}
+                </motion.button>
+              </div>
+
+              {purgeResult && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: purgeResult.success ? '#166534' : '#991b1b',
+                  }}
+                >
+                  {purgeResult.msg}
+                </div>
+              )}
+
+              {/* Step by step manual delete tip */}
+              <div
+                style={{
+                  marginTop: 12,
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: 8,
+                  padding: '10px 12px',
+                  fontSize: 12,
+                  color: '#991b1b',
+                  lineHeight: 1.5,
+                }}
+              >
+                💡 <strong>Google Calendar માંથી Direct ડિલીટ કેવી રીતે કરવું:</strong><br />
+                તમારા બ્રાઉઝર કે ફોનમાં <strong>Google Calendar</strong> ખોલો &rarr; જે ઇવેન્ટ હટાવવી હોય તેના પર ક્લિક કરો &rarr; ઉપર ખૂણામાં આપેલ <strong>🗑️ Trash (ડિલીટ)</strong> આઇકન દબાવો.
               </div>
             </div>
           </motion.div>

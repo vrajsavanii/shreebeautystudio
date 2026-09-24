@@ -393,6 +393,8 @@ export function generateBulkAppointmentsICS(
     notes?: string;
     price?: number;
     status?: string;
+    workStatus?: string;
+    [key: string]: any;
   }>,
   bridals: Array<{
     id?: string;
@@ -410,6 +412,8 @@ export function generateBulkAppointmentsICS(
     totalAmount?: number;
     package?: number;
     status?: string;
+    workStatus?: string;
+    [key: string]: any;
   }> = [],
   salon: string = 'Shree Beauty Studio',
   address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004',

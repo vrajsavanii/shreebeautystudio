@@ -741,6 +741,31 @@ const OTHER_EVENT_OPTIONS = [
     }
   };
 
+  const handleDeleteBridalFromCalendar = async (b: BridalBooking) => {
+    setSyncingId(b.id);
+    try {
+      const res = await fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'delete_bridal',
+          bridal: b,
+          settings: data?.settings,
+        }),
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        toast(`🗑️ "${b.name}" ની બધી Events Google Calendar માંથી સફળતાપૂર્વક ડિલીટ થઈ! (${resData.message || 'Deleted'})`, 'info');
+      } else {
+        toast(`❌ Delete failed: ${resData.error || 'Unknown error'}`, 'error');
+      }
+    } catch (err: any) {
+      toast(`❌ Error: ${err?.message || 'Delete failed'}`, 'error');
+    } finally {
+      setSyncingId(null);
+    }
+  };
+
   const handleBulkSyncBridal = async () => {
     setBulkSyncing(true);
     try {
@@ -2497,6 +2522,64 @@ const OTHER_EVENT_OPTIONS = [
                     </a>
                   </div>
                 )}
+
+                {/* 🗑️ Purge/Delete from Google Calendar */}
+                <div
+                  style={{
+                    background: '#fef2f2',
+                    border: '1.5px solid #fecaca',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 10,
+                    marginTop: 6,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: '#991b1b' }}>
+                      🗑️ Google Calendar માંથી Events કાઢી નાખો
+                    </div>
+                    <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 2 }}>
+                      {calendarModalBridal.name} ની બધી જ તારીખો (Wedding, Mandap, Sangeet) ની Events ડિલીટ કરો.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    disabled={syncingId === calendarModalBridal.id}
+                    onClick={() => handleDeleteBridalFromCalendar(calendarModalBridal)}
+                    style={{
+                      background: '#ef4444',
+                      borderColor: '#dc2626',
+                      color: '#ffffff',
+                      fontWeight: 800,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                    }}
+                  >
+                    <Trash2 size={13} /> {syncingId === calendarModalBridal.id ? 'Deleting...' : 'Delete from Calendar'}
+                  </button>
+                </div>
+
+                {/* 💡 Manual delete tip */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 8,
+                    padding: '8px 12px',
+                    fontSize: 11.5,
+                    color: '#64748b',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  💡 <strong>Direct Calendar માંથી ડિલીટ કરવા:</strong> Google Calendar (વેબ અથવા ફોન એપ) માં જે ઇવેન્ટ દેખાય છે તેના પર ક્લિક કરીને ઉપર આપેલ <strong>🗑️ Trash (ડિલીટ)</strong> આઇકન પર ક્લિક કરો.
+                </div>
               </div>
             </div>
           </div>

@@ -758,9 +758,11 @@ export async function autoSyncDeleteAppointment(
 ) {
   const cleanCustomer = (a.customer || '').replace(/^Z\d{2}\s+/i, '').trim();
   const cleanPhone = (a.mobile || '').replace(/\D/g, '').slice(-10);
-  const title = `💅 ${cleanCustomer || a.customer || 'Customer'} — ${a.service || 'Service'}`;
+  const title = cleanCustomer || a.customer || 'Customer';
   return deleteEventFromGoogleCalendar(
     {
+      action: 'delete_event',
+      type: 'delete_appointment',
       title,
       summary: title,
       customerName: cleanCustomer || a.customer,
@@ -770,7 +772,6 @@ export async function autoSyncDeleteAppointment(
       mobile: cleanPhone || a.mobile,
       bookingId: a.id,
       id: a.id,
-      date: normalizeDateToYYYYMMDD(a.date),
       appointment: a,
     },
     settings
@@ -786,15 +787,17 @@ export async function autoSyncDeleteBridal(
   const title = cleanName || b.name || 'Bride';
   return deleteEventFromGoogleCalendar(
     {
+      action: 'delete_event',
+      type: 'delete_bridal',
       title,
       summary: title,
       customerName: cleanName || b.name,
       name: cleanName || b.name,
+      customer: cleanName || b.name,
       phone: cleanPhone || b.mobile,
       mobile: cleanPhone || b.mobile,
       bookingId: b.id,
       id: b.id,
-      date: normalizeDateToYYYYMMDD(b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate),
       bridal: b,
     },
     settings
@@ -883,6 +886,8 @@ export async function autoSyncDeleteHoliday(
   const title = `${icon} [${titlePrefix}] ${h.reason}`;
   return deleteEventFromGoogleCalendar(
     {
+      action: 'delete_event',
+      type: 'delete_holiday',
       title,
       summary: title,
       bookingId: h.id,
@@ -906,26 +911,32 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var cal = CalendarApp.getDefaultCalendar();
 
-    // 🗑️ 1. DELETE / CANCEL EVENT ACTION
-    if (data && (data.action === 'delete_event' || data.action === 'cancel_event' || data.type === 'delete_appointment' || data.type === 'delete_bridal' || data.type === 'delete_holiday')) {
-      var searchTitle = (data.title || (data.event ? data.event.summary : '') || '').toLowerCase();
-      var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
-      var bookingId = (data.bookingId || data.id || '').toLowerCase();
-      var rawPhone = data.phone || data.mobile || '';
-      var cleanPhone = rawPhone.toString().replace(/\D/g, '').slice(-10);
-      var searchDateStr = data.date || (data.appointment ? data.appointment.date : null) || (data.event && data.event.start && data.event.start.dateTime ? data.event.start.dateTime.split('T')[0] : null);
+    // 🗑️ 1. DELETE / CANCEL EVENT ACTION (Wide-Window Search Across All Functions & Dates)
+    if (data && (data.action === 'delete_event' || data.action === 'cancel_event' || data.type === 'delete_appointment' || data.type === 'cancel_appointment' || data.type === 'delete_bridal' || data.type === 'cancel_bridal' || data.type === 'delete_holiday')) {
+      var searchTitle = (data.title || data.summary || (data.event ? data.event.summary : '') || '').toLowerCase();
+      var customerName = (data.customerName || data.customer || data.name || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\\d{2}\\s+/i, '').trim();
+      var bookingId = (data.bookingId || data.id || (data.appointment ? data.appointment.id : '') || (data.bridal ? data.bridal.id : '') || '').toLowerCase();
+      var rawPhone = data.phone || data.mobile || (data.appointment ? data.appointment.mobile : '') || (data.bridal ? data.bridal.mobile : '') || '';
+      var cleanPhone = rawPhone.toString().replace(/\\D/g, '').slice(-10);
 
-      var fromDate, toDate;
-      if (searchDateStr) {
-        fromDate = new Date(searchDateStr + 'T00:00:00+05:30');
-        toDate = new Date(searchDateStr + 'T23:59:59+05:30');
-      } else {
-        var now = new Date();
-        fromDate = new Date(now.getTime() - (2 * 24 * 60 * 60 * 1000));
-        toDate = new Date(now.getTime() + (60 * 24 * 60 * 60 * 1000));
-      }
+      // Search across a wide window (past 60 days to future 365 days) so ALL function dates for a bride/customer are purged
+      var now = new Date();
+      var fromDate = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+      var toDate = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000));
 
       var deletedCount = deleteMatchingEventsFromCal(cal, fromDate, toDate, bookingId, customerName, searchTitle, cleanPhone);
+
+      // Also clean in any secondary calendars if guest emails were passed
+      if (data.event && data.event.attendees && Array.isArray(data.event.attendees)) {
+        for (var k = 0; k < data.event.attendees.length; k++) {
+          try {
+            var extraCal = CalendarApp.getCalendarById(data.event.attendees[k].email);
+            if (extraCal && extraCal.getId() !== cal.getId()) {
+              deletedCount += deleteMatchingEventsFromCal(extraCal, fromDate, toDate, bookingId, customerName, searchTitle, cleanPhone);
+            }
+          } catch (eCleanExtra) {}
+        }
+      }
 
       return ContentService.createTextOutput(JSON.stringify({
         success: true,
@@ -944,7 +955,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // 🧹 Auto-Delete Past Salon Events Older Than 2 Days (2 દિવસ જૂની ઇવેન્ટ ઓટો-ડિલીટ)
+    // 🧹 Auto-Delete Past Salon Events Older Than 2 Days
     var deletePastDays = (data && data.deletePastDays !== undefined) ? data.deletePastDays : 2;
     if (deletePastDays > 0) {
       try {
@@ -957,15 +968,15 @@ function doPost(e) {
     
     // 🛡️ Deduplicate on THAT EXACT DAY ONLY: Remove duplicate / old event for this customer on this date
     var searchTitle = (ev.summary || '').toLowerCase();
-    var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
+    var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\\d{2}\\s+/i, '').trim();
     if (!customerName && ev.summary) {
-      var cleanSum = ev.summary.replace(/^[^\w\s]+/u, '').trim();
+      var cleanSum = ev.summary.replace(/^[^\\w\\s]+/u, '').trim();
       var parts = cleanSum.split('—');
       if (parts.length > 0) customerName = parts[0].trim().toLowerCase();
     }
     var bookingId = (data.bookingId || data.id || (data.appointment ? data.appointment.id : '') || (data.bridal ? data.bridal.id : '') || '').toLowerCase();
     var rawPhone = data.phone || data.mobile || '';
-    var cleanPhone = rawPhone.toString().replace(/\D/g, '').slice(-10);
+    var cleanPhone = rawPhone.toString().replace(/\\D/g, '').slice(-10);
     
     var dayStart = new Date(startTime.getTime());
     dayStart.setHours(0, 0, 0, 0);
@@ -1037,31 +1048,43 @@ function doPost(e) {
   }
 }
 
-// 🛡️ Helper to cleanly delete matching duplicate events from any calendar on a specific date range
+// 🛡️ Helper to cleanly delete matching events from any calendar on a specific date range
 function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, customerName, searchTitle, cleanPhone) {
   if (!calInstance) return 0;
   var count = 0;
   try {
     var events = calInstance.getEvents(fromDate, toDate);
+    var normCustomer = (customerName || '').toLowerCase().trim();
+    var normBookingId = (bookingId || '').toLowerCase().trim();
+    var normTitle = (searchTitle || '').toLowerCase().trim();
+    var normPhone = (cleanPhone || '').toString().replace(/\\D/g, '').slice(-10);
+
     for (var d = 0; d < events.length; d++) {
       var currentEv = events[d];
       var cTitle = (currentEv.getTitle() || '').toLowerCase();
       var cDesc = (currentEv.getDescription() || '').toLowerCase();
       var match = false;
 
-      // 1. Exact Booking Ref ID match in description
-      if (bookingId && bookingId.length >= 3 && cDesc.indexOf(bookingId) !== -1) {
+      // 1. Exact Booking Ref ID match in description or title
+      if (normBookingId && normBookingId.length >= 2 && (cDesc.indexOf(normBookingId) !== -1 || cTitle.indexOf(normBookingId) !== -1)) {
         match = true;
       }
-      // 2. Same customer name on that date
-      else if (customerName && customerName.length >= 3 && cTitle.indexOf(customerName) !== -1) {
+      // 2. Customer Name in Title or Description (matches 'pk', 'sandip', etc.)
+      else if (normCustomer && normCustomer.length >= 2) {
+        var cleanTitle = cTitle.replace(/[^\\w\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
+        var cleanDesc = cDesc.replace(/[^\\w\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
+        var titleWords = cleanTitle.split(' ');
+        
+        if (cTitle.indexOf(normCustomer) !== -1 || cDesc.indexOf(normCustomer) !== -1 || titleWords.indexOf(normCustomer) !== -1 || cleanTitle.indexOf(normCustomer) !== -1) {
+          match = true;
+        }
+      }
+      // 3. Phone number match
+      else if (normPhone && normPhone.length >= 6 && (cDesc.indexOf(normPhone) !== -1 || cTitle.indexOf(normPhone) !== -1)) {
         match = true;
       }
-      // 3. Same title or phone
-      else if (searchTitle && cTitle === searchTitle) {
-        match = true;
-      }
-      else if (cleanPhone && cleanPhone.length === 10 && (cDesc.indexOf(cleanPhone) !== -1 || cTitle.indexOf(cleanPhone) !== -1)) {
+      // 4. Title match
+      else if (normTitle && normTitle.length >= 2 && (cTitle.indexOf(normTitle) !== -1 || normTitle.indexOf(cTitle) !== -1)) {
         match = true;
       }
 
@@ -1089,7 +1112,7 @@ function cleanupPastSalonEvents(cal, daysOld) {
   for (var j = 0; j < pastEvents.length; j++) {
     var item = pastEvents[j];
     var title = item.getTitle() || "";
-    if (title.indexOf('💅') === 0 || title.indexOf('👑') === 0 || title.indexOf('Shree') !== -1 || title.indexOf('—') !== -1) {
+    if (title.indexOf('💅') === 0 || title.indexOf('👑') === 0 || title.indexOf('🎶') === 0 || title.indexOf('🌿') === 0 || title.indexOf('✨') === 0 || title.indexOf('Shree') !== -1 || title.indexOf('—') !== -1) {
       try {
         item.deleteEvent();
       } catch (eDel) {}
