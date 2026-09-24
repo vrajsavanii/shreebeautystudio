@@ -3,250 +3,47 @@
 // Allows Salon Owner & Staff to subscribe directly in Google Calendar (Add calendar -> From URL)
 // for continuous 24/7 background synchronization.
 
-import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA } from '@/lib/store';
-import { SalonData, Appointment, BridalBooking, StudioHoliday } from '@/types/salon';
-import { timeToMinutes } from '@/lib/utils';
+import { SalonData } from '@/types/salon';
+import { generateBulkAppointmentsICS } from '@/lib/calendar';
 
 export const dynamic = 'force-dynamic';
-
-function getICSAllDayDates(startDateStr: string, endDateStr?: string): { dtstart: string; dtend: string } {
-  const cleanStart = (startDateStr || '').trim();
-  const cleanEnd = (endDateStr || startDateStr || '').trim();
-  const dtstart = cleanStart.replace(/-/g, '');
-
-  const [y, m, d] = cleanEnd.split('-').map(Number);
-  const nextDay = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + 1));
-  const nextY = nextDay.getUTCFullYear();
-  const nextM = String(nextDay.getUTCMonth() + 1).padStart(2, '0');
-  const nextD = String(nextDay.getUTCDate()).padStart(2, '0');
-  const dtend = `${nextY}${nextM}${nextD}`;
-
-  return { dtstart, dtend };
-}
-
-function formatICSDate(dateStr?: string, timeStr?: string, durationMinutes: number = 45): { start: string; end: string } {
-  let cleanDate = (dateStr || '').trim();
-  if (!cleanDate || !cleanDate.includes('-')) {
-    cleanDate = new Date().toISOString().split('T')[0];
-  }
-  const [y, m, d] = cleanDate.split('-').map(Number);
-  const startMins = timeToMinutes(timeStr || '10:00');
-  const startH = Math.floor(startMins / 60);
-  const startMin = startMins % 60;
-
-  const endMins = startMins + (durationMinutes || 45);
-  const endH = Math.floor(endMins / 60);
-  const endMin = endMins % 60;
-
-  const pad = (n: number) => n.toString().padStart(2, '0');
-
-  const start = `${y}${pad(m)}${pad(d)}T${pad(startH)}${pad(startMin)}00`;
-  const end = `${y}${pad(m)}${pad(d)}T${pad(endH)}${pad(endMin)}00`;
-
-  return { start, end };
-}
-
-function escapeICS(str: string): string {
-  return (str || '')
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/\n/g, '\\n');
-}
 
 export async function GET(request: Request) {
   try {
     const supabase = getSupabaseAdmin();
-    const { data: rows } = await supabase
+    const { data: rows, error: sErr } = await supabase
       .from('salon_state')
       .select('data')
       .order('updated_at', { ascending: false })
       .limit(1);
+
+    if (sErr) console.error('[feed.ics Supabase error]:', sErr);
 
     const salonData: SalonData = rows && rows.length > 0 && rows[0].data
       ? (rows[0].data as SalonData)
       : { ...DEFAULT_DATA };
 
     const salon = salonData.settings?.salon || 'Shree Beauty Studio';
-    const address = salonData.settings?.address || 'Katargam, Surat, Gujarat';
+    const address = salonData.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
     const deletePastDays = salonData.settings?.calendarDeletePastDays !== undefined
       ? salonData.settings.calendarDeletePastDays
-      : 2; // Auto delete / remove events older than 2 days
+      : 2;
 
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - deletePastDays);
-    const cutoffISO = cutoffDate.toISOString().split('T')[0];
-
-    const appointments: Appointment[] = (salonData.appointments || []).filter((a) => {
-      if (a.status === 'Cancelled' || a.workStatus === 'Cancelled') return false;
-      if (deletePastDays === 0) return true;
-      return !a.date || a.date >= cutoffISO;
-    });
-
-    const bridalBookings: BridalBooking[] = (salonData.bridal || []).filter((b) => {
-      if (b.status === 'Cancelled') return false;
-      if (deletePastDays === 0) return true;
-      const bDate = b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
-      return !bDate || bDate >= cutoffISO;
-    });
-
-    const nowStamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-
-    const eventsICS: string[] = [];
-
-    const apptR1 = salonData.settings?.calendarApptReminderMinutes1 !== undefined ? salonData.settings.calendarApptReminderMinutes1 : 60;
-    const apptR2 = salonData.settings?.calendarApptReminderMinutes2 !== undefined ? salonData.settings.calendarApptReminderMinutes2 : 1440;
-    const bridalR1 = salonData.settings?.calendarBridalReminderMinutes1 !== undefined ? salonData.settings.calendarBridalReminderMinutes1 : 1440;
-    const bridalR2 = salonData.settings?.calendarBridalReminderMinutes2 !== undefined ? salonData.settings.calendarBridalReminderMinutes2 : 120;
-
-    // 1. Convert regular appointments to VEVENT
-    for (const a of appointments) {
-      if (!a.date) continue;
-      const { start, end } = formatICSDate(a.date, a.time || '10:00 AM', 60);
-      const summary = `💅 ${a.customer} — ${a.service}`;
-      const desc = `Customer: ${a.customer}\\nMobile: +91 ${a.mobile}\\nService: ${a.service}\\nStaff: ${a.staff || 'Beautician'}\\nAdvance: Rs.${a.advance || 0}\\nNotes: ${a.notes || ''}\\nLocation: ${address}`;
-
-      const alarms: string[] = [];
-      if (apptR1 > 0) {
-        alarms.push(`BEGIN:VALARM\nTRIGGER:-PT${apptR1}M\nACTION:DISPLAY\nDESCRIPTION:Appointment Reminder: ${escapeICS(summary)}\nEND:VALARM`);
-      }
-      if (apptR2 > 0 && apptR2 !== apptR1) {
-        alarms.push(`BEGIN:VALARM\nTRIGGER:-PT${apptR2}M\nACTION:DISPLAY\nDESCRIPTION:Upcoming Appointment: ${escapeICS(summary)}\nEND:VALARM`);
-      }
-
-      eventsICS.push(`BEGIN:VEVENT
-UID:appt-${a.id || Math.random().toString(36).slice(2)}@shreestudio
-DTSTAMP:${nowStamp}
-DTSTART;TZID=Asia/Kolkata:${start}
-DTEND;TZID=Asia/Kolkata:${end}
-SUMMARY:${escapeICS(summary)}
-DESCRIPTION:${escapeICS(desc)}
-LOCATION:${escapeICS(address)}
-STATUS:CONFIRMED
-${alarms.join('\n')}
-END:VEVENT`);
-    }
-
-    // 2. Convert bridal bookings to VEVENT (Multi-event support: Wedding, Sagai, Mandap, Music, Other)
-    for (const b of bridalBookings) {
-      const addBridalVEvent = (dateStr?: string, timeStr?: string, eventLabel: string = 'Wedding', icon: string = '👑', duration: number = 180) => {
-        if (!dateStr) return;
-        if (deletePastDays > 0 && dateStr < cutoffISO) return;
-
-        const { start, end } = formatICSDate(dateStr, timeStr || '10:00', duration);
-        const summary = `${icon} ${b.name} — ${eventLabel} (${b.packageName || 'Bridal Package'})`;
-        const desc = `Bride: ${b.name}\\nMobile: +91 ${b.mobile}\\nEvent: ${eventLabel}\\nPackage: ${b.packageName || 'Bridal'}\\nTotal: Rs.${b.package || 0}\\nAdvance: Rs.${b.advance || 0}\\nVenue: ${b.venue || address}\\nNotes: ${b.notes || ''}`;
-
-        const bAlarms: string[] = [];
-        if (bridalR1 > 0) {
-          bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR1}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Reminder: ${escapeICS(summary)}\nEND:VALARM`);
-        }
-        if (bridalR2 > 0 && bridalR2 !== bridalR1) {
-          bAlarms.push(`BEGIN:VALARM\nTRIGGER:-PT${bridalR2}M\nACTION:DISPLAY\nDESCRIPTION:Bridal Event Today: ${escapeICS(summary)}\nEND:VALARM`);
-        }
-
-        eventsICS.push(`BEGIN:VEVENT
-UID:bridal-${b.id || Math.random().toString(36).slice(2)}-${eventLabel.replace(/\s+/g, '')}@shreestudio
-DTSTAMP:${nowStamp}
-DTSTART;TZID=Asia/Kolkata:${start}
-DTEND;TZID=Asia/Kolkata:${end}
-SUMMARY:${escapeICS(summary)}
-DESCRIPTION:${escapeICS(desc)}
-LOCATION:${escapeICS(b.venue || address)}
-STATUS:CONFIRMED
-${bAlarms.join('\n')}
-END:VEVENT`);
-      };
-
-      let addedAny = false;
-      if (b.includeWedding !== false && b.weddingDate) {
-        addBridalVEvent(b.weddingDate, b.weddingTime || '16:00', 'Wedding', '👑', 180);
-        addedAny = true;
-      }
-      if (b.includeSagai && b.sagaiDate) {
-        addBridalVEvent(b.sagaiDate, b.sagaiTime || '11:00', 'Sagai Ceremony', '✨', 120);
-        addedAny = true;
-      }
-      if (b.includeMandap !== false && b.mandapDate) {
-        addBridalVEvent(b.mandapDate, b.mandapTime || '10:00', 'Mandap Muhurat', '🌿', 120);
-        addedAny = true;
-      }
-      if (b.includeMusic !== false && b.musicDate) {
-        addBridalVEvent(b.musicDate, b.musicTime || '19:00', 'Sangeet / Music Night', '🎶', 120);
-        addedAny = true;
-      }
-      if (b.includeOther && b.otherDate) {
-        addBridalVEvent(b.otherDate, b.otherTime || '11:00', b.otherEventName || 'Pre-Wedding Event', '🌸', 120);
-        addedAny = true;
-      }
-
-      if (!addedAny) {
-        const fallbackDate = b.date || b.weddingDate || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
-        if (fallbackDate) {
-          addBridalVEvent(fallbackDate, b.weddingTime || '10:00', b.packageName || 'Bridal Booking', '👑', 180);
-        }
-      }
-    }
-
-    // 3. Convert Studio Holidays, Closed days & Full Booking (Housefull) dates to all-day VEVENTs
-    const holidays: StudioHoliday[] = (salonData.holidays || []).filter((h) => {
-      if (!h.date) return false;
-      if (deletePastDays === 0) return true;
-      const lastDate = h.endDate || h.date;
-      return lastDate >= cutoffISO;
-    });
-
-    for (const h of holidays) {
-      const { dtstart, dtend } = getICSAllDayDates(h.date, h.endDate);
-      let icon = '🏖️';
-      let titlePrefix = 'Holiday (રજા)';
-      if (h.type === 'Full Booking') {
-        icon = '⛔';
-        titlePrefix = 'Slots Full (હાઉસફુલ)';
-      } else if (h.type === 'Closed') {
-        icon = '🔒';
-        titlePrefix = 'Studio Closed (બંધ)';
-      } else if (h.type === 'Maintenance') {
-        icon = '🛠️';
-        titlePrefix = 'Maintenance';
-      }
-
-      const summary = `${icon} [${titlePrefix}] ${h.reason}`;
-      const desc = `Status: ${h.type}\\nReason: ${h.reason}\\n${h.notes ? `Notes: ${h.notes}\\n` : ''}Customer Online Booking: BLOCKED & UNAVAILABLE\\nStudio: ${salon}\\nAddress: ${address}`;
-
-      eventsICS.push(`BEGIN:VEVENT
-UID:holiday-${h.id || Math.random().toString(36).slice(2)}@shreestudio
-DTSTAMP:${nowStamp}
-DTSTART;VALUE=DATE:${dtstart}
-DTEND;VALUE=DATE:${dtend}
-SUMMARY:${escapeICS(summary)}
-DESCRIPTION:${escapeICS(desc)}
-LOCATION:${escapeICS(address)}
-STATUS:CONFIRMED
-TRANSP:OPAQUE
-X-MICROSOFT-CDO-ALLDAYEVENT:TRUE
-X-MICROSOFT-MSNCALENDAR-ALLDAYEVENT:TRUE
-END:VEVENT`);
-    }
-
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Shree Beauty Studio//Appointment Calendar//EN
-CALSCALE:GREGORIAN
-METHOD:PUBLISH
-X-WR-CALNAME:${salon} Appointments
-X-WR-TIMEZONE:Asia/Kolkata
-X-WR-CALDESC:Live Appointment & Bridal Schedule for ${salon}
-${eventsICS.join('\n')}
-END:VCALENDAR`;
+    const icsContent = generateBulkAppointmentsICS(
+      salonData.appointments || [],
+      salonData.bridal || [],
+      salon,
+      address,
+      deletePastDays
+    );
 
     return new Response(icsContent, {
       status: 200,
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': 'inline; filename="shree-studio-calendar.ics"',
+        'Content-Disposition': 'inline; filename="shree-beauty-studio.ics"',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     });

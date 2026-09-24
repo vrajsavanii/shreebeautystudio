@@ -424,9 +424,10 @@ export function generateBulkAppointmentsICS(
 
   (appointments || [])
     .filter((a) => {
-      if (!a.date || a.status === 'Cancelled') return false;
+      if (!a.date || a.status === 'Cancelled' || a.workStatus === 'Cancelled') return false;
       if (deletePastDays === 0) return true;
-      return a.date >= cutoffISO;
+      const stdDate = toStandardYYYYMMDD(a.date);
+      return stdDate >= cutoffISO;
     })
     .forEach((a) => {
       const dtStart = formatICSDate(a.date, a.time || '10:00');
