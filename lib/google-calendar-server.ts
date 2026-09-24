@@ -759,6 +759,8 @@ export async function autoSyncDeleteAppointment(
   const cleanCustomer = (a.customer || '').replace(/^Z\d{2}\s+/i, '').trim();
   const cleanPhone = (a.mobile || '').replace(/\D/g, '').slice(-10);
   const title = cleanCustomer || a.customer || 'Customer';
+  const stdDate = normalizeDateToYYYYMMDD(a.date);
+
   return deleteEventFromGoogleCalendar(
     {
       action: 'delete_event',
@@ -772,6 +774,7 @@ export async function autoSyncDeleteAppointment(
       mobile: cleanPhone || a.mobile,
       bookingId: a.id,
       id: a.id,
+      date: stdDate,
       appointment: a,
     },
     settings
@@ -785,7 +788,18 @@ export async function autoSyncDeleteBridal(
   const cleanName = (b.name || '').replace(/^Z\d{2}\s+/i, '').trim();
   const cleanPhone = (b.mobile || '').replace(/\D/g, '').slice(-10);
   const title = cleanName || b.name || 'Bride';
-  return deleteEventFromGoogleCalendar(
+
+  const datesToPurge = [
+    b.weddingDate,
+    b.sagaiDate,
+    b.mandapDate,
+    b.musicDate,
+    b.otherDate,
+    b.date,
+  ].filter(Boolean) as string[];
+
+  // 1. Send wide-window deletion request
+  const mainRes = await deleteEventFromGoogleCalendar(
     {
       action: 'delete_event',
       type: 'delete_bridal',
@@ -802,6 +816,31 @@ export async function autoSyncDeleteBridal(
     },
     settings
   );
+
+  // 2. Also send date-targeted deletion for each function date
+  for (const rawDate of datesToPurge) {
+    const stdDate = normalizeDateToYYYYMMDD(rawDate);
+    await deleteEventFromGoogleCalendar(
+      {
+        action: 'delete_event',
+        type: 'delete_bridal',
+        title,
+        summary: title,
+        customerName: cleanName || b.name,
+        name: cleanName || b.name,
+        customer: cleanName || b.name,
+        phone: cleanPhone || b.mobile,
+        mobile: cleanPhone || b.mobile,
+        bookingId: b.id,
+        id: b.id,
+        date: stdDate,
+        bridal: b,
+      },
+      settings
+    ).catch(() => {});
+  }
+
+  return mainRes;
 }
 
 /**
