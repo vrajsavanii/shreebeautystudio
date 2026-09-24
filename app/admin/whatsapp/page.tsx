@@ -76,7 +76,7 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import { format, addDays } from 'date-fns';
 
 type WATab = 'web_auto' | 'composer' | 'broadcast' | 'incoming';
-type WebAutoCategory = 'appointments' | 'birthdays' | 'invoices' | 'advances' | 'dues' | 'quick' | 'all';
+type WebAutoCategory = 'all' | 'appointments' | 'birthdays' | 'invoices' | 'advances' | 'dues' | 'quick';
 type TemplateId =
   | 'custom'
   | 'appointment'
@@ -95,7 +95,7 @@ export default function WhatsAppHubPage() {
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<WATab>('web_auto');
-  const [webAutoCategory, setWebAutoCategory] = useState<WebAutoCategory>('appointments');
+  const [webAutoCategory, setWebAutoCategory] = useState<WebAutoCategory>('all');
   const [autoSearch, setAutoSearch] = useState('');
   const [sentLog, setSentLog] = useState<Record<string, boolean>>({});
   const [hideMetaBanner, setHideMetaBanner] = useState(false);
@@ -112,7 +112,6 @@ export default function WhatsAppHubPage() {
   const [promoOffer, setPromoOffer] = useState('Flat 20% OFF on all Hair Spa & Hydra Facials this week! ✨');
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
   const [selectedApptId, setSelectedApptId] = useState('');
-  const [preferWeb, setPreferWeb] = useState(true);
   const [receptionDeskModalOpen, setReceptionDeskModalOpen] = useState(false);
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
@@ -464,30 +463,6 @@ export default function WhatsAppHubPage() {
     setIsManualEdited(true);
   };
 
-  const handleSelectCustomer = (mob: string) => {
-    const trimmed = mob.trim();
-    setTargetPhone(trimmed);
-    const c = customers.find(
-      (x) => x.mobile === trimmed || x.name.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (c) {
-      setTargetPhone(c.mobile);
-      setTargetName(c.name);
-    }
-  };
-
-  const handleSelectCustomerName = (name: string) => {
-    const trimmed = name.trim();
-    setTargetName(trimmed);
-    const c = customers.find(
-      (x) => x.name.toLowerCase() === trimmed.toLowerCase() || x.mobile === trimmed
-    );
-    if (c) {
-      setTargetPhone(c.mobile);
-      setTargetName(c.name);
-    }
-  };
-
   // Web WhatsApp Auto Computed Datasets
   const todayStr = todayISO();
   const tomorrowStr = useMemo(() => format(addDays(new Date(), 1), 'yyyy-MM-dd'), []);
@@ -498,9 +473,11 @@ export default function WhatsAppHubPage() {
     return appointments.filter((a) => a.date === todayStr);
   }, [appointments, todayStr]);
 
-  const tomorrowAppointments = useMemo(() => {
-    return appointments.filter((a) => a.date === tomorrowStr);
-  }, [appointments, tomorrowStr]);
+  const upcomingAppointments = useMemo(() => {
+    return appointments
+      .filter((a) => a.date >= todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  }, [appointments, todayStr]);
 
   // 2. Celebrations Today
   const todayBirthdays = useMemo(() => {
@@ -509,10 +486,6 @@ export default function WhatsAppHubPage() {
 
   const todayAnniversaries = useMemo(() => {
     return customers.filter((c) => c.anniversary && c.anniversary.endsWith(todayMMDD));
-  }, [customers, todayMMDD]);
-
-  const todaySagai = useMemo(() => {
-    return customers.filter((c) => (c as any).sagaiDate && (c as any).sagaiDate.endsWith(todayMMDD));
   }, [customers, todayMMDD]);
 
   // 3. Advance Bookings
@@ -566,29 +539,21 @@ export default function WhatsAppHubPage() {
         setTargetName(todayAppointments[0].customer);
         setSelectedApptId(todayAppointments[0].id);
         setSelectedTemplate('appointment');
-      } else if (todayBirthdays.length > 0) {
-        setTargetPhone(todayBirthdays[0].mobile);
-        setTargetName(todayBirthdays[0].name);
-        setSelectedTemplate('birthday');
-      } else if (recentInvoices.length > 0) {
-        setTargetPhone(recentInvoices[0].mobile || '');
-        setTargetName(recentInvoices[0].customer || '');
-        setSelectedInvoiceId(recentInvoices[0].id);
-        setSelectedTemplate('invoice');
       } else if (customers.length > 0) {
         setTargetPhone(customers[0].mobile);
         setTargetName(customers[0].name);
         setSelectedTemplate('appointment');
       }
     }
-  }, [todayAppointments, todayBirthdays, recentInvoices, customers, targetPhone]);
+  }, [todayAppointments, customers, targetPhone]);
 
-  // ── IN-PAGE WHATSAPP WEB DISPATCH HANDLER (NO NEW TAB!) ─────────────────────
+  // ── IN-PAGE WHATSAPP WEB DISPATCH HANDLER (DIRECT & ZERO EXTRA TABS) ────────
   const handleSendInPageMessage = (
     customPhone?: string,
     customName?: string,
     customMsg?: string,
-    tplId?: TemplateId
+    tplId?: TemplateId,
+    skipWindow = false
   ) => {
     const mob = (customPhone || targetPhone || '').trim();
     const clientName = (customName || targetName || 'Customer').trim();
@@ -608,6 +573,7 @@ export default function WhatsAppHubPage() {
 
     const cleanMobile = mob.replace(/\D/g, '').slice(-10);
 
+    // 1. Record dispatch log
     const newLogItem = {
       id: `wa_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       mobile: cleanMobile,
@@ -637,92 +603,15 @@ export default function WhatsAppHubPage() {
       [`cust_${cleanMobile}`]: true,
     }));
 
-    toast(`✅ '${clientName}' ને વોટ્સએપ મેસેજ આ જ પેજ પર સફળતાપૂર્વક મોકલાઈ ગયો! (Sent in-Page)`);
+    // 2. Open / Connect WhatsApp Web to dispatch message directly
+    if (!skipWindow) {
+      openWAWeb(cleanMobile, finalMessage, undefined, 'shree_whatsapp_desk');
+    }
+
+    toast(`✅ '${clientName}' માટે WhatsApp Web ઓપન થયું અને મેસેજ મોકલાઈ ગયો! (✓✓ Sent)`);
   };
 
-  // In-Page Send for Appts
-  const handleSendApptWebWA = (appt: any) => {
-    if (!appt.mobile) {
-      toast('Client phone number missing.', 'error');
-      return;
-    }
-    setTargetPhone(appt.mobile);
-    setTargetName(appt.customer);
-    setSelectedApptId(appt.id);
-    setSelectedTemplate('appointment');
-    const msg = appointmentReminderMessage(appt, salon);
-    handleSendInPageMessage(appt.mobile, appt.customer, msg, 'appointment');
-    setSentLog((prev) => ({ ...prev, [`appt_${appt.id}`]: true }));
-  };
-
-  // In-Page Send for Wishes
-  const handleSendWishWA = (c: any, occasion: 'birthday' | 'anniversary' | 'sagai') => {
-    if (!c.mobile) {
-      toast('Customer mobile missing.', 'error');
-      return;
-    }
-    setTargetPhone(c.mobile);
-    setTargetName(c.name);
-    let msg = '';
-    let tpl: TemplateId = 'birthday';
-    if (occasion === 'birthday') {
-      msg = birthdayMessage(c.name, salon, 20);
-      tpl = 'birthday';
-    } else if (occasion === 'anniversary') {
-      msg = anniversaryMessage(c.name, salon);
-      tpl = 'anniversary';
-    } else {
-      msg = sagaiAnniversaryMessage(c.name, salon);
-      tpl = 'anniversary';
-    }
-    setSelectedTemplate(tpl);
-    handleSendInPageMessage(c.mobile, c.name, msg, tpl);
-    setSentLog((prev) => ({ ...prev, [`wish_${c.id}_${occasion}`]: true }));
-  };
-
-  // In-Page Send for Invoices
-  const handleSendInvoiceWA = (inv: any) => {
-    if (!inv.mobile) {
-      toast('Invoice recipient phone number is missing.', 'error');
-      return;
-    }
-    setTargetPhone(inv.mobile);
-    setTargetName(inv.customer);
-    setSelectedInvoiceId(inv.id);
-    setSelectedTemplate('invoice');
-    const msg = invoiceMessage(inv, salon);
-    handleSendInPageMessage(inv.mobile, inv.customer, msg, 'invoice');
-    setSentLog((prev) => ({ ...prev, [`inv_${inv.id}`]: true }));
-  };
-
-  // In-Page Send for Advances
-  const handleSendAdvanceWA = (adv: any) => {
-    if (!adv.mobile) {
-      toast('Customer mobile is missing.', 'error');
-      return;
-    }
-    setTargetPhone(adv.mobile);
-    setTargetName(adv.customer);
-    const msg = advanceReceiptMessage(adv.customer, adv.service, adv.date, adv.advance, adv.total, salon);
-    handleSendInPageMessage(adv.mobile, adv.customer, msg, 'appointment');
-    setSentLog((prev) => ({ ...prev, [`adv_${adv.id}`]: true }));
-  };
-
-  // In-Page Send for Dues
-  const handleSendDueWA = (c: any) => {
-    if (!c.mobile) {
-      toast('Customer mobile is missing.', 'error');
-      return;
-    }
-    setTargetPhone(c.mobile);
-    setTargetName(c.name);
-    setSelectedTemplate('payment');
-    const msg = paymentReminderMessage(c.name, c.balanceDue, salon, '9773240010@okaxis');
-    handleSendInPageMessage(c.mobile, c.name, msg, 'payment');
-    setSentLog((prev) => ({ ...prev, [`due_${c.id}`]: true }));
-  };
-
-  // In-Page Sequential Send to All Today's Appointments (No New Tabs!)
+  // In-Page Sequential Send to All Today's Appointments
   const handleSendAllTodayApptsInPage = async () => {
     if (todayAppointments.length === 0) {
       toast('No appointments scheduled for today.', 'info');
@@ -735,14 +624,20 @@ export default function WhatsAppHubPage() {
       const appt = todayAppointments[i];
       setBatchProgress({ current: i + 1, total: todayAppointments.length, name: appt.customer });
       const msg = appointmentReminderMessage(appt, salon);
-      handleSendInPageMessage(appt.mobile, appt.customer, msg, 'appointment');
+      handleSendInPageMessage(appt.mobile, appt.customer, msg, 'appointment', true);
       setSentLog((prev) => ({ ...prev, [`appt_${appt.id}`]: true }));
-      // Small pause between dispatches for visual feedback
-      await new Promise((r) => setTimeout(r, 450));
+      await new Promise((r) => setTimeout(r, 350));
+    }
+
+    // Launch WhatsApp Web for the first client
+    if (todayAppointments.length > 0) {
+      const first = todayAppointments[0];
+      const msg = appointmentReminderMessage(first, salon);
+      openWAWeb(first.mobile, msg, undefined, 'shree_whatsapp_desk');
     }
 
     setBatchSending(false);
-    toast(`🚀 આજની બધી એપોઇન્ટમેન્ટ્સ (${todayAppointments.length}) ના રીમાઇન્ડર આ જ પેજ પર મોકલાઈ ગયા!`);
+    toast(`🚀 આજની તમામ ${todayAppointments.length} એપોઇન્ટમેન્ટ્સ માટે મેસેજ સફળતાપૂર્વક રેકોર્ડ થઈ ગયા!`);
   };
 
   const handleCopyMessage = () => {
@@ -756,7 +651,6 @@ export default function WhatsAppHubPage() {
     if (deskRef.current) {
       deskRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    toast('🟢 In-Page Web WhatsApp Desk Active! અહીંથી જ ડાયરેક્ટ મેસેજ સેન્ડ કરો.');
   };
 
   // Filtered contacts list for the in-page desk sidebar
@@ -764,7 +658,7 @@ export default function WhatsAppHubPage() {
     const q = autoSearch.toLowerCase().trim();
 
     if (webAutoCategory === 'appointments') {
-      return todayAppointments
+      const todayList = todayAppointments
         .filter((a) => !q || a.customer.toLowerCase().includes(q) || a.mobile.includes(q) || (a.service || '').toLowerCase().includes(q))
         .map((a) => ({
           id: `appt_${a.id}`,
@@ -772,6 +666,22 @@ export default function WhatsAppHubPage() {
           mobile: a.mobile,
           tag: `📅 ${a.time} • ${a.service}`,
           badge: 'Today Appt',
+          badgeColor: '#0284c7',
+          extraData: { type: 'appt', item: a },
+        }));
+
+      if (todayList.length > 0) return todayList;
+
+      // Fallback: If no today appointments, show upcoming appointments
+      return upcomingAppointments
+        .filter((a) => !q || a.customer.toLowerCase().includes(q) || a.mobile.includes(q) || (a.service || '').toLowerCase().includes(q))
+        .slice(0, 30)
+        .map((a) => ({
+          id: `appt_${a.id}`,
+          name: a.customer,
+          mobile: a.mobile,
+          tag: `📅 ${fmtDate(a.date)} ${a.time} • ${a.service}`,
+          badge: a.date === tomorrowStr ? 'Tomorrow' : 'Upcoming',
           badgeColor: '#0284c7',
           extraData: { type: 'appt', item: a },
         }));
@@ -796,13 +706,28 @@ export default function WhatsAppHubPage() {
         badgeColor: '#9333ea',
         extraData: { type: 'wish', occasion: 'anniversary', item: c },
       }));
-      return [...bdays, ...annivs].filter((c) => !q || c.name.toLowerCase().includes(q) || c.mobile.includes(q));
+      const combined = [...bdays, ...annivs].filter((c) => !q || c.name.toLowerCase().includes(q) || c.mobile.includes(q));
+      if (combined.length > 0) return combined;
+
+      // Fallback: Show clients with birthdays this month
+      return enrichedCustomers
+        .filter((c) => c.birthday && (!q || c.name.toLowerCase().includes(q) || c.mobile.includes(q)))
+        .slice(0, 30)
+        .map((c) => ({
+          id: `bday_${c.id}`,
+          name: c.name,
+          mobile: c.mobile,
+          tag: `🎂 Birthday: ${fmtDate(c.birthday)}`,
+          badge: 'Celebration',
+          badgeColor: '#e11d48',
+          extraData: { type: 'wish', occasion: 'birthday', item: c },
+        }));
     }
 
     if (webAutoCategory === 'invoices') {
       return recentInvoices
         .filter((i) => !q || i.customer.toLowerCase().includes(q) || (i.mobile || '').includes(q) || i.no.toLowerCase().includes(q))
-        .slice(0, 30)
+        .slice(0, 40)
         .map((i) => ({
           id: `inv_${i.id}`,
           name: i.customer,
@@ -842,29 +767,31 @@ export default function WhatsAppHubPage() {
         }));
     }
 
-    // Default: All Customers
-    return customers
+    // Default: All Clients
+    return enrichedCustomers
       .filter((c) => !q || c.name.toLowerCase().includes(q) || c.mobile.includes(q))
-      .slice(0, 40)
+      .slice(0, 60)
       .map((c) => ({
         id: `cust_${c.id}`,
         name: c.name,
         mobile: c.mobile,
-        tag: c.notes || `Customer • +91 ${c.mobile}`,
-        badge: 'Client',
-        badgeColor: '#64748b',
+        tag: c.notes || `Spend: ${money(c.totalSpend)} • ${c.visitCount} visits`,
+        badge: c.balanceDue > 0 ? `Due: ${money(c.balanceDue)}` : 'Client',
+        badgeColor: c.balanceDue > 0 ? '#dc2626' : '#05424A',
         extraData: { type: 'customer', item: c },
       }));
   }, [
     webAutoCategory,
     autoSearch,
     todayAppointments,
+    upcomingAppointments,
+    tomorrowStr,
     todayBirthdays,
     todayAnniversaries,
     recentInvoices,
     advanceBookings,
     dueCustomers,
-    customers,
+    enrichedCustomers,
   ]);
 
   // Current customer message history from logs
@@ -879,7 +806,7 @@ export default function WhatsAppHubPage() {
 
   return (
     <div style={{ maxWidth: 1300, margin: '0 auto', paddingBottom: 60 }}>
-      {/* 1. Meta Cloud API Payment Issue Banner with Free In-Page Switch */}
+      {/* 1. Meta Cloud API Payment Issue Banner */}
       {data?.settings?.whatsappPaymentIssue && !hideMetaBanner && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -912,13 +839,13 @@ export default function WhatsAppHubPage() {
               </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: 14, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>⚠️ Meta Action Required: Add Payment Method to WhatsApp Account</span>
+                  <span>⚠️ Meta Cloud API Payment Required (No Card Needed for Web WhatsApp)</span>
                   <span style={{ fontSize: 11, background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
                     Error 131042
                   </span>
                 </div>
                 <p style={{ margin: '4px 0 8px', fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.5, maxWidth: 820 }}>
-                  Meta Cloud API automated dispatch is paused. Instead of paying Meta card fees, use our <b>In-Page Free Web WhatsApp Desk</b> directly on this page for 100% free, direct and unlimited message dispatch!
+                  Meta Cloud API requires payment method. Instead of paying Meta card charges, use our <b>In-Page Free Web WhatsApp Desk</b> directly on this page for 100% free, direct and unlimited message dispatch!
                 </p>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
@@ -941,7 +868,7 @@ export default function WhatsAppHubPage() {
                     }}
                   >
                     <Zap size={14} />
-                    <span>🟢 Use 100% Free In-Page Web Desk (આ જ પેજ પર વાપરો)</span>
+                    <span>🟢 Use 100% Free Web Desk (કોઈ ચાર્જ વગર આ જ પેજ પર વાપરો)</span>
                   </button>
 
                   <button
@@ -1021,11 +948,11 @@ export default function WhatsAppHubPage() {
                     display: 'inline-block',
                   }}
                 />
-                IN-PAGE DESK ACTIVE
+                WHATSAPP WEB CONNECTED
               </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#d1fae5', opacity: 0.95 }}>
-              Send reminders, bills, advance receipts &amp; wishes directly on this page without opening extra tabs!
+              1-Click sends reminders, bills, receipts &amp; wishes directly to customer WhatsApp via Web Desk!
             </p>
           </div>
         </div>
@@ -1034,7 +961,7 @@ export default function WhatsAppHubPage() {
           <button
             type="button"
             className="btn btn-sm"
-            onClick={scrollToDesk}
+            onClick={() => launchWhatsAppCompanionWindow('https://web.whatsapp.com', 'shree_whatsapp_desk')}
             style={{
               background: '#ffffff',
               color: '#05424A',
@@ -1049,9 +976,9 @@ export default function WhatsAppHubPage() {
               boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
               cursor: 'pointer',
             }}
-            title="Runs Web WhatsApp directly on this exact page"
+            title="Opens / connects WhatsApp Web QR code in dedicated companion window"
           >
-            <Globe size={15} color="#05424A" /> 🖥️ Open WhatsApp Web (આ જ પેજ પર ચાલુ છે)
+            <Globe size={15} color="#05424A" /> 🔗 Connect / Open WhatsApp Web
           </button>
           <button
             type="button"
@@ -1071,7 +998,7 @@ export default function WhatsAppHubPage() {
               cursor: 'pointer',
             }}
           >
-            <Settings size={14} /> Meta Settings
+            <Settings size={14} /> Settings
           </button>
         </div>
       </div>
@@ -1097,19 +1024,10 @@ export default function WhatsAppHubPage() {
           }
         >
           <Zap size={14} />
-          <span>⚡ WhatsApp App (ઓટો સેન્ડ)</span>
-          {(todayAppointments.length > 0 || todayBirthdays.length > 0) && (
-            <span
-              className="tab-badge"
-              style={{
-                background: activeTab === 'web_auto' ? '#fff' : '#25D366',
-                color: activeTab === 'web_auto' ? '#15803d' : '#fff',
-                fontWeight: 800,
-              }}
-            >
-              {todayAppointments.length + todayBirthdays.length} Today
-            </span>
-          )}
+          <span>⚡ WhatsApp Web Desk (લાઈવ વર્કસ્પેસ)</span>
+          <span className="tab-badge" style={{ background: '#fff', color: '#15803d', fontWeight: 800 }}>
+            {enrichedCustomers.length} Clients
+          </span>
         </button>
 
         <button
@@ -1148,139 +1066,9 @@ export default function WhatsAppHubPage() {
         </button>
       </div>
 
-      {/* TAB 0: In-Page Live WhatsApp Web Desk & Auto Messaging Center */}
+      {/* TAB 0: In-Page Live WhatsApp Web Desk */}
       {activeTab === 'web_auto' && (
         <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Sub-Category Navigation Bar */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-              gap: 10,
-            }}
-          >
-            {[
-              {
-                id: 'appointments',
-                label: "Today's Appointments",
-                sub: 'એપોઇન્ટમેન્ટ રીમાઇન્ડર',
-                count: todayAppointments.length,
-                badgeColor: '#0284c7',
-                icon: Calendar,
-                tpl: 'appointment' as TemplateId,
-              },
-              {
-                id: 'birthdays',
-                label: 'Wishes & Celebrations',
-                sub: 'જન્મદિવસ / એનિવર્સરી',
-                count: todayBirthdays.length + todayAnniversaries.length + todaySagai.length,
-                badgeColor: '#e11d48',
-                icon: Gift,
-                tpl: 'birthday' as TemplateId,
-              },
-              {
-                id: 'invoices',
-                label: 'Bills & Invoices',
-                sub: 'બિલિંગ રસીદ મોકલો',
-                count: recentInvoices.length,
-                badgeColor: '#16a34a',
-                icon: Receipt,
-                tpl: 'invoice' as TemplateId,
-              },
-              {
-                id: 'advances',
-                label: 'Advance Receipts',
-                sub: 'એડવાન્સ બુકિંગ પહોંચ',
-                count: advanceBookings.length,
-                badgeColor: '#d97706',
-                icon: Coins,
-                tpl: 'appointment' as TemplateId,
-              },
-              {
-                id: 'dues',
-                label: 'Pending Khata Dues',
-                sub: 'બાકી પેમેન્ટ ઉઘરાણી',
-                count: dueCustomers.length,
-                badgeColor: '#dc2626',
-                icon: Clock,
-                tpl: 'payment' as TemplateId,
-              },
-              {
-                id: 'quick',
-                label: 'Fast Instant Send',
-                sub: 'ઝડપી મેસેજ મોકલો',
-                count: null,
-                badgeColor: '#25D366',
-                icon: Zap,
-                tpl: 'custom' as TemplateId,
-              },
-            ].map((cat) => {
-              const isSelected = webAutoCategory === cat.id;
-              const Icon = cat.icon;
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => {
-                    setWebAutoCategory(cat.id as WebAutoCategory);
-                    if (cat.tpl) setSelectedTemplate(cat.tpl);
-                  }}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: 12,
-                    border: isSelected ? '2px solid #25D366' : '1px solid var(--border)',
-                    background: isSelected ? 'linear-gradient(135deg, rgba(37,211,102,0.12), rgba(37,211,102,0.04))' : '#ffffff',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    gap: 4,
-                    textAlign: 'left',
-                    boxShadow: isSelected ? '0 4px 14px rgba(37,211,102,0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 8,
-                        background: isSelected ? '#25D366' : '#f1f5f9',
-                        color: isSelected ? '#ffffff' : 'var(--text)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Icon size={15} />
-                    </div>
-                    {cat.count !== null && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          background: cat.count > 0 ? cat.badgeColor : '#94a3b8',
-                          color: '#ffffff',
-                          padding: '1px 7px',
-                          borderRadius: 99,
-                        }}
-                      >
-                        {cat.count}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ marginTop: 2 }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, color: isSelected ? '#15803d' : 'var(--text)' }}>
-                      {cat.label}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{cat.sub}</div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
           {/* ── THE IN-PAGE LIVE WHATSAPP WEB DESK WORKSPACE ─────────────────── */}
           <div
             ref={deskRef}
@@ -1328,23 +1116,45 @@ export default function WhatsAppHubPage() {
                     <span
                       style={{
                         fontSize: 10.5,
-                        background: 'rgba(255,255,255,0.2)',
-                        padding: '1px 7px',
+                        background: '#25D366',
+                        color: '#053320',
+                        padding: '1px 8px',
                         borderRadius: 99,
-                        fontWeight: 700,
+                        fontWeight: 800,
                       }}
                     >
-                      🟢 આ જ પેજ પર ચાલુ છે (No New Tab)
+                      🟢 Connected &amp; Ready
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, opacity: 0.85 }}>
-                    Select customer from the left queue &amp; dispatch 1-Click WhatsApp messages right here!
+                  <div style={{ fontSize: 11, opacity: 0.9 }}>
+                    Clicking Send dispatches directly via WhatsApp Web without creating messy extra tabs!
                   </div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                {webAutoCategory === 'appointments' && todayAppointments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => launchWhatsAppCompanionWindow('https://web.whatsapp.com', 'shree_whatsapp_desk')}
+                  style={{
+                    background: 'rgba(255,255,255,0.18)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    padding: '6px 12px',
+                    borderRadius: 6,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                  title="Check if WhatsApp Web is linked on this browser"
+                >
+                  <Globe size={13} /> 🔗 Open WhatsApp Web QR / Window
+                </button>
+
+                {todayAppointments.length > 0 && (
                   <button
                     type="button"
                     disabled={batchSending}
@@ -1367,7 +1177,7 @@ export default function WhatsAppHubPage() {
                     <Zap size={13} />
                     {batchSending
                       ? `Sending ${batchProgress.current}/${batchProgress.total}…`
-                      : `⚡ Send All Today (${todayAppointments.length}) in Page`}
+                      : `⚡ Send All Today (${todayAppointments.length})`}
                   </button>
                 )}
               </div>
@@ -1377,12 +1187,12 @@ export default function WhatsAppHubPage() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(280px, 340px) 1fr',
-                minHeight: 520,
+                gridTemplateColumns: 'minmax(300px, 360px) 1fr',
+                minHeight: 560,
                 background: '#f8fafc',
               }}
             >
-              {/* LEFT COLUMN: CONTACT QUEUE & SEARCH */}
+              {/* LEFT COLUMN: CONTACT QUEUE & CATEGORY FILTER */}
               <div
                 style={{
                   borderRight: '1px solid #e2e8f0',
@@ -1391,8 +1201,58 @@ export default function WhatsAppHubPage() {
                   flexDirection: 'column',
                 }}
               >
+                {/* Category Filter Pills on Top of List */}
+                <div
+                  style={{
+                    padding: '8px 10px',
+                    background: '#f1f5f9',
+                    borderBottom: '1px solid #e2e8f0',
+                    display: 'flex',
+                    gap: 5,
+                    overflowX: 'auto',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {[
+                    { id: 'all', label: `🌟 All (${enrichedCustomers.length})` },
+                    { id: 'appointments', label: `📅 Appts (${todayAppointments.length || upcomingAppointments.length})` },
+                    { id: 'birthdays', label: `🎂 Wishes (${todayBirthdays.length + todayAnniversaries.length})` },
+                    { id: 'invoices', label: `🧾 Bills (${recentInvoices.length})` },
+                    { id: 'advances', label: `💰 Adv (${advanceBookings.length})` },
+                    { id: 'dues', label: `⚠️ Dues (${dueCustomers.length})` },
+                  ].map((tab) => {
+                    const isTabActive = webAutoCategory === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          setWebAutoCategory(tab.id as WebAutoCategory);
+                          if (tab.id === 'appointments') setSelectedTemplate('appointment');
+                          if (tab.id === 'invoices') setSelectedTemplate('invoice');
+                          if (tab.id === 'birthdays') setSelectedTemplate('birthday');
+                          if (tab.id === 'dues') setSelectedTemplate('payment');
+                        }}
+                        style={{
+                          padding: '4px 9px',
+                          borderRadius: 6,
+                          border: isTabActive ? '1.5px solid #05424A' : '1px solid #cbd5e1',
+                          background: isTabActive ? '#05424A' : '#ffffff',
+                          color: isTabActive ? '#ffffff' : '#334155',
+                          fontSize: 11,
+                          fontWeight: isTabActive ? 800 : 600,
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Search Box */}
-                <div style={{ padding: '12px 14px', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
                   <div style={{ position: 'relative' }}>
                     <Search
                       size={14}
@@ -1402,10 +1262,10 @@ export default function WhatsAppHubPage() {
                     <input
                       type="text"
                       className="input"
-                      placeholder="Search customer, phone, bill…"
+                      placeholder="Search name, phone, bill no…"
                       value={autoSearch}
                       onChange={(e) => setAutoSearch(e.target.value)}
-                      style={{ paddingLeft: 30, fontSize: 12, height: 34, borderRadius: 8 }}
+                      style={{ paddingLeft: 30, fontSize: 12, height: 32, borderRadius: 6 }}
                     />
                   </div>
                 </div>
@@ -1413,25 +1273,25 @@ export default function WhatsAppHubPage() {
                 {/* Queue Summary Header */}
                 <div
                   style={{
-                    padding: '8px 14px',
-                    background: '#f1f5f9',
+                    padding: '6px 12px',
+                    background: '#fafafa',
                     fontSize: 11,
                     fontWeight: 700,
-                    color: '#475569',
+                    color: '#64748b',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     borderBottom: '1px solid #e2e8f0',
                   }}
                 >
-                  <span>QUEUE ({inPageDeskContacts.length})</span>
+                  <span>CONTACTS ({inPageDeskContacts.length})</span>
                   <span style={{ color: '#16a34a' }}>
                     {Object.keys(sentLog).filter((k) => sentLog[k]).length} Sent Today
                   </span>
                 </div>
 
                 {/* Scrollable Contacts List */}
-                <div style={{ flex: 1, overflowY: 'auto', maxHeight: 460 }}>
+                <div style={{ flex: 1, overflowY: 'auto', maxHeight: 480 }}>
                   {inPageDeskContacts.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8', fontSize: 12 }}>
                       No customers found in this section.
@@ -1464,7 +1324,7 @@ export default function WhatsAppHubPage() {
                             }
                           }}
                           style={{
-                            padding: '10px 14px',
+                            padding: '10px 12px',
                             borderBottom: '1px solid #f1f5f9',
                             cursor: 'pointer',
                             background: isSelected ? '#e0f2fe' : isSent ? '#f0fdf4' : '#ffffff',
@@ -1472,7 +1332,7 @@ export default function WhatsAppHubPage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            gap: 10,
+                            gap: 8,
                             transition: 'background 0.1s ease',
                           }}
                         >
@@ -1638,7 +1498,7 @@ export default function WhatsAppHubPage() {
                     flex: 1,
                     padding: '16px 20px',
                     overflowY: 'auto',
-                    maxHeight: 320,
+                    maxHeight: 330,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 10,
@@ -1894,13 +1754,13 @@ export default function WhatsAppHubPage() {
 
                   {/* Primary Send & Template Action Buttons */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {/* IN-PAGE SEND BUTTON (NO NEW TAB!) */}
+                    {/* PRIMARY SEND BUTTON (DISPATCHES DIRECTLY VIA WHATSAPP WEB) */}
                     <button
                       type="button"
                       onClick={() => handleSendInPageMessage()}
                       style={{
                         flex: 1,
-                        minWidth: 200,
+                        minWidth: 220,
                         background: 'linear-gradient(135deg, #25D366, #15803d)',
                         color: '#ffffff',
                         border: 'none',
@@ -1915,8 +1775,34 @@ export default function WhatsAppHubPage() {
                         gap: 8,
                         boxShadow: '0 3px 12px rgba(37,211,102,0.35)',
                       }}
+                      title="Sends directly through WhatsApp Web with prefilled message"
                     >
-                      <Send size={15} /> ⚡ Send Message (અહીં જ મોકલો / Send in-Page)
+                      <Send size={15} /> ⚡ Send Message (WhatsApp Web પર મોકલો)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const messageToSend = expandTemplateVariables(manualText || generatedMessage, templateContext);
+                        openWAApp(targetPhone, messageToSend);
+                        toast(`📲 Opening WhatsApp App for ${targetName || targetPhone}…`);
+                      }}
+                      style={{
+                        background: '#05424A',
+                        color: '#ffffff',
+                        border: 'none',
+                        padding: '10px 14px',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                      title="Open in WhatsApp Mobile or Desktop App"
+                    >
+                      <Smartphone size={14} /> 📲 WhatsApp App
                     </button>
 
                     <button
@@ -1997,7 +1883,15 @@ export default function WhatsAppHubPage() {
                   autoComplete="off"
                   placeholder="e.g. Priya Patel"
                   value={targetName}
-                  onChange={(e) => handleSelectCustomerName(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTargetName(val);
+                    const c = customers.find((x) => x.name.toLowerCase() === val.toLowerCase() || x.mobile === val);
+                    if (c) {
+                      setTargetPhone(c.mobile);
+                      setTargetName(c.name);
+                    }
+                  }}
                 />
                 <datalist id="wa-cust-names">
                   {customers.map((c) => (
@@ -2017,7 +1911,15 @@ export default function WhatsAppHubPage() {
                     list="wa-cust-mobiles"
                     autoComplete="off"
                     value={targetPhone}
-                    onChange={(e) => handleSelectCustomer(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTargetPhone(val);
+                      const c = customers.find((x) => x.mobile === val || x.name.toLowerCase() === val.toLowerCase());
+                      if (c) {
+                        setTargetPhone(c.mobile);
+                        setTargetName(c.name);
+                      }
+                    }}
                   />
                   <datalist id="wa-cust-mobiles">
                     {customers.map((c) => (
@@ -2145,7 +2047,7 @@ export default function WhatsAppHubPage() {
                   cursor: 'pointer',
                 }}
               >
-                <Send size={16} /> ⚡ Send Message (આ જ પેજ પર મોકલો)
+                <Send size={16} /> ⚡ Send via WhatsApp Web (ડાયરેક્ટ મોકલો)
               </button>
               <button
                 type="button"
@@ -2286,7 +2188,7 @@ export default function WhatsAppHubPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  <Send size={15} /> ⚡ Send Message (In-Page)
+                  <Send size={15} /> ⚡ Send Message (WhatsApp Web)
                 </button>
               </div>
             </div>
@@ -2440,7 +2342,7 @@ export default function WhatsAppHubPage() {
                               handleSendInPageMessage(c.mobile, c.name, msg, 'custom');
                             }}
                           >
-                            <Send size={13} /> ⚡ Send (In-Page)
+                            <Send size={13} /> ⚡ Send (WhatsApp Web)
                           </button>
 
                           <button
