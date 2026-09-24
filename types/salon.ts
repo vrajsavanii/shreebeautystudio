@@ -572,4 +572,15 @@ export interface SalonData {
       lastMessageAt?: string;
     }
   >;
+  // In-Page WhatsApp Live Web Desk Message Logs
+  whatsappLogs?: Array<{
+    id: string;
+    mobile: string;
+    customerName: string;
+    text: string;
+    timestamp: string;
+    direction: 'outbound' | 'inbound';
+    status: 'sent' | 'delivered' | 'read';
+    templateId?: string;
+  }>;
 }
