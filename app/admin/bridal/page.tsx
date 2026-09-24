@@ -17,7 +17,7 @@ import { useToast } from '@/components/ui/Toast';
 import { openWAApp, bridalMessage, sendDirectWhatsAppMessage } from '@/lib/whatsapp';
 import { downloadInvoicePDF, sendInvoicePDFViaWhatsApp } from '@/lib/invoice-pdf';
 import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
-import { getBridalGoogleCalendarUrl } from '@/lib/calendar';
+import { getBridalGoogleCalendarUrl, getBridalFunctionGoogleCalendarUrl, downloadBridalICS } from '@/lib/calendar';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { subDays, format, parseISO } from 'date-fns';
@@ -37,6 +37,7 @@ export default function BridalPage() {
   const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
   const [bulkSyncing, setBulkSyncing] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [calendarModalBridal, setCalendarModalBridal] = useState<BridalBooking | null>(null);
 
   // Package Management State
   const [packageModalOpen, setPackageModalOpen] = useState(false);
@@ -983,10 +984,9 @@ const OTHER_EVENT_OPTIONS = [
                             </button>
                             <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit"><Pencil size={13} /></button>
                             <button
-                              onClick={() => handleSyncSingleBridal(b)}
-                              disabled={syncingId === b.id}
+                              onClick={() => setCalendarModalBridal(b)}
                               className="btn-icon"
-                              title="📅 1-Click Sync to Google Calendar (Cloud)"
+                              title="📅 Google Calendar Actions (Auto-Sync & Multi-Event Links)"
                               style={{
                                 background: '#eff6ff',
                                 color: '#1d4ed8',
@@ -2179,6 +2179,327 @@ const OTHER_EVENT_OPTIONS = [
           }
         >
           <p>Are you sure you want to remove this package from your Glamour Lounge Rate Card?</p>
+        </Modal>
+      )}
+
+      {/* Bridal Calendar Sync & 1-Click Add Modal */}
+      {calendarModalBridal && (
+        <Modal
+          isOpen={!!calendarModalBridal}
+          onClose={() => setCalendarModalBridal(null)}
+          title={`📅 Google Calendar — ${calendarModalBridal.name}`}
+          wide
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  downloadBridalICS(calendarModalBridal, data?.settings?.salon, data?.settings?.address);
+                  toast('📥 .ics Calendar file downloaded!');
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Download size={14} /> Download .ics File (All Events)
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => setCalendarModalBridal(null)}
+              >
+                Done
+              </button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Top Info Banner */}
+            <div
+              style={{
+                background: '#eff6ff',
+                border: '1.5px solid #bfdbfe',
+                borderRadius: 12,
+                padding: '14px 18px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: '#1e40af' }}>
+                  👑 {calendarModalBridal.name} — {calendarModalBridal.packageName || 'Bridal Package'}
+                </div>
+                <div style={{ fontSize: 12, color: '#3b82f6', marginTop: 2 }}>
+                  📞 +91 {calendarModalBridal.mobile} {calendarModalBridal.venue ? `• 📍 ${calendarModalBridal.venue}` : ''}
+                </div>
+              </div>
+
+              <motion.button
+                type="button"
+                className="btn btn-sm"
+                disabled={syncingId === calendarModalBridal.id}
+                onClick={async () => {
+                  await handleSyncSingleBridal(calendarModalBridal);
+                }}
+                style={{
+                  background: '#1d4ed8',
+                  color: '#ffffff',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 2px 8px rgba(29, 78, 216, 0.3)',
+                }}
+                whileTap={{ scale: 0.96 }}
+              >
+                {syncingId === calendarModalBridal.id ? (
+                  <>
+                    <Loader2 size={14} className="spin" /> Syncing in Cloud…
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={14} /> ⚡ 1-Click Cloud Auto-Sync (બધા Events)
+                  </>
+                )}
+              </motion.button>
+            </div>
+
+            {/* List of Functions with 1-Click Web Add Buttons */}
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CalendarDays size={15} color="var(--teal)" /> Scheduled Functions (Google Calendar માં ઉમેરો):
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* 1. Wedding */}
+                {(calendarModalBridal.includeWedding !== false && calendarModalBridal.weddingDate) && (
+                  <div
+                    style={{
+                      background: '#faf5ff',
+                      border: '1.5px solid #e9d5ff',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#6b21a8' }}>
+                        💍 Wedding Makeup (લગ્ન)
+                      </div>
+                      <div style={{ fontSize: 12, color: '#7e22ce', marginTop: 2 }}>
+                        📅 {fmtDate(calendarModalBridal.weddingDate)} @ {calendarModalBridal.weddingTime || '16:00'} (3 Hours)
+                      </div>
+                    </div>
+                    <a
+                      href={getBridalFunctionGoogleCalendarUrl(calendarModalBridal, 'wedding', data?.settings?.salon, data?.settings?.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-ghost"
+                      style={{
+                        background: '#ffffff',
+                        borderColor: '#c084fc',
+                        color: '#6b21a8',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      <ExternalLink size={13} /> ➕ Add Wedding to Google Calendar
+                    </a>
+                  </div>
+                )}
+
+                {/* 2. Mandap Muhurat */}
+                {(calendarModalBridal.includeMandap !== false && calendarModalBridal.mandapDate) && (
+                  <div
+                    style={{
+                      background: '#f0fdf4',
+                      border: '1.5px solid #bbf7d0',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#166534' }}>
+                        🌿 Mandap Muhurat (મંડપ મુહૂર્ત)
+                      </div>
+                      <div style={{ fontSize: 12, color: '#15803d', marginTop: 2 }}>
+                        📅 {fmtDate(calendarModalBridal.mandapDate)} @ {calendarModalBridal.mandapTime || '10:00'} (2 Hours)
+                      </div>
+                    </div>
+                    <a
+                      href={getBridalFunctionGoogleCalendarUrl(calendarModalBridal, 'mandap', data?.settings?.salon, data?.settings?.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-ghost"
+                      style={{
+                        background: '#ffffff',
+                        borderColor: '#86efac',
+                        color: '#166534',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      <ExternalLink size={13} /> ➕ Add Mandap to Google Calendar
+                    </a>
+                  </div>
+                )}
+
+                {/* 3. Music / Sangeet */}
+                {(calendarModalBridal.includeMusic !== false && calendarModalBridal.musicDate) && (
+                  <div
+                    style={{
+                      background: '#fffbeb',
+                      border: '1.5px solid #fde68a',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#92400e' }}>
+                        🎶 Sangeet / Music Night (સંગીત સંધ્યા)
+                      </div>
+                      <div style={{ fontSize: 12, color: '#b45309', marginTop: 2 }}>
+                        📅 {fmtDate(calendarModalBridal.musicDate)} @ {calendarModalBridal.musicTime || '19:00'} (2 Hours)
+                      </div>
+                    </div>
+                    <a
+                      href={getBridalFunctionGoogleCalendarUrl(calendarModalBridal, 'music', data?.settings?.salon, data?.settings?.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-ghost"
+                      style={{
+                        background: '#ffffff',
+                        borderColor: '#fcd34d',
+                        color: '#92400e',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      <ExternalLink size={13} /> ➕ Add Music to Google Calendar
+                    </a>
+                  </div>
+                )}
+
+                {/* 4. Sagai Ceremony */}
+                {(calendarModalBridal.includeSagai && calendarModalBridal.sagaiDate) && (
+                  <div
+                    style={{
+                      background: '#fff7ed',
+                      border: '1.5px solid #fed7aa',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#9a3412' }}>
+                        ✨ Sagai Ceremony (સગાઈ)
+                      </div>
+                      <div style={{ fontSize: 12, color: '#c2410c', marginTop: 2 }}>
+                        📅 {fmtDate(calendarModalBridal.sagaiDate)} @ {calendarModalBridal.sagaiTime || '11:00'} (2 Hours)
+                      </div>
+                    </div>
+                    <a
+                      href={getBridalFunctionGoogleCalendarUrl(calendarModalBridal, 'sagai', data?.settings?.salon, data?.settings?.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-ghost"
+                      style={{
+                        background: '#ffffff',
+                        borderColor: '#fdba74',
+                        color: '#9a3412',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      <ExternalLink size={13} /> ➕ Add Sagai to Google Calendar
+                    </a>
+                  </div>
+                )}
+
+                {/* 5. Other Event */}
+                {(calendarModalBridal.includeOther && calendarModalBridal.otherDate) && (
+                  <div
+                    style={{
+                      background: '#fdf2f8',
+                      border: '1.5px solid #fbcfe8',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#9d174d' }}>
+                        🌸 {calendarModalBridal.otherEventName || 'Pre-Wedding Event'}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#be185d', marginTop: 2 }}>
+                        📅 {fmtDate(calendarModalBridal.otherDate)} @ {calendarModalBridal.otherTime || '11:00'} (2 Hours)
+                      </div>
+                    </div>
+                    <a
+                      href={getBridalFunctionGoogleCalendarUrl(calendarModalBridal, 'other', data?.settings?.salon, data?.settings?.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-ghost"
+                      style={{
+                        background: '#ffffff',
+                        borderColor: '#f9a8d4',
+                        color: '#9d174d',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      <ExternalLink size={13} /> ➕ Add Event to Google Calendar
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

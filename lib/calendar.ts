@@ -36,18 +36,47 @@ export function parseTimeTo24(timeStr: string = '10:00'): string {
   return '10:00';
 }
 
-function formatICSDate(dateStr: string, timeStr: string): string {
-  const [y, m, d] = (dateStr || '2026-09-10').split('-');
+/**
+ * Bulletproof normalizer for ANY date string format (YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, 27 Sep 2026, ISO strings).
+ */
+export function toStandardYYYYMMDD(dateStr?: string): string {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  const clean = String(dateStr).trim().split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+
+  const dmMatch = clean.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (dmMatch) {
+    const d = dmMatch[1].padStart(2, '0');
+    const m = dmMatch[2].padStart(2, '0');
+    const y = dmMatch[3];
+    return `${y}-${m}-${d}`;
+  }
+
+  const parsed = new Date(clean);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  return new Date().toISOString().split('T')[0];
+}
+
+export function formatICSDate(dateStr: string, timeStr: string = '10:00'): string {
+  const standardDate = toStandardYYYYMMDD(dateStr);
+  const [y, m, d] = standardDate.split('-');
   const time24 = parseTimeTo24(timeStr);
   const [h, min] = time24.split(':');
   return `${y}${m}${d}T${h}${min}00`;
 }
 
-function addMinutes(dateStr: string, timeStr: string, minutes: number): string {
+export function addMinutes(dateStr: string, timeStr: string, minutes: number): string {
+  const standardDate = toStandardYYYYMMDD(dateStr);
   const time24 = parseTimeTo24(timeStr);
-  const date = new Date(`${dateStr}T${time24}:00`);
+  const date = new Date(`${standardDate}T${time24}:00`);
   if (isNaN(date.getTime())) {
-    return formatICSDate(dateStr, timeStr);
+    return formatICSDate(standardDate, timeStr);
   }
   date.setMinutes(date.getMinutes() + (minutes || 60));
   const y = date.getFullYear();
@@ -139,15 +168,34 @@ export function getAppointmentGoogleCalendarUrl(
   salon: string = 'Shree Beauty Studio',
   address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
 ): string {
+  const cleanDate = toStandardYYYYMMDD(a.date);
   const time24 = parseTimeTo24(a.time || '10:00');
-  const dtStart = formatICSDate(a.date, time24);
-  const dtEnd = addMinutes(a.date, time24, 60);
+  const dtStart = formatICSDate(cleanDate, time24);
+  const dtEnd = addMinutes(cleanDate, time24, 60);
+
+  const details = [
+    `💅 SHREE BEAUTY STUDIO — APPOINTMENT`,
+    `─────────────────────────────────`,
+    `👤 Customer: ${a.customer}`,
+    `📞 Mobile: +91 ${a.mobile || ''}`,
+    `💄 Service: ${a.service}`,
+    `📅 Date: ${cleanDate}`,
+    `⏰ Time: ${a.time || '10:00 AM'}`,
+    a.staff ? `👩‍💼 Specialist: ${a.staff}` : '',
+    a.price ? `💵 Price: ₹${a.price}` : '',
+    a.advance ? `💵 Advance Paid: ₹${a.advance}` : '',
+    a.notes ? `📝 Notes: ${a.notes}` : '',
+    `📍 Studio Address: ${address}`,
+    `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
+    `📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`,
+    `📞 Contact: +91 97732 40010`,
+  ].filter(Boolean).join('\n');
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: `💅 ${a.customer} — ${a.service}`,
     dates: `${dtStart}/${dtEnd}`,
-    details: `Customer: ${a.customer}\nService: ${a.service}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
+    details: details,
     location: address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
     ctz: 'Asia/Kolkata',
   });
@@ -164,26 +212,159 @@ export function getBridalGoogleCalendarUrl(
     mobile?: string;
     packageName?: string;
     weddingDate?: string;
+    weddingTime?: string;
+    mandapDate?: string;
+    mandapTime?: string;
+    musicDate?: string;
+    musicTime?: string;
+    sagaiDate?: string;
+    sagaiTime?: string;
+    otherDate?: string;
+    otherTime?: string;
     date?: string;
+    time?: string;
     venue?: string;
     advance?: number;
     totalAmount?: number;
-    sagaiDate?: string;
-    event?: string;
+    package?: number;
+    notes?: string;
+    includeWedding?: boolean;
+    includeMandap?: boolean;
+    includeMusic?: boolean;
+    includeSagai?: boolean;
+    includeOther?: boolean;
+    otherEventName?: string;
   },
   salon: string = 'Shree Beauty Studio',
   address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
 ): string {
-  const eventDate = b.weddingDate || b.date || todayDateString();
+  const primaryDate = b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate || todayDateString();
+  const primaryTime = b.weddingTime || b.time || b.mandapTime || b.musicTime || b.sagaiTime || b.otherTime || '16:00';
   const pkgName = b.packageName || 'Bridal Package';
-  const dtStart = formatICSDate(eventDate, '08:00');
-  const dtEnd = addMinutes(eventDate, '08:00', 180);
+  const dtStart = formatICSDate(primaryDate, primaryTime);
+  const dtEnd = addMinutes(primaryDate, primaryTime, 180);
+
+  const allSelectedEventsSummary = [
+    b.weddingDate ? `💍 Wedding: ${b.weddingDate} (${b.weddingTime || '16:00'})` : '',
+    b.mandapDate ? `🌿 Mandap: ${b.mandapDate} (${b.mandapTime || '10:00'})` : '',
+    b.musicDate ? `🎶 Sangeet / Music: ${b.musicDate} (${b.musicTime || '19:00'})` : '',
+    b.sagaiDate ? `✨ Sagai: ${b.sagaiDate} (${b.sagaiTime || '11:00'})` : '',
+    b.otherDate ? `🌸 Other (${b.otherEventName || 'Event'}): ${b.otherDate} (${b.otherTime || '11:00'})` : '',
+  ].filter(Boolean);
+
+  const details = [
+    `👑 SHREE BEAUTY STUDIO — BRIDAL BOOKING`,
+    `─────────────────────────────────`,
+    `👰 Bride: ${b.name}`,
+    `📞 Mobile: +91 ${b.mobile || ''}`,
+    `👑 Package: ${pkgName}`,
+    allSelectedEventsSummary.length > 0 ? `\n📋 Scheduled Functions:\n${allSelectedEventsSummary.join('\n')}\n` : '',
+    `📍 Venue / Address: ${b.venue || address}`,
+    `🏢 Studio Address: ${address}`,
+    `💵 Total Package: ₹${b.package || b.totalAmount || 0}`,
+    b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
+    b.notes ? `📝 Special Notes: ${b.notes}` : '',
+    `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
+    `📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`,
+    `📞 Studio Contact: +91 97732 40010`,
+  ].filter(Boolean).join('\n');
 
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: `👑 ${b.name} — ${pkgName}`,
     dates: `${dtStart}/${dtEnd}`,
-    details: `Bride: ${b.name}\nPackage: ${pkgName}\nVenue: ${b.venue || address}\nStudio Address: ${address}\nGoogle Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\nInstagram: @shreebeauty.studio\nContact: +91 97732 40010`,
+    details: details,
+    location: b.venue || address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
+    ctz: 'Asia/Kolkata',
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/**
+ * Generate 1-click Google Calendar URL for a specific Bridal Function (Wedding, Mandap, Music, Sagai, Other).
+ */
+export function getBridalFunctionGoogleCalendarUrl(
+  b: {
+    name: string;
+    mobile?: string;
+    packageName?: string;
+    weddingDate?: string;
+    weddingTime?: string;
+    mandapDate?: string;
+    mandapTime?: string;
+    musicDate?: string;
+    musicTime?: string;
+    sagaiDate?: string;
+    sagaiTime?: string;
+    otherDate?: string;
+    otherTime?: string;
+    venue?: string;
+    notes?: string;
+    otherEventName?: string;
+    package?: number;
+    totalAmount?: number;
+    advance?: number;
+  },
+  functionType: 'wedding' | 'mandap' | 'music' | 'sagai' | 'other' = 'wedding',
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+): string {
+  let dateStr = b.weddingDate;
+  let timeStr = b.weddingTime || '16:00';
+  let title = `👑 ${b.name} — Wedding Makeup (${b.packageName || 'Bridal Package'})`;
+  let duration = 180;
+
+  if (functionType === 'mandap') {
+    dateStr = b.mandapDate || b.weddingDate;
+    timeStr = b.mandapTime || '10:00';
+    title = `🌿 ${b.name} — Mandap Muhurat (${b.packageName || 'Bridal Package'})`;
+    duration = 120;
+  } else if (functionType === 'music') {
+    dateStr = b.musicDate || b.weddingDate;
+    timeStr = b.musicTime || '19:00';
+    title = `🎶 ${b.name} — Sangeet / Music Night (${b.packageName || 'Bridal Package'})`;
+    duration = 120;
+  } else if (functionType === 'sagai') {
+    dateStr = b.sagaiDate || b.weddingDate;
+    timeStr = b.sagaiTime || '11:00';
+    title = `✨ ${b.name} — Sagai Ceremony (${b.packageName || 'Bridal Package'})`;
+    duration = 120;
+  } else if (functionType === 'other') {
+    dateStr = b.otherDate || b.weddingDate;
+    timeStr = b.otherTime || '11:00';
+    title = `🌸 ${b.name} — ${b.otherEventName || 'Pre-Wedding Function'} (${b.packageName || 'Bridal Package'})`;
+    duration = 120;
+  }
+
+  const cleanDate = toStandardYYYYMMDD(dateStr);
+  const time24 = parseTimeTo24(timeStr);
+  const dtStart = formatICSDate(cleanDate, time24);
+  const dtEnd = addMinutes(cleanDate, time24, duration);
+
+  const details = [
+    `👑 SHREE BEAUTY STUDIO — BRIDAL BOOKING`,
+    `─────────────────────────────────`,
+    `👰 Bride: ${b.name}`,
+    `📞 Mobile: +91 ${b.mobile || ''}`,
+    `👑 Package: ${b.packageName || 'Bridal Package'}`,
+    `🎉 Scheduled Function: ${title}`,
+    `📅 Date: ${cleanDate} @ ${timeStr}`,
+    `📍 Venue / Address: ${b.venue || address}`,
+    `🏢 Studio Address: ${address}`,
+    `💵 Total Package: ₹${b.package || b.totalAmount || 0}`,
+    b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
+    b.notes ? `📝 Special Notes: ${b.notes}` : '',
+    `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
+    `📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`,
+    `📞 Studio Contact: +91 97732 40010`,
+  ].filter(Boolean).join('\n');
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates: `${dtStart}/${dtEnd}`,
+    details: details,
     location: b.venue || address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
     ctz: 'Asia/Kolkata',
   });
@@ -285,55 +466,86 @@ END:VEVENT`);
     });
 
   (bridals || [])
-    .filter((b) => {
-      if (b.status === 'Cancelled') return false;
-      const bDate = b.weddingDate || b.date || b.sagaiDate || b.mandapDate || b.musicDate || b.otherDate;
-      if (!bDate) return false;
-      if (deletePastDays === 0) return true;
-      return bDate >= cutoffISO;
-    })
-    .forEach((b) => {
-      const bDate =
-        b.weddingDate ||
-        b.date ||
-        b.sagaiDate ||
-        b.mandapDate ||
-        b.musicDate ||
-        b.otherDate ||
-        todayDateString();
-      const dtStart = formatICSDate(bDate, '08:00');
-      const dtEnd = addMinutes(bDate, '08:00', 180);
+    .filter((b: any) => b.status !== 'Cancelled')
+    .forEach((b: any) => {
       const pkg = b.packageName || 'Bridal Package';
-      const summary = `👑 ${b.name} — ${pkg}`;
-      const desc = [
-        `Bridal Makeup: ${pkg}`,
-        `Bride: ${b.name}`,
-        b.mobile ? `Mobile: +91 ${b.mobile}` : '',
-        `Total: ₹${b.totalAmount || b.package || 0}`,
-        b.advance ? `Advance: ₹${b.advance}` : '',
-        b.venue ? `Venue: ${b.venue}` : `Studio: ${address}`,
-      ].filter(Boolean).join('\\n');
+      const venueLoc = b.venue || address;
 
-      events.push(`BEGIN:VEVENT
-UID:bridal-${b.id || Math.random().toString(36).slice(2)}@shreebeautystudio
+      const pushBridalEvent = (dateStr: string, timeStr: string, functionName: string, icon: string, durationMins: number = 180) => {
+        const standardDate = toStandardYYYYMMDD(dateStr);
+        if (!standardDate) return;
+        if (deletePastDays > 0 && standardDate < cutoffISO) return;
+
+        const time24 = parseTimeTo24(timeStr);
+        const dtStart = formatICSDate(standardDate, time24);
+        const dtEnd = addMinutes(standardDate, time24, durationMins);
+        const summary = `${icon} ${b.name} — ${functionName} (${pkg})`;
+        const desc = [
+          `👑 SHREE BEAUTY STUDIO — BRIDAL EVENT`,
+          `Function: ${functionName}`,
+          `Bride / Client: ${b.name}`,
+          b.mobile ? `Mobile: +91 ${b.mobile}` : '',
+          `Package: ${pkg}`,
+          `Date & Time: ${standardDate} @ ${timeStr}`,
+          b.totalAmount || b.package ? `Total Package: ₹${b.totalAmount || b.package}` : '',
+          b.advance ? `Advance Paid: ₹${b.advance}` : '',
+          `Venue: ${venueLoc}`,
+          `Studio Address: ${address}`,
+          `Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
+          `Contact: +91 97732 40010`,
+        ].filter(Boolean).join('\\n');
+
+        events.push(`BEGIN:VEVENT
+UID:bridal-${b.id || Math.random().toString(36).slice(2)}-${functionName.replace(/\s+/g, '')}@shreebeautystudio
 DTSTAMP:${nowStamp}
 DTSTART;TZID=Asia/Kolkata:${dtStart}
 DTEND;TZID=Asia/Kolkata:${dtEnd}
 SUMMARY:${summary.replace(/,/g, '\\,')}
 DESCRIPTION:${desc}
-LOCATION:${(b.venue || address).replace(/,/g, '\\,')}
+LOCATION:${venueLoc.replace(/,/g, '\\,')}
 STATUS:CONFIRMED
 BEGIN:VALARM
 TRIGGER:-PT1440M
 ACTION:DISPLAY
-DESCRIPTION:Bridal Event Tomorrow: ${b.name}
+DESCRIPTION:Bridal Reminder (1 day before): ${functionName} for ${b.name}
 END:VALARM
 BEGIN:VALARM
 TRIGGER:-PT120M
 ACTION:DISPLAY
-DESCRIPTION:Bridal Event Today: ${b.name} in 2 hours
+DESCRIPTION:Bridal Event Today (in 2 hours): ${functionName} for ${b.name}
 END:VALARM
 END:VEVENT`);
+      };
+
+      let hasAddedAny = false;
+
+      if (b.includeWedding !== false && b.weddingDate) {
+        pushBridalEvent(b.weddingDate, b.weddingTime || '16:00', 'Wedding', '👑', 180);
+        hasAddedAny = true;
+      }
+      if (b.includeMandap !== false && b.mandapDate) {
+        pushBridalEvent(b.mandapDate, b.mandapTime || '10:00', 'Mandap Muhurat', '🌿', 120);
+        hasAddedAny = true;
+      }
+      if (b.includeMusic !== false && b.musicDate) {
+        pushBridalEvent(b.musicDate, b.musicTime || '19:00', 'Sangeet / Music Night', '🎶', 120);
+        hasAddedAny = true;
+      }
+      if (b.includeSagai && b.sagaiDate) {
+        pushBridalEvent(b.sagaiDate, b.sagaiTime || '11:00', 'Sagai Ceremony', '✨', 120);
+        hasAddedAny = true;
+      }
+      if (b.includeOther && b.otherDate) {
+        pushBridalEvent(b.otherDate, b.otherTime || '11:00', b.otherEventName || 'Pre-Wedding Function', '🌸', 120);
+        hasAddedAny = true;
+      }
+
+      if (!hasAddedAny) {
+        const fallbackDate = b.date || b.weddingDate || b.mandapDate || b.musicDate || b.sagaiDate || b.otherDate;
+        if (fallbackDate) {
+          pushBridalEvent(fallbackDate, b.time || b.weddingTime || '10:00', pkg, '👑', 180);
+        }
+      }
     });
 
   return `BEGIN:VCALENDAR

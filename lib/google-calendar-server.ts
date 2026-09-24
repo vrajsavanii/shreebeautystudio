@@ -137,28 +137,37 @@ export async function insertGoogleCalendarV3Event(
 }
 
 /**
- * Normalizes any date format (YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, ISO string) to standard YYYY-MM-DD.
+ * Normalizes any date format (YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, 27 Sep 2026, ISO string) to standard YYYY-MM-DD.
  */
 export function normalizeDateToYYYYMMDD(dateStr?: string): string {
   if (!dateStr) return new Date().toISOString().split('T')[0];
-  const clean = dateStr.trim().split('T')[0];
-  const parts = clean.split(/[-/.]/).map((p) => p.trim());
-  if (parts.length === 3) {
-    // If first part is 4 digits -> YYYY-MM-DD
-    if (parts[0].length === 4) {
-      const y = parts[0];
-      const m = parts[1].padStart(2, '0');
-      const d = parts[2].padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-    // If third part is 4 digits -> DD-MM-YYYY
-    if (parts[2].length === 4) {
-      const y = parts[2];
-      const m = parts[1].padStart(2, '0');
-      const d = parts[0].padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
+  const clean = String(dateStr).trim().split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+
+  const dmMatch = clean.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  if (dmMatch) {
+    const d = dmMatch[1].padStart(2, '0');
+    const m = dmMatch[2].padStart(2, '0');
+    const y = dmMatch[3];
+    return `${y}-${m}-${d}`;
   }
+
+  const ymMatch = clean.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (ymMatch) {
+    const y = ymMatch[1];
+    const m = ymMatch[2].padStart(2, '0');
+    const d = ymMatch[3].padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  const parsed = new Date(clean);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   return new Date().toISOString().split('T')[0];
 }
 
