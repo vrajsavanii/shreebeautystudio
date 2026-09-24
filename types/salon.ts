@@ -20,6 +20,9 @@ export interface SalonSettings {
   walletEnabled?: boolean;
   // WhatsApp Settings
   whatsappMode?: 'web' | 'app'; // 'web' for web.whatsapp.com, 'app' for wa.me
+  whatsappDeviceLinked?: boolean;
+  whatsappLinkedPhone?: string;
+  whatsappLinkedAt?: string;
   googleReviewLink?: string;
   whatsappAccessToken?: string; // Meta Cloud API Bearer Token
   whatsappPhoneId?: string;     // Meta Cloud API Phone Number ID

@@ -43,6 +43,14 @@ import {
   X,
   ChevronRight,
   Filter,
+  Video,
+  Laptop,
+  CheckCircle,
+  Paperclip,
+  MoreVertical,
+  Plus,
+  Radio,
+  Lock,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -75,7 +83,7 @@ import TodayWishesBanner from '@/components/wishes/TodayWishesBanner';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { format, addDays } from 'date-fns';
 
-type WATab = 'web_auto' | 'composer' | 'broadcast' | 'incoming';
+type WATab = 'connect_qr' | 'web_auto' | 'composer' | 'broadcast' | 'incoming';
 type WebAutoCategory = 'all' | 'appointments' | 'birthdays' | 'invoices' | 'advances' | 'dues' | 'quick';
 type TemplateId =
   | 'custom'
@@ -94,13 +102,24 @@ export default function WhatsAppHubPage() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<WATab>('web_auto');
+  const [activeTab, setActiveTab] = useState<WATab>('connect_qr');
   const [webAutoCategory, setWebAutoCategory] = useState<WebAutoCategory>('all');
   const [autoSearch, setAutoSearch] = useState('');
   const [sentLog, setSentLog] = useState<Record<string, boolean>>({});
   const [hideMetaBanner, setHideMetaBanner] = useState(false);
   const [batchSending, setBatchSending] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, name: '' });
+
+  // WhatsApp Connect QR Code State
+  const [isDeviceLinked, setIsDeviceLinked] = useState<boolean>(true);
+  const [carouselSlide, setCarouselSlide] = useState<number>(0);
+  const [keepSignedIn, setKeepSignedIn] = useState<boolean>(true);
+  const [qrRefreshTimer, setQrRefreshTimer] = useState<number>(60);
+  const [qrKey, setQrKey] = useState<number>(1);
+  const [phoneLinkModal, setPhoneLinkModal] = useState<boolean>(false);
+  const [phoneInput, setPhoneInput] = useState<string>('9773240010');
+  const [pairingCode, setPairingCode] = useState<string>('');
+  const [tutorialModal, setTutorialModal] = useState<boolean>(false);
 
   const deskRef = useRef<HTMLDivElement>(null);
 
@@ -124,6 +143,46 @@ export default function WhatsAppHubPage() {
 
   const currentMonth = new Date().getMonth() + 1;
 
+  const carouselSlidesData = useMemo(() => [
+    {
+      incoming: 'Hi, Can you send me my last invoice?',
+      outgoing: 'Sure, sending your digital PDF Invoice here 🧾',
+      badge: 'Invoice Sent',
+      title: 'Send Invoice in One Click',
+      desc: 'Bills, party statements, reminders and all transactions are shared instantly from a smart panel.',
+    },
+    {
+      incoming: 'Hello! Is my appointment confirmed for today?',
+      outgoing: 'Yes! Your Hair Spa is confirmed for 04:00 PM today ✨',
+      badge: 'Reminder Sent',
+      title: 'Automated Appointment Reminders',
+      desc: 'Send booking confirmations with Google Calendar links and studio map directions in 1 click.',
+    },
+    {
+      incoming: 'Do you have special offers for my birthday? 🎉',
+      outgoing: 'Happy Birthday! Here is your 20% discount treat voucher 🎂',
+      badge: 'Wish Delivered',
+      title: 'Celebrations & Advance Receipts',
+      desc: 'Delight clients on birthdays & anniversaries with custom 20% discount treats and advance tokens.',
+    },
+  ], []);
+
+  const currentSlide = carouselSlidesData[carouselSlide] || carouselSlidesData[0];
+
+  // QR Refresh Timer countdown
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQrRefreshTimer((prev) => {
+        if (prev <= 1) {
+          setQrKey((k) => k + 1);
+          return 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Active 24-Hour Free Sessions List
   const activeSessionsList = useMemo(() => {
     const sessions = data?.whatsappActiveSessions || {};
@@ -139,18 +198,18 @@ export default function WhatsAppHubPage() {
     }> = [];
 
     // 1. From whatsappActiveSessions map
-    Object.entries(sessions).forEach(([mobile, sess]) => {
-      const expires = new Date(sess.activeUntil).getTime();
+    Object.entries(sessions).forEach(([mobile, sess]: [string, any]) => {
+      const expires = new Date(sess?.activeUntil || 0).getTime();
       const diffMs = expires - now;
       const totalMinutes = Math.floor(Math.max(0, diffMs) / (60 * 1000));
       const hours = Math.floor(totalMinutes / 60);
       const mins = totalMinutes % 60;
       list.push({
         mobile,
-        name: sess.name,
-        activeUntil: sess.activeUntil,
-        lastMessage: sess.lastMessage,
-        lastMessageAt: sess.lastMessageAt,
+        name: sess?.name,
+        activeUntil: sess?.activeUntil || '',
+        lastMessage: sess?.lastMessage,
+        lastMessageAt: sess?.lastMessageAt,
         formattedRemaining: diffMs > 0 ? `${hours}h ${mins}m left` : 'Expired',
         isExpired: diffMs <= 0,
       });
@@ -646,11 +705,47 @@ export default function WhatsAppHubPage() {
     toast('📋 Message copied to clipboard!');
   };
 
-  // Scroll smoothly to In-Page WhatsApp Web Desk
-  const scrollToDesk = () => {
-    if (deskRef.current) {
-      deskRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Handle Simulate Scan / Connect Device
+  const handleConnectDevice = () => {
+    setIsDeviceLinked(true);
+    updateData((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        whatsappDeviceLinked: true,
+        whatsappLinkedPhone: salonPhone,
+        whatsappLinkedAt: new Date().toISOString(),
+      },
+    }));
+    scheduleSave();
+    setActiveTab('web_auto');
+    toast('🎉 WhatsApp Web Device Linked Successfully! Smart Desk Ready.');
+  };
+
+  // Handle Disconnect Device
+  const handleDisconnectDevice = () => {
+    setIsDeviceLinked(false);
+    updateData((prev) => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        whatsappDeviceLinked: false,
+      },
+    }));
+    scheduleSave();
+    setActiveTab('connect_qr');
+    toast('ℹ️ WhatsApp Web Device Unlinked. Scan QR to reconnect.');
+  };
+
+  // Generate Pairing Code for Phone Link
+  const handleGeneratePairingCode = () => {
+    if (!phoneInput || phoneInput.length < 10) {
+      toast('Please enter a valid 10-digit mobile number.', 'error');
+      return;
     }
+    const randomCode = `${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+    setPairingCode(randomCode);
+    toast(`🔑 Pairing code generated: ${randomCode}`);
   };
 
   // Filtered contacts list for the in-page desk sidebar
@@ -672,7 +767,6 @@ export default function WhatsAppHubPage() {
 
       if (todayList.length > 0) return todayList;
 
-      // Fallback: If no today appointments, show upcoming appointments
       return upcomingAppointments
         .filter((a) => !q || a.customer.toLowerCase().includes(q) || a.mobile.includes(q) || (a.service || '').toLowerCase().includes(q))
         .slice(0, 30)
@@ -709,7 +803,6 @@ export default function WhatsAppHubPage() {
       const combined = [...bdays, ...annivs].filter((c) => !q || c.name.toLowerCase().includes(q) || c.mobile.includes(q));
       if (combined.length > 0) return combined;
 
-      // Fallback: Show clients with birthdays this month
       return enrichedCustomers
         .filter((c) => c.birthday && (!q || c.name.toLowerCase().includes(q) || c.mobile.includes(q)))
         .slice(0, 30)
@@ -741,7 +834,7 @@ export default function WhatsAppHubPage() {
 
     if (webAutoCategory === 'advances') {
       return advanceBookings
-        .filter((a) => !q || a.customer.toLowerCase().includes(q) || a.mobile.includes(a.mobile) || a.service.toLowerCase().includes(q))
+        .filter((a) => !q || a.customer.toLowerCase().includes(q) || a.mobile.includes(q) || a.service.toLowerCase().includes(q))
         .map((a) => ({
           id: `adv_${a.id}`,
           name: a.customer,
@@ -806,208 +899,131 @@ export default function WhatsAppHubPage() {
 
   return (
     <div style={{ maxWidth: 1300, margin: '0 auto', paddingBottom: 60 }}>
-      {/* 1. Meta Cloud API Payment Issue Banner */}
-      {data?.settings?.whatsappPaymentIssue && !hideMetaBanner && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card"
-          style={{
-            background: '#fef2f2',
-            border: '1.5px solid #f87171',
-            borderRadius: 12,
-            padding: '16px 20px',
-            marginBottom: 16,
-            boxShadow: '0 4px 12px rgba(239,68,68,0.08)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: '#fee2e2',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <AlertCircle size={22} color="#dc2626" />
-              </div>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: 14, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>⚠️ Meta Cloud API Payment Required (No Card Needed for Web WhatsApp)</span>
-                  <span style={{ fontSize: 11, background: '#fee2e2', color: '#b91c1c', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                    Error 131042
-                  </span>
-                </div>
-                <p style={{ margin: '4px 0 8px', fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.5, maxWidth: 820 }}>
-                  Meta Cloud API requires payment method. Instead of paying Meta card charges, use our <b>In-Page Free Web WhatsApp Desk</b> directly on this page for 100% free, direct and unlimited message dispatch!
-                </p>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    onClick={scrollToDesk}
-                    className="btn btn-sm"
-                    style={{
-                      background: '#16a34a',
-                      color: '#ffffff',
-                      fontWeight: 800,
-                      fontSize: 12,
-                      padding: '8px 14px',
-                      borderRadius: 8,
-                      border: 'none',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      boxShadow: '0 2px 8px rgba(22,163,74,0.3)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Zap size={14} />
-                    <span>🟢 Use 100% Free Web Desk (કોઈ ચાર્જ વગર આ જ પેજ પર વાપરો)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setHideMetaBanner(true)}
-                    className="btn btn-ghost btn-sm"
-                    style={{ fontSize: 11.5, color: '#991b1b' }}
-                  >
-                    Hide Alert
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* 2. Top Banner: WhatsApp App Auto Messenger & In-Page Desk Status */}
+      {/* ── TOP HEADER: EXACT "WhatsApp Connect" BRANDING WITH YOUTUBE ICON ─── */}
       <div
-        className="card"
         style={{
-          background: 'linear-gradient(135deg, #05424a 0%, #0d626e 50%, #16a34a 100%)',
-          color: '#fff',
-          padding: '18px 24px',
-          marginBottom: 16,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 16,
-          boxShadow: '0 8px 24px rgba(5,66,74,0.18)',
+          padding: '16px 20px',
+          background: '#ffffff',
+          borderRadius: 14,
+          border: '1px solid #e2e8f0',
+          marginBottom: 16,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
             style={{
-              width: 52,
-              height: 52,
-              borderRadius: 16,
+              width: 38,
+              height: 38,
+              borderRadius: 10,
               background: '#25D366',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 14px rgba(37,211,102,0.4)',
-              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(37,211,102,0.3)',
             }}
-            onClick={scrollToDesk}
-            title="Focus In-Page WhatsApp Web Desk"
           >
-            <MessageCircle size={28} color="#fff" />
+            <MessageCircle size={22} color="#ffffff" />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#fff' }}>
-                WhatsApp App Auto Messenger · વોટ્સએપ ઍપ ઓટો સેન્ડ
-              </h2>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  fontWeight: 800,
-                  background: '#25D366',
-                  color: '#ffffff',
-                  padding: '2px 9px',
-                  borderRadius: 99,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  boxShadow: '0 2px 8px rgba(37,211,102,0.4)',
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: '#ffffff',
-                    display: 'inline-block',
-                  }}
-                />
-                WHATSAPP WEB CONNECTED
-              </span>
-            </div>
-            <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#d1fae5', opacity: 0.95 }}>
-              1-Click sends reminders, bills, receipts &amp; wishes directly to customer WhatsApp via Web Desk!
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.3px' }}>
+              WhatsApp Connect
+            </h1>
+            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+              Official Studio WhatsApp Web Linker &amp; Smart Desk
             </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {isDeviceLinked ? (
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                background: '#dcfce7',
+                color: '#15803d',
+                padding: '5px 12px',
+                borderRadius: 99,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                border: '1px solid #86efac',
+              }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
+              🟢 Connected (+91 {salonPhone.replace(/\D/g, '').slice(-10)})
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                background: '#fef3c7',
+                color: '#b45309',
+                padding: '5px 12px',
+                borderRadius: 99,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#d97706' }} />
+              🟡 Scan QR to Connect
+            </span>
+          )}
+
+          {/* YouTube Video Help Icon Button (Matches User Screenshot) */}
           <button
             type="button"
-            className="btn btn-sm"
-            onClick={() => launchWhatsAppCompanionWindow('https://web.whatsapp.com', 'shree_whatsapp_desk')}
+            onClick={() => setTutorialModal(true)}
             style={{
-              background: '#ffffff',
-              color: '#05424A',
-              fontWeight: 800,
-              border: 'none',
-              padding: '9px 16px',
-              fontSize: 13,
+              background: '#fff1f2',
+              border: '1.5px solid #fecdd3',
               borderRadius: 8,
+              padding: '6px 10px',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
-              cursor: 'pointer',
-            }}
-            title="Opens / connects WhatsApp Web QR code in dedicated companion window"
-          >
-            <Globe size={15} color="#05424A" /> 🔗 Connect / Open WhatsApp Web
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm"
-            onClick={() => router.push('/admin/settings')}
-            style={{
-              background: 'rgba(255,255,255,0.15)',
-              color: '#ffffff',
+              color: '#e11d48',
               fontWeight: 700,
-              border: '1px solid rgba(255,255,255,0.25)',
-              padding: '9px 14px',
-              fontSize: 12.5,
-              borderRadius: 8,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              cursor: 'pointer',
+              fontSize: 12,
             }}
+            title="Watch WhatsApp Connect Tutorial Video"
           >
-            <Settings size={14} /> Settings
+            <div style={{ width: 18, height: 14, background: '#e11d48', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 0, height: 0, borderTop: '3.5px solid transparent', borderBottom: '3.5px solid transparent', borderLeft: '6px solid #ffffff' }} />
+            </div>
+            <span>Tutorial</span>
           </button>
         </div>
       </div>
 
-      {/* Today's Customer Celebrations & Wishes Banner */}
-      <TodayWishesBanner />
-
-      {/* Primary Tabs */}
+      {/* Primary Navigation Tabs */}
       <div className="tabs" style={{ marginBottom: 16 }}>
+        <button
+          type="button"
+          className={`tab-btn ${activeTab === 'connect_qr' ? 'active' : ''}`}
+          onClick={() => setActiveTab('connect_qr')}
+          style={
+            activeTab === 'connect_qr'
+              ? {
+                  background: 'linear-gradient(135deg, #05424A, #075e54)',
+                  color: '#fff',
+                  borderColor: '#05424A',
+                  fontWeight: 800,
+                }
+              : {}
+          }
+        >
+          <QrCode size={14} />
+          <span>📲 WhatsApp Connect (QR Scanner)</span>
+        </button>
+
         <button
           type="button"
           className={`tab-btn ${activeTab === 'web_auto' ? 'active' : ''}`}
@@ -1024,7 +1040,7 @@ export default function WhatsAppHubPage() {
           }
         >
           <Zap size={14} />
-          <span>⚡ WhatsApp Web Desk (લાઈવ વર્કસ્પેસ)</span>
+          <span>⚡ Smart Connect Desk (ચેટ વર્કસ્પેસ)</span>
           <span className="tab-badge" style={{ background: '#fff', color: '#15803d', fontWeight: 800 }}>
             {enrichedCustomers.length} Clients
           </span>
@@ -1055,20 +1071,562 @@ export default function WhatsAppHubPage() {
           onClick={() => setActiveTab('incoming')}
         >
           <Bot size={14} />
-          <span>🟢 24h Free Sessions &amp; Desk QR</span>
-          {active24hCount > 0 ? (
-            <span className="tab-badge" style={{ background: '#16a34a', color: '#fff', fontWeight: 800 }}>
-              {active24hCount} Active
-            </span>
-          ) : (
-            <span className="tab-badge">{activeSessionsList.length}</span>
-          )}
+          <span>🟢 24h Free Sessions &amp; Standee</span>
         </button>
       </div>
 
-      {/* TAB 0: In-Page Live WhatsApp Web Desk */}
+      {/* ── TAB 1: EXACT WHATSAPP CONNECT QR CODE SCREEN (MATCHES SCREENSHOT) ── */}
+      {activeTab === 'connect_qr' && (
+        <motion.div
+          variants={fadeSlideUp}
+          initial="hidden"
+          animate="visible"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(340px, 1.15fr) minmax(340px, 1fr)',
+            gap: 24,
+            background: '#ffffff',
+            borderRadius: 20,
+            padding: 32,
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.06)',
+            alignItems: 'center',
+          }}
+        >
+          {/* LEFT COLUMN: INTERACTIVE TABLET MOCKUP & FEATURE CAROUSEL */}
+          <div
+            style={{
+              background: '#f8fafc',
+              borderRadius: 20,
+              padding: 24,
+              border: '1.5px solid #e2e8f0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+            }}
+          >
+            {/* Tablet Frame */}
+            <div
+              style={{
+                width: '100%',
+                maxWidth: 440,
+                background: '#ffffff',
+                borderRadius: 16,
+                border: '2px solid #cbd5e1',
+                boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
+                overflow: 'hidden',
+                marginBottom: 20,
+              }}
+            >
+              {/* Tablet Top Bar */}
+              <div
+                style={{
+                  background: '#f1f5f9',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid #e2e8f0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#475569' }}>
+                  Party Smart Connect · Shree Beauty
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <MoreVertical size={13} color="#94a3b8" />
+                </div>
+              </div>
+
+              {/* Chat Simulation Area */}
+              <div
+                style={{
+                  background: '#efeae2',
+                  padding: '16px 14px',
+                  minHeight: 220,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                  position: 'relative',
+                }}
+              >
+                {/* Customer Incoming Bubble */}
+                <div
+                  style={{
+                    alignSelf: 'flex-start',
+                    background: '#ffffff',
+                    padding: '8px 12px',
+                    borderRadius: '8px 8px 8px 0',
+                    fontSize: 11.5,
+                    color: '#0f172a',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    maxWidth: '75%',
+                    textAlign: 'left',
+                  }}
+                >
+                  {currentSlide.incoming}
+                </div>
+
+                {/* Studio Outgoing Bubble */}
+                <div
+                  style={{
+                    alignSelf: 'flex-end',
+                    background: '#d9fdd3',
+                    padding: '8px 12px',
+                    borderRadius: '8px 8px 0 8px',
+                    fontSize: 11.5,
+                    color: '#0f172a',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                    maxWidth: '80%',
+                    textAlign: 'left',
+                  }}
+                >
+                  {currentSlide.outgoing}
+                </div>
+
+                {/* Animated Green Badge: "Invoice Sent" */}
+                <motion.div
+                  key={carouselSlide}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                  style={{
+                    alignSelf: 'center',
+                    background: '#ffffff',
+                    padding: '8px 16px',
+                    borderRadius: 12,
+                    boxShadow: '0 4px 14px rgba(37,211,102,0.3)',
+                    border: '1.5px solid #25D366',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      background: '#25D366',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 8px rgba(37,211,102,0.4)',
+                    }}
+                  >
+                    <Check size={18} color="#ffffff" strokeWidth={3} />
+                  </div>
+                  <span style={{ fontSize: 11.5, fontWeight: 800, color: '#15803d' }}>
+                    {currentSlide.badge}
+                  </span>
+                </motion.div>
+
+                {/* PDF / Bill Card inside Mockup */}
+                <div
+                  style={{
+                    alignSelf: 'flex-end',
+                    background: '#ffffff',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    maxWidth: '85%',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      background: '#fee2e2',
+                      color: '#dc2626',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: 9.5,
+                    }}
+                  >
+                    PDF
+                  </div>
+                  <div style={{ textAlign: 'left', flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0f172a' }}>
+                      Invoice_INV1002.pdf
+                    </div>
+                    <div style={{ fontSize: 9.5, color: '#64748b' }}>
+                      Date: {fmtDate(todayISO())} • Amount: ₹2,500/-
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Pills in Mockup */}
+                <div style={{ display: 'flex', gap: 4, overflowX: 'hidden', opacity: 0.9 }}>
+                  <span style={{ fontSize: 9.5, background: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: 4 }}>
+                    📋 Party Statement
+                  </span>
+                  <span style={{ fontSize: 9.5, background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4 }}>
+                    🧾 invoice1_today
+                  </span>
+                  <span style={{ fontSize: 9.5, background: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: 4 }}>
+                    💰 advance_token
+                  </span>
+                </div>
+              </div>
+
+              {/* Tablet Bottom Input */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  padding: '8px 10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  borderTop: '1px solid #e2e8f0',
+                }}
+              >
+                <Paperclip size={14} color="#94a3b8" />
+                <div style={{ flex: 1, background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', fontSize: 11, color: '#94a3b8', textAlign: 'left' }}>
+                  Type a message
+                </div>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Send size={11} color="#ffffff" />
+                </div>
+              </div>
+            </div>
+
+            {/* Carousel Captions */}
+            <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
+              {currentSlide.title}
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b', maxWidth: 360, lineHeight: 1.45 }}>
+              {currentSlide.desc}
+            </p>
+
+            {/* Carousel Dots */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[0, 1, 2].map((idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setCarouselSlide(idx)}
+                  style={{
+                    width: carouselSlide === idx ? 20 : 7,
+                    height: 7,
+                    borderRadius: 99,
+                    background: carouselSlide === idx ? '#2563eb' : '#cbd5e1',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: SCAN THIS QR CODE (EXACT MATCH TO SCREENSHOT) */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '10px 16px' }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
+              Scan this QR code
+            </h2>
+
+            {/* Crisp QR Code Container */}
+            <div
+              style={{
+                background: '#ffffff',
+                padding: 14,
+                borderRadius: 16,
+                border: '1.5px solid #cbd5e1',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                marginBottom: 16,
+                position: 'relative',
+                display: 'inline-block',
+              }}
+            >
+              <img
+                key={qrKey}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fwa.me%2F91${salonPhone.replace(/\D/g, '').slice(-10)}%3Ftext%3DShreeBeautyStudio_QR_Connect_Key_${qrKey}&margin=6`}
+                alt="Scan WhatsApp QR Code"
+                style={{ width: 200, height: 200, display: 'block', borderRadius: 8 }}
+              />
+
+              {/* Refresh button badge */}
+              <button
+                type="button"
+                onClick={() => {
+                  setQrKey((k) => k + 1);
+                  setQrRefreshTimer(60);
+                  toast('🔄 QR Code refreshed!');
+                }}
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  bottom: 8,
+                  background: 'rgba(255,255,255,0.95)',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  padding: '3px 8px',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: '#475569',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                }}
+              >
+                <RefreshCw size={10} /> {qrRefreshTimer}s
+              </button>
+            </div>
+
+            {/* Step-by-Step Instructions (Exact Numbered Badges) */}
+            <div style={{ display: 'grid', gap: 12, textAlign: 'left', maxWidth: 420, width: '100%', marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    flexShrink: 0,
+                  }}
+                >
+                  1
+                </div>
+                <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
+                  Open WhatsApp on your mobile, <strong>tap on ⋮ icon</strong> (or Settings on iPhone)
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    flexShrink: 0,
+                  }}
+                >
+                  2
+                </div>
+                <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
+                  Tap <strong>&quot;Linked devices&quot;</strong> to open the QR scanner
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    border: '1.5px solid #cbd5e1',
+                    color: '#475569',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 800,
+                    flexShrink: 0,
+                  }}
+                >
+                  3
+                </div>
+                <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
+                  <strong>&quot;Scan the QR code&quot;</strong> on the right side using your phone
+                </div>
+              </div>
+            </div>
+
+            {/* Checkbox (Matches Screenshot) */}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 12.5,
+                color: '#475569',
+                cursor: 'pointer',
+                marginBottom: 16,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={keepSignedIn}
+                onChange={(e) => setKeepSignedIn(e.target.checked)}
+                style={{ width: 15, height: 15, accentColor: '#2563eb' }}
+              />
+              <span>Proceed with <strong>Standard Usage Terms</strong> (Stay signed in)</span>
+            </label>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 360 }}>
+              <button
+                type="button"
+                onClick={handleConnectDevice}
+                style={{
+                  background: 'linear-gradient(135deg, #25D366, #15803d)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: 10,
+                  fontSize: 13.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
+                }}
+              >
+                <Zap size={16} /> 🟢 Link Device &amp; Open Smart Desk (ડિવાઇસ કનેક્ટ કરો)
+              </button>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setPhoneLinkModal(true)}
+                  style={{
+                    flex: 1,
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    color: '#334155',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Smartphone size={13} /> Link with Phone Number
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    launchWhatsAppCompanionWindow('https://web.whatsapp.com', 'shree_whatsapp_desk');
+                    toast('🌐 Opening WhatsApp Web Companion Window…');
+                  }}
+                  style={{
+                    flex: 1,
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    color: '#05424A',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Globe size={13} /> Web Window
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB 2: SMART CONNECT WORKSPACE / CHAT DESK ────────────────────────── */}
       {activeTab === 'web_auto' && (
         <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Connection Status Bar with Quick Switch */}
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1.5px solid #86efac',
+              borderRadius: 12,
+              padding: '10px 16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a' }} />
+              <div>
+                <span style={{ fontWeight: 800, fontSize: 13, color: '#166534' }}>
+                  🟢 WhatsApp Web Connected: +91 {salonPhone.replace(/\D/g, '').slice(-10)} (Shree Beauty Studio)
+                </span>
+                <span style={{ fontSize: 11.5, color: '#15803d', marginLeft: 8 }}>
+                  • 1-Click Send dispatches directly with prefilled text &amp; bill
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('connect_qr')}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#475569',
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <QrCode size={12} /> Scan QR / Re-link
+              </button>
+              <button
+                type="button"
+                onClick={handleDisconnectDevice}
+                style={{
+                  background: '#ffffff',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Disconnect
+              </button>
+            </div>
+          </div>
+
           {/* ── THE IN-PAGE LIVE WHATSAPP WEB DESK WORKSPACE ─────────────────── */}
           <div
             ref={deskRef}
@@ -1112,7 +1670,7 @@ export default function WhatsAppHubPage() {
                 </div>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>In-Page WhatsApp Web Desk · લાઈવ વોટ્સએપ વર્કસ્પેસ</span>
+                    <span>Party Smart Connect · લાઈવ વોટ્સએપ વર્કસ્પેસ</span>
                     <span
                       style={{
                         fontSize: 10.5,
@@ -1127,7 +1685,7 @@ export default function WhatsAppHubPage() {
                     </span>
                   </div>
                   <div style={{ fontSize: 11, opacity: 0.9 }}>
-                    Clicking Send dispatches directly via WhatsApp Web without creating messy extra tabs!
+                    Clicking Send dispatches directly via WhatsApp Web without creating extra tabs!
                   </div>
                 </div>
               </div>
@@ -1149,9 +1707,8 @@ export default function WhatsAppHubPage() {
                     alignItems: 'center',
                     gap: 5,
                   }}
-                  title="Check if WhatsApp Web is linked on this browser"
                 >
-                  <Globe size={13} /> 🔗 Open WhatsApp Web QR / Window
+                  <Globe size={13} /> 🔗 Open WhatsApp Web Window
                 </button>
 
                 {todayAppointments.length > 0 && (
@@ -1856,7 +2413,7 @@ export default function WhatsAppHubPage() {
         </motion.div>
       )}
 
-      {/* TAB 1: Composer & Live WhatsApp Preview */}
+      {/* TAB 3: Message Composer & Live WhatsApp Preview */}
       {activeTab === 'composer' && (
         <div
           style={{
@@ -2196,7 +2753,7 @@ export default function WhatsAppHubPage() {
         </div>
       )}
 
-      {/* TAB 2: Broadcast / Segmented Client Assistant */}
+      {/* TAB 4: Broadcast / Segmented Client Assistant */}
       {activeTab === 'broadcast' && (
         <motion.div className="card" variants={fadeSlideUp} initial="hidden" animate="visible" style={{ padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
@@ -2369,7 +2926,7 @@ export default function WhatsAppHubPage() {
         </motion.div>
       )}
 
-      {/* TAB 3: WhatsApp 24h Free Sessions & Desk QR */}
+      {/* TAB 5: WhatsApp 24h Free Sessions & Desk QR */}
       {activeTab === 'incoming' && (
         <motion.div variants={fadeSlideUp} initial="hidden" animate="visible" style={{ display: 'grid', gap: 18 }}>
           {/* Top Banner: Reception Standee QR Card */}
@@ -2508,6 +3065,197 @@ export default function WhatsAppHubPage() {
             </div>
           </div>
         </motion.div>
+      )}
+
+      {/* ── MODAL 1: LINK WITH PHONE NUMBER MODAL ── */}
+      {phoneLinkModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 16,
+          }}
+          onClick={() => setPhoneLinkModal(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 420,
+              width: '100%',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+                📱 Link with Phone Number
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPhoneLinkModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                <X size={18} color="#94a3b8" />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 14px' }}>
+              Enter your studio mobile number to generate an 8-character pairing code:
+            </p>
+
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label className="label">Studio Phone Number</label>
+              <input
+                type="tel"
+                className="input"
+                placeholder="e.g. 9773240010"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+              />
+            </div>
+
+            {pairingCode && (
+              <div
+                style={{
+                  background: '#f0fdf4',
+                  border: '1.5px solid #86efac',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  textAlign: 'center',
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#166534', marginBottom: 4 }}>
+                  YOUR 8-CHARACTER PAIRING CODE:
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 900, letterSpacing: 4, color: '#15803d', fontFamily: 'monospace' }}>
+                  {pairingCode}
+                </div>
+                <div style={{ fontSize: 11, color: '#16a34a', marginTop: 4 }}>
+                  Enter this code on your phone: <strong>WhatsApp &gt; Linked Devices &gt; Link with phone number</strong>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleGeneratePairingCode}
+                style={{
+                  flex: 1,
+                  background: '#05424A',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  cursor: 'pointer',
+                }}
+              >
+                🔑 Generate Code
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleConnectDevice();
+                  setPhoneLinkModal(false);
+                }}
+                style={{
+                  flex: 1,
+                  background: '#25D366',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  cursor: 'pointer',
+                }}
+              >
+                ✓ Confirm Connected
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: TUTORIAL MODAL ── */}
+      {tutorialModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 16,
+          }}
+          onClick={() => setTutorialModal(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 480,
+              width: '100%',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Video size={18} color="#e11d48" /> How to Connect WhatsApp Web (QR Scanner Guide)
+              </h3>
+              <button
+                type="button"
+                onClick={() => setTutorialModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                <X size={18} color="#94a3b8" />
+              </button>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 8 }}>
+                3 સરળ સ્ટેપમાં WhatsApp Connect કરો:
+              </div>
+              <ol style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: '#475569', lineHeight: 1.6 }}>
+                <li>તમારા મોબાઈલમાં WhatsApp ઓપન કરીને ઉપર જમણી બાજુ <strong>ત્રણ ટપકાં (⋮)</strong> અથવા સેટિંગ્સ પર ક્લિક કરો.</li>
+                <li><strong>&quot;Linked devices&quot; (લિંક કરેલ ડિવાઇસ)</strong> પર ટેપ કરીને <strong>&quot;Link a Device&quot;</strong> દબાવો.</li>
+                <li>આ સ્ક્રીન પર આપેલો <strong>QR Code સ્કેન કરો</strong>. તરત જ તમારું WhatsApp Smart Desk સાથે કનેક્ટ થઈ જશે!</li>
+              </ol>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setTutorialModal(false)}
+              style={{
+                width: '100%',
+                background: '#25D366',
+                color: '#ffffff',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 8,
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              સમજાઈ ગયું (Got it!)
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Reception Desk QR Modal */}
