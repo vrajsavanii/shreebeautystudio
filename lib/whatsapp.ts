@@ -405,19 +405,11 @@ export function openWAApp(mobile: string, message: string, settings?: any, targe
 }
 
 /**
- * Launch dedicated Desktop Companion Window for WhatsApp Web side-by-side on the same screen
+ * Launch WhatsApp Web directly in a clean standard browser tab without annoying popup windows
  */
-export function launchWhatsAppCompanionWindow(url = 'https://web.whatsapp.com', targetName = 'shree_whatsapp_desk') {
+export function launchWhatsAppCompanionWindow(url = 'https://web.whatsapp.com', targetName = '_blank') {
   if (typeof window === 'undefined') return;
-  const width = Math.min(1020, window.screen?.availWidth ? window.screen.availWidth - 100 : 960);
-  const height = Math.min(840, window.screen?.availHeight ? window.screen.availHeight - 80 : 760);
-  const left = Math.max(0, window.screen?.availWidth ? window.screen.availWidth - width - 20 : 100);
-  const top = 40;
-  window.open(
-    url,
-    targetName,
-    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no`
-  );
+  window.open(url, targetName || '_blank', 'noopener,noreferrer');
 }
 
 export function appointmentStaffMessage(a: Appointment, salon: string): string {

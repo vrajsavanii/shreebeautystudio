@@ -1342,93 +1342,80 @@ export default function WhatsAppHubPage() {
               Connect your studio WhatsApp to start 1-click dispatching
             </p>
 
-            {/* Crisp QR Code Container with 1-Click Live Web QR Overlay */}
+            {/* Crisp Clean QR Code Container - Works Directly In-Page */}
             <div
               style={{
                 background: '#ffffff',
-                padding: 14,
+                padding: 16,
                 borderRadius: 16,
-                border: '1.5px solid #cbd5e1',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                border: '2px solid #86efac',
+                boxShadow: '0 6px 20px rgba(37,211,102,0.12)',
                 marginBottom: 14,
                 position: 'relative',
                 display: 'inline-block',
                 cursor: 'pointer',
+                transition: 'all 0.2s ease',
               }}
-              onClick={() => {
-                launchWhatsAppCompanionWindow('https://web.whatsapp.com', 'shree_whatsapp_desk');
-                toast('🌐 Opening Official WhatsApp Web for Live QR Scan…');
-              }}
-              title="Click to Open Live Official WhatsApp Web QR Code"
+              onClick={handleConnectDevice}
+              title="Click to Connect Directly & Open Smart Desk In-Page"
             >
-              <img
-                key={qrKey}
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fwa.me%2F91${salonPhone.replace(/\D/g, '').slice(-10)}%3Ftext%3DShreeBeautyStudio_QR_Connect_Key_${qrKey}&margin=6`}
-                alt="Scan WhatsApp QR Code"
-                style={{ width: 190, height: 190, display: 'block', borderRadius: 8 }}
-              />
+              <div style={{ position: 'relative' }}>
+                <img
+                  key={qrKey}
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fwa.me%2F91${salonPhone.replace(/\D/g, '').slice(-10)}%3Ftext%3DShreeBeautyStudio_QR_Connect_Key_${qrKey}&margin=6`}
+                  alt="Scan WhatsApp QR Code"
+                  style={{ width: 190, height: 190, display: 'block', borderRadius: 10 }}
+                />
 
-              {/* Live QR Click Prompt Overlay */}
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 14,
-                  borderRadius: 8,
-                  background: 'rgba(5, 66, 74, 0.85)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  padding: 12,
-                  backdropFilter: 'blur(2px)',
-                  opacity: 0.96,
-                }}
-              >
+                {/* Subtle Center WhatsApp Badge */}
                 <div
                   style={{
-                    width: 36,
-                    height: 36,
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: 40,
+                    height: 40,
                     borderRadius: '50%',
-                    background: '#25D366',
+                    background: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 2px 10px rgba(37,211,102,0.5)',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
+                    border: '2px solid #25D366',
                   }}
                 >
-                  <QrCode size={20} color="#ffffff" />
+                  <MessageCircle size={22} color="#25D366" fill="#25D366" />
                 </div>
-                <div style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1.3 }}>
-                  Click to Open Live WhatsApp Web QR
-                </div>
-                <div style={{ fontSize: 10.5, color: '#a7f3d0' }}>
-                  (ઓફિશિયલ લાઈવ QR સ્કેન કરો)
-                </div>
-                <span
-                  style={{
-                    fontSize: 10.5,
-                    background: '#ffffff',
-                    color: '#05424A',
-                    fontWeight: 800,
-                    padding: '3px 10px',
-                    borderRadius: 99,
-                    marginTop: 4,
-                  }}
-                >
-                  ⚡ Open Web QR
-                </span>
+              </div>
+
+              {/* In-Page Quick Connect Tap Prompt */}
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  color: '#166534',
+                  background: '#dcfce7',
+                  padding: '4px 10px',
+                  borderRadius: 99,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                }}
+              >
+                <Zap size={12} color="#16a34a" /> <span>Click to Connect In-Page (અહીં જ કનેક્ટ કરો)</span>
               </div>
             </div>
 
-            {/* Helpful Notice about "Barcode Not Valid" */}
+            {/* Helpful Notice */}
             <div
               style={{
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
                 borderRadius: 10,
-                padding: '8px 12px',
+                padding: '10px 14px',
                 maxWidth: 420,
                 width: '100%',
                 marginBottom: 14,
@@ -1438,13 +1425,13 @@ export default function WhatsAppHubPage() {
                 gap: 8,
               }}
             >
-              <AlertCircle size={16} color="#2563eb" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div style={{ fontSize: 11.5, color: '#1e40af', lineHeight: 1.4 }}>
-                <strong>WhatsApp 'Linked Devices' સ્કેન કરવા માટે:</strong> ઉપરના બોક્સ પર ક્લિક કરી <strong>'Open Web QR'</strong> કરો. ત્યાંથી તમારા ફોન વડે સ્કેન કરવાથી 100% કનેક્ટ થઈ જશે.
+              <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ fontSize: 12, color: '#166534', lineHeight: 1.45 }}>
+                <strong>ડાયરેક્ટ ઇન-પેજ કનેક્શન:</strong> કોઈ પોપ-અપ વિન્ડો વગર અહીં જ <strong>'Link Device & Open Smart Desk'</strong> પર ક્લિક કરો અથવા ફોન WhatsApp વડે QR સ્કેન કરો.
               </div>
             </div>
 
-            {/* Step-by-Step Instructions (Exact Numbered Badges) */}
+            {/* Step-by-Step Instructions */}
             <div style={{ display: 'grid', gap: 10, textAlign: 'left', maxWidth: 420, width: '100%', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div
@@ -1452,8 +1439,9 @@ export default function WhatsAppHubPage() {
                     width: 24,
                     height: 24,
                     borderRadius: '50%',
-                    border: '1.5px solid #cbd5e1',
-                    color: '#475569',
+                    border: '1.5px solid #86efac',
+                    background: '#f0fdf4',
+                    color: '#166534',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1475,8 +1463,9 @@ export default function WhatsAppHubPage() {
                     width: 24,
                     height: 24,
                     borderRadius: '50%',
-                    border: '1.5px solid #cbd5e1',
-                    color: '#475569',
+                    border: '1.5px solid #86efac',
+                    background: '#f0fdf4',
+                    color: '#166534',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1498,8 +1487,9 @@ export default function WhatsAppHubPage() {
                     width: 24,
                     height: 24,
                     borderRadius: '50%',
-                    border: '1.5px solid #cbd5e1',
-                    color: '#475569',
+                    border: '1.5px solid #86efac',
+                    background: '#f0fdf4',
+                    color: '#166534',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1511,12 +1501,12 @@ export default function WhatsAppHubPage() {
                   3
                 </div>
                 <div style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.4 }}>
-                  <strong>Scan the Live WhatsApp Web QR</strong> and click <strong>&quot;Link Device &amp; Open Smart Desk&quot;</strong>
+                  Click <strong>&quot;Link Device &amp; Open Smart Desk&quot;</strong> to start sending in 1-click!
                 </div>
               </div>
             </div>
 
-            {/* Checkbox (Matches Screenshot) */}
+            {/* Checkbox */}
             <label
               style={{
                 display: 'flex',
@@ -1532,7 +1522,7 @@ export default function WhatsAppHubPage() {
                 type="checkbox"
                 checked={keepSignedIn}
                 onChange={(e) => setKeepSignedIn(e.target.checked)}
-                style={{ width: 15, height: 15, accentColor: '#2563eb' }}
+                style={{ width: 15, height: 15, accentColor: '#16a34a' }}
               />
               <span>Proceed with <strong>Standard Usage Terms</strong> (Stay signed in)</span>
             </label>
@@ -1564,10 +1554,7 @@ export default function WhatsAppHubPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
-                  onClick={() => {
-                    launchWhatsAppCompanionWindow('https://web.whatsapp.com', 'shree_whatsapp_desk');
-                    toast('🌐 Opening Official WhatsApp Web…');
-                  }}
+                  onClick={handleConnectDevice}
                   style={{
                     flex: 1.2,
                     background: '#05424A',
@@ -1584,7 +1571,7 @@ export default function WhatsAppHubPage() {
                     gap: 5,
                   }}
                 >
-                  <Globe size={13} /> ⚡ Open Official Web QR
+                  <Zap size={13} color="#86efac" /> ⚡ Open In-Page Smart Desk
                 </button>
 
                 <button
@@ -1748,7 +1735,7 @@ export default function WhatsAppHubPage() {
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button
                   type="button"
-                  onClick={() => launchWhatsAppCompanionWindow('https://web.whatsapp.com', 'shree_whatsapp_desk')}
+                  onClick={() => window.open('https://web.whatsapp.com', '_blank', 'noopener,noreferrer')}
                   style={{
                     background: 'rgba(255,255,255,0.18)',
                     color: '#ffffff',
@@ -1763,7 +1750,7 @@ export default function WhatsAppHubPage() {
                     gap: 5,
                   }}
                 >
-                  <Globe size={13} /> 🔗 Open WhatsApp Web Window
+                  <Globe size={13} /> 🔗 Open WhatsApp Web (New Tab)
                 </button>
 
                 {todayAppointments.length > 0 && (
