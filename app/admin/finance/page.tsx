@@ -41,6 +41,7 @@ import {
   Download,
   AlertCircle,
   Sparkles,
+  Scale,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -137,8 +138,10 @@ export default function FinanceAccountingPage() {
   // Receipt Modal
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
-  // Daily Cashbook Date
+  // Daily Cashbook Date & Filters
   const [rojmelDate, setRojmelDate] = useState(todayISO());
+  const [rojmelModeFilter, setRojmelModeFilter] = useState<'all' | 'cash' | 'online' | 'bank'>('all');
+  const [rojmelSearch, setRojmelSearch] = useState('');
 
   // Auto-open requested modal if ?new=... is in URL
   const searchParams = useSearchParams();
@@ -664,76 +667,233 @@ export default function FinanceAccountingPage() {
     });
   }, [unifiedTransactions, typeFilter, timeFilter, search]);
 
-  // ── Rojmel (Daily Cashbook) Calculations ───────────────────────────────────
+  // ── Rojmel (Daily Cashbook / Day Book) Comprehensive Calculations ───────────
   const rojmelData = useMemo(() => {
     const d = rojmelDate;
-    const cashInList: { title: string; subtitle: string; amount: number }[] = [];
-    const cashOutList: { title: string; subtitle: string; amount: number }[] = [];
 
-    // Cash Sales
+    interface RojmelEntry {
+      id: string;
+      type: 'sale' | 'voucher-in' | 'appt-advance' | 'bridal-advance' | 'expense' | 'purchase' | 'voucher-out';
+      direction: 'in' | 'out';
+      title: string;
+      subtitle: string;
+      amount: number;
+      mode: string;
+      time?: string;
+      category?: string;
+      refNo?: string;
+    }
+
+    const allInList: RojmelEntry[] = [];
+    const allOutList: RojmelEntry[] = [];
+
+    // 1. Invoices / Sales (Bill Receipts)
     (data.invoices || []).forEach((inv) => {
-      if (inv.date === d && (inv.mode || 'Cash').toLowerCase().includes('cash')) {
-        const paid = Number(inv.paid || 0) + Number(inv.advance || 0);
+      if (inv.date === d) {
+        const paid = Number(inv.paid !== undefined ? inv.paid : (inv.total - (inv.balance || 0)));
         if (paid > 0) {
-          cashInList.push({
-            title: `Bill #${inv.no} — ${inv.customer || 'Customer'}`,
-            subtitle: (inv.lines || []).map((i: InvoiceLine) => i.name).join(', ') || 'Salon Services',
+          allInList.push({
+            id: `inv-${inv.id}`,
+            type: 'sale',
+            direction: 'in',
+            title: `Bill #${inv.no || 'INV'} — ${inv.customer || 'Walk-in Client'}`,
+            subtitle: (inv.lines || []).map((i: InvoiceLine) => i.name).join(', ') || 'Salon Services & Products',
             amount: paid,
+            mode: inv.mode || 'Cash',
+            time: (inv as any).time || '12:00',
+            refNo: inv.no,
           });
         }
       }
     });
 
-    // Payment-In (Cash)
+    // 2. Payment-In Vouchers (Customer Receipts & Settlements)
     (data.vouchers || []).forEach((v: PaymentVoucher) => {
-      if (v.date === d && v.type === 'Payment-In' && (v.mode || 'Cash').toLowerCase().includes('cash')) {
-        cashInList.push({
-          title: `Payment Received — ${v.partyName}`,
-          subtitle: v.notes || v.referenceNo || 'Customer settlement',
+      if (v.date === d && (v.type === 'Payment-In' || (v as any).type === 'Income')) {
+        allInList.push({
+          id: `v-in-${v.id}`,
+          type: 'voucher-in',
+          direction: 'in',
+          title: `Receipt — ${v.partyName || 'Customer'}`,
+          subtitle: v.notes || v.referenceNo || 'Payment Received',
           amount: Number(v.amount || 0),
+          mode: v.mode || 'Cash',
+          refNo: v.referenceNo,
         });
       }
     });
 
-    // Purchases (Cash)
+    // 3. Appointment Advances (Direct bookings on that date without duplicated invoice)
+    (data.appointments || []).forEach((a) => {
+      const isToday = a.date === d;
+      const adv = Number(a.advance || 0);
+      if (isToday && adv > 0 && a.status !== 'Cancelled') {
+        const alreadyInvoiced = (data.invoices || []).some(
+          (inv) => inv.date === d && inv.customer === a.customer && (inv.advance === adv || inv.paid === adv)
+        );
+        if (!alreadyInvoiced) {
+          allInList.push({
+            id: `appt-${a.id}`,
+            type: 'appt-advance',
+            direction: 'in',
+            title: `Appt Advance — ${a.customer}`,
+            subtitle: `💅 ${a.service || 'Service'} • +91 ${a.mobile || ''}`,
+            amount: adv,
+            mode: a.advanceMode || 'Cash',
+            time: a.time,
+            refNo: a.id.slice(-6),
+          });
+        }
+      }
+    });
+
+    // 4. Bridal Booking Advances (Direct bridal bookings on that date without duplicated invoice)
+    (data.bridal || []).forEach((b) => {
+      const isDate = b.weddingDate === d || b.date === d || b.mandapDate === d || b.musicDate === d || b.sagaiDate === d;
+      const adv = Number(b.advance || 0);
+      if (isDate && adv > 0 && b.status !== 'Cancelled') {
+        const alreadyInvoiced = (data.invoices || []).some(
+          (inv) => (inv.bridalBookingId === b.id || (inv.customer === b.name && inv.date === d)) && (inv.advance === adv || inv.paid === adv)
+        );
+        if (!alreadyInvoiced) {
+          allInList.push({
+            id: `bridal-${b.id}`,
+            type: 'bridal-advance',
+            direction: 'in',
+            title: `Bridal Advance — ${b.name}`,
+            subtitle: `👑 ${b.packageName || 'Bridal Package'} • +91 ${b.mobile || ''}`,
+            amount: adv,
+            mode: b.advanceAccount || 'Cash',
+            refNo: b.id.slice(-6),
+          });
+        }
+      }
+    });
+
+    // 5. Purchases (Stock & Inventory Payments)
     (data.purchases || []).forEach((p) => {
-      if (p.date === d && (p.mode || 'Cash').toLowerCase().includes('cash')) {
-        const paid = Number(p.paid || 0);
+      if (p.date === d) {
+        const paid = Number(p.paid !== undefined ? p.paid : (p.total - (p.balance || 0)));
         if (paid > 0) {
-          cashOutList.push({
-            title: `Purchase #${p.no} — ${p.supplier}`,
-            subtitle: (p.lines || []).map((l) => l.name).join(', ') || 'Stock inventory',
+          allOutList.push({
+            id: `pur-${p.id}`,
+            type: 'purchase',
+            direction: 'out',
+            title: `Purchase #${p.no || 'PUR'} — ${p.supplier || 'Vendor'}`,
+            subtitle: (p.lines || []).map((l) => l.name).join(', ') || 'Stock inventory items',
             amount: paid,
+            mode: p.mode || 'Cash',
+            refNo: p.no,
           });
         }
       }
     });
 
-    // Expenses (Cash)
+    // 6. Expenses (Salon Operating & Misc Expenses)
     (data.expenses || []).forEach((e) => {
-      if (e.date === d && (e.mode || 'Cash').toLowerCase().includes('cash')) {
-        cashOutList.push({
-          title: `${e.category} ${e.paidTo ? `(${e.paidTo})` : ''}`,
-          subtitle: e.notes || 'Operating Expense',
+      if (e.date === d) {
+        allOutList.push({
+          id: `exp-${e.id}`,
+          type: 'expense',
+          direction: 'out',
+          title: `${e.category || 'Expense'} ${e.paidTo ? `(${e.paidTo})` : ''}`,
+          subtitle: e.notes || 'Operating expense payout',
           amount: Number(e.amount || 0),
+          mode: e.mode || 'Cash',
+          category: e.category,
         });
       }
     });
 
-    // Payment-Out (Cash)
+    // 7. Payment-Out Vouchers (Vendor & Supplier Settlements)
     (data.vouchers || []).forEach((v: PaymentVoucher) => {
-      if (v.date === d && v.type === 'Payment-Out' && (v.mode || 'Cash').toLowerCase().includes('cash')) {
-        cashOutList.push({
-          title: `Payment Made — ${v.partyName}`,
-          subtitle: v.notes || v.referenceNo || 'Vendor payment',
+      if (v.date === d && (v.type === 'Payment-Out' || (v as any).type === 'Expense')) {
+        allOutList.push({
+          id: `v-out-${v.id}`,
+          type: 'voucher-out',
+          direction: 'out',
+          title: `Payment Made — ${v.partyName || 'Vendor'}`,
+          subtitle: v.notes || v.referenceNo || 'Vendor settlement payout',
           amount: Number(v.amount || 0),
+          mode: v.mode || 'Cash',
+          refNo: v.referenceNo,
         });
       }
     });
+
+    // ── Mode filtering ──
+    const filterByMode = (item: RojmelEntry) => {
+      if (rojmelModeFilter === 'all') return true;
+      const m = (item.mode || 'cash').toLowerCase();
+      if (rojmelModeFilter === 'cash') return m.includes('cash') || m.includes('રોકડ');
+      if (rojmelModeFilter === 'online') return m.includes('upi') || m.includes('gpay') || m.includes('online') || m.includes('paytm') || m.includes('phonepe') || m.includes('qr') || m.includes('card');
+      if (rojmelModeFilter === 'bank') return m.includes('bank') || m.includes('cheque') || m.includes('neft') || m.includes('rtgs') || m.includes('transfer');
+      return true;
+    };
+
+    const filterBySearch = (item: RojmelEntry) => {
+      if (!rojmelSearch.trim()) return true;
+      const q = rojmelSearch.toLowerCase();
+      return (
+        item.title.toLowerCase().includes(q) ||
+        item.subtitle.toLowerCase().includes(q) ||
+        (item.mode || '').toLowerCase().includes(q) ||
+        (item.refNo || '').toLowerCase().includes(q)
+      );
+    };
+
+    const cashInList = allInList.filter((item) => filterByMode(item) && filterBySearch(item));
+    const cashOutList = allOutList.filter((item) => filterByMode(item) && filterBySearch(item));
 
     const totalIn = cashInList.reduce((acc, i) => acc + i.amount, 0);
     const totalOut = cashOutList.reduce((acc, i) => acc + i.amount, 0);
     const netDayChange = totalIn - totalOut;
+
+    // Mode-specific Breakdown for today
+    let todayCashIn = 0, todayCashOut = 0;
+    let todayUpiIn = 0, todayUpiOut = 0;
+    let todayBankIn = 0, todayBankOut = 0;
+
+    allInList.forEach((item) => {
+      const m = (item.mode || 'cash').toLowerCase();
+      if (m.includes('cash') || m.includes('રોકડ')) todayCashIn += item.amount;
+      else if (m.includes('bank') || m.includes('cheque') || m.includes('neft') || m.includes('rtgs')) todayBankIn += item.amount;
+      else todayUpiIn += item.amount;
+    });
+
+    allOutList.forEach((item) => {
+      const m = (item.mode || 'cash').toLowerCase();
+      if (m.includes('cash') || m.includes('રોકડ')) todayCashOut += item.amount;
+      else if (m.includes('bank') || m.includes('cheque') || m.includes('neft') || m.includes('rtgs')) todayBankOut += item.amount;
+      else todayUpiOut += item.amount;
+    });
+
+    // ── Opening Balance (Cumulative prior to date d) ──
+    let openingIn = 0;
+    let openingOut = 0;
+
+    (data.invoices || []).forEach((inv) => {
+      if (inv.date && inv.date < d) {
+        openingIn += Number(inv.paid !== undefined ? inv.paid : (inv.total - (inv.balance || 0)));
+      }
+    });
+    (data.vouchers || []).forEach((v: PaymentVoucher) => {
+      if (v.date && v.date < d) {
+        if (v.type === 'Payment-In' || (v as any).type === 'Income') openingIn += Number(v.amount || 0);
+        if (v.type === 'Payment-Out' || (v as any).type === 'Expense') openingOut += Number(v.amount || 0);
+      }
+    });
+    (data.expenses || []).forEach((e) => {
+      if (e.date && e.date < d) openingOut += Number(e.amount || 0);
+    });
+    (data.purchases || []).forEach((p) => {
+      if (p.date && p.date < d) {
+        openingOut += Number(p.paid !== undefined ? p.paid : (p.total - (p.balance || 0)));
+      }
+    });
+
+    const openingBalance = openingIn - openingOut;
+    const closingBalance = openingBalance + netDayChange;
 
     return {
       cashInList,
@@ -741,8 +901,31 @@ export default function FinanceAccountingPage() {
       totalIn,
       totalOut,
       netDayChange,
+      openingBalance,
+      closingBalance,
+      allInCount: allInList.length,
+      allOutCount: allOutList.length,
+      todayCashIn,
+      todayCashOut,
+      todayCashNet: todayCashIn - todayCashOut,
+      todayUpiIn,
+      todayUpiOut,
+      todayUpiNet: todayUpiIn - todayUpiOut,
+      todayBankIn,
+      todayBankOut,
+      todayBankNet: todayBankIn - todayBankOut,
     };
-  }, [rojmelDate, data.invoices, data.vouchers, data.purchases, data.expenses]);
+  }, [
+    rojmelDate,
+    rojmelModeFilter,
+    rojmelSearch,
+    data.invoices,
+    data.vouchers,
+    data.purchases,
+    data.expenses,
+    data.appointments,
+    data.bridal,
+  ]);
 
   // ── Action Handlers ─────────────────────────────────────────────────────────
 
@@ -2797,8 +2980,8 @@ export default function FinanceAccountingPage() {
 
       {/* ─── TAB CONTENT 5: DAILY CASH BOOK (ROJMEL / રોજમેળ) ─── */}
       {activeTab === 'rojmel' && (
-        <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 24 }}>
-          {/* Rojmel Header & Date Selector */}
+        <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+          {/* Rojmel Header & Date / Mode Selector */}
           <div
             style={{
               display: 'flex',
@@ -2806,34 +2989,39 @@ export default function FinanceAccountingPage() {
               justifyContent: 'space-between',
               alignItems: 'center',
               gap: 16,
-              marginBottom: 24,
+              marginBottom: 20,
               paddingBottom: 16,
               borderBottom: '1px solid #e2e8f0',
             }}
           >
             <div>
-              <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
-                Daily Cash Book (Rojmel / રોજમેળ)
+              <h2 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <BookOpen size={22} color="#0284c7" /> Daily Cash Book (Rojmel / રોજમેળ)
               </h2>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                Daily Cash Inflows (Jama / જમા) &amp; Outflows (Udhar / ઉધાર) Drawer Tally.
+                દૈનિક જમા (આવક), ઉધાર (ખર્ચ) અને સિલક (બેલેન્સ) નો સંપૂર્ણ ચોખ્ખો હિસાબ.
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <input
-                type="date"
-                value={rojmelDate}
-                onChange={(e) => setRojmelDate(e.target.value)}
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: 10,
-                  border: '1.5px solid #cbd5e1',
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: '#0f172a',
-                }}
-              />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '4px 8px', borderRadius: 10, border: '1px solid #cbd5e1' }}>
+                <Calendar size={15} color="#0284c7" />
+                <input
+                  type="date"
+                  value={rojmelDate}
+                  onChange={(e) => setRojmelDate(e.target.value)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+              </div>
+
               <button
                 onClick={() => window.print()}
                 style={{
@@ -2855,122 +3043,386 @@ export default function FinanceAccountingPage() {
             </div>
           </div>
 
-          {/* Rojmel Two-Column (Jama vs Udhar) Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            {/* JAMA (CASH INFLOW) */}
-            <div style={{ background: '#f0fdf4', borderRadius: 14, border: '1.5px solid #bbf7d0', padding: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#166534' }}>
-                  📥 JAMA / CASH IN (જમા)
-                </span>
-                <span style={{ fontSize: 16, fontWeight: 900, color: '#14532d' }}>
-                  {money(rojmelData.totalIn)}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto' }}>
-                {rojmelData.cashInList.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#86efac', textAlign: 'center', padding: '24px 0' }}>
-                    No cash received on this date.
-                  </div>
-                ) : (
-                  rojmelData.cashInList.map((item, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: '10px 12px',
-                        background: '#ffffff',
-                        borderRadius: 8,
-                        border: '1px solid #dcfce7',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{item.title}</div>
-                        <div style={{ fontSize: 11.5, color: '#64748b' }}>{item.subtitle}</div>
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#16a34a' }}>
-                        +{money(item.amount)}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* UDHAR (CASH OUTFLOW) */}
-            <div style={{ background: '#fff1f2', borderRadius: 14, border: '1.5px solid #fecdd3', padding: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#9f1239' }}>
-                  📤 UDHAR / CASH OUT (ઉધાર)
-                </span>
-                <span style={{ fontSize: 16, fontWeight: 900, color: '#881337' }}>
-                  {money(rojmelData.totalOut)}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 400, overflowY: 'auto' }}>
-                {rojmelData.cashOutList.length === 0 ? (
-                  <div style={{ fontSize: 13, color: '#fda4af', textAlign: 'center', padding: '24px 0' }}>
-                    No cash paid out on this date.
-                  </div>
-                ) : (
-                  rojmelData.cashOutList.map((item, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: '10px 12px',
-                        background: '#ffffff',
-                        borderRadius: 8,
-                        border: '1px solid #fee2e2',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{item.title}</div>
-                        <div style={{ fontSize: 11.5, color: '#64748b' }}>{item.subtitle}</div>
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: 13.5, color: '#dc2626' }}>
-                        -{money(item.amount)}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Daily Net Summary */}
+          {/* Mode Filter & Search Bar */}
           <div
             style={{
-              marginTop: 20,
-              padding: '16px 20px',
-              borderRadius: 12,
-              background: '#f8fafc',
-              border: '1.5px solid #e2e8f0',
               display: 'flex',
               flexWrap: 'wrap',
               justifyContent: 'space-between',
               alignItems: 'center',
               gap: 12,
+              marginBottom: 20,
+              padding: '12px 16px',
+              background: '#f8fafc',
+              borderRadius: 12,
+              border: '1px solid #e2e8f0',
             }}
           >
-            <div>
-              <strong style={{ fontSize: 14, color: '#0f172a' }}>Daily Net Cash Movement:</strong>
-              <div style={{ fontSize: 12, color: '#64748b' }}>Date: {fmtDate(rojmelDate)}</div>
+            {/* Mode Tabs */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b', marginRight: 4 }}>
+                <Filter size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+                પેમેન્ટ મોડ:
+              </span>
+              {[
+                { id: 'all', label: '🔘 All Payments (બધા જ પેમેન્ટ)', color: '#0f172a' },
+                { id: 'cash', label: '💵 Cash Only (રોકડ)', color: '#166534' },
+                { id: 'online', label: '📱 UPI / Online (ઓનલાઇન)', color: '#0284c7' },
+                { id: 'bank', label: '🏦 Bank (બેંક)', color: '#7c3aed' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setRojmelModeFilter(tab.id as any)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    border: rojmelModeFilter === tab.id ? `1.5px solid ${tab.color}` : '1px solid #cbd5e1',
+                    background: rojmelModeFilter === tab.id ? tab.color : '#ffffff',
+                    color: rojmelModeFilter === tab.id ? '#ffffff' : '#475569',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+
+            {/* Search Input */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '4px 10px', width: 220 }}>
+              <Search size={14} color="#94a3b8" />
+              <input
+                type="text"
+                placeholder="Search entries / bills..."
+                value={rojmelSearch}
+                onChange={(e) => setRojmelSearch(e.target.value)}
+                style={{ border: 'none', outline: 'none', fontSize: 12, width: '100%', color: '#0f172a' }}
+              />
+              {rojmelSearch && (
+                <button type="button" onClick={() => setRojmelSearch('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}>
+                  <X size={12} color="#94a3b8" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ─── 3-COLUMN ROJMEL GRID (JAMA | BALANCE | UDHAR) ─── */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))',
+              gap: 16,
+              alignItems: 'stretch',
+            }}
+          >
+            {/* 📥 COLUMN 1 (LEFT): JAMA / CASH & ONLINE IN (જમા - આવક) */}
             <div
               style={{
-                fontSize: 22,
-                fontWeight: 900,
-                color: rojmelData.netDayChange >= 0 ? '#15803d' : '#dc2626',
+                background: '#f0fdf4',
+                borderRadius: 14,
+                border: '1.5px solid #86efac',
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              {rojmelData.netDayChange >= 0 ? `+${money(rojmelData.netDayChange)}` : money(rojmelData.netDayChange)}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 14,
+                  paddingBottom: 10,
+                  borderBottom: '1px dashed #bbf7d0',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ArrowDownLeft size={16} color="#16a34a" /> 📥 JAMA / INFLOW (જમા)
+                  </span>
+                  <div style={{ fontSize: 11.5, color: '#15803d', marginTop: 2 }}>
+                    {rojmelData.cashInList.length} આવકના વ્યવહારો
+                  </div>
+                </div>
+                <span style={{ fontSize: 18, fontWeight: 900, color: '#14532d' }}>
+                  +{money(rojmelData.totalIn)}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 460, overflowY: 'auto', flex: 1, paddingRight: 4 }}>
+                {rojmelData.cashInList.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#86efac', textAlign: 'center', padding: '40px 0' }}>
+                    આ તારીખે કોઈ જમા (આવક) એન્ટ્રી નથી.
+                  </div>
+                ) : (
+                  rojmelData.cashInList.map((item) => {
+                    const isCash = (item.mode || 'cash').toLowerCase().includes('cash') || (item.mode || '').includes('રોકડ');
+                    const isUpi = (item.mode || '').toLowerCase().includes('upi') || (item.mode || '').toLowerCase().includes('gpay');
+                    const isBank = (item.mode || '').toLowerCase().includes('bank');
+
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: '10px 12px',
+                          background: '#ffffff',
+                          borderRadius: 10,
+                          border: '1px solid #dcfce7',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: 8,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.title}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.subtitle}
+                          </div>
+                          <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                background: isCash ? '#fef3c7' : isUpi ? '#e0f2fe' : isBank ? '#f3e8ff' : '#f1f5f9',
+                                color: isCash ? '#92400e' : isUpi ? '#0369a1' : isBank ? '#6b21a8' : '#334155',
+                              }}
+                            >
+                              {isCash ? '💵 Cash' : isUpi ? '📱 UPI / Online' : isBank ? '🏦 Bank' : `💳 ${item.mode}`}
+                            </span>
+                            {item.time && <span style={{ fontSize: 10.5, color: '#94a3b8' }}>🕒 {item.time}</span>}
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 900, fontSize: 14, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                          +{money(item.amount)}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* ⚖️ COLUMN 2 (MIDDLE - બંને વચ્ચે): BALANCE (સિલક / ચોખ્ખો હિસાબ) */}
+            <div
+              style={{
+                background: 'linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%)',
+                borderRadius: 14,
+                border: '1.5px solid #7dd3fc',
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 14,
+                    paddingBottom: 10,
+                    borderBottom: '1px dashed #bae6fd',
+                  }}
+                >
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Scale size={16} color="#0284c7" /> ⚖️ BALANCE (સિલક / હિસાબ)
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      background: '#ffffff',
+                      color: '#0369a1',
+                      border: '1px solid #7dd3fc',
+                    }}
+                  >
+                    {fmtDate(rojmelDate)}
+                  </span>
+                </div>
+
+                {/* Big Net Balance Highlight Box */}
+                <div
+                  style={{
+                    background: '#ffffff',
+                    borderRadius: 12,
+                    padding: '16px 14px',
+                    border: '1.5px solid #bae6fd',
+                    textAlign: 'center',
+                    marginBottom: 12,
+                    boxShadow: '0 2px 8px rgba(2,132,199,0.08)',
+                  }}
+                >
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    આજની ચોખ્ખી સિલક (Today's Net Movement)
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 26,
+                      fontWeight: 900,
+                      color: rojmelData.netDayChange >= 0 ? '#15803d' : '#dc2626',
+                      marginTop: 4,
+                    }}
+                  >
+                    {rojmelData.netDayChange >= 0 ? `+${money(rojmelData.netDayChange)}` : money(rojmelData.netDayChange)}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                    જમા (+{money(rojmelData.totalIn)}) — ઉધાર (-{money(rojmelData.totalOut)})
+                  </div>
+                </div>
+
+                {/* Opening & Closing Balance Badges */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+                  <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 10, border: '1px solid #e0f2fe' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>શરૂઆતની સિલક (Op. Bal)</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#334155', marginTop: 2 }}>
+                      {money(rojmelData.openingBalance)}
+                    </div>
+                  </div>
+                  <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 10, border: '1px solid #e0f2fe' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0369a1' }}>કુલ આખર સિલક (Closing)</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 900, color: rojmelData.closingBalance >= 0 ? '#0284c7' : '#dc2626', marginTop: 2 }}>
+                      {money(rojmelData.closingBalance)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mode Breakdown Mini-Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                  {/* Cash in Hand */}
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>💵 રોકડ સિલક (Cash in Drawer):</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: rojmelData.todayCashNet >= 0 ? '#16a34a' : '#dc2626' }}>
+                      {rojmelData.todayCashNet >= 0 ? `+${money(rojmelData.todayCashNet)}` : money(rojmelData.todayCashNet)}
+                    </span>
+                  </div>
+
+                  {/* UPI / Online */}
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>📱 UPI / GPay (ઓનલાઇન સિલક):</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: rojmelData.todayUpiNet >= 0 ? '#0284c7' : '#dc2626' }}>
+                      {rojmelData.todayUpiNet >= 0 ? `+${money(rojmelData.todayUpiNet)}` : money(rojmelData.todayUpiNet)}
+                    </span>
+                  </div>
+
+                  {/* Bank Account */}
+                  <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>🏦 બેંક એકાઉન્ટ (Bank Balance):</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: rojmelData.todayBankNet >= 0 ? '#7c3aed' : '#dc2626' }}>
+                      {rojmelData.todayBankNet >= 0 ? `+${money(rojmelData.todayBankNet)}` : money(rojmelData.todayBankNet)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Quick Footer */}
+              <div style={{ padding: '8px 10px', background: '#ffffff', borderRadius: 8, border: '1px dashed #7dd3fc', fontSize: 11.5, color: '#0369a1', textAlign: 'center', fontWeight: 700 }}>
+                📊 કુલ {rojmelData.cashInList.length} આવક એન્ટ્રી • {rojmelData.cashOutList.length} ખર્ચ એન્ટ્રી
+              </div>
+            </div>
+
+            {/* 📤 COLUMN 3 (RIGHT): UDHAR / CASH & ONLINE OUT (ઉધાર - ખર્ચ) */}
+            <div
+              style={{
+                background: '#fff1f2',
+                borderRadius: 14,
+                border: '1.5px solid #fecdd3',
+                padding: 18,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 14,
+                  paddingBottom: 10,
+                  borderBottom: '1px dashed #fecdd3',
+                }}
+              >
+                <div>
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: '#9f1239', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ArrowUpRight size={16} color="#e11d48" /> 📤 UDHAR / OUTFLOW (ઉધાર)
+                  </span>
+                  <div style={{ fontSize: 11.5, color: '#be123c', marginTop: 2 }}>
+                    {rojmelData.cashOutList.length} ખર્ચના વ્યવહારો
+                  </div>
+                </div>
+                <span style={{ fontSize: 18, fontWeight: 900, color: '#881337' }}>
+                  -{money(rojmelData.totalOut)}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 460, overflowY: 'auto', flex: 1, paddingRight: 4 }}>
+                {rojmelData.cashOutList.length === 0 ? (
+                  <div style={{ fontSize: 13, color: '#fda4af', textAlign: 'center', padding: '40px 0' }}>
+                    આ તારીખે કોઈ ઉધાર (ખર્ચ) એન્ટ્રી નથી.
+                  </div>
+                ) : (
+                  rojmelData.cashOutList.map((item) => {
+                    const isCash = (item.mode || 'cash').toLowerCase().includes('cash') || (item.mode || '').includes('રોકડ');
+                    const isUpi = (item.mode || '').toLowerCase().includes('upi') || (item.mode || '').toLowerCase().includes('gpay');
+                    const isBank = (item.mode || '').toLowerCase().includes('bank');
+
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          padding: '10px 12px',
+                          background: '#ffffff',
+                          borderRadius: 10,
+                          border: '1px solid #fee2e2',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          gap: 8,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.title}
+                          </div>
+                          <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.subtitle}
+                          </div>
+                          <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                background: isCash ? '#fef3c7' : isUpi ? '#e0f2fe' : isBank ? '#f3e8ff' : '#f1f5f9',
+                                color: isCash ? '#92400e' : isUpi ? '#0369a1' : isBank ? '#6b21a8' : '#334155',
+                              }}
+                            >
+                              {isCash ? '💵 Cash' : isUpi ? '📱 UPI / Online' : isBank ? '🏦 Bank' : `💳 ${item.mode}`}
+                            </span>
+                            {item.category && <span style={{ fontSize: 10.5, color: '#94a3b8' }}>🏷️ {item.category}</span>}
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 900, fontSize: 14, color: '#dc2626', whiteSpace: 'nowrap' }}>
+                          -{money(item.amount)}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
         </div>
