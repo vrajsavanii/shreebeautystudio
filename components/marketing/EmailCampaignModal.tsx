@@ -53,48 +53,7 @@ export default function EmailCampaignModal({
   }, [audience, singleEmail, customersWithEmail]);
 
   const handleSend = async () => {
-    if (!recipientList.length) {
-      toast('No recipient email addresses found.', 'error');
-      return;
-    }
-    if (!subject.trim() || !headline.trim() || !message.trim()) {
-      toast('Please fill in the subject, headline, and message.', 'error');
-      return;
-    }
-
-    setSending(true);
-    try {
-      const res = await fetch('/api/email/marketing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipients: recipientList,
-          subject: subject.trim(),
-          headline: headline.trim(),
-          message: message.trim(),
-          discountText: discountText.trim() || undefined,
-          promoCode: promoCode.trim() || undefined,
-          ctaText: ctaText.trim() || undefined,
-          ctaLink: typeof window !== 'undefined' ? `${window.location.origin}/book` : 'http://localhost:3000/book',
-          salonName: data?.settings?.salon || 'Shree Beauty Studio',
-          apiKey: data?.settings?.resendApiKey,
-          fromEmail: data?.settings?.resendFromEmail,
-        }),
-      });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        toast(`❌ ${result.error || 'Failed to dispatch campaign'}`, 'error');
-        return;
-      }
-
-      toast(`✅ Broadcast complete! Sent: ${result.sentCount}, Failed: ${result.failedCount}`);
-      onClose();
-    } catch {
-      toast('Network error dispatching campaign', 'error');
-    } finally {
-      setSending(false);
-    }
+    toast('Email functionality has been disabled by administrator.', 'info');
   };
 
   return (

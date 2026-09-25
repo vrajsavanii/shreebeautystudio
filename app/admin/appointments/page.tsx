@@ -283,10 +283,6 @@ export default function AppointmentsPage() {
       toast(`📲 WhatsApp App opened with confirmation for ${appt.customer}!`);
     }
 
-    // EMAIL DISABLED — No emails will be sent to anyone
-    // if (cleanEmail && cleanEmail.includes('@')) { ... }
-
-
     // 3. Auto-save to Google Calendar in cloud
     fetch('/api/calendar/auto-sync', {
       method: 'POST',
@@ -553,10 +549,6 @@ export default function AppointmentsPage() {
     else if (saveMode === 'none') {
       toast('💾 Appointment saved directly (No WhatsApp sent)');
     }
-
-    // EMAIL DISABLED — No emails will be sent to anyone
-    // if (cleanEmail && cleanEmail.includes('@') && form.status !== 'Cancelled') { ... }
-
 
     // Auto-sync directly to Google Calendar in the cloud
     if (form.status === 'Cancelled' || form.workStatus === 'Cancelled') {

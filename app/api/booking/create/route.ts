@@ -1,7 +1,6 @@
 // app/api/booking/create/route.ts
 // Creates a new appointment with double-booking prevention via optimistic concurrency
 import { NextRequest, NextResponse } from 'next/server';
-import { sendResendEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -177,35 +176,6 @@ export async function POST(req: NextRequest) {
       const errText = await saveRes.text();
       console.error('[Booking Create] Save failed:', errText);
       return NextResponse.json({ error: 'Failed to save booking' }, { status: 500 });
-    }
-
-    // === SEND RESEND EMAIL CONFIRMATION (best-effort, non-blocking) ===
-    if (cleanEmail) {
-      try {
-        const salonName = data.settings?.salon || 'Shree Beauty Studio';
-        const html = renderAppointmentConfirmationHtml({
-          customerName: customerName.trim(),
-          service: service.name,
-          staff: staffName,
-          date,
-          time,
-          price: service.price,
-          address: data.settings?.address,
-          salonName,
-        });
-
-        sendResendEmail({
-          to: cleanEmail,
-          subject: `✨ Appointment Confirmed — ${service.name} at ${salonName}`,
-          html,
-          apiKey: data.settings?.resendApiKey,
-          from: data.settings?.resendFromEmail,
-        }).catch((emailErr) => {
-          console.warn('[Resend Booking Email Warning]:', emailErr);
-        });
-      } catch (emailErr) {
-        console.warn('[Resend Booking Email Exception]:', emailErr);
-      }
     }
 
     // === SEND WHATSAPP CONFIRMATION (best-effort, don't block response) ===

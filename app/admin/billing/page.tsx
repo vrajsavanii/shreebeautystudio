@@ -1009,10 +1009,6 @@ function BillingContent() {
       });
     }
 
-    // EMAIL DISABLED — No emails will be sent to anyone
-    // Auto-send Email receipt disabled
-
-
     // Open sample layout modal with instant PDF download & print
     setReceiptModalInv(inv);
   };

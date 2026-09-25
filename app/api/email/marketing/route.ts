@@ -1,11 +1,13 @@
 // app/api/email/marketing/route.ts
-// EMAIL FUNCTIONALITY COMPLETELY DISABLED — No marketing emails will be sent to anyone.
+// Marketing emails - Globally Disabled
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   return NextResponse.json({
     success: false,
     disabled: true,
-    message: 'Email marketing functionality is disabled. No emails will be sent.',
-  }, { status: 200 });
+    sentCount: 0,
+    failedCount: 0,
+    message: 'Email marketing functionality has been completely disabled.',
+  });
 }

@@ -589,10 +589,6 @@ const OTHER_EVENT_OPTIONS = [
       toast('💾 Bridal booking saved directly (No WhatsApp message sent)');
     }
 
-    // EMAIL DISABLED — No emails will be sent to anyone
-    // Auto-send Email confirmation to bride disabled
-
-
     // Auto-sync directly to Google Calendar in the cloud
     if (booking.status === 'Cancelled') {
       // If status is Cancelled, remove event from Google Calendar
