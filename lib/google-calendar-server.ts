@@ -330,6 +330,7 @@ export function buildBridalEventPayloads(
       `💰 Total Package: ₹${b.package || b.totalAmount || 0}`,
       b.advance ? `💵 Advance Paid: ₹${b.advance}` : '',
       b.notes ? `📝 Special Notes: ${b.notes}` : '',
+      `🔖 Booking ID: ${b.id}`,
       `🔖 Ref ID: ${b.id}-${eventLabel}`,
       `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
     ].filter(Boolean);
@@ -686,7 +687,7 @@ export async function deleteEventFromGoogleCalendar(
   if (saEmail && saKey) {
     try {
       const accessToken = await getServiceAccountAccessToken(saEmail, saKey);
-      const query = deletePayload.customerName || deletePayload.phone || deletePayload.title || '';
+      const query = deletePayload.bookingId || deletePayload.customerName || deletePayload.phone || deletePayload.title || '';
       if (query) {
         const deleted = await findAndDeleteGoogleCalendarV3Events(accessToken, calendarId, query);
         if (deleted > 0) {
@@ -705,7 +706,7 @@ export async function deleteEventFromGoogleCalendar(
   if (oauthClientId && oauthSecret && oauthRefreshToken) {
     try {
       const accessToken = await getOAuthAccessToken(oauthClientId, oauthSecret, oauthRefreshToken);
-      const query = deletePayload.customerName || deletePayload.phone || deletePayload.title || '';
+      const query = deletePayload.bookingId || deletePayload.customerName || deletePayload.phone || deletePayload.title || '';
       if (query) {
         const deleted = await findAndDeleteGoogleCalendarV3Events(accessToken, calendarId, query);
         if (deleted > 0) {
@@ -1104,12 +1105,12 @@ function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, c
       var cDesc = (currentEv.getDescription() || '').toLowerCase();
       var match = false;
 
-      // 1. Exact Booking Ref ID match in description or title
+      // 1. UNIQUE BOOKING REF ID MATCH (Guaranteed safe: only deletes events of this exact booking!)
       if (normBookingId && normBookingId.length >= 2 && (cDesc.indexOf(normBookingId) !== -1 || cTitle.indexOf(normBookingId) !== -1)) {
         match = true;
       }
-      // 2. Customer Name in Title or Description (matches 'pk', 'sandip', etc.)
-      else if (normCustomer && normCustomer.length >= 2) {
+      // 2. Fallback ONLY when NO Booking ID is provided (e.g. manual cleanup/purge by customer name)
+      else if (!normBookingId && normCustomer && normCustomer.length >= 2) {
         var cleanTitle = cTitle.replace(/[^\\w\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
         var cleanDesc = cDesc.replace(/[^\\w\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
         var titleWords = cleanTitle.split(' ');
@@ -1118,12 +1119,12 @@ function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, c
           match = true;
         }
       }
-      // 3. Phone number match
-      else if (normPhone && normPhone.length >= 6 && (cDesc.indexOf(normPhone) !== -1 || cTitle.indexOf(normPhone) !== -1)) {
+      // 3. Fallback ONLY when NO Booking ID: Phone number match
+      else if (!normBookingId && normPhone && normPhone.length >= 6 && (cDesc.indexOf(normPhone) !== -1 || cTitle.indexOf(normPhone) !== -1)) {
         match = true;
       }
-      // 4. Title match
-      else if (normTitle && normTitle.length >= 2 && (cTitle.indexOf(normTitle) !== -1 || normTitle.indexOf(cTitle) !== -1)) {
+      // 4. Fallback ONLY when NO Booking ID: Title match
+      else if (!normBookingId && normTitle && normTitle.length >= 2 && (cTitle.indexOf(normTitle) !== -1 || normTitle.indexOf(cTitle) !== -1)) {
         match = true;
       }
 
