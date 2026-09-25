@@ -1009,36 +1009,9 @@ function BillingContent() {
       });
     }
 
-    // Auto-send Email receipt to customer via Resend if email is on file
-    const custEmail = (data?.customers || []).find((c: any) => c.mobile === inv.mobile)?.email;
-    if (custEmail && custEmail.includes('@')) {
-      fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'invoice',
-          to: custEmail.trim(),
-          data: {
-            customerName: inv.customer,
-            invoiceNo: inv.no,
-            date: inv.date,
-            total: inv.total,
-            mode: inv.mode,
-            lines: inv.lines,
-            salonName: data?.settings?.salon || 'Shree Beauty Studio',
-          },
-          apiKey: data?.settings?.resendApiKey,
-          fromEmail: data?.settings?.resendFromEmail,
-        }),
-      })
-        .then((r) => r.json())
-        .then((emailRes) => {
-          if (emailRes.success) {
-            toast(`📧 Invoice emailed to ${custEmail}!`);
-          }
-        })
-        .catch(() => {});
-    }
+    // EMAIL DISABLED — No emails will be sent to anyone
+    // Auto-send Email receipt disabled
+
 
     // Open sample layout modal with instant PDF download & print
     setReceiptModalInv(inv);

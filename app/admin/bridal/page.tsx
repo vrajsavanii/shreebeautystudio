@@ -589,31 +589,9 @@ const OTHER_EVENT_OPTIONS = [
       toast('💾 Bridal booking saved directly (No WhatsApp message sent)');
     }
 
-    // Auto-send Email confirmation to bride via Resend if email is provided
-    if (cleanEmail && cleanEmail.includes('@') && !editId && booking.status !== 'Cancelled') {
-      fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'confirmation',
-          to: cleanEmail,
-          data: {
-            customerName: booking.name,
-            service: `Bridal Package (${booking.packageName || 'Bridal Package'})`,
-            date: booking.weddingDate || booking.date || todayISO(),
-            time: booking.weddingTime || '10:00',
-            price: booking.package,
-            address: booking.venue || data?.settings?.address,
-            salonName: data?.settings?.salon,
-          },
-        }),
-      })
-        .then((res) => res.json())
-        .then((res) => {
-          if (res.success) toast('📧 Confirmation email sent to bride via Resend!');
-        })
-        .catch(() => {});
-    }
+    // EMAIL DISABLED — No emails will be sent to anyone
+    // Auto-send Email confirmation to bride disabled
+
 
     // Auto-sync directly to Google Calendar in the cloud
     if (booking.status === 'Cancelled') {

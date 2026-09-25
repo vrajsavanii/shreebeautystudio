@@ -283,38 +283,9 @@ export default function AppointmentsPage() {
       toast(`📲 WhatsApp App opened with confirmation for ${appt.customer}!`);
     }
 
-    // 2. Email confirmation via Resend
-    if (cleanEmail && cleanEmail.includes('@')) {
-      fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'confirmation',
-          to: cleanEmail,
-          data: {
-            customerName: appt.customer,
-            service: appt.service,
-            staff: appt.staff,
-            date: appt.date,
-            time: appt.time,
-            price: appt.price,
-            address: data?.settings?.address,
-            salonName: data?.settings?.salon,
-          },
-          apiKey: data?.settings?.resendApiKey,
-          fromEmail: data?.settings?.resendFromEmail,
-        }),
-      })
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.success) {
-            toast(`📧 Confirmation email delivered to ${cleanEmail}!`);
-          } else if (res.isDomainRestriction) {
-            console.log('[Resend Sandbox]: External emails require domain verification at resend.com/domains');
-          }
-        })
-        .catch(() => {});
-    }
+    // EMAIL DISABLED — No emails will be sent to anyone
+    // if (cleanEmail && cleanEmail.includes('@')) { ... }
+
 
     // 3. Auto-save to Google Calendar in cloud
     fetch('/api/calendar/auto-sync', {
@@ -583,38 +554,9 @@ export default function AppointmentsPage() {
       toast('💾 Appointment saved directly (No WhatsApp sent)');
     }
 
-    // Auto-send Email confirmation to customer via Resend if email is provided
-    if (cleanEmail && cleanEmail.includes('@') && form.status !== 'Cancelled') {
-      fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'confirmation',
-          to: cleanEmail,
-          data: {
-            customerName: form.customer,
-            service: form.service,
-            staff: form.staff,
-            date: form.date,
-            time: form.time,
-            price: form.price,
-            address: data?.settings?.address,
-            salonName: data?.settings?.salon,
-          },
-          apiKey: data?.settings?.resendApiKey,
-          fromEmail: data?.settings?.resendFromEmail,
-        }),
-      })
-        .then((res) => res.json())
-        .then((res) => {
-          if (res.success) {
-            toast(`📧 Confirmation email sent to ${cleanEmail}!`);
-          } else if (res.isDomainRestriction) {
-            console.log('[Resend Sandbox]: External emails require domain verification at resend.com/domains');
-          }
-        })
-        .catch(() => {});
-    }
+    // EMAIL DISABLED — No emails will be sent to anyone
+    // if (cleanEmail && cleanEmail.includes('@') && form.status !== 'Cancelled') { ... }
+
 
     // Auto-sync directly to Google Calendar in the cloud
     if (form.status === 'Cancelled' || form.workStatus === 'Cancelled') {
