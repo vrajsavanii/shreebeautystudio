@@ -19,7 +19,8 @@ const SATELLITE_EMBED_URL =
 const ROADMAP_EMBED_URL =
   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1400!2d72.8158985!3d21.2369033!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be04f0b9062c70f%3A0xa017a32a652d8ad2!2sShree%20beauty%20studio!5e0!3m2!1sen!2sin!4v1710000000000!5m2!1sen!2sin';
 
-export const STUDIO_GOOGLE_MAPS_URL = 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
+export const STUDIO_GOOGLE_MAPS_URL =
+  'https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D';
 
 export default function StudioMap3D({
   height = '100%',

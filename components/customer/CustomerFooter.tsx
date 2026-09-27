@@ -26,7 +26,9 @@ export default function CustomerFooter() {
   const closeTime = settings?.close || '19:00';
   const instagramHandle = settings?.instagramHandle || '@shreebeauty.studio';
   const instagramUrl = settings?.instagramUrl || `https://www.instagram.com/${instagramHandle.replace('@', '')}/`;
-  const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
+  const googleMapsUrl =
+    settings?.googleMapsUrl ||
+    'https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D';
 
   return (
     <footer

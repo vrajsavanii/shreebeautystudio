@@ -800,7 +800,7 @@ export default function PublicHomePage() {
         {/* Google rating summary badge */}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 36 }}>
           <motion.a
-            href="https://www.google.com/maps/place/Shree+Beauty+Studio/@21.2156,72.8258,17z"
+            href="https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D"
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{ scale: 1.03, y: -2 }}
