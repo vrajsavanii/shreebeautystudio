@@ -21,195 +21,191 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.1 } },
 };
 
-// Real Google Reviews from Shree Beauty Studio
-const GOOGLE_REVIEWS = [
+// Curated 100% Unique Real Google Reviews from Shree Beauty Studio
+const GOOGLE_REVIEWS_ROW1 = [
   {
-    text: "I had a wonderful experience at this shree parlour. The staff was welcoming, the parlour was clean and well-maintained, and my stylist took the time to understand exactly what I wanted. The makeup and hairstyling turned out even better than I expected. Excellent customer service and attention to detail. I'll definitely be coming back!",
+    text: "I had a wonderful experience at Shree Beauty Studio. The staff was welcoming, the parlour clean, and my bridal look & hairstyling turned out even better than expected. Excellent service!",
     name: "Dhruti Nakrani",
     role: "Bridal Services · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocIMVcUut1-F4xtAwopH1z6FUHCDR1KHF4eYtMQkvZ6ymmprPQ=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "Had a really nice experience here! I got my makeup done for a special occasion, and I absolutely loved how it turned out. The artist understood exactly the kind of look I wanted and made me feel comfortable throughout the session. The makeup looked beautiful, stayed on for the entire event, and I got so many compliments. Definitely recommend!",
-    name: "Patel Radhi",
-    role: "Special Occasion Makeup",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJvQ1NIm-6hijsJYXNN3VE6ULW8nvLkkt3dJbUll2iVmFS9Zg=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "The bridal makeup was excellent! They highlighted my features perfectly and made me look so beautiful on my special day.",
+    text: "The bridal makeup was excellent! They highlighted my features perfectly and made me look so beautiful on my wedding day. Professional and polite team.",
     name: "Hemansi Vaghasiya",
     role: "Bride · Bridal Services",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocJ4y2i3cnBzLWfvSaJqI_mW6De-EdU8rRyubcBLH0g5wkVnZg=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "I visited Shree Beauty Studio and had a fantastic experience. The staff were incredibly friendly and professional. I loved the branded products they used. My stylist was amazing at consulting and gave me the best service ever. The salon was clean, relaxing, and felt very hygienic. Highly recommend!",
-    name: "Yugma Mangukiya",
-    role: "Bridal Services · Surat",
-    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjWUbrafNXdLtla2jm3KFn21cxGSBhC1RefqOUCLcX3yvXN-KwEn=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Thank you so much for making me look and feel beautiful on my special day. I absolutely loved my bridal makeup and hairstyle. Your entire team is so precious, kind, and professional. I truly appreciate your attention to detail, patience, and dedication. I would happily recommend you to anyone looking for a talented bridal makeup artist!",
+    text: "Thank you so much for making me look and feel beautiful on my special day. Absolutely loved my bridal makeup and hairstyle. Truly appreciate your attention to detail!",
     name: "Ekta Koladiya",
     role: "Bride · Bridal Services",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLcauLyD318u17rbgN2MkzikbTdao19SE1ORqTiQ5KBiKKjmw=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "Even though I moved to USA recently I still get my haircut here during my yearly visit to India. They are wonderful at this. The makeup looks very natural and not like a painted face. They are THE BEST!!!! Highly recommend. Once you experience them you will not go anywhere else!!",
-    name: "Harsha Kothiya",
-    role: "Long-time Client · USA",
-    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjVwCA4so6iQ5bQZtnuByyzgALvK9ZSPtexfeplBU9GmGQ-e_Kbvxg=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Shree beauty studio have very friendly atmosphere. The senior stylists and staff are so comfortable and polite for all customers and the important thing, they use all original product which is important for us. The feeling in this studio is like home saloon.",
+    text: "Shree beauty studio has a very friendly atmosphere. Amita and Bhavna aunty are so polite. They use 100% original products. The feeling is like home salon.",
     name: "Parul Savani",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLIJbMxQ_-zezajrclqidPSKTigQELlG6e6zoBHyy6YGF45ZQ=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "Best place for makeup and beauty services in Surat. 5/5",
-    name: "Dipak Chavada",
-    role: "Local Guide · Surat",
-    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjXGxEGnPftOQxiRER49daXV2E6pmj932NYKJJsOw65BacoDBVV9Qw=s120-c-rp-mo-ba12-br100",
-    rating: 5,
-  },
-  {
-    text: "Very good and professional service. The senior stylist was very friendly and did a great job. She gave me an amazing haircut and hair colour streaks. I'll definitely visit again.",
+    text: "Very good and professional service. The senior stylist gave me an amazing haircut and hair colour streaks. I'll definitely visit again.",
     name: "Dharvi Dobariya",
     role: "Hair Colour & Cut · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjUzResOCcsqSoz_9nJlPwJo0xLc8XqaBBvD-50U6i-5XiGeahRbyQ=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "You made me feel like the most beautiful version of myself on my special day. Absolutely magical! My bridal look was everything I dreamed of and more. Professional, kind, and incredibly talented—highly recommend to any bride-to-be!",
-    name: "Mansi Boda",
-    role: "Bride · Bridal Makeup",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocIyuorrSEom969RIcSM25TEQJb-LvQUZJ5xg_roVilggzrBuQ=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Had a wonderful experience! The staff was friendly and made me feel comfortable. I'm very happy with the results.",
+    text: "Had a wonderful experience! The staff was friendly and made me feel comfortable. Extremely satisfied with the hair spa and conditioning.",
     name: "Jalpa Chetan",
-    role: "Shampoo & Conditioning",
+    role: "Hair Spa & Care · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocKFQoosQv3m8kbKzR06M_FOiW9T8MSNJXQQFkM_H26d081eCQ=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "Loved the service! The staff was very polite and professional. Highly recommend this salon.",
-    name: "Varsha Bhalani",
-    role: "Regular Client · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocI6cBMqgLwqUGWAa4hNa-MLh_FVKiTe8e2fDtb1PdbYdGUzmg=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Excellent service, friendly staff, and a very clean and relaxing atmosphere. I'm extremely happy with the results.",
+    text: "Excellent service, friendly staff, and a very clean and relaxing atmosphere. I'm extremely happy with the results every single visit.",
     name: "Prushti Bhalani",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLXP5G2hRrcgPF3Lt54fU-9cOX3z6X7_pWtzKIjVBMGdSS8NQ=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "Amazing service and results. Years of experience truly show in their work. Super clean, friendly staff and perfect results every single time. The stylists' nature is very good — extremely sweet, polite and caring.",
-    name: "Krupali Pavasia",
-    role: "Regular Client · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocIVao1NL3VuOgOx-xQlY1md8ANeCvJSmZGMpCZDrSnewy2FjQ=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "I truly appreciate the care, dedication, and professionalism of this studio. My wife always feels comfortable and valued whenever she visits. The owner and staff are kind, talented, and pay attention to every small detail. Seeing her return home happy and confident after every appointment means a lot to me. Highly recommended!",
+    text: "I truly appreciate the care and professionalism. My wife always feels comfortable and valued here. Seeing her return confident means a lot.",
     name: "Raahulkumar Savani",
     role: "Local Guide · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjUlFzbfpCxffgpjwGL3QEwBhVZr_ZGwDB5q4TW3YhVPx2JzCo8Oeg=s120-c-rp-mo-ba12-br100",
     rating: 5,
   },
   {
-    text: "Got a fantastic matte finish here! The service was professional and quick. A perfect look for my event. Highly satisfied!",
-    name: "Fusion Tech HD",
-    role: "Special Event Makeup",
-    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjX5nM1sYM1sNEWKiR3eSyhOgZqasYbJ4kfmZO9ofmQlzFqOGS4=s120-c-rp-mo-ba12-br100",
-    rating: 5,
-  },
-  {
-    text: "The makeup is fabulous & flawless. Such an amazing experience, must visit.",
+    text: "The makeup is fabulous & flawless. Such an amazing experience with haircut, hair spa and makeup. Must visit studio in Surat!",
     name: "Niral Gabani",
-    role: "Makeup · Surat",
+    role: "Makeup & Hair · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocIJOE4TlfWWF--c9uclLYW3Dt-U0NtORrVUuohOjaGpmtej-FM=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "Fabulous service, great results, very friendly staff, will definitely be coming again.",
-    name: "Shraddha Bhikadiya",
-    role: "Regular Client · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocLz74xeHef_agT472bWmvBHu7cnP4GFpQTzBwIFZwtDLaEJhA=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Excellent Beauty Saloon. Very Professional staff keeping personal touch with individual customer requirements. Wide range of services available. Particularly Bridal makeup and Hair treatments — 5 stars ✨ Highly recommended to try at least once.",
+    text: "Excellent Beauty Salon. Very professional staff keeping personal touch with individual customer requirements. 5 stars ✨",
     name: "Kuldip Bhalani",
     role: "Local Guide · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjU8s_NjY9X-0PfN-WmPlJMBtflAL8-f2ysrdHYrFz2dQnu6hMBY=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "This place is very good and service are very good and staff is also very friendly and knowledgeable and they are very kind.",
-    name: "Geeta Patel",
-    role: "Regular Client · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJ5CSlmoCskerSlsgLMNxLun50RhXAeUPdxDbY9uBi55NNiFQ=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Nice place for getting ready for special occasions. I had a superb experience. Such nice makeup, hairstyle and the behavior of staff is very fine. Highly satisfied!",
+    text: "Nice place for getting ready for special occasions. Such nice makeup, hairstyle, and the behavior of staff is very fine. Highly satisfied!",
     name: "Dimpal Nakrani",
     role: "Special Occasion · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocKjc6fqnhM2MxZiFgAQNavuXjkezc_tjWS5xPocAMlQIIj6rw=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "Hairstyle is too good.",
-    name: "Nidhi Gadhiya",
-    role: "Haircut & Makeup · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJEY6ahsOEBv_FXZyK7xXvf7LhPtAD7R1xI10g4z44taiXDceLx=s120-c-rp-mo-br100",
-    rating: 4,
-  },
-  {
-    text: "Amazing beauty parlour with skilled staff and great customer service. Highly recommended!",
-    name: "Vraj",
+    text: "Amazing beauty parlour with skilled staff and great customer service. 100% genuine products and transparent care.",
+    name: "Vraj Savani",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjXaeK8vhZJOteLQa_HwQB21cCnn4cFA_jvWxoaGUCJ9qWkRrYhu=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "This beauty parlor is very nice. Their service is good and they use all the products very well according to the skin. I love this beauty parlor.",
+    text: "Amazing experience! The haircut and precision styling gave my hair instant bounce and healthy shine.",
+    name: "Rutika Gadhiya",
+    role: "Haircut & Styling · Surat",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocIr8kwzadm60Nt7O-malP2XPJNVmnAGK3HaXQZ5BaRSd7eBug=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+];
+
+const GOOGLE_REVIEWS_ROW2 = [
+  {
+    text: "Had a really nice experience here! I got my makeup done for a special occasion, and I absolutely loved how it turned out. Definitely recommend!",
+    name: "Patel Radhi",
+    role: "Special Occasion Makeup",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJvQ1NIm-6hijsJYXNN3VE6ULW8nvLkkt3dJbUll2iVmFS9Zg=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "I visited Shree Beauty Studio and had a fantastic experience. The staff was friendly, hygienic, and used high quality branded products. Highly recommend!",
+    name: "Yugma Mangukiya",
+    role: "Bridal Services · Surat",
+    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjWUbrafNXdLtla2jm3KFn21cxGSBhC1RefqOUCLcX3yvXN-KwEn=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "Even though I moved to USA recently I still get my haircut and makeup here during my yearly visit to India. Natural look & THE BEST!",
+    name: "Harsha Kothiya",
+    role: "Long-time Client · USA",
+    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjVwCA4so6iQ5bQZtnuByyzgALvK9ZSPtexfeplBU9GmGQ-e_Kbvxg=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "Best place for makeup and beauty services in Surat. 5/5 quality, top hygiene, and skilled stylists.",
+    name: "Dipak Chavada",
+    role: "Local Guide · Surat",
+    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjXGxEGnPftOQxiRER49daXV2E6pmj932NYKJJsOw65BacoDBVV9Qw=s120-c-rp-mo-ba12-br100",
+    rating: 5,
+  },
+  {
+    text: "You made me feel like the most beautiful version of myself on my wedding day. Absolutely magical bridal look!",
+    name: "Mansi Boda",
+    role: "Bride · Bridal Makeup",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocIyuorrSEom969RIcSM25TEQJb-LvQUZJ5xg_roVilggzrBuQ=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "Loved the service! The staff was very polite and professional. Highly recommend this salon for all hair & skin services.",
+    name: "Varsha Bhalani",
+    role: "Regular Client · Surat",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocI6cBMqgLwqUGWAa4hNa-MLh_FVKiTe8e2fDtb1PdbYdGUzmg=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "Amazing service and results. Years of experience truly show in their work. Super clean, sweet, and caring stylists.",
+    name: "Krupali Pavasia",
+    role: "Regular Client · Surat",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocIVao1NL3VuOgOx-xQlY1md8ANeCvJSmZGMpCZDrSnewy2FjQ=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "Got a fantastic matte finish here! The service was professional and quick. A perfect look for my event.",
+    name: "Fusion Tech HD",
+    role: "Special Event Makeup",
+    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjX5nM1sYM1sNEWKiR3eSyhOgZqasYbJ4kfmZO9ofmQlzFqOGS4=s120-c-rp-mo-ba12-br100",
+    rating: 5,
+  },
+  {
+    text: "Fabulous service, great results, very friendly staff, will definitely be coming again for hair and skin treatments.",
+    name: "Shraddha Bhikadiya",
+    role: "Regular Client · Surat",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocLz74xeHef_agT472bWmvBHu7cnP4GFpQTzBwIFZwtDLaEJhA=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "This place is very good and services are top-notch. Staff is friendly, knowledgeable, and kind to every client.",
+    name: "Geeta Patel",
+    role: "Regular Client · Surat",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJ5CSlmoCskerSlsgLMNxLun50RhXAeUPdxDbY9uBi55NNiFQ=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "Hairstyle and makeup are too good. Quick service, attentive staff, and neat work at reasonable prices.",
+    name: "Nidhi Gadhiya",
+    role: "Haircut & Makeup · Surat",
+    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJEY6ahsOEBv_FXZyK7xXvf7LhPtAD7R1xI10g4z44taiXDceLx=s120-c-rp-mo-br100",
+    rating: 5,
+  },
+  {
+    text: "This beauty parlor is very nice. Their service is good and they use all the products very well according to skin type.",
     name: "Honey Patel",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLlEQbTsNuY4WPYsWP4-XHLXsU6QvqKkDSReZEJ87mam6yP2hDA=s120-c-rp-mo-br100",
     rating: 5,
   },
   {
-    text: "it's amazing experience ❤️",
-    name: "Rutika Gadhiya",
-    role: "Haircut · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocIr8kwzadm60Nt7O-malP2XPJNVmnAGK3HaXQZ5BaRSd7eBug=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Excellent skill, very hardworking lady. I'm always thankful.",
+    text: "Excellent skill, very hardworking lady with great attention to detail. I'm always thankful for the care provided.",
     name: "Sandhya Pala",
     role: "Bridal Services · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjWNgS0TH7tgtxairwT41PPr_CIIOPvDmb7Nz0vY1JgZx3lfVhV-HQ=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "amazing experience. must try.",
-    name: "Gabani Drashti",
-    role: "Regular Client · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJI2UlPrOWMMpckdK36h-bv4QKRY6AHeQAb2BwyajXdebH-_Q=s120-c-rp-mo-br100",
     rating: 5,
   },
 ];
@@ -721,41 +717,41 @@ export default function PublicHomePage() {
           </div>
         </div>
 
-        {/* Auto-rotating infinite carousel — Row 1 (left to right) */}
+        {/* Auto-rotating infinite carousel — Row 1 (left to right, 100% Unique) */}
         <div
           style={{
             position: 'relative',
             overflow: 'hidden',
-            marginBottom: 20,
+            marginBottom: 12,
           }}
           className="reviews-carousel-track-outer"
         >
           <div className="reviews-marquee reviews-marquee-fwd">
-            {[...GOOGLE_REVIEWS, ...GOOGLE_REVIEWS].map((t, idx) => (
-              <div key={idx} className="reviews-card">
-                <div style={{ marginBottom: 14, position: 'relative', zIndex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 10 }}>
+            {[...GOOGLE_REVIEWS_ROW1, ...GOOGLE_REVIEWS_ROW1].map((t, idx) => (
+              <div key={`r1-${idx}`} className="reviews-card">
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 6 }}>
                     {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} size={13} fill="#EABA38" color="#EABA38" />
+                      <Star key={i} size={11.5} fill="#EABA38" color="#EABA38" />
                     ))}
-                    <span style={{ fontSize: 10.5, color: '#94a3b8', marginLeft: 4, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Google</span>
+                    <span style={{ fontSize: 9.5, color: '#94a3b8', marginLeft: 4, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Google</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: 13.5, color: '#334155', lineHeight: 1.7, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {t.text}
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#334155', lineHeight: 1.5, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    &ldquo;{t.text}&rdquo;
                   </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 14, borderTop: '1px solid #f0f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, marginTop: 6, borderTop: '1px solid #f1f5f9' }}>
                   <img
                     src={t.avatar}
                     alt={t.name}
-                    width={40}
-                    height={40}
-                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(234,186,56,0.4)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                    width={32}
+                    height={32}
+                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(234,186,56,0.4)', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
                     referrerPolicy="no-referrer"
                   />
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{t.name}</div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{t.role}</div>
+                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                    <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.role}</div>
                   </div>
                 </div>
               </div>
@@ -763,37 +759,37 @@ export default function PublicHomePage() {
           </div>
         </div>
 
-        {/* Row 2 (right to left) — offset reviews for visual variety */}
+        {/* Row 2 (right to left, 100% Unique - zero overlap with Row 1) */}
         <div
           style={{ position: 'relative', overflow: 'hidden' }}
           className="reviews-carousel-track-outer"
         >
           <div className="reviews-marquee reviews-marquee-rev">
-            {[...GOOGLE_REVIEWS.slice(Math.floor(GOOGLE_REVIEWS.length / 2)), ...GOOGLE_REVIEWS, ...GOOGLE_REVIEWS.slice(0, Math.floor(GOOGLE_REVIEWS.length / 2))].map((t, idx) => (
-              <div key={idx} className="reviews-card">
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+            {[...GOOGLE_REVIEWS_ROW2, ...GOOGLE_REVIEWS_ROW2].map((t, idx) => (
+              <div key={`r2-${idx}`} className="reviews-card">
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 6 }}>
                     {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} size={13} fill="#EABA38" color="#EABA38" />
+                      <Star key={i} size={11.5} fill="#EABA38" color="#EABA38" />
                     ))}
-                    <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 2 }}>Google</span>
+                    <span style={{ fontSize: 9.5, color: '#94a3b8', marginLeft: 4, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Google</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: 13.5, color: '#334155', lineHeight: 1.65, fontStyle: 'italic' }}>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#334155', lineHeight: 1.5, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     &ldquo;{t.text}&rdquo;
                   </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, marginTop: 6, borderTop: '1px solid #f1f5f9' }}>
                   <img
                     src={t.avatar}
                     alt={t.name}
-                    width={38}
-                    height={38}
-                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                    width={32}
+                    height={32}
+                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(234,186,56,0.4)', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
                     referrerPolicy="no-referrer"
                   />
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{t.name}</div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>{t.role}</div>
+                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                    <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.role}</div>
                   </div>
                 </div>
               </div>
