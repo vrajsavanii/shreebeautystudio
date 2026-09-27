@@ -30,7 +30,7 @@ export default function AboutClient() {
   const pillars = [
     {
       icon: Award,
-      title: '10+ Years of Excellence',
+      title: '25+ Years of Excellence',
       description:
         'Serving hundreds of satisfied brides and regular clients across Katargam and Surat with unmatched consistency and personalized care.',
     },
@@ -55,7 +55,7 @@ export default function AboutClient() {
   ];
 
   const milestones = [
-    { number: '10+', label: 'Years of Experience' },
+    { number: '25+', label: 'Years of Experience' },
     { number: '5,000+', label: 'Happy Clients Served' },
     { number: '500+', label: 'Brides Styled' },
     { number: '4.9 ★', label: 'Average Google Rating (150+ Reviews)' },

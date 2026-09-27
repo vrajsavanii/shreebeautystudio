@@ -362,7 +362,7 @@ export default function PublicHomePage() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
               <Award size={13} color="#EABA38" />
-              <span>10+ Years Experience</span>
+              <span>25+ Years Experience</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
               <ShieldCheck size={13} color="#EABA38" />
@@ -388,7 +388,7 @@ export default function PublicHomePage() {
         </div>
         <div className="cust-stat-item">
           <div>
-            <div className="cust-stat-number">10+</div>
+            <div className="cust-stat-number">25+</div>
             <div className="cust-stat-label">Years of Aesthetic Mastery</div>
           </div>
         </div>

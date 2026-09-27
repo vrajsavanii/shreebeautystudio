@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     absolute: 'Shree Beauty Studio — Luxury Salon & Bridal Makeup in Katargam, Surat',
   },
   description:
-    'Surat’s premier ladies beauty salon & bridal studio in Katargam. 10+ years excellence in HD bridal makeup, hair Botox, and facials. 100% ladies-only sanctuary.',
+    'Surat’s premier ladies beauty salon & bridal studio in Katargam. 25+ years excellence in HD bridal makeup, hair Botox, and facials. 100% ladies-only sanctuary.',
   alternates: {
     canonical: '/',
   },

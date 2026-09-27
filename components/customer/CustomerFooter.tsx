@@ -86,7 +86,7 @@ export default function CustomerFooter() {
             {salonName}
           </h3>
           <p style={{ fontSize: 13.5, color: '#94a3b8', lineHeight: 1.7, margin: '0 0 20px' }}>
-            Katargam's premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 10+ years.
+            Katargam's premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 25+ years.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
             <a

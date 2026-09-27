@@ -4,17 +4,17 @@ import { getBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'About Us — 10+ Years of Excellence | Shree Beauty Studio, Surat',
+    absolute: 'About Us — 25+ Years of Excellence | Shree Beauty Studio, Surat',
   },
   description:
-    'Over 10 years of bridal makeovers, luxury hair care, and skincare in Katargam, Surat. 100% ladies-only sanctuary using sealed international brands.',
+    'Over 25 years of bridal makeovers, luxury hair care, and skincare in Katargam, Surat. 100% ladies-only sanctuary using sealed international brands.',
   alternates: {
     canonical: '/about',
   },
   openGraph: {
     title: 'About Shree Beauty Studio — Surat’s Premier Ladies Salon',
     description:
-      'Learn about our philosophy, 10+ years heritage, authentic international products, and commitment to hygiene in Katargam, Surat.',
+      'Learn about our philosophy, 25+ years heritage, authentic international products, and commitment to hygiene in Katargam, Surat.',
     url: 'https://shree-beauty-studio.vercel.app/about',
     type: 'website',
     images: [
@@ -39,7 +39,7 @@ export default function AboutPage() {
     '@type': 'AboutPage',
     name: 'About Shree Beauty Studio',
     description:
-      'Shree Beauty Studio is a premier luxury ladies salon and bridal makeover studio in Katargam, Surat with over 10 years of trusted service.',
+      'Shree Beauty Studio is a premier luxury ladies salon and bridal makeover studio in Katargam, Surat with over 25 years of trusted service.',
     mainEntity: {
       '@type': 'BeautySalon',
       name: 'Shree Beauty Studio',
