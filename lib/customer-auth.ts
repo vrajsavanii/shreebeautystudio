@@ -173,7 +173,26 @@ export function verifyCustomerToken(token: string): CustomerJwtPayload | null {
 }
 
 // ── Database Access & Salon State Sync ──────────────────────────────────────
-export async function getSalonDataFromCloud(): Promise<{ id?: string; owner_id?: string; data: SalonData }> {
+interface CachedCloudState {
+  id?: string;
+  owner_id?: string;
+  data: SalonData;
+  timestamp: number;
+}
+
+let cachedCloudState: CachedCloudState | null = null;
+const CLOUD_CACHE_TTL = 3000; // 3 seconds in-memory TTL
+
+export async function getSalonDataFromCloud(options?: { forceRefresh?: boolean }): Promise<{ id?: string; owner_id?: string; data: SalonData }> {
+  const now = Date.now();
+  if (!options?.forceRefresh && cachedCloudState && now - cachedCloudState.timestamp < CLOUD_CACHE_TTL) {
+    return {
+      id: cachedCloudState.id,
+      owner_id: cachedCloudState.owner_id,
+      data: cachedCloudState.data,
+    };
+  }
+
   try {
     const supabase = getSupabaseAdmin();
     const { data: rows, error } = await supabase
@@ -191,11 +210,13 @@ export async function getSalonDataFromCloud(): Promise<{ id?: string; owner_id?:
       return { data: { ...DEFAULT_DATA } };
     }
 
-    return {
+    const result = {
       id: rows[0].id,
       owner_id: rows[0].owner_id,
       data: rows[0].data as SalonData,
     };
+    cachedCloudState = { ...result, timestamp: Date.now() };
+    return result;
   } catch (err: any) {
     console.error('[CustomerAuth] Exception fetching salon state:', err);
     return { data: { ...DEFAULT_DATA } };
@@ -206,6 +227,13 @@ export async function saveSalonDataToCloud(data: SalonData, existingId?: string)
   try {
     const supabase = getSupabaseAdmin();
     const now = new Date().toISOString();
+
+    cachedCloudState = {
+      id: existingId || cachedCloudState?.id,
+      owner_id: cachedCloudState?.owner_id,
+      data,
+      timestamp: Date.now(),
+    };
 
     if (existingId) {
       const { error } = await supabase

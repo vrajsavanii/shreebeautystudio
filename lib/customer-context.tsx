@@ -66,7 +66,8 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const json = await res.json();
       if (json.success && json.profile) {
         setCustomer(json.profile);
-        await fetchProfile();
+        // Non-blocking background fetch for past appointments/invoices
+        fetchProfile().catch(() => {});
         return { success: true };
       }
       return {
@@ -91,7 +92,8 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const json = await res.json();
       if (json.success && json.profile) {
         setCustomer(json.profile);
-        await fetchProfile();
+        // Non-blocking background fetch
+        fetchProfile().catch(() => {});
         return { success: true };
       }
       return { success: false, error: json.error || 'Registration failed.' };
@@ -136,10 +138,22 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   );
 }
 
-export function useCustomerAuth() {
+export function useCustomerAuth(): CustomerAuthContextType {
   const context = useContext(CustomerAuthContext);
   if (!context) {
-    throw new Error('useCustomerAuth must be used within a CustomerAuthProvider');
+    return {
+      customer: null,
+      appointments: [],
+      bridal: [],
+      invoices: [],
+      loading: false,
+      authenticated: false,
+      login: async () => ({ success: false, error: 'Auth context not available' }),
+      signup: async () => ({ success: false, error: 'Auth context not available' }),
+      logout: async () => {},
+      refreshProfile: async () => {},
+      updateProfileState: () => {},
+    };
   }
   return context;
 }

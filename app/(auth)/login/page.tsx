@@ -16,7 +16,6 @@ import {
   Mail,
   Lock,
   Sparkles,
-  KeyRound,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
@@ -50,14 +49,10 @@ function LoginFormContent() {
 
   // ─── Customer Login State ───
   const [custMethod, setCustMethod] = useState<'mobile' | 'email'>('mobile');
-  const [custAuthType, setCustAuthType] = useState<'password' | 'otp'>('password');
   const [custMobile, setCustMobile] = useState('');
   const [custEmail, setCustEmail] = useState('');
   const [custPassword, setCustPassword] = useState('');
   const [custShowPass, setCustShowPass] = useState(false);
-  const [custOtp, setCustOtp] = useState('');
-  const [custOtpSent, setCustOtpSent] = useState(false);
-  const [custOtpTimer, setCustOtpTimer] = useState(0);
   const [custLoading, setCustLoading] = useState(false);
   const [custError, setCustError] = useState('');
 
@@ -71,49 +66,7 @@ function LoginFormContent() {
   const [staffError, setStaffError] = useState('');
   const [selectedRole, setSelectedRole] = useState<'Admin' | 'Salesperson'>('Admin');
 
-  // OTP cooldown countdown
-  useEffect(() => {
-    if (custOtpTimer > 0) {
-      const interval = setInterval(() => setCustOtpTimer((t) => t - 1), 1000);
-      return () => clearInterval(interval);
-    }
-  }, [custOtpTimer]);
-
-  // Customer Send OTP
-  const handleSendCustOtp = async () => {
-    setCustError('');
-    const target = custMethod === 'mobile' ? custMobile.trim() : custEmail.trim();
-    if (!target) {
-      setCustError(custMethod === 'mobile' ? 'Please enter your mobile number.' : 'Please enter your email.');
-      return;
-    }
-
-    setCustLoading(true);
-    try {
-      const res = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: target,
-          type: custMethod === 'mobile' ? 'phone' : 'email',
-          purpose: 'login',
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCustOtpSent(true);
-        setCustOtpTimer(60);
-      } else {
-        setCustError(data.error || 'Failed to send OTP code.');
-      }
-    } catch {
-      setCustError('Network error sending verification code.');
-    } finally {
-      setCustLoading(false);
-    }
-  };
-
-  // Customer Login Submit
+  // Customer Login Submit (Password-only, fast direct authentication)
   const handleCustomerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCustError('');
@@ -122,6 +75,7 @@ function LoginFormContent() {
     try {
       const payload: any = {
         method: custMethod,
+        password: custPassword,
       };
 
       if (custMethod === 'mobile') {
@@ -130,13 +84,7 @@ function LoginFormContent() {
         payload.email = custEmail.trim();
       }
 
-      if (custAuthType === 'password') {
-        payload.password = custPassword;
-      } else {
-        payload.otp = custOtp.trim();
-      }
-
-      const res = await customerLogin(payload);
+      const res: any = await customerLogin(payload);
       if (res.success) {
         const dest = redirectTarget && !redirectTarget.startsWith('/admin') ? redirectTarget : '/profile';
         router.replace(dest);
@@ -145,7 +93,7 @@ function LoginFormContent() {
 
       if (res.needsPasswordSetup) {
         setCustError(
-          'Your account was created via booking without a password. Please switch to "Login with OTP" or use Forgot Password to create one.'
+          'Your account was created via booking without a password. Please use "Forgot Password" below to set your password.'
         );
       } else {
         setCustError(res.error || 'Invalid credentials. Please verify your details.');
@@ -494,141 +442,61 @@ function LoginFormContent() {
                 </div>
               )}
 
-              {/* Password vs OTP Toggle */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
-                }}
-              >
-                <label style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>
-                  {custAuthType === 'password' ? 'Password *' : 'Verification Code *'}
+              {/* Password Field */}
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                  Password *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustAuthType(custAuthType === 'password' ? 'otp' : 'password');
-                    setCustError('');
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#05424A',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    padding: 0,
-                    textDecoration: 'underline',
-                  }}
-                >
-                  {custAuthType === 'password' ? 'Login with OTP instead' : 'Login with Password instead'}
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type={custShowPass ? 'text' : 'password'}
+                    value={custPassword}
+                    onChange={(e) => setCustPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '11px 40px 11px 40px',
+                      borderRadius: 12,
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: 14,
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCustShowPass(!custShowPass)}
+                    style={{
+                      position: 'absolute',
+                      right: 12,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: '#94a3b8',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    {custShowPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <div style={{ textAlign: 'right', marginTop: 6 }}>
+                  <Link
+                    href="/forgot-password"
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#64748b',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
               </div>
-
-              {custAuthType === 'password' ? (
-                /* Password Field */
-                <div style={{ marginBottom: 18 }}>
-                  <div style={{ position: 'relative' }}>
-                    <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type={custShowPass ? 'text' : 'password'}
-                      value={custPassword}
-                      onChange={(e) => setCustPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '11px 40px 11px 40px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 14,
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setCustShowPass(!custShowPass)}
-                      style={{
-                        position: 'absolute',
-                        right: 12,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'none',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        padding: 0,
-                      }}
-                    >
-                      {custShowPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                  <div style={{ textAlign: 'right', marginTop: 6 }}>
-                    <Link
-                      href="/forgot-password"
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: '#64748b',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      Forgot Password?
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                /* OTP Field */
-                <div style={{ marginBottom: 18 }}>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-                    <input
-                      type="text"
-                      value={custOtp}
-                      onChange={(e) => setCustOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="Enter 6-digit OTP"
-                      maxLength={6}
-                      required
-                      style={{
-                        flex: 1,
-                        padding: '11px 14px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 15,
-                        fontWeight: 700,
-                        letterSpacing: '2px',
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSendCustOtp}
-                      disabled={custOtpTimer > 0 || custLoading}
-                      style={{
-                        padding: '11px 16px',
-                        borderRadius: 12,
-                        border: 'none',
-                        background: custOtpTimer > 0 ? '#f1f5f9' : '#05424A',
-                        color: custOtpTimer > 0 ? '#94a3b8' : '#ffffff',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        cursor: custOtpTimer > 0 ? 'default' : 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {custOtpTimer > 0 ? `${custOtpTimer}s` : custOtpSent ? 'Resend' : 'Send OTP'}
-                    </button>
-                  </div>
-                  {custOtpSent && (
-                    <div style={{ fontSize: 11.5, color: '#16a34a', fontWeight: 600 }}>
-                      ✓ Code sent via {custMethod === 'mobile' ? 'WhatsApp/SMS' : 'Email'}
-                    </div>
-                  )}
-                </div>
-              )}
 
               <button
                 type="submit"

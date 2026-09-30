@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import BookClient from './BookClient';
 import { getBreadcrumbSchema } from '@/lib/seo';
+import { CustomerAuthProvider } from '@/lib/customer-context';
 
 export const metadata: Metadata = {
   title: 'Book Appointment Online — Shree Beauty Studio, Katargam Surat',
@@ -45,7 +46,9 @@ export default function BookPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
-      <BookClient />
+      <CustomerAuthProvider>
+        <BookClient />
+      </CustomerAuthProvider>
     </>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCustomerAuth } from '@/lib/customer-context';
 import {
   Sparkles,
   Calendar,
@@ -87,11 +88,30 @@ export default function PublicBookingPage() {
   const [venue, setVenue] = useState('');
   const [eventTitle, setEventTitle] = useState('Bridal & Siders Makeup');
 
+  const { customer } = useCustomerAuth();
+
   // Customer Contact Info
   const [customerName, setCustomerName] = useState('');
   const [customerMobile, setCustomerMobile] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Pre-fill logged-in customer's details by default (customer can freely edit them if desired)
+  useEffect(() => {
+    if (customer) {
+      if (customer.name && !customerName) {
+        setCustomerName(customer.name);
+      }
+      const rawPhone = customer.phone || customer.mobile || '';
+      const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+      if (cleanPhone && !customerMobile) {
+        setCustomerMobile(cleanPhone);
+      }
+      if (customer.email && !customerEmail) {
+        setCustomerEmail(customer.email);
+      }
+    }
+  }, [customer]);
 
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1530,9 +1550,16 @@ export default function PublicBookingPage() {
 
               {/* Step 3: Customer Details */}
               <div style={{ marginBottom: 24 }}>
-                <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <User size={18} color="#05424a" /> 3. Your Contact Information *
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <User size={18} color="#05424a" /> 3. Your Contact Information *
+                  </h3>
+                  {customer && (
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#05424a', background: '#e0f2fe', border: '1px solid #bae6fd', padding: '3px 9px', borderRadius: 99 }}>
+                      ✓ Pre-filled for {customer.name?.split(' ')[0]} (Editable)
+                    </span>
+                  )}
+                </div>
 
                 <div style={{ display: 'grid', gap: 12 }}>
                   <div>

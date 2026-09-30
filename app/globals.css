@@ -1700,13 +1700,55 @@ a, button, input, select, textarea {
   --cust-radius-lg: 24px;
 }
 
-/* Navbar */
+/* Navbar Responsive Design */
+.cust-btn-text-short {
+  display: none !important;
+}
+
 @media (max-width: 868px) {
   .cust-navbar-links {
     display: none !important;
   }
   .cust-navbar-toggle {
     display: block !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .cust-navbar-inner {
+    padding: 10px 14px !important;
+    gap: 10px !important;
+  }
+  .cust-navbar-logo img {
+    height: 38px !important;
+    max-width: 140px !important;
+  }
+  .cust-btn-login {
+    display: none !important;
+  }
+  .cust-btn-gold {
+    padding: 7px 14px !important;
+    font-size: 12.5px !important;
+  }
+  .cust-btn-gold .cust-btn-text-full {
+    display: none !important;
+  }
+  .cust-btn-gold .cust-btn-text-short {
+    display: inline !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .cust-navbar-inner {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+  }
+  .cust-navbar-logo img {
+    height: 34px !important;
+    max-width: 125px !important;
+  }
+  .cust-nav-profile-name {
+    display: none !important;
   }
 }
 

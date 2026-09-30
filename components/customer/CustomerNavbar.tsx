@@ -229,6 +229,7 @@ export default function CustomerNavbar() {
                     )}
                   </div>
                   <span
+                    className="cust-nav-profile-name"
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
@@ -472,7 +473,8 @@ export default function CustomerNavbar() {
               }}
             >
               <Calendar size={14} />
-              <span>Book Appointment</span>
+              <span className="cust-btn-text-full">Book Appointment</span>
+              <span className="cust-btn-text-short">Book</span>
             </Link>
 
             <button

@@ -836,3 +836,77 @@ export function renderMarketingCampaignHtml(props: MarketingCampaignEmailProps):
 
   return baseLayout(content, headline);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. WELCOME EMAIL FOR NEW CUSTOMER SIGNUP
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface WelcomeCustomerEmailProps {
+  customerName: string;
+  email?: string;
+  mobile?: string;
+  salonName?: string;
+}
+
+export function renderWelcomeCustomerHtml(props: WelcomeCustomerEmailProps): string {
+  const { customerName, email, mobile, salonName = 'Shree Beauty Studio' } = props;
+
+  const content = `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <span class="pill pill-gold">🌸 WELCOME TO OUR STUDIO 🌸</span>
+      <h2 style="color: ${BRAND_COLORS.primary}; font-size: 24px; margin: 14px 0 6px;">Welcome to ${salonName}, ${customerName}!</h2>
+      <p style="color: ${BRAND_COLORS.muted}; font-size: 14.5px; margin: 0; line-height: 1.6;">
+        Your luxury salon account has been successfully created. We are thrilled to welcome you to our family!
+      </p>
+    </div>
+
+    <div style="background: linear-gradient(135deg, #FDFBF5 0%, #FEF9C3 100%); border: 1.5px solid #FEF08A; border-radius: 14px; padding: 20px; margin-bottom: 24px; text-align: center;">
+      <div style="font-size: 13px; font-weight: 700; color: #854D0E; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Exclusive Privilege</div>
+      <div style="font-size: 18px; font-weight: 800; color: ${BRAND_COLORS.primary}; margin-bottom: 6px;">Seamless Booking &amp; Beauty Care</div>
+      <div style="font-size: 13px; color: ${BRAND_COLORS.muted}; line-height: 1.5;">Book appointments in seconds, view past visits &amp; invoices, explore bridal packages, and enjoy personalized treatments.</div>
+    </div>
+
+    <table class="table">
+      <tr>
+        <td class="label">👤 Account Name</td>
+        <td class="val">${customerName}</td>
+      </tr>
+      ${email ? `
+      <tr>
+        <td class="label">✉️ Email</td>
+        <td class="val">${email}</td>
+      </tr>` : ''}
+      ${mobile ? `
+      <tr>
+        <td class="label">📱 Mobile</td>
+        <td class="val">+91 ${mobile.replace(/\D/g, '').slice(-10)}</td>
+      </tr>` : ''}
+      <tr>
+        <td class="label">📍 Location</td>
+        <td class="val" style="font-size: 13px;">
+          22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat<br/>
+          <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; font-weight: 700; text-decoration: underline; font-size: 12px; display: inline-block; margin-top: 4px;">📍 Get Directions on Google Maps ↗</a>
+        </td>
+      </tr>
+      <tr>
+        <td class="label">📞 Studio Contacts</td>
+        <td class="val" style="font-size: 13px;">
+          +91 97732 40010 &bull; +91 98241 83769
+        </td>
+      </tr>
+    </table>
+
+    <div style="text-align: center; margin-top: 28px;">
+      <a href="https://shreebeauty.studio/book" class="btn" style="margin-right: 8px;">Book an Appointment</a>
+      <a href="https://shreebeauty.studio/profile" style="display: inline-block; background: #05424A; color: #ffffff !important; font-weight: 700; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 99px; text-align: center; margin: 16px 0;">View My Profile</a>
+    </div>
+
+    <div style="background-color: #F8FAFC; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border-left: 3px solid ${BRAND_COLORS.primary};">
+      <p style="margin: 0; font-size: 12.5px; color: ${BRAND_COLORS.muted}; line-height: 1.5;">
+        Need styling assistance or want to book a bridal consultation? You can also message us directly on WhatsApp at <strong>+91 97732 40010</strong> or <strong>+91 98241 83769</strong>.
+      </p>
+    </div>
+  `;
+
+  return baseLayout(content, `Welcome to Shree Beauty Studio, ${customerName}!`);
+}

@@ -99,11 +99,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Update last login time
-    const updated = await upsertCustomerAccount({
+    // 3. Prepare updated customer profile with lastLoginAt
+    const updated = {
       ...customer,
       lastLoginAt: new Date().toISOString(),
-    });
+    };
+
+    // Non-blocking background persistence so login returns instantly
+    upsertCustomerAccount(updated).catch((err) => console.warn('[Login] Background lastLogin update failed:', err));
 
     const safeProfile = toSafeCustomerProfile(updated);
     const res = NextResponse.json({

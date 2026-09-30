@@ -10,6 +10,7 @@ import {
   toSafeCustomerProfile,
 } from '@/lib/customer-auth';
 import { setCustomerSessionCookie } from '@/lib/customer-session-server';
+import { sendUniversalEmail, renderWelcomeCustomerHtml } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -134,6 +135,24 @@ export async function POST(req: NextRequest) {
 
     // 6. Set secure HTTP-only session cookie
     setCustomerSessionCookie(res, saved);
+
+    // 7. Send luxury welcome email via Resend if customer provided email (otherwise skipped)
+    if (cleanEmail) {
+      sendUniversalEmail({
+        to: cleanEmail,
+        subject: `🌸 Welcome to Shree Beauty Studio, ${trimmedName}!`,
+        html: renderWelcomeCustomerHtml({
+          customerName: trimmedName,
+          email: cleanEmail,
+          mobile: cleanMobile,
+        }),
+        text: `Welcome to Shree Beauty Studio, ${trimmedName}! Your account is ready. Book appointments and manage visits at https://shreebeauty.studio`,
+        type: 'contact',
+      }).catch((emailErr) => {
+        console.warn('[Register] Welcome email background dispatch warning:', emailErr?.message || emailErr);
+      });
+    }
+
     return res;
   } catch (err: any) {
     console.error('Error in customer register route:', err);
