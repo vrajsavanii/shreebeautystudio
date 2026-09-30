@@ -29,27 +29,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { clean: cleanMobile } = normalizeMobile(rawMobile);
-    if (!cleanMobile || cleanMobile.length !== 10) {
-      return NextResponse.json(
-        { success: false, error: 'Please enter a valid 10-digit mobile number.' },
-        { status: 400 }
-      );
-    }
-
+    const { clean: cleanMobile } = rawMobile ? normalizeMobile(rawMobile) : { clean: '' };
     const cleanEmail = email ? normalizeEmail(email) : undefined;
-    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      return NextResponse.json(
-        { success: false, error: 'Please enter a valid email address.' },
-        { status: 400 }
-      );
-    }
 
-    if (method === 'email' && !cleanEmail) {
-      return NextResponse.json(
-        { success: false, error: 'Email address is required for email registration.' },
-        { status: 400 }
-      );
+    if (method === 'mobile') {
+      if (!cleanMobile || cleanMobile.length !== 10) {
+        return NextResponse.json(
+          { success: false, error: 'Please enter a valid 10-digit mobile number.' },
+          { status: 400 }
+        );
+      }
+      if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        return NextResponse.json(
+          { success: false, error: 'Please enter a valid email address.' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // method === 'email'
+      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        return NextResponse.json(
+          { success: false, error: 'Please enter a valid email address.' },
+          { status: 400 }
+        );
+      }
+      if (rawMobile && cleanMobile.length !== 10) {
+        return NextResponse.json(
+          { success: false, error: 'Optional mobile number must be a valid 10-digit number.' },
+          { status: 400 }
+        );
+      }
     }
 
     if (!password || password.length < 6) {
@@ -73,15 +82,19 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Check for existing customer identity
-    const { customer: existingByPhone } = await findCustomerByIdentifier(cleanMobile);
-    if (existingByPhone && existingByPhone.passwordHash) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'An account with this mobile number already exists. Please log in or use Forgot Password.',
-        },
-        { status: 409 }
-      );
+    let existingByPhone: any = undefined;
+    if (cleanMobile) {
+      const found = await findCustomerByIdentifier(cleanMobile);
+      existingByPhone = found.customer;
+      if (existingByPhone && existingByPhone.passwordHash) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'An account with this mobile number already exists. Please log in or use Forgot Password.',
+          },
+          { status: 409 }
+        );
+      }
     }
 
     if (cleanEmail) {
