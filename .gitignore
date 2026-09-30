@@ -36,3 +36,4 @@ yarn-error.log*
 *.tsbuildinfo
 *.apk
 new web design/
+.freebuff/
