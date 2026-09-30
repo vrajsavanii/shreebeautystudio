@@ -337,7 +337,8 @@ export default function PublicHomePage() {
                 <span>100% Genuine Formulations</span>
               </div>
             </motion.div>
-          </div>
+          </motion.div>
+        </div>
 
         {/* Scroll cue */}
         <div className="cust-hero-scroll-cue">
