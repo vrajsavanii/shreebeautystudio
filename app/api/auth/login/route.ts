@@ -16,11 +16,13 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { method = 'mobile', mobile, email, password, otp } = body;
+    const { method = 'mobile', password, otp } = body;
+    const rawMobile = body.mobile || body.phone || body.identifier || '';
+    const rawEmail = body.email || body.identifier || '';
 
     let targetIdentifier = '';
     if (method === 'email') {
-      targetIdentifier = normalizeEmail(email || '');
+      targetIdentifier = normalizeEmail(rawEmail);
       if (!targetIdentifier || !targetIdentifier.includes('@')) {
         return NextResponse.json(
           { success: false, error: 'Please enter a valid email address.' },
@@ -28,7 +30,7 @@ export async function POST(req: NextRequest) {
         );
       }
     } else {
-      const { clean } = normalizeMobile(mobile || '');
+      const { clean } = normalizeMobile(rawMobile);
       targetIdentifier = clean;
       if (!targetIdentifier || targetIdentifier.length !== 10) {
         return NextResponse.json(

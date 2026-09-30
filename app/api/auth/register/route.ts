@@ -16,7 +16,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, mobile, email, password, method = 'mobile', otp } = body;
+    const { name, password, method = 'mobile', otp } = body;
+    const rawMobile = body.mobile || body.phone || '';
+    const email = body.email || '';
 
     // 1. Validate inputs
     const trimmedName = (name || '').trim();
@@ -27,7 +29,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { clean: cleanMobile } = normalizeMobile(mobile || '');
+    const { clean: cleanMobile } = normalizeMobile(rawMobile);
     if (!cleanMobile || cleanMobile.length !== 10) {
       return NextResponse.json(
         { success: false, error: 'Please enter a valid 10-digit mobile number.' },
