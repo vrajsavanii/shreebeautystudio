@@ -44,7 +44,7 @@ export async function processWhatsAppAIMessage(
   const recipientName = customerName && customerName !== 'WhatsApp Customer' ? customerName : 'Valued Client';
   const salonName = salonData.settings?.salon || 'Shree Beauty Studio';
   const cleanSalon = (salonData.settings?.whatsapp || '919773240010').replace(/\D/g, '').slice(-10);
-  const baseUrl = originUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://shree-beauty-studio.vercel.app';
+  const baseUrl = originUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://shreebeauty.studio';
 
   // ───────────────────────────────────────────────────────────────────────────
   // FLOW 2: "SEE YOUR APPOINTMENT" (Option 2 / btn_see_appointment)

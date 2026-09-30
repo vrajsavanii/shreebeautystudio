@@ -52,8 +52,91 @@ export default function EmailCampaignModal({
     return customersWithEmail.map((c) => c.email!.trim());
   }, [audience, singleEmail, customersWithEmail]);
 
+  const buildHtml = (custEmail: string) => {
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    return `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+        <div style="background: #05424A; color: #ffffff; padding: 28px 20px; text-align: center; border-bottom: 3px solid #D4AF37;">
+          <h1 style="margin: 0; font-size: 22px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700;">${salon}</h1>
+          <p style="margin: 6px 0 0; color: #D4AF37; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;">Luxury Salon &amp; Couture Bridal Lounge</p>
+        </div>
+        <div style="padding: 32px 24px; text-align: center; background: #ffffff;">
+          <div style="display: inline-block; background: #FEF9C3; color: #854D0E; border: 1px solid #FEF08A; padding: 4px 14px; border-radius: 99px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 16px;">
+            ✨ EXCLUSIVE STUDIO INVITATION ✨
+          </div>
+          <h2 style="color: #05424A; font-size: 22px; margin: 0 0 14px; font-weight: 700; line-height: 1.3;">${headline}</h2>
+          <div style="color: #334155; font-size: 14px; line-height: 1.65; white-space: pre-line; margin-bottom: 24px;">${message}</div>
+          ${
+            discountText || promoCode
+              ? `<div style="background: #FAF9F6; border: 2px dashed #D4AF37; border-radius: 10px; padding: 18px; margin: 20px 0; text-align: center;">
+                  ${discountText ? `<div style="font-size: 22px; font-weight: 800; color: #05424A; letter-spacing: 1px;">${discountText}</div>` : ''}
+                  ${promoCode ? `<div style="font-family: monospace; font-size: 17px; font-weight: 700; color: #05424A; letter-spacing: 2px; margin-top: 6px; background: #ffffff; display: inline-block; padding: 4px 12px; border-radius: 6px; border: 1px solid #E2E8F0;">USE CODE: <strong>${promoCode}</strong></div>` : ''}
+                </div>`
+              : ''
+          }
+          <div style="margin-top: 28px;">
+            <a href="https://shreebeauty.studio/book" style="display: inline-block; background: linear-gradient(135deg, #EABA38 0%, #D4AF37 100%); color: #032B30; font-weight: 700; font-size: 14px; padding: 13px 32px; border-radius: 99px; text-decoration: none; box-shadow: 0 4px 14px rgba(212,175,55,0.35);">
+              ${ctaText || 'Book Appointment Online'} &rarr;
+            </a>
+          </div>
+          <div style="margin-top: 14px;">
+            <a href="https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20received%20your%20offer%20email." style="display: inline-block; color: #05424A; font-size: 12.5px; font-weight: 600; text-decoration: underline;">
+              Or chat with us on WhatsApp (+91 97732 40010)
+            </a>
+          </div>
+        </div>
+        <div style="background: #FAF9F6; border-top: 1px solid #E2E8F0; padding: 16px 20px; text-align: center; font-size: 11.5px; color: #64748B;">
+          <p style="margin: 0 0 4px; font-weight: 600; color: #334155;">📍 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004</p>
+          <p style="margin: 0;">Sent with care by Shree Beauty Studio &bull; Reply to this email or reach us at <a href="mailto:shreebeauty.studio22@gmail.com" style="color: #05424A;">shreebeauty.studio22@gmail.com</a></p>
+        </div>
+      </div>
+    `;
+  };
+
   const handleSend = async () => {
-    toast('Email functionality has been disabled by administrator.', 'info');
+    if (!recipientList.length) {
+      toast('Please select or enter at least one recipient email.', 'error');
+      return;
+    }
+    setSending(true);
+    let successCount = 0;
+    let failCount = 0;
+    try {
+      for (const to of recipientList) {
+        try {
+          const res = await fetch('/api/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'marketing',
+              to,
+              subject,
+              html: buildHtml(to),
+              message,
+              replyTo: 'shreebeauty.studio22@gmail.com',
+            }),
+          });
+          const resJson = await res.json();
+          if (res.ok && resJson.success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch {
+          failCount++;
+        }
+      }
+      if (successCount > 0) {
+        toast(`✅ Successfully dispatched campaign email to ${successCount} recipient(s)!`, 'success');
+        onClose();
+      } else {
+        toast(`⚠️ Could not send campaign emails. Please check domain & API settings.`, 'error');
+      }
+    } catch (err: any) {
+      toast(err.message || 'Error sending campaign email.', 'error');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

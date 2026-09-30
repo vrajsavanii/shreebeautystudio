@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: 'About Shree Beauty Studio — Surat’s Premier Ladies Salon',
     description:
       'Learn about our philosophy, 25+ years heritage, authentic international products, and commitment to hygiene in Katargam, Surat.',
-    url: 'https://shree-beauty-studio.vercel.app/about',
+    url: 'https://shreebeauty.studio/about',
     type: 'website',
     images: [
       {

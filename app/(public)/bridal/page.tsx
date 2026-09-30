@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: 'Luxury Bridal Makeup & Wedding Packages | Shree Beauty Studio Surat',
     description:
       'Turn your wedding dream into reality with couture bridal makeup, authentic international cosmetics, customized jewelry setting, and bridal party packages in Katargam, Surat.',
-    url: 'https://shree-beauty-studio.vercel.app/bridal',
+    url: 'https://shreebeauty.studio/bridal',
     type: 'website',
     images: [
       {

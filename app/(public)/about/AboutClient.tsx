@@ -327,8 +327,8 @@ export default function AboutClient() {
             }}
           >
             <img
-              src={customerImages.bridal}
-              alt="Shree Beauty Studio Katargam Surat Bridal Makeup"
+              src={customerImages.aboutStudio}
+              alt="Shree Beauty Studio Katargam Surat Hair & Styling Floor"
               style={{
                 width: '100%',
                 height: 'auto',

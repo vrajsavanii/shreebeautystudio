@@ -53,6 +53,10 @@ export interface SalonSettings {
   // Resend Email Settings
   resendApiKey?: string;
   resendFromEmail?: string;
+  resendReplyToEmail?: string;
+  resendBillingEmail?: string;
+  resendAppointmentsEmail?: string;
+  resendContactEmail?: string;
   emailNotificationsEnabled?: boolean;
   emailRemindersEnabled?: boolean;
   emailConfirmationsEnabled?: boolean;

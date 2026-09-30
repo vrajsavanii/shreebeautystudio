@@ -52,6 +52,53 @@ export default function SettingsPage() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [statusResult, setStatusResult] = useState<{ connected: boolean; msg: string } | null>(null);
 
+  // Domain Email Testing State
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [testEmailType, setTestEmailType] = useState<'appointment' | 'invoice' | 'contact'>('appointment');
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; msg: string } | null>(null);
+
+  const handleTestEmail = async () => {
+    if (!testEmailAddress.trim() || !testEmailAddress.includes('@')) {
+      toast('Please enter a valid email address to test.', 'error');
+      return;
+    }
+    setTestingEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await fetch('/api/email/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: testEmailAddress.trim(),
+          type: testEmailType,
+          apiKey: s.resendApiKey,
+          fromEmail: s.resendFromEmail,
+          replyTo: s.resendReplyToEmail || 'shreebeauty.studio22@gmail.com',
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setTestEmailResult({
+          success: true,
+          msg: `✅ Test email successfully delivered to ${testEmailAddress}! Resend ID: ${json.id || 'OK'}`,
+        });
+        toast('✅ Test email delivered successfully!', 'success');
+      } else {
+        setTestEmailResult({
+          success: false,
+          msg: `❌ Delivery failed: ${json.error || 'Check Resend domain verification.'}`,
+        });
+        toast(json.error || 'Failed to send test email', 'error');
+      }
+    } catch (err: any) {
+      setTestEmailResult({ success: false, msg: `Network error: ${err.message}` });
+      toast('Error sending test email', 'error');
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
   const handleCheckStatus = async () => {
     setCheckingStatus(true);
     setStatusResult(null);
@@ -365,6 +412,7 @@ export default function SettingsPage() {
     { id: 'billing', label: 'Billing & Accounts', icon: CreditCard },
     { id: 'loyalty', label: 'Loyalty Scheme & Rewards', icon: Sparkles },
     { id: 'whatsapp', label: 'WhatsApp Webhook', icon: MessageCircle },
+    { id: 'email', label: 'Domain Email (Resend)', icon: Mail },
     { id: 'calendar', label: 'Google Calendar (Auto Sync)', icon: Calendar },
     { id: 'copilot', label: 'AI Copilot & Shortcut', icon: Bot },
     { id: 'cloud', label: 'Cloud Database', icon: CloudCog },
@@ -1070,6 +1118,217 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Domain Email (Resend) Tab */}
+        {activeTab === 'email' && (
+          <motion.div key="email" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
+            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+                    <Mail size={22} color="#05424A" /> ✉️ Domain Email Service (shreebeauty.studio)
+                  </h2>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+                    Automated client appointment confirmations, official digital invoices, and marketing dispatches via Resend
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    style={{
+                      background: '#dcfce7',
+                      color: '#166534',
+                      border: '1px solid #86efac',
+                      borderRadius: 99,
+                      padding: '4px 12px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                    Live Domain: shreebeauty.studio
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Role-based Senders Grid */}
+            <div style={{ background: '#FAF9F6', border: '1.5px solid #E2E8F0', borderRadius: 14, padding: 20, marginBottom: 22 }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#05424A' }}>
+                🏷️ Official Role-Based Sender Addresses
+              </h3>
+              <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#64748B' }}>
+                Each communication type is automatically delivered from its designated professional sender address on your verified domain:
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Appointments &amp; Bookings
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#05424A', marginTop: 4 }}>
+                    appointments@shreebeauty.studio
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
+                    Booking confirmations, calendar reminders &amp; schedule updates.
+                  </div>
+                </div>
+
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Billing &amp; Invoices
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#05424A', marginTop: 4 }}>
+                    billing@shreebeauty.studio
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
+                    Official digital receipts, invoice copies &amp; payment notifications.
+                  </div>
+                </div>
+
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#D4AF37', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Client Inquiries &amp; Offers
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#05424A', marginTop: 4 }}>
+                    contact@shreebeauty.studio
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
+                    Promotional campaigns, festive invitations &amp; birthday wishes.
+                  </div>
+                </div>
+
+                <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Central Reply-To Mailbox
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#05424A', marginTop: 4 }}>
+                    shreebeauty.studio22@gmail.com
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
+                    All customer email replies are forwarded directly to your personal Gmail.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Automated Dispatch Settings */}
+            <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 14, padding: 20, marginBottom: 22 }}>
+              <h3 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 700, color: '#05424A' }}>
+                ⚙️ Automated Email Triggers
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.emailConfirmationsEnabled !== false}
+                    onChange={(e) => update('emailConfirmationsEnabled', e.target.checked)}
+                  />
+                  <span>
+                    📩 <strong>Instant Appointment Confirmations:</strong> Automatically email booking passes to customers when they book online.
+                  </span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.emailNotificationsEnabled !== false}
+                    onChange={(e) => update('emailNotificationsEnabled', e.target.checked)}
+                  />
+                  <span>
+                    🧾 <strong>One-Click Digital Invoicing:</strong> Enable emailing official invoices directly from the Admin Checkout modal.
+                  </span>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={s.emailWishesEnabled !== false}
+                    onChange={(e) => update('emailWishesEnabled', e.target.checked)}
+                  />
+                  <span>
+                    🎉 <strong>Milestone Greetings &amp; Offers:</strong> Enable dispatching personalized celebratory emails for birthdays &amp; anniversaries.
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            {/* Live Test Email Dispatcher */}
+            <div style={{ background: '#FAF9F6', border: '1.5px solid #D4AF37', borderRadius: 14, padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <Sparkles size={18} color="#D4AF37" />
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#05424A' }}>
+                  🧪 Test Live Email Dispatch (Send Test to Any Inbox)
+                </h3>
+              </div>
+              <p style={{ margin: '0 0 14px', fontSize: 12.5, color: '#64748B' }}>
+                Verify live email delivery from <strong>shreebeauty.studio</strong> directly to your personal email address.
+              </p>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="Enter recipient email (e.g. yourname@gmail.com)"
+                  value={testEmailAddress}
+                  onChange={(e) => setTestEmailAddress(e.target.value)}
+                  style={{ minWidth: 260, flex: 1 }}
+                />
+
+                <select
+                  className="input"
+                  value={testEmailType}
+                  onChange={(e) => setTestEmailType(e.target.value as any)}
+                  style={{ width: 'auto' }}
+                >
+                  <option value="appointment">Test from appointments@shreebeauty.studio</option>
+                  <option value="invoice">Test from billing@shreebeauty.studio</option>
+                  <option value="contact">Test from contact@shreebeauty.studio</option>
+                </select>
+
+                <motion.button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleTestEmail}
+                  disabled={testingEmail}
+                  whileTap={{ scale: 0.97 }}
+                  style={{ background: '#05424A', borderColor: '#05424A' }}
+                >
+                  {testingEmail ? (
+                    <>
+                      <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                      Dispatching…
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} /> Send Test Email
+                    </>
+                  )}
+                </motion.button>
+              </div>
+
+              {testEmailResult && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    background: testEmailResult.success ? '#dcfce7' : '#fef2f2',
+                    color: testEmailResult.success ? '#166534' : '#b91c1c',
+                    border: `1px solid ${testEmailResult.success ? '#86efac' : '#fecaca'}`,
+                  }}
+                >
+                  {testEmailResult.msg}
+                </div>
+              )}
             </div>
           </motion.div>
         )}

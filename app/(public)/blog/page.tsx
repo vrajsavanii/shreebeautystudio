@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: 'Beauty & Bridal Journal | 150+ Guides | Shree Beauty Studio Surat',
     description:
       '150+ professional beauty articles and salon guides crafted by master aestheticians and bridal stylists in Surat. Expert skincare, hair care, and Gujarati wedding advice.',
-    url: 'https://shree-beauty-studio.vercel.app/blog',
+    url: 'https://shreebeauty.studio/blog',
     type: 'website',
     images: [
       {

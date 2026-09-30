@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     title: 'Book Salon Appointment Online | Shree Beauty Studio Surat',
     description:
       'Instant online booking for salon & bridal services at Shree Beauty Studio, Katargam, Surat. Choose your services, date, and preferred time slot.',
-    url: 'https://shree-beauty-studio.vercel.app/book',
+    url: 'https://shreebeauty.studio/book',
     type: 'website',
     siteName: 'Shree Beauty Studio',
     images: [

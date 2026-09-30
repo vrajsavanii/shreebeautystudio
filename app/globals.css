@@ -2891,3 +2891,206 @@ a, button, input, select, textarea {
   }
 }
 
+/* ─── Ultra-Luxury Landing Page Redesign & Real Studio Ambiance ────────── */
+.cust-hero-v3 {
+  position: relative;
+  min-height: 92vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #032B30;
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+  padding: 100px 24px 60px;
+  overflow: hidden;
+}
+
+.cust-hero-split {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: center;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+@media (max-width: 1024px) {
+  .cust-hero-split {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: center;
+  }
+}
+
+.cust-hero-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  padding: 6px 18px;
+  border-radius: 99px;
+  color: #F7E7A6;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  margin-bottom: 18px;
+}
+
+.cust-hero-preview-frame {
+  position: relative;
+  border-radius: 24px;
+  padding: 10px;
+  background: linear-gradient(145deg, rgba(212, 175, 55, 0.35) 0%, rgba(5, 66, 74, 0.6) 60%, rgba(3, 43, 48, 0.9) 100%);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(212, 175, 55, 0.25);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.cust-hero-preview-frame:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.55), 0 0 30px rgba(212, 175, 55, 0.3);
+}
+
+.cust-hero-preview-img {
+  width: 100%;
+  height: 440px;
+  object-fit: cover;
+  border-radius: 18px;
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .cust-hero-preview-img {
+    height: 320px;
+  }
+}
+
+/* Studio Ambiance Showcase */
+.cust-studio-section {
+  padding: clamp(60px, 8vw, 100px) 20px;
+  background: linear-gradient(180deg, #FAF9F6 0%, #F5F2EB 100%);
+  position: relative;
+}
+
+.cust-studio-header {
+  text-align: center;
+  max-width: 780px;
+  margin: 0 auto 40px;
+}
+
+.cust-studio-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+
+.cust-studio-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: 1px solid #DCE3E8;
+  background: #FFFFFF;
+  color: #0F172A;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.cust-studio-tab-btn:hover {
+  border-color: #05424A;
+  color: #05424A;
+  transform: translateY(-1px);
+}
+
+.cust-studio-tab-btn.active {
+  background: #05424A;
+  color: #FFFFFF;
+  border-color: #05424A;
+  box-shadow: 0 6px 18px rgba(5, 66, 74, 0.25);
+}
+
+.cust-studio-display-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 28px;
+  max-width: 1240px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+@media (max-width: 980px) {
+  .cust-studio-display-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cust-studio-main-card {
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(5, 66, 74, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: #032B30;
+  min-height: 480px;
+}
+
+.cust-studio-main-img {
+  width: 100%;
+  height: 100%;
+  min-height: 480px;
+  object-fit: cover;
+  display: block;
+}
+
+.cust-studio-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3,43,48,0.1) 0%, rgba(3,43,48,0.4) 50%, rgba(3,43,48,0.95) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 32px;
+  color: #ffffff;
+}
+
+.cust-studio-detail-card {
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 32px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cust-bridal-showcase-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 36px;
+  align-items: center;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+@media (max-width: 980px) {
+  .cust-bridal-showcase-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

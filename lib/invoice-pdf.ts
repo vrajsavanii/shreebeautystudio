@@ -522,7 +522,7 @@ export function buildPublicInvoiceMessage(inv: Invoice, salonData?: SalonData): 
   const origin =
     typeof window !== 'undefined' && window.location?.origin
       ? window.location.origin
-      : 'https://shree-beauty-studio.vercel.app';
+      : 'https://shreebeauty.studio';
   const publicPdfUrl = `${origin}/invoice/view?no=${encodeURIComponent(inv.no || 'INV-1001')}`;
 
   return `✨ *${salon.toUpperCase()} — INVOICE #${inv.no}* ✨

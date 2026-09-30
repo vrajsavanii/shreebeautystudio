@@ -4,7 +4,7 @@
  * Only use verifiable, factually accurate data.
  */
 
-const BASE_URL = 'https://shree-beauty-studio.vercel.app';
+const BASE_URL = 'https://shreebeauty.studio';
 
 // ─── Business Constants ──────────────────────────────────────────────────────
 

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: 'Shree Beauty Studio — Luxury Salon & Bridal Makeup in Katargam, Surat',
     description:
       'Premier ladies beauty parlour and bridal makeup studio in Katargam, Surat. Expert bridal packages, hair transformations, and radiant skincare. Book your appointment today.',
-    url: 'https://shree-beauty-studio.vercel.app',
+    url: 'https://shreebeauty.studio',
     siteName: 'Shree Beauty Studio',
     locale: 'en_IN',
     type: 'website',

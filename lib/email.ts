@@ -31,16 +31,44 @@ export function getResendClient(customApiKey?: string): Resend | null {
   }
 }
 
-export const DEFAULT_SENDER_EMAIL = 'Shree Beauty Studio <appointments@shreebeauty.studio>';
+export const SENDER_EMAILS = {
+  appointments: 'Shree Beauty Studio <appointments@shreebeauty.studio>',
+  billing: 'Shree Beauty Studio <billing@shreebeauty.studio>',
+  invoices: 'Shree Beauty Studio <billing@shreebeauty.studio>',
+  contact: 'Shree Beauty Studio <contact@shreebeauty.studio>',
+  info: 'Shree Beauty Studio <info@shreebeauty.studio>',
+  general: 'Shree Beauty Studio <appointments@shreebeauty.studio>',
+} as const;
+
+export const DEFAULT_SENDER_EMAIL = SENDER_EMAILS.appointments;
 export const DEFAULT_REPLY_TO = 'shreebeauty.studio22@gmail.com';
+
+/**
+ * Returns the professional "From" address for a specific email category.
+ * Appointments -> appointments@shreebeauty.studio
+ * Billing/Invoices -> billing@shreebeauty.studio
+ * Milestones/Offers -> contact@shreebeauty.studio
+ */
+export function getSenderEmailForType(type?: string, customFrom?: string): string {
+  if (customFrom?.trim()) return customFrom.trim();
+  const normalized = (type || '').toLowerCase().trim();
+  if (normalized === 'invoice' || normalized === 'billing' || normalized === 'receipt') {
+    return process.env.RESEND_BILLING_EMAIL?.trim() || SENDER_EMAILS.billing;
+  }
+  if (normalized === 'confirmation' || normalized === 'reminder' || normalized === 'appointment' || normalized === 'booking') {
+    return process.env.RESEND_APPOINTMENTS_EMAIL?.trim() || process.env.RESEND_APPOINTMENT_EMAIL?.trim() || SENDER_EMAILS.appointments;
+  }
+  if (normalized === 'milestone' || normalized === 'marketing' || normalized === 'offer' || normalized === 'contact') {
+    return process.env.RESEND_CONTACT_EMAIL?.trim() || SENDER_EMAILS.contact;
+  }
+  return process.env.RESEND_FROM_EMAIL?.trim() || DEFAULT_SENDER_EMAIL;
+}
 
 /**
  * Returns the default "From" address for email dispatch.
  */
-export function getDefaultFromEmail(customFrom?: string): string {
-  if (customFrom?.trim()) return customFrom.trim();
-  if (process.env.RESEND_FROM_EMAIL?.trim()) return process.env.RESEND_FROM_EMAIL.trim();
-  return DEFAULT_SENDER_EMAIL;
+export function getDefaultFromEmail(customFrom?: string, type?: string): string {
+  return getSenderEmailForType(type, customFrom);
 }
 
 /**
@@ -246,7 +274,7 @@ const BRAND_COLORS = {
   primaryDark: '#032C32',
   gold: '#D4AF37',          // Rich Metallic Gold
   goldLight: '#FDFBF5',
-  rose: '#9D174D',
+  goldAccent: '#C59A27',
   charcoal: '#1E293B',
   muted: '#64748B',
   cardBg: '#FFFFFF',

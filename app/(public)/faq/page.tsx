@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: 'Frequently Asked Questions (FAQ) | Shree Beauty Studio Surat',
     description:
       'Clear answers to common questions about bridal makeup, hair treatments, facial care, appointment booking, and prices at Shree Beauty Studio, Katargam.',
-    url: 'https://shree-beauty-studio.vercel.app/faq',
+    url: 'https://shreebeauty.studio/faq',
     type: 'website',
     images: [
       {

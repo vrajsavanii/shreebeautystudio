@@ -1,27 +1,31 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Calendar, Clock, MapPin, Phone, Star, ChevronRight, Award,
-  ShieldCheck, Heart, Sparkles, MessageCircle, Gem, ArrowRight
+  ShieldCheck, Sparkles, MessageCircle, Gem, ArrowRight,
+  CheckCircle2, Camera, Eye, Crown, Users
 } from 'lucide-react';
-import { customerImages, getServiceImage, getCategoryIcon, getCategoryImage } from '@/lib/customer-images';
+import {
+  studioPhotos, STUDIO_GALLERY, StudioGalleryItem, customerImages,
+  getCategoryIcon, getCategoryImage
+} from '@/lib/customer-images';
 import { useSalonStore, DEFAULT_BRIDAL_PACKAGES, DEFAULT_DATA } from '@/lib/store';
 import StudioMap3D from '@/components/customer/StudioMap3D';
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 28 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
 const stagger = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.1 } },
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
-// Curated 100% Unique Real Google Reviews from Shree Beauty Studio
+// Curated 100% Unique Real Google Reviews from Shree Beauty Studio (Surat)
 const GOOGLE_REVIEWS_ROW1 = [
   {
     text: "I had a wonderful experience at Shree Beauty Studio. The staff was welcoming, the parlour clean, and my bridal look & hairstyling turned out even better than expected. Excellent service!",
@@ -87,31 +91,10 @@ const GOOGLE_REVIEWS_ROW1 = [
     rating: 5,
   },
   {
-    text: "Excellent Beauty Salon. Very professional staff keeping personal touch with individual customer requirements. 5 stars ✨",
-    name: "Kuldip Bhalani",
-    role: "Local Guide · Surat",
-    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjU8s_NjY9X-0PfN-WmPlJMBtflAL8-f2ysrdHYrFz2dQnu6hMBY=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Nice place for getting ready for special occasions. Such nice makeup, hairstyle, and the behavior of staff is very fine. Highly satisfied!",
-    name: "Dimpal Nakrani",
-    role: "Special Occasion · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocKjc6fqnhM2MxZiFgAQNavuXjkezc_tjWS5xPocAMlQIIj6rw=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
     text: "Amazing beauty parlour with skilled staff and great customer service. 100% genuine products and transparent care.",
     name: "Vraj Savani",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjXaeK8vhZJOteLQa_HwQB21cCnn4cFA_jvWxoaGUCJ9qWkRrYhu=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Amazing experience! The haircut and precision styling gave my hair instant bounce and healthy shine.",
-    name: "Rutika Gadhiya",
-    role: "Haircut & Styling · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocIr8kwzadm60Nt7O-malP2XPJNVmnAGK3HaXQZ5BaRSd7eBug=s120-c-rp-mo-br100",
     rating: 5,
   },
 ];
@@ -167,13 +150,6 @@ const GOOGLE_REVIEWS_ROW2 = [
     rating: 5,
   },
   {
-    text: "Got a fantastic matte finish here! The service was professional and quick. A perfect look for my event.",
-    name: "Fusion Tech HD",
-    role: "Special Event Makeup",
-    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjX5nM1sYM1sNEWKiR3eSyhOgZqasYbJ4kfmZO9ofmQlzFqOGS4=s120-c-rp-mo-ba12-br100",
-    rating: 5,
-  },
-  {
     text: "Fabulous service, great results, very friendly staff, will definitely be coming again for hair and skin treatments.",
     name: "Shraddha Bhikadiya",
     role: "Regular Client · Surat",
@@ -185,27 +161,6 @@ const GOOGLE_REVIEWS_ROW2 = [
     name: "Geeta Patel",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocJ5CSlmoCskerSlsgLMNxLun50RhXAeUPdxDbY9uBi55NNiFQ=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Hairstyle and makeup are too good. Quick service, attentive staff, and neat work at reasonable prices.",
-    name: "Nidhi Gadhiya",
-    role: "Haircut & Makeup · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocJEY6ahsOEBv_FXZyK7xXvf7LhPtAD7R1xI10g4z44taiXDceLx=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "This beauty parlor is very nice. Their service is good and they use all the products very well according to skin type.",
-    name: "Honey Patel",
-    role: "Regular Client · Surat",
-    avatar: "https://lh3.googleusercontent.com/a/ACg8ocLlEQbTsNuY4WPYsWP4-XHLXsU6QvqKkDSReZEJ87mam6yP2hDA=s120-c-rp-mo-br100",
-    rating: 5,
-  },
-  {
-    text: "Excellent skill, very hardworking lady with great attention to detail. I'm always thankful for the care provided.",
-    name: "Sandhya Pala",
-    role: "Bridal Services · Surat",
-    avatar: "https://lh3.googleusercontent.com/a-/ALV-UjWNgS0TH7tgtxairwT41PPr_CIIOPvDmb7Nz0vY1JgZx3lfVhV-HQ=s120-c-rp-mo-br100",
     rating: 5,
   },
 ];
@@ -226,7 +181,7 @@ const CATEGORY_META: Record<string, { tagline: string; description: string }> = 
   },
   'Hands, Feet & Nails': {
     tagline: 'Luxury Podiatry & Nail Art',
-    description: 'Relaxing rose petal pedicures, French manicures, and lasting builder gel nail extensions with custom art.',
+    description: 'Relaxing foot spas, French manicures, and lasting builder gel nail extensions with custom artistic finishes.',
   },
 };
 
@@ -235,6 +190,11 @@ export default function PublicHomePage() {
   const settings = data?.settings;
   const services = (data?.services && data.services.length > 0) ? data.services : DEFAULT_DATA.services;
   const bridalPackages = (data?.bridalPackages && data.bridalPackages.length > 0) ? data.bridalPackages : DEFAULT_BRIDAL_PACKAGES;
+
+  // Real Studio Ambiance Showcase State
+  const [activeAmbianceId, setActiveAmbianceId] = useState<string>('reception');
+  // Hero preview image switcher state
+  const [heroPhoto, setHeroPhoto] = useState<string>(studioPhotos.reception);
 
   React.useEffect(() => {
     fetch('/api/public-data')
@@ -260,125 +220,280 @@ export default function PublicHomePage() {
   // Group services by category
   const categories = Array.from(new Set(services.map((s) => s.category || 'Special Treatments'))).slice(0, 6);
 
+  const activeAmbiance = STUDIO_GALLERY.find((item) => item.id === activeAmbianceId) || STUDIO_GALLERY[0];
+
   return (
-    <div>
-      {/* ─── HERO SECTION ────────────────────────────────────────── */}
+    <div style={{ backgroundColor: '#FAF9F6', color: '#0F172A', minHeight: '100vh' }}>
+      {/* ─── 1. HERO SECTION (Asymmetric Split Editorial Luxury) ────────── */}
       <section
-        className="cust-hero"
-        style={{ backgroundImage: `url(${customerImages.hero.main})` }}
+        className="cust-hero-v3"
+        style={{
+          backgroundImage: `radial-gradient(circle at 10% 20%, rgba(5,66,74,0.95) 0%, rgba(3,43,48,0.98) 70%, rgba(2,30,34,1) 100%)`,
+        }}
       >
-        {/* Floating decorative orbs */}
-        <div className="floating-orb floating-orb-gold" style={{ width: 400, height: 400, top: '-10%', left: '-5%' }} />
-        <div className="floating-orb floating-orb-teal" style={{ width: 500, height: 500, bottom: '-15%', right: '-10%' }} />
-        <div className="floating-orb floating-orb-white" style={{ width: 300, height: 300, top: '30%', right: '15%' }} />
+        {/* Floating Ambient Glow Orbs (Teal & Gold only) */}
+        <div className="floating-orb floating-orb-gold" style={{ width: 550, height: 550, top: '-20%', left: '-10%', opacity: 0.35 }} />
+        <div className="floating-orb floating-orb-teal" style={{ width: 600, height: 600, bottom: '-25%', right: '-10%', opacity: 0.4 }} />
 
-        <div className="cust-hero-overlay" />
-        <div className="cust-hero-content">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(234, 186, 56, 0.18)', border: '1px solid rgba(234, 186, 56, 0.45)', padding: '6px 18px', borderRadius: 99, color: '#fef08a', fontSize: 13, fontWeight: 700, marginBottom: 16, backdropFilter: 'blur(8px)' }}
-          >
-            <Sparkles size={14} />
-            <span>Katargam, Surat · Luxury Salon &amp; Bridal Studio</span>
-          </motion.div>
+        <div className="cust-hero-split">
+          {/* Left Column: Editorial Copy & CTAs */}
+          <motion.div initial="hidden" animate="visible" variants={stagger} style={{ textAlign: 'left' }}>
+            <motion.div variants={fadeUp} className="cust-hero-badge-pill">
+              <Sparkles size={14} color="#D4AF37" />
+              <span>Katargam, Surat · 25+ Years of Mastery</span>
+            </motion.div>
 
-          <motion.h1
-            className="display-font"
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            style={{ fontWeight: 700, fontSize: 'clamp(36px, 6vw, 68px)' }}
-          >
-            <span className="gradient-text">Where Elegance</span>
-            {' '}Meets Excellence
-            <span style={{ display: 'block', fontFamily: 'Plus Jakarta Sans, sans-serif', fontSize: 'clamp(1rem, 2.2vw, 1.35rem)', fontWeight: 500, color: 'rgba(255,255,255,0.88)', marginTop: 10, letterSpacing: '0.01em', textTransform: 'none' }}>
-              Premier Beauty Salon &amp; Bridal Makeup Studio in Katargam, Surat
-            </span>
-          </motion.h1>
-
-          <motion.p initial="hidden" animate="visible" variants={fadeUp}>
-            Indulge in couture bridal makeovers, rejuvenating skin treatments, and signature hair styling
-            crafted with 100% authentic luxury brands by master beauticians.
-          </motion.p>
-
-          <motion.div className="cust-hero-actions" initial="hidden" animate="visible" variants={fadeUp}>
-            <Link href="/book" className="cust-btn-primary btn-glow">
-              <Calendar size={16} />
-              <span>Book Appointment Online</span>
-            </Link>
-            <Link href="/services" className="cust-btn-secondary">
-              <span>Explore Services &amp; Prices</span>
-              <ArrowRight size={16} />
-            </Link>
-            <a
-              href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20book%20an%20appointment.`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <motion.h1
+              className="display-font"
+              variants={fadeUp}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                background: 'linear-gradient(135deg, #25D366 0%, #1fbe5a 100%)',
-                color: '#053320',
+                fontSize: 'clamp(36px, 5.2vw, 64px)',
                 fontWeight: 700,
-                fontSize: 14.5,
-                padding: '13px 22px',
-                borderRadius: 99,
-                textDecoration: 'none',
-                boxShadow: '0 8px 24px rgba(37, 211, 102, 0.4)',
-                border: '1px solid rgba(255,255,255,0.2)',
+                lineHeight: 1.12,
+                color: '#FFFFFF',
+                margin: '0 0 16px',
+                letterSpacing: '-0.02em',
               }}
             >
-              <MessageCircle size={16} />
-              <span>WhatsApp Booking</span>
-            </a>
+              Where <span style={{ color: '#D4AF37' }}>Elegance</span>
+              <br />
+              Meets Excellence.
+            </motion.h1>
+
+            <motion.p
+              variants={fadeUp}
+              style={{
+                fontSize: 'clamp(15px, 1.8vw, 17.5px)',
+                lineHeight: 1.65,
+                color: 'rgba(255, 255, 255, 0.86)',
+                maxWidth: 580,
+                margin: '0 0 32px',
+              }}
+            >
+              Step into Surat&apos;s premier salon sanctuary. Indulge in bespoke bridal couture makeovers,
+              restorative hair spas, and glowing dermal therapies crafted exclusively with 100% genuine
+              international luxury formulations.
+            </motion.p>
+
+            <motion.div
+              variants={fadeUp}
+              style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 36 }}
+            >
+              <Link href="/book" className="cust-btn-primary btn-glow">
+                <Calendar size={16} />
+                <span>Book Appointment</span>
+              </Link>
+
+              <Link href="/services" className="cust-btn-secondary">
+                <span>View Menu &amp; Prices</span>
+                <ArrowRight size={15} />
+              </Link>
+
+              <a
+                href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20inquire%20about%20booking%20an%20appointment.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'linear-gradient(135deg, #25D366 0%, #1EAA52 100%)',
+                  color: '#053320',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  padding: '12px 22px',
+                  borderRadius: 99,
+                  textDecoration: 'none',
+                  boxShadow: '0 6px 20px rgba(37, 211, 102, 0.35)',
+                }}
+              >
+                <MessageCircle size={16} />
+                <span>WhatsApp</span>
+              </a>
+            </motion.div>
+
+            {/* Social Trust Metrics */}
+            <motion.div
+              variants={fadeUp}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 20,
+                flexWrap: 'wrap',
+                fontSize: 12.5,
+                color: 'rgba(255, 255, 255, 0.82)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
+                <div style={{ display: 'flex', color: '#D4AF37' }}>
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={12} fill="#D4AF37" />
+                  ))}
+                </div>
+                <span style={{ fontWeight: 700, color: '#FFFFFF' }}>4.9★ Google</span>
+                <span style={{ color: '#D4AF37' }}>(150+ Reviews)</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
+                <ShieldCheck size={13} color="#D4AF37" />
+                <span>100% Genuine Formulations</span>
+              </div>
+            </motion.div>
           </motion.div>
 
-          {/* Social Proof Pills */}
+          {/* Right Column: Genuine Studio Preview Showcase Card */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            style={{
-              marginTop: 40,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 20,
-              flexWrap: 'wrap',
-              fontSize: 12.5,
-              color: 'rgba(255,255,255,0.85)',
-            }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            style={{ width: '100%', maxWidth: 520, margin: '0 auto' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
-              <div style={{ display: 'flex', color: '#EABA38' }}>
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={12} fill="#EABA38" />
-                ))}
+            <div className="cust-hero-preview-frame">
+              <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 18 }}>
+                <img
+                  src={heroPhoto}
+                  alt="Shree Beauty Studio Katargam Surat"
+                  className="cust-hero-preview-img"
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(180deg, rgba(3,43,48,0.1) 0%, rgba(3,43,48,0.4) 60%, rgba(3,43,48,0.92) 100%)',
+                  }}
+                />
+
+                {/* Floating Top Status Badge */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div
+                    style={{
+                      background: 'rgba(3, 43, 48, 0.85)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(212, 175, 55, 0.4)',
+                      padding: '5px 12px',
+                      borderRadius: 99,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: '#F7E7A6',
+                    }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                    <span>Open Today: {openTime} – {closeTime}</span>
+                  </div>
+
+                  <div
+                    style={{
+                      background: 'rgba(212, 175, 55, 0.9)',
+                      color: '#032B30',
+                      padding: '4px 10px',
+                      borderRadius: 99,
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Actual Studio
+                  </div>
+                </div>
+
+                {/* Bottom Overlay Info */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 16,
+                    left: 18,
+                    right: 18,
+                    color: '#FFFFFF',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <Crown size={14} color="#D4AF37" />
+                    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#D4AF37' }}>
+                      Katargam Sanctuary
+                    </span>
+                  </div>
+                  <h3 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: '#FFFFFF' }}>
+                    {salonName}
+                  </h3>
+                  <p style={{ margin: '4px 0 12px', fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>
+                    Fluted teal reception, arched backlit mirrors &amp; private couture bridal suite.
+                  </p>
+
+                  {/* Interactive Quick-Swap Thumbnails */}
+                  <div style={{ display: 'flex', gap: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+                    {[
+                      { img: studioPhotos.reception, label: 'Reception' },
+                      { img: studioPhotos.stylingFloor, label: 'Styling' },
+                      { img: studioPhotos.bridalSuite, label: 'Bridal VIP' },
+                      { img: studioPhotos.lounge, label: 'Lounge' },
+                    ].map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setHeroPhoto(item.img)}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                          position: 'relative',
+                          border: heroPhoto === item.img ? '2px solid #D4AF37' : '1px solid rgba(255,255,255,0.3)',
+                          cursor: 'pointer',
+                          padding: 0,
+                          background: '#000',
+                          opacity: heroPhoto === item.img ? 1 : 0.75,
+                          transition: 'all 0.2s ease',
+                        }}
+                        title={item.label}
+                      >
+                        <img src={item.img} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            background: 'rgba(0,0,0,0.6)',
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: '#FFF',
+                            textAlign: 'center',
+                            padding: '1px 0',
+                          }}
+                        >
+                          {item.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <span style={{ fontWeight: 700 }}>4.9 Google Rating</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
-              <Award size={13} color="#EABA38" />
-              <span>25+ Years Experience</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
-              <ShieldCheck size={13} color="#EABA38" />
-              <span>Genuine Luxury Products</span>
             </div>
           </motion.div>
         </div>
 
-        {/* Scroll down cue */}
+        {/* Scroll cue */}
         <div className="cust-hero-scroll-cue">
-          <span>Scroll</span>
+          <span>Explore Studio</span>
           <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }} />
         </div>
       </section>
 
-      {/* ─── STATS & TRUST STRIP ─────────────────────────────────── */}
+      {/* ─── 2. STATS & HERITAGE STRIP ───────────────────────────── */}
       <div className="cust-stats-strip">
         <div className="cust-stat-item">
           <div>
@@ -395,27 +510,173 @@ export default function PublicHomePage() {
         <div className="cust-stat-item">
           <div>
             <div className="cust-stat-number">4.9★</div>
-            <div className="cust-stat-label">Google Rating</div>
+            <div className="cust-stat-label">Google Maps Rating</div>
           </div>
         </div>
         <div className="cust-stat-item">
           <div>
-            <div className="cust-stat-number">50+</div>
-            <div className="cust-stat-label">Signature Treatments</div>
+            <div className="cust-stat-number">100%</div>
+            <div className="cust-stat-label">Authentic Luxury Formulations</div>
           </div>
         </div>
       </div>
 
-      {/* ─── FEATURED SERVICES BENTO GRID ───────────────────────── */}
-      <section className="cust-section">
+      {/* ─── 3. NEW: VIRTUAL STUDIO AMBIANCE TOUR (Actual Place Photos) ── */}
+      <section className="cust-studio-section" id="studio-tour">
+        <div className="cust-studio-header">
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'rgba(5, 66, 74, 0.08)',
+              color: '#05424A',
+              border: '1px solid rgba(5, 66, 74, 0.2)',
+              borderRadius: 99,
+              padding: '6px 18px',
+              fontSize: 12.5,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              marginBottom: 14,
+            }}
+          >
+            <Camera size={13} color="#05424A" /> Inside Our Salon Sanctuary
+          </span>
+          <h2
+            className="display-font"
+            style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 700, color: '#032B30', margin: '0 0 14px' }}
+          >
+            Step Inside Our Katargam Sanctuary
+          </h2>
+          <p style={{ fontSize: 16, color: '#475569', lineHeight: 1.6, maxWidth: 640, margin: '0 auto' }}>
+            Designed for unhurried comfort, aesthetic luxury, and absolute hygiene. Browse our actual salon
+            spaces before you arrive.
+          </p>
+        </div>
+
+        {/* Space Selector Tabs */}
+        <div className="cust-studio-tabs-row">
+          {STUDIO_GALLERY.map((item) => {
+            const isActive = item.id === activeAmbianceId;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`cust-studio-tab-btn ${isActive ? 'active' : ''}`}
+                onClick={() => setActiveAmbianceId(item.id)}
+              >
+                <span>{item.tag}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Main Display Grid */}
+        <div className="cust-studio-display-grid">
+          {/* Main Visual */}
+          <div className="cust-studio-main-card">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeAmbiance.id}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+                style={{ width: '100%', height: '100%', minHeight: 480, position: 'relative' }}
+              >
+                <img
+                  src={activeAmbiance.image}
+                  alt={activeAmbiance.title}
+                  className="cust-studio-main-img"
+                />
+                <div className="cust-studio-overlay">
+                  <span
+                    style={{
+                      background: 'rgba(212, 175, 55, 0.9)',
+                      color: '#032B30',
+                      padding: '4px 12px',
+                      borderRadius: 99,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      display: 'inline-block',
+                      alignSelf: 'flex-start',
+                      marginBottom: 8,
+                    }}
+                  >
+                    {activeAmbiance.subtitle}
+                  </span>
+                  <h3 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: '#FFFFFF' }}>
+                    {activeAmbiance.title}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.9)', lineHeight: 1.5, maxWidth: 540 }}>
+                    {activeAmbiance.description}
+                  </p>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Details & Architecture Card */}
+          <div className="cust-studio-detail-card">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <Crown size={18} color="#D4AF37" />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#05424A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Signature Studio Standard
+                </span>
+              </div>
+              <h4 style={{ margin: '0 0 10px', fontSize: 20, fontWeight: 700, color: '#032B30' }}>
+                {activeAmbiance.title}
+              </h4>
+              <p style={{ margin: '0 0 20px', fontSize: 14, color: '#475569', lineHeight: 1.65 }}>
+                {activeAmbiance.description}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #E2E8F0', paddingTop: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
+                  <CheckCircle2 size={16} color="#05424A" />
+                  <span>Sanitized after every single client appointment</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
+                  <CheckCircle2 size={16} color="#05424A" />
+                  <span>Private temperature-controlled treatment rooms</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
+                  <CheckCircle2 size={16} color="#05424A" />
+                  <span>Dedicated parking opposite Cancer Hospital</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid #E2E8F0' }}>
+              <Link
+                href="/book"
+                className="cust-btn-primary"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <Calendar size={15} />
+                <span>Reserve An Appointment</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── 4. SIGNATURE SERVICES BENTO GRID (Clean, No Red) ────────── */}
+      <section className="cust-section" id="services">
         <div className="cust-section-header">
           <span className="cust-section-badge">
             <Sparkles size={12} style={{ display: 'inline' }} /> Signature Menu
           </span>
-          <h2 className="display-font" style={{ fontStyle: 'italic' }}>Luxury Beauty &amp; Wellness Services</h2>
-          <p>
-            From advanced skin rejuvenation to couture hair aesthetics, every treatment is tailored to
-            your individual beauty goals.
+          <h2 className="display-font" style={{ fontStyle: 'italic', color: '#032B30' }}>
+            Luxury Beauty &amp; Wellness Services
+          </h2>
+          <p style={{ color: '#475569' }}>
+            From clinical skin restoration to couture hair smoothing, every treatment is tailored to
+            your individual beauty aspirations.
           </p>
         </div>
 
@@ -468,10 +729,12 @@ export default function PublicHomePage() {
                     {catServices.slice(0, 3).map((s) => (
                       <div key={s.id || s.name} className="card-service-row">
                         <div className="service-name">
-                          <span className="dot">✦</span>
+                          <span className="dot" style={{ color: '#D4AF37' }}>✦</span>
                           <span title={s.name}>{s.name}</span>
                         </div>
-                        <span className="service-price">₹{s.price.toLocaleString('en-IN')}</span>
+                        <span className="service-price" style={{ color: '#05424A', fontWeight: 700 }}>
+                          ₹{s.price.toLocaleString('en-IN')}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -508,109 +771,157 @@ export default function PublicHomePage() {
         </div>
       </section>
 
-      {/* ─── BRIDAL SHOWCASE ────────────────────────────────────── */}
-      <section className="cust-section-dark">
+      {/* ─── 5. COUTURE BRIDAL SANCTUARY (Features Actual Bridal Suite) ── */}
+      <section className="cust-section-dark" id="bridal">
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div className="cust-section-header">
-            <span className="cust-section-badge cust-section-badge-light">Bridal Sanctuary</span>
+            <span className="cust-section-badge cust-section-badge-light">
+              <Crown size={13} style={{ display: 'inline' }} /> Bridal Sanctuary
+            </span>
             <h2 className="light">Couture Bridal &amp; Siders Makeovers</h2>
             <p className="light">
-              Your wedding day deserves nothing less than perfection. Choose from our curated bridal and
-              siders packages with international luxury cosmetics.
+              Featuring our private VIP Bridal Suite. Complete privacy for your wedding trousseau, jewelry,
+              and royal makeover by master artists.
             </p>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              gap: 24,
-              maxWidth: 1240,
-              margin: '0 auto',
-            }}
-          >
-            {bridalPackages.slice(0, 4).map((pkg) => (
-              <motion.div
-                key={pkg.id}
-                className="bridal-card-3d"
-                whileInView={{ opacity: 1, y: 0 }}
-                initial={{ opacity: 0, y: 24 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+          {/* Genuine Bridal Suite Visual + Package Showcase Split */}
+          <div className="cust-bridal-showcase-grid" style={{ marginBottom: 40 }}>
+            {/* Real Bridal Room Photo Card */}
+            <div
+              style={{
+                position: 'relative',
+                borderRadius: 22,
+                overflow: 'hidden',
+                border: '1px solid rgba(212, 175, 55, 0.4)',
+                boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
+                height: 400,
+              }}
+            >
+              <img
+                src={studioPhotos.bridalSuite}
+                alt="Private Couture Bridal Suite Shree Beauty Studio"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+              <div
                 style={{
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(234, 186, 56, 0.3)',
-                  borderRadius: 20,
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(180deg, rgba(3,43,48,0.2) 0%, rgba(3,43,48,0.85) 100%)',
                   padding: 24,
                   display: 'flex',
                   flexDirection: 'column',
-                  flex: '0 1 280px',
-                  maxWidth: 300,
-                  minWidth: 260,
-                  width: '100%',
+                  justifyContent: 'flex-end',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      color: '#EABA38',
-                      background: 'rgba(234, 186, 56, 0.15)',
-                      padding: '3px 10px',
-                      borderRadius: 99,
-                    }}
-                  >
-                    {pkg.type}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
-                    {pkg.sessions} {pkg.sessions === 1 ? 'Session' : 'Sessions'}
-                  </span>
-                </div>
-
-                <h3 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 800, color: '#ffffff' }}>
-                  {pkg.name}
-                </h3>
-                <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, flex: 1 }}>
-                  {pkg.includes}
-                </p>
-
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }}>
-                  <span style={{ fontSize: 26, fontWeight: 800, color: '#EABA38' }}>
-                    ₹{pkg.price.toLocaleString('en-IN')}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>/ package</span>
-                </div>
-
-                <Link
-                  href={`/book?bridal=${encodeURIComponent(pkg.name)}`}
+                <span
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    background: 'linear-gradient(135deg, #EABA38 0%, #D49B1F 100%)',
+                    background: '#D4AF37',
                     color: '#032B30',
-                    fontWeight: 700,
-                    fontSize: 13.5,
-                    padding: '10px 18px',
-                    borderRadius: 12,
-                    textDecoration: 'none',
-                    textAlign: 'center',
+                    padding: '4px 12px',
+                    borderRadius: 99,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    alignSelf: 'flex-start',
+                    marginBottom: 8,
                   }}
                 >
-                  <Heart size={14} />
-                  <span>Book This Package</span>
-                </Link>
-              </motion.div>
-            ))}
+                  Actual Private Suite
+                </span>
+                <h3 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#FFFFFF' }}>
+                  Private VIP Bridal Suite
+                </h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>
+                  Equipped with floor-to-ceiling oval mirror, professional makeup vanity lighting, and
+                  absolute privacy for brides and their families.
+                </p>
+              </div>
+            </div>
+
+            {/* Top 2 Featured Packages */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+              {bridalPackages.slice(0, 2).map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className="bridal-card-3d"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.07)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(212, 175, 55, 0.35)',
+                    borderRadius: 20,
+                    padding: 22,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          color: '#F7E7A6',
+                          background: 'rgba(212, 175, 55, 0.18)',
+                          padding: '3px 10px',
+                          borderRadius: 99,
+                        }}
+                      >
+                        {pkg.type}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
+                        {pkg.sessions} {pkg.sessions === 1 ? 'Session' : 'Sessions'}
+                      </span>
+                    </div>
+
+                    <h3 style={{ margin: '0 0 8px', fontSize: 19, fontWeight: 800, color: '#ffffff' }}>
+                      {pkg.name}
+                    </h3>
+                    <p style={{ margin: '0 0 16px', fontSize: 12.5, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>
+                      {pkg.includes}
+                    </p>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
+                      <span style={{ fontSize: 24, fontWeight: 800, color: '#D4AF37' }}>
+                        ₹{pkg.price.toLocaleString('en-IN')}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>/ package</span>
+                    </div>
+
+                    <Link
+                      href={`/book?bridal=${encodeURIComponent(pkg.name)}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
+                        color: '#032B30',
+                        fontWeight: 700,
+                        fontSize: 13,
+                        padding: '10px 16px',
+                        borderRadius: 12,
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <Sparkles size={14} />
+                      <span>Book Package</span>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: 36 }}>
+          {/* Link to Full Bridal Page */}
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
             <Link
               href="/bridal"
               style={{
@@ -621,25 +932,29 @@ export default function PublicHomePage() {
                 color: '#ffffff',
                 fontWeight: 600,
                 fontSize: 14,
-                padding: '12px 24px',
+                padding: '12px 26px',
                 borderRadius: 99,
                 textDecoration: 'none',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
+                border: '1px solid rgba(212, 175, 55, 0.35)',
               }}
             >
-              <span>View All 13 Bridal &amp; Siders Packages</span>
+              <span>Explore All 13 Bridal &amp; Siders Packages</span>
               <ArrowRight size={15} />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ─── WHY CHOOSE US ───────────────────────────────────────── */}
+      {/* ─── 6. WHY SURAT CHOOSES US (Clean Gold/Teal/Green - ZERO Red) ── */}
       <section className="cust-section">
         <div className="cust-section-header">
           <span className="cust-section-badge">The Shree Difference</span>
-          <h2 className="display-font" style={{ fontStyle: 'italic' }}>Why Surat Chooses Shree Beauty Studio</h2>
-          <p>Uncompromising standards of quality, certified hygiene, and customized beauty therapies.</p>
+          <h2 className="display-font" style={{ fontStyle: 'italic', color: '#032B30' }}>
+            Why Surat Chooses Shree Beauty Studio
+          </h2>
+          <p style={{ color: '#475569' }}>
+            Uncompromising standards of quality, certified hygiene, and customized beauty therapies.
+          </p>
         </div>
 
         <motion.div
@@ -657,10 +972,34 @@ export default function PublicHomePage() {
           viewport={{ once: true, amount: 0.15 }}
         >
           {[
-            { icon: <Award size={24} />, bg: 'rgba(5,66,74,0.08)', color: '#05424A', title: 'Certified Master Artists', text: 'Our team undergoes continuous masterclass training in modern bridal and hair aesthetics techniques.' },
-            { icon: <Gem size={24} />, bg: 'rgba(234,186,56,0.15)', color: '#c49821', title: '100% Genuine Luxury Brands', text: "We exclusively use authentic formulations from Jeannot Professional, L'Oréal, Huda Beauty, MAC, and Charlotte Tilbury." },
-            { icon: <ShieldCheck size={24} />, bg: 'rgba(22,163,74,0.08)', color: '#16a34a', title: 'Medical-Grade Hygiene', text: 'Disinfected instruments, disposable towels, sanitized stations, and pristine salon private rooms.' },
-            { icon: <Heart size={24} />, bg: 'rgba(219,39,119,0.08)', color: '#db2777', title: 'Personalized Consultations', text: 'Every session begins with an in-depth skin and hair analysis to select the perfect shade and care regimen.' },
+            {
+              icon: <Award size={24} />,
+              bg: 'rgba(5,66,74,0.08)',
+              color: '#05424A',
+              title: 'Certified Master Artists',
+              text: 'Our team undergoes continuous masterclass training in modern bridal and hair aesthetics techniques with 25+ years experience.',
+            },
+            {
+              icon: <Gem size={24} />,
+              bg: 'rgba(212,175,55,0.15)',
+              color: '#C59A27',
+              title: '100% Genuine Luxury Brands',
+              text: "Exclusively authentic formulations from L'Oréal Serie Expert, Absolut Repair Molecular, Selective, and Huda Beauty.",
+            },
+            {
+              icon: <ShieldCheck size={24} />,
+              bg: 'rgba(22,163,74,0.08)',
+              color: '#16a34a',
+              title: 'Medical-Grade Hygiene',
+              text: 'Disinfected instruments, disposable towels, sanitized stations, and pristine salon private rooms.',
+            },
+            {
+              icon: <Sparkles size={24} />,
+              bg: 'rgba(5,66,74,0.08)',
+              color: '#05424A',
+              title: 'Bespoke Diagnostic Consultation',
+              text: 'Every session begins with an in-depth skin and hair analysis to select the exact treatment regimen for Surat humidity.',
+            },
           ].map((item, i) => (
             <motion.div
               key={i}
@@ -672,8 +1011,7 @@ export default function PublicHomePage() {
                 background: '#ffffff',
                 border: '1px solid #e2e8f0',
                 boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
-                transition: 'border-color 0.2s ease',
-                cursor: 'default',
+                transition: 'all 0.2s ease',
                 flex: '0 1 270px',
                 maxWidth: 300,
                 minWidth: 250,
@@ -696,7 +1034,7 @@ export default function PublicHomePage() {
               >
                 {item.icon}
               </div>
-              <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: 17, fontWeight: 700, color: '#032B30' }}>
                 {item.title}
               </h3>
               <p style={{ margin: 0, fontSize: 13.5, color: '#64748b', lineHeight: 1.65 }}>
@@ -707,32 +1045,29 @@ export default function PublicHomePage() {
         </motion.div>
       </section>
 
-      {/* ─── CLIENT TESTIMONIALS ─────────────────────────────────── */}
+      {/* ─── 7. REAL CLIENT TESTIMONIALS (Google Reviews Marquee) ──── */}
       <section className="cust-section-alt" style={{ overflow: 'hidden' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div className="cust-section-header">
-            <span className="cust-section-badge">Google Reviews</span>
-            <h2>Loved by Hundreds of Surat Brides</h2>
-            <p>Real reviews from our clients on Google. 4.9★ average from 150+ happy customers at Shree Beauty Studio.</p>
+            <span className="cust-section-badge">
+              <Star size={12} fill="#D4AF37" color="#D4AF37" style={{ display: 'inline' }} /> Google Reviews
+            </span>
+            <h2 style={{ color: '#032B30' }}>Loved by Hundreds of Surat Brides &amp; Clients</h2>
+            <p style={{ color: '#64748B' }}>
+              Real reviews from our clients on Google Maps. 4.9★ average from 150+ happy clients in Katargam, Surat.
+            </p>
           </div>
         </div>
 
-        {/* Auto-rotating infinite carousel — Row 1 (left to right, 100% Unique) */}
-        <div
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            marginBottom: 12,
-          }}
-          className="reviews-carousel-track-outer"
-        >
+        {/* Marquee Row 1 */}
+        <div style={{ position: 'relative', overflow: 'hidden', marginBottom: 12 }} className="reviews-carousel-track-outer">
           <div className="reviews-marquee reviews-marquee-fwd">
             {[...GOOGLE_REVIEWS_ROW1, ...GOOGLE_REVIEWS_ROW1].map((t, idx) => (
               <div key={`r1-${idx}`} className="reviews-card">
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 6 }}>
                     {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} size={11.5} fill="#EABA38" color="#EABA38" />
+                      <Star key={i} size={11.5} fill="#D4AF37" color="#D4AF37" />
                     ))}
                     <span style={{ fontSize: 9.5, color: '#94a3b8', marginLeft: 4, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Google</span>
                   </div>
@@ -746,11 +1081,11 @@ export default function PublicHomePage() {
                     alt={t.name}
                     width={32}
                     height={32}
-                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(234,186,56,0.4)', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
+                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(212,175,55,0.5)', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
                     referrerPolicy="no-referrer"
                   />
                   <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                    <div style={{ fontWeight: 700, fontSize: 12, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: '#032B30', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
                     <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.role}</div>
                   </div>
                 </div>
@@ -759,18 +1094,15 @@ export default function PublicHomePage() {
           </div>
         </div>
 
-        {/* Row 2 (right to left, 100% Unique - zero overlap with Row 1) */}
-        <div
-          style={{ position: 'relative', overflow: 'hidden' }}
-          className="reviews-carousel-track-outer"
-        >
+        {/* Marquee Row 2 */}
+        <div style={{ position: 'relative', overflow: 'hidden' }} className="reviews-carousel-track-outer">
           <div className="reviews-marquee reviews-marquee-rev">
             {[...GOOGLE_REVIEWS_ROW2, ...GOOGLE_REVIEWS_ROW2].map((t, idx) => (
               <div key={`r2-${idx}`} className="reviews-card">
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 6 }}>
                     {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} size={11.5} fill="#EABA38" color="#EABA38" />
+                      <Star key={i} size={11.5} fill="#D4AF37" color="#D4AF37" />
                     ))}
                     <span style={{ fontSize: 9.5, color: '#94a3b8', marginLeft: 4, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Google</span>
                   </div>
@@ -784,11 +1116,11 @@ export default function PublicHomePage() {
                     alt={t.name}
                     width={32}
                     height={32}
-                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(234,186,56,0.4)', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
+                    style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1.5px solid rgba(212,175,55,0.5)', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}
                     referrerPolicy="no-referrer"
                   />
                   <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                    <div style={{ fontWeight: 700, fontSize: 12, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: 12, color: '#032B30', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</div>
                     <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.role}</div>
                   </div>
                 </div>
@@ -797,10 +1129,10 @@ export default function PublicHomePage() {
           </div>
         </div>
 
-        {/* Google rating summary badge */}
+        {/* Google Map Verification Badge */}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 36 }}>
           <motion.a
-            href="https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D"
+            href="https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu"
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{ scale: 1.03, y: -2 }}
@@ -808,25 +1140,25 @@ export default function PublicHomePage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 12,
-              background: '#fff',
-              border: '1px solid rgba(234,186,56,0.3)',
+              background: '#FFFFFF',
+              border: '1px solid rgba(212,175,55,0.4)',
               borderRadius: 99,
               padding: '12px 24px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
               textDecoration: 'none',
-              color: '#0f172a',
+              color: '#032B30',
               fontSize: 14,
               fontWeight: 600,
-              transition: 'box-shadow 0.2s ease',
             }}
           >
             <img src="https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_28dp.png" alt="Google" width={20} height={20} />
-            <span>4.9★ on Google Maps · 150+ Reviews</span>
+            <span>4.9★ on Google Maps · 150+ Verified Reviews</span>
             <ChevronRight size={14} color="#94a3b8" />
           </motion.a>
         </div>
       </section>
-      {/* ─── PREMIUM CTA BAND ─────────────────────────────────────── */}
+
+      {/* ─── 8. PREMIUM CTA BAND ──────────────────────────────────── */}
       <section
         style={{
           position: 'relative',
@@ -836,9 +1168,8 @@ export default function PublicHomePage() {
           textAlign: 'center',
         }}
       >
-        {/* Floating decorative orbs */}
-        <div className="floating-orb floating-orb-gold" style={{ width: 600, height: 600, top: '-40%', left: '-15%', opacity: 0.6 }} />
-        <div className="floating-orb floating-orb-white" style={{ width: 400, height: 400, bottom: '-30%', right: '-10%', opacity: 0.4 }} />
+        <div className="floating-orb floating-orb-gold" style={{ width: 600, height: 600, top: '-40%', left: '-15%', opacity: 0.5 }} />
+        <div className="floating-orb floating-orb-teal" style={{ width: 400, height: 400, bottom: '-30%', right: '-10%', opacity: 0.4 }} />
 
         <div style={{ position: 'relative', zIndex: 2, maxWidth: 780, margin: '0 auto' }}>
           <motion.div
@@ -852,11 +1183,11 @@ export default function PublicHomePage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                background: 'rgba(234,186,56,0.18)',
-                border: '1px solid rgba(234,186,56,0.45)',
+                background: 'rgba(212,175,55,0.18)',
+                border: '1px solid rgba(212,175,55,0.45)',
                 padding: '5px 16px',
                 borderRadius: 99,
-                color: '#fef08a',
+                color: '#F7E7A6',
                 fontSize: 12.5,
                 fontWeight: 700,
                 marginBottom: 20,
@@ -864,7 +1195,7 @@ export default function PublicHomePage() {
                 textTransform: 'uppercase',
               }}
             >
-              <Sparkles size={13} />
+              <Sparkles size={13} color="#D4AF37" />
               Book Your Glow-Up Today
             </span>
 
@@ -880,21 +1211,20 @@ export default function PublicHomePage() {
               }}
             >
               Ready to Feel{' '}
-              <span className="gradient-text">Absolutely Radiant?</span>
+              <span style={{ color: '#D4AF37' }}>Absolutely Radiant?</span>
             </h2>
 
             <p
               style={{
                 fontSize: 'clamp(15px, 2vw, 17px)',
-                color: 'rgba(255,255,255,0.82)',
+                color: 'rgba(255,255,255,0.85)',
                 lineHeight: 1.65,
                 maxWidth: 620,
                 margin: '0 auto 36px',
               }}
             >
-              From everyday glam to once-in-a-lifetime bridal transformations — our team at Shree
-              Beauty Studio is ready to make you look and feel extraordinary. Book your appointment
-              online or connect with us on WhatsApp.
+              From everyday hair rejuvenation to once-in-a-lifetime bridal transformations — our team at
+              Shree Beauty Studio is ready to make you look and feel extraordinary.
             </p>
 
             <div
@@ -921,7 +1251,7 @@ export default function PublicHomePage() {
               </a>
             </div>
 
-            {/* Trust indicators */}
+            {/* Trust Points */}
             <div
               style={{
                 display: 'flex',
@@ -931,19 +1261,19 @@ export default function PublicHomePage() {
                 marginTop: 32,
                 flexWrap: 'wrap',
                 fontSize: 13,
-                color: 'rgba(255,255,255,0.65)',
+                color: 'rgba(255,255,255,0.7)',
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <ShieldCheck size={14} color="#EABA38" />
+                <ShieldCheck size={14} color="#D4AF37" />
                 No advance payment required
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Heart size={14} color="#EABA38" />
-                Free consultation included
+                <Sparkles size={14} color="#D4AF37" />
+                Free diagnosis consultation
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Gem size={14} color="#EABA38" />
+                <Gem size={14} color="#D4AF37" />
                 100% genuine luxury products
               </span>
             </div>
@@ -951,12 +1281,14 @@ export default function PublicHomePage() {
         </div>
       </section>
 
-      {/* ─── LOCATION & STUDIO VISIT ─────────────────────────────── */}
-      <section className="cust-section">
+      {/* ─── 9. LOCATION & STUDIO VISIT (With 3D Map) ─────────────── */}
+      <section className="cust-section" id="location">
         <div className="cust-section-header">
           <span className="cust-section-badge">Studio Location</span>
-          <h2>Visit Our Katargam Sanctuary</h2>
-          <p>Conveniently located opposite Cancer Hospital in Katargam, Surat with dedicated customer parking.</p>
+          <h2 style={{ color: '#032B30' }}>Visit Our Katargam Sanctuary</h2>
+          <p style={{ color: '#475569' }}>
+            Conveniently located opposite Cancer Hospital in Katargam, Surat with dedicated customer parking.
+          </p>
         </div>
 
         <div
@@ -989,7 +1321,7 @@ export default function PublicHomePage() {
                 <MapPin size={20} />
               </div>
               <div>
-                <strong style={{ display: 'block', fontSize: 13, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+                <strong style={{ display: 'block', fontSize: 13, color: '#032B30', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
                   Studio Address
                 </strong>
                 <a
@@ -1013,8 +1345,8 @@ export default function PublicHomePage() {
                   width: 42,
                   height: 42,
                   borderRadius: 12,
-                  background: 'rgba(234,186,56,0.15)',
-                  color: '#c49821',
+                  background: 'rgba(212,175,55,0.15)',
+                  color: '#C59A27',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1024,7 +1356,7 @@ export default function PublicHomePage() {
                 <Clock size={20} />
               </div>
               <div>
-                <strong style={{ display: 'block', fontSize: 13, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+                <strong style={{ display: 'block', fontSize: 13, color: '#032B30', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
                   Operating Hours
                 </strong>
                 <p style={{ margin: 0, fontSize: 14, color: '#475569' }}>
@@ -1050,7 +1382,7 @@ export default function PublicHomePage() {
                 <Phone size={20} />
               </div>
               <div>
-                <strong style={{ display: 'block', fontSize: 13, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
+                <strong style={{ display: 'block', fontSize: 13, color: '#032B30', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>
                   Direct Inquiries &amp; WhatsApp
                 </strong>
                 <p style={{ margin: 0, fontSize: 14 }}>
@@ -1075,7 +1407,7 @@ export default function PublicHomePage() {
                   alignItems: 'center',
                   gap: 8,
                   background: '#f1f5f9',
-                  color: '#0f172a',
+                  color: '#032B30',
                   fontSize: 14,
                   fontWeight: 600,
                   padding: '12px 20px',

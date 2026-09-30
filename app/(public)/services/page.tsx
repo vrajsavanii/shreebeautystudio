@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: 'Beauty Services & Prices | Shree Beauty Studio Surat',
     description:
       'Complete menu of luxury salon services with transparent pricing in Katargam, Surat. Hair treatments, bridal makeup, skincare facials & body care.',
-    url: 'https://shree-beauty-studio.vercel.app/services',
+    url: 'https://shreebeauty.studio/services',
     type: 'website',
     images: [
       {

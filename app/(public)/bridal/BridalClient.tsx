@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, Calendar, MessageCircle, Heart, Check, Download } from 'lucide-react';
-import { customerImages } from '@/lib/customer-images';
+import { customerImages, studioPhotos } from '@/lib/customer-images';
 import { useSalonStore, DEFAULT_BRIDAL_PACKAGES } from '@/lib/store';
 
 const fadeUp = {
@@ -46,7 +46,7 @@ export default function PublicBridalPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundImage: `url(${customerImages.bridal})`,
+          backgroundImage: `url(${studioPhotos.bridalSuite})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           color: '#ffffff',
@@ -368,7 +368,7 @@ export default function PublicBridalPage() {
       {makeup.length > 0 && (
         <section style={{ maxWidth: 1280, margin: '80px auto 0', padding: '0 20px' }}>
           <div className="cust-section-header">
-            <span className="cust-section-badge" style={{ background: '#fdf4ff', color: '#c026d3', border: '1px solid #f0abfc' }}>
+            <span className="cust-section-badge" style={{ background: 'rgba(234, 186, 56, 0.15)', color: '#b45309', border: '1px solid rgba(234, 186, 56, 0.35)' }}>
               Makeup &amp; Occasions
             </span>
             <h2>Custom Makeup Packages (1 to Multi-Session)</h2>
@@ -397,11 +397,11 @@ export default function PublicBridalPage() {
                 style={{
                   background: '#ffffff',
                   borderRadius: 20,
-                  border: '1px solid #f0abfc',
+                  border: '1.5px solid rgba(234, 186, 56, 0.25)',
                   padding: 22,
                   display: 'flex',
                   flexDirection: 'column',
-                  boxShadow: '0 4px 14px rgba(192,38,211,0.06)',
+                  boxShadow: '0 4px 14px rgba(5,66,74,0.06)',
                   flex: '0 1 340px',
                   maxWidth: 380,
                   minWidth: 280,
@@ -411,13 +411,14 @@ export default function PublicBridalPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span
                     style={{
-                      background: '#fdf4ff',
-                      color: '#c026d3',
+                      background: 'rgba(234, 186, 56, 0.12)',
+                      color: '#b45309',
                       fontSize: 11,
                       fontWeight: 800,
                       padding: '3px 10px',
                       borderRadius: 99,
                       textTransform: 'uppercase',
+                      border: '1px solid rgba(234, 186, 56, 0.25)',
                     }}
                   >
                     {pkg.sessions || 1} {(pkg.sessions || 1) === 1 ? 'Session' : 'Sessions'}

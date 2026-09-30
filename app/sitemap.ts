@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { ALL_BLOG_POSTS } from '@/lib/blog-data';
 
-const BASE_URL = 'https://shree-beauty-studio.vercel.app';
+const BASE_URL = 'https://shreebeauty.studio';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date().toISOString();

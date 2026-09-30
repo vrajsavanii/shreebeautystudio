@@ -10,6 +10,8 @@ import {
   renderInvoiceReceiptHtml,
   DEFAULT_REPLY_TO,
   DEFAULT_SENDER_EMAIL,
+  getSenderEmailForType,
+  SENDER_EMAILS,
 } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
@@ -104,7 +106,7 @@ export async function POST(req: NextRequest) {
     }
 
     const replyToAddress = replyTo || DEFAULT_REPLY_TO;
-    const fromAddress = fromEmail || process.env.RESEND_FROM_EMAIL || DEFAULT_SENDER_EMAIL;
+    const fromAddress = getSenderEmailForType(type, fromEmail);
 
     const result = await sendResendEmail({
       to,

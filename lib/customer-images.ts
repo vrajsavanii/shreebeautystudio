@@ -2,11 +2,85 @@
 // Curated, high-resolution, title-specific imagery for Shree Beauty Studio customer showcase
 // ZERO DUPLICATION GUARANTEED: Every service and category has its own distinct, verified image.
 
+export const studioPhotos = {
+  reception: '/studio-photos/0U3A2557.JPG.jpeg',
+  lounge: '/studio-photos/0U3A2553.JPG.jpeg',
+  bridalSuite: '/studio-photos/0U3A2566.JPG.jpeg',
+  stylingFloor: '/studio-photos/0U3A2567.JPG.jpeg',
+  stations: '/studio-photos/0U3A2560.JPG.jpeg',
+  stationsWide: '/studio-photos/0U3A2561.JPG.jpeg',
+  hairWash: '/studio-photos/0U3A2558.JPG.jpeg',
+  pedicure: '/studio-photos/0U3A2572.JPG.jpeg',
+  products: '/studio-photos/0U3A2574.JPG.jpeg',
+  entrance: '/studio-photos/0U3A2570.JPG.jpeg',
+  sideStations: '/studio-photos/0U3A2568.JPG.jpeg',
+};
+
+export interface StudioGalleryItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  tag: string;
+  image: string;
+  description: string;
+}
+
+export const STUDIO_GALLERY: StudioGalleryItem[] = [
+  {
+    id: 'reception',
+    title: 'The Grand Reception',
+    subtitle: 'Signature Welcome Lounge',
+    tag: 'Welcome & Reception',
+    image: studioPhotos.reception,
+    description: 'Bespoke fluted teal welcome desk featuring the illuminated golden Shree Beauty Studio emblem.',
+  },
+  {
+    id: 'styling-floor',
+    title: 'Hair & Styling Sanctuary',
+    subtitle: 'Arched LED Styling Stations',
+    tag: 'Hair & Styling Floor',
+    image: studioPhotos.stylingFloor,
+    description: 'Curated arched backlit mirrors, plush hydraulic teal styling chairs, and herringbone Italian porcelain tiling.',
+  },
+  {
+    id: 'bridal-suite',
+    title: 'Private Couture Bridal Suite',
+    subtitle: 'VIP Makeover Vanity',
+    tag: 'Private Bridal Lounge',
+    image: studioPhotos.bridalSuite,
+    description: 'Dedicated private bridal suite with floor-to-ceiling oval mirror, makeup vanity, and private lighting for wedding trousseau prep.',
+  },
+  {
+    id: 'consultation-lounge',
+    title: 'Client Consultation Lounge',
+    subtitle: 'Relaxation & Diagnosis',
+    tag: 'Consultation & Awards',
+    image: studioPhotos.lounge,
+    description: 'Plush velvet lounge, 25+ years industry achievement showcase, and warm welcome ambiance.',
+  },
+  {
+    id: 'hair-spa-backwash',
+    title: 'Ergonomic Hair Spa Backwash',
+    subtitle: 'Restorative Therapy Units',
+    tag: 'Hair Spa & Backwash',
+    image: studioPhotos.hairWash,
+    description: 'Quilted ergonomic backwash chairs with deep ceramic basins designed for relaxing scalp massage & hair therapies.',
+  },
+  {
+    id: 'luxury-products',
+    title: '100% Genuine Luxury Formulations',
+    subtitle: 'Sealed & Certified Dispensary',
+    tag: 'Authentic Luxury Brands',
+    image: studioPhotos.products,
+    description: 'Exclusively authentic salon-grade formulations from L\'Oréal Serie Expert, Absolut Repair Molecular, and Selective Professional.',
+  },
+];
+
 export const customerImages = {
   hero: {
-    main: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1920&q=85&auto=format&fit=crop',
-    mobile: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=900&q=85&auto=format&fit=crop',
-    overlay: 'linear-gradient(135deg, rgba(3,43,48,0.92) 0%, rgba(5,66,74,0.82) 50%, rgba(10,14,17,0.88) 100%)',
+    main: studioPhotos.reception,
+    mobile: studioPhotos.reception,
+    overlay: 'linear-gradient(135deg, rgba(3,43,48,0.92) 0%, rgba(5,66,74,0.85) 50%, rgba(10,14,17,0.90) 100%)',
   },
   categories: {
     'Hair': 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&q=80&auto=format&fit=crop',
@@ -22,13 +96,18 @@ export const customerImages = {
     'Wellness': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80&auto=format&fit=crop',
     'Body Spa & Bleach': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80&auto=format&fit=crop',
   } as Record<string, string>,
-  fallback: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80&auto=format&fit=crop',
+  fallback: studioPhotos.stylingFloor,
   bridal: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=85&auto=format&fit=crop',
   bridalHero: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1600&q=85&auto=format&fit=crop',
   bridalBanner: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1400&q=85&auto=format&fit=crop',
-  about: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=85&auto=format&fit=crop',
-  aboutStudio: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=1200&q=85&auto=format&fit=crop',
-  salonInterior: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=85&auto=format&fit=crop',
+  bridalSuite: studioPhotos.bridalSuite,
+  about: studioPhotos.lounge,
+  aboutStudio: studioPhotos.stylingFloor,
+  salonInterior: studioPhotos.stylingFloor,
+  reception: studioPhotos.reception,
+  productsDispensary: studioPhotos.products,
+  hairWash: studioPhotos.hairWash,
+  pedicure: studioPhotos.pedicure,
 
   // Curated staff portraits
   staffPortraits: [

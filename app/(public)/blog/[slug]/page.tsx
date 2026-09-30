@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${post.metaTitle} | Shree Beauty Studio, Surat`,
       description: post.metaDescription,
-      url: `https://shree-beauty-studio.vercel.app/blog/${post.slug}`,
+      url: `https://shreebeauty.studio/blog/${post.slug}`,
       type: 'article',
       publishedTime: post.publishedAt,
       authors: [post.author],
@@ -108,7 +108,7 @@ export default function BlogPostPage({ params }: Props) {
       worksFor: {
         '@type': 'BeautySalon',
         name: 'Shree Beauty Studio',
-        url: 'https://shree-beauty-studio.vercel.app',
+        url: 'https://shreebeauty.studio',
       },
     },
     publisher: {
@@ -130,7 +130,7 @@ export default function BlogPostPage({ params }: Props) {
       },
       logo: {
         '@type': 'ImageObject',
-        url: 'https://shree-beauty-studio.vercel.app/shree-logo.png',
+        url: 'https://shreebeauty.studio/shree-logo.png',
       },
     },
     about: {
@@ -149,7 +149,7 @@ export default function BlogPostPage({ params }: Props) {
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://shree-beauty-studio.vercel.app/blog/${post.slug}`,
+      '@id': `https://shreebeauty.studio/blog/${post.slug}`,
     },
     keywords: post.tags.join(', '),
   };
