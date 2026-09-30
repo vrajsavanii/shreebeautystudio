@@ -60,15 +60,32 @@ export async function GET(request: Request) {
       .sort((a, b) => (b.weddingDate || b.date || '').localeCompare(a.weddingDate || a.date || ''));
 
     // Customer profile info
-    const customer = allCustomers.find(
+    let customerInfo: { name: string; mobile?: string } | null = null;
+    const foundCustomer = allCustomers.find(
       (c) => (c.mobile || '').replace(/\D/g, '').slice(-10) === clean
-    ) || null;
+    );
+    if (foundCustomer) {
+      customerInfo = { name: foundCustomer.name, mobile: foundCustomer.mobile };
+    } else {
+      try {
+        const { data: ca } = await supabase
+          .from('customer_accounts')
+          .select('name, phone')
+          .eq('phone', clean)
+          .maybeSingle();
+        if (ca?.name) {
+          customerInfo = { name: ca.name, mobile: ca.phone };
+        }
+      } catch (caErr) {
+        console.warn('Customer account fallback lookup error:', caErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       appointments: matchedAppointments,
       bridal: matchedBridal,
-      customer: customer ? { name: customer.name, mobile: customer.mobile } : null,
+      customer: customerInfo,
     });
   } catch (err: any) {
     console.error('Error in my-appointments API route:', err);
