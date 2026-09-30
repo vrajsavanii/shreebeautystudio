@@ -11,6 +11,64 @@ const SERVICE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxd2ZiY291eG96d2Z3a3pxYW5vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4Nzk4NDYxNiwiZXhwIjoyMTAzNTYwNjE2fQ.fEjqEpPf6PsbkvVoRMZ6zeqxKq1dOdnSTp3UR18DIwg';
 
+function sanitizeCloudInvoices(invoices: any[], bridalList: any[] = []) {
+  if (!Array.isArray(invoices)) return [];
+  return invoices
+    .filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025')
+    .map((inv: any) => {
+      const total = Number(inv.total || 0);
+      const advance = Number(inv.advance || 0);
+      const paid = Number(inv.paid || 0);
+      const balance = Number(inv.balance || 0);
+
+      const cleanInvCustomer = (inv.customer || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+      const cleanInvMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
+
+      const linkedBridal = bridalList.find((b: any) => {
+        if (b.id && inv.bridalBookingId && b.id === inv.bridalBookingId) return true;
+        const cleanBName = (b.name || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+        const cleanBMobile = (b.mobile || '').replace(/\D/g, '').slice(-10);
+        if (cleanInvMobile && cleanBMobile && cleanInvMobile === cleanBMobile) return true;
+        if (cleanInvCustomer && cleanBName && cleanInvCustomer === cleanBName) return true;
+        return false;
+      });
+
+      if (linkedBridal) {
+        const bridalAdv = Number(linkedBridal.advance || 0);
+        const bridalTotal = Number(linkedBridal.package || linkedBridal.totalAmount || total);
+        const bridalBal = linkedBridal.balance !== undefined ? Number(linkedBridal.balance) : Math.max(0, bridalTotal - bridalAdv);
+        return {
+          ...inv,
+          bridalBookingId: linkedBridal.id,
+          total: bridalTotal,
+          advance: bridalAdv,
+          paid: 0,
+          balance: bridalBal,
+        };
+      }
+
+      if (advance > 0 && paid > 0 && advance === paid) {
+        return {
+          ...inv,
+          advance,
+          paid: 0,
+          balance: Math.max(0, total - advance),
+        };
+      }
+
+      if (advance > 0 && balance === total - advance * 2) {
+        return {
+          ...inv,
+          advance,
+          paid: 0,
+          balance: Math.max(0, total - advance),
+        };
+      }
+
+      return inv;
+    });
+}
+
 export async function GET() {
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/salon_state?select=id,data,updated_at&limit=1`, {
@@ -31,10 +89,14 @@ export async function GET() {
 
     const rows = await res.json();
     if (Array.isArray(rows) && rows.length > 0) {
+      const rawData = rows[0].data || {};
+      if (Array.isArray(rawData.invoices)) {
+        rawData.invoices = sanitizeCloudInvoices(rawData.invoices, rawData.bridal || []);
+      }
       return NextResponse.json({
         success: true,
         id: rows[0].id,
-        data: rows[0].data,
+        data: rawData,
         updated_at: rows[0].updated_at,
       });
     }
@@ -64,11 +126,11 @@ export async function POST(req: NextRequest) {
         i.id !== 'p1' && i.id !== 'p2' && i.id !== 'p3' && !String(i.barcode || '').startsWith('843')
       );
     }
-    if (Array.isArray(data.invoices)) {
-      data.invoices = data.invoices.filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025');
-    }
     if (Array.isArray(data.bridal)) {
       data.bridal = data.bridal.filter((b: any) => b.id !== 'mtvk1se1xiypt');
+    }
+    if (Array.isArray(data.invoices)) {
+      data.invoices = sanitizeCloudInvoices(data.invoices, data.bridal || []);
     }
 
     const stamp = new Date().toISOString();
