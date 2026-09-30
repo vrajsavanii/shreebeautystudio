@@ -13,13 +13,15 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { target, type = 'mobile', purpose = 'signup' } = body;
+    const rawTarget = body.target || body.identifier || body.phone || body.email || '';
+    const type = (body.type === 'phone' || body.type === 'mobile') ? 'mobile' : 'email';
+    const purpose = body.purpose || 'signup';
 
     let normalized = '';
     let masked = '';
 
     if (type === 'mobile') {
-      const { clean } = normalizeMobile(target || '');
+      const { clean } = normalizeMobile(rawTarget || '');
       if (!clean || clean.length !== 10) {
         return NextResponse.json(
           { success: false, error: 'Please enter a valid 10-digit mobile number.' },
@@ -29,7 +31,7 @@ export async function POST(req: NextRequest) {
       normalized = clean;
       masked = `+91 ${clean.slice(0, 5)} ***${clean.slice(-2)}`;
     } else {
-      normalized = normalizeEmail(target || '');
+      normalized = normalizeEmail(rawTarget || '');
       if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
         return NextResponse.json(
           { success: false, error: 'Please enter a valid email address.' },
