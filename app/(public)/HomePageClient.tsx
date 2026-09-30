@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import {
   studioPhotos, STUDIO_GALLERY, StudioGalleryItem, customerImages,
-  getCategoryIcon, getCategoryImage
+  getCategoryIcon, getCategoryImage, getServiceImage
 } from '@/lib/customer-images';
 import { useSalonStore, DEFAULT_BRIDAL_PACKAGES, DEFAULT_DATA } from '@/lib/store';
 import StudioMap3D from '@/components/customer/StudioMap3D';
@@ -587,17 +587,22 @@ export default function PublicHomePage() {
 
                   {/* 3. Top Popular Treatments List */}
                   <div className="card-service-items">
-                    {catServices.slice(0, 3).map((s) => (
-                      <div key={s.id || s.name} className="card-service-row">
-                        <div className="service-name">
-                          <span className="dot" style={{ color: '#D4AF37' }}>✦</span>
-                          <span title={s.name}>{s.name}</span>
+                    {catServices.slice(0, 3).map((s) => {
+                      const sImg = getServiceImage(s.name, s.category);
+                      return (
+                        <div key={s.id || s.name} className="card-service-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(5,66,74,0.12)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                            <img src={sImg} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                          </div>
+                          <div className="service-name" style={{ flex: 1, minWidth: 0 }}>
+                            <span title={s.name} style={{ fontWeight: 600, fontSize: 13.5, color: '#1e293b' }}>{s.name}</span>
+                          </div>
+                          <span className="service-price" style={{ color: '#05424A', fontWeight: 700, fontSize: 13.5 }}>
+                            ₹{s.price.toLocaleString('en-IN')}
+                          </span>
                         </div>
-                        <span className="service-price" style={{ color: '#05424A', fontWeight: 700 }}>
-                          ₹{s.price.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* 4. Action Bar */}

@@ -27,6 +27,7 @@ import { uid, todayISO, fmtDate, money, isPastTimeForDate, getFirstFutureSlot } 
 import { Appointment, BridalBooking, BridalPackage } from '@/types/salon';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage } from '@/lib/whatsapp';
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
+import { getServiceImage } from '@/lib/customer-images';
 
 import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl } from '@/lib/calendar';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
@@ -1073,6 +1074,7 @@ export default function PublicBookingPage() {
                       ) : (
                         filteredServices.map((s) => {
                           const isSelected = selectedServices.includes(s.name);
+                          const sImg = getServiceImage(s.name, s.category);
                           return (
                             <button
                               key={s.id || s.name}
@@ -1083,7 +1085,7 @@ export default function PublicBookingPage() {
                               style={{
                                 width: '100%',
                                 textAlign: 'left',
-                                padding: '12px 14px',
+                                padding: '10px 14px',
                                 borderRadius: 14,
                                 border: `1.5px solid ${isSelected ? '#05424a' : '#e2e8f0'}`,
                                 background: isSelected ? '#f0fdf9' : '#ffffff',
@@ -1096,27 +1098,32 @@ export default function PublicBookingPage() {
                                 touchAction: 'manipulation',
                                 WebkitTapHighlightColor: 'transparent',
                                 userSelect: 'none',
-                                minHeight: 62,
+                                minHeight: 64,
                                 boxShadow: isSelected ? '0 3px 12px rgba(5,66,74,0.12)' : '0 1px 2px rgba(0,0,0,0.02)',
                               }}
                               className="active:scale-[0.98] transition-all"
                             >
+                              {/* Service Image Thumbnail */}
+                              <div style={{ width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(5,66,74,0.12)', background: '#f8fafc' }}>
+                                <img src={sImg} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                              </div>
+
                               <div style={{ pointerEvents: 'none', flex: 1, minWidth: 0 }}>
-                                <div style={{ fontWeight: 800, fontSize: 14, color: isSelected ? '#05424a' : '#1e293b', lineHeight: 1.3 }}>
+                                <div style={{ fontWeight: 800, fontSize: 13.5, color: isSelected ? '#05424a' : '#1e293b', lineHeight: 1.3 }}>
                                   {s.name}
                                 </div>
-                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                   <span>⏱ {s.duration || 30} mins</span>
                                   {s.category && <span>• {s.category}</span>}
                                 </div>
                               </div>
                               <div style={{ pointerEvents: 'none', textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontWeight: 900, fontSize: 15, color: '#16a34a' }}>
+                                <div style={{ fontWeight: 900, fontSize: 14.5, color: '#16a34a' }}>
                                   {money(s.price)}
                                 </div>
                                 <span
                                   style={{
-                                    fontSize: 11,
+                                    fontSize: 10.5,
                                     fontWeight: 800,
                                     color: isSelected ? '#ffffff' : '#05424a',
                                     background: isSelected ? '#05424a' : '#edf7f9',

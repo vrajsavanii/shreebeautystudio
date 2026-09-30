@@ -246,14 +246,14 @@ function ServicesView() {
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
-                whileHover={{ y: -6, boxShadow: '0 18px 36px rgba(5,66,74,0.1)' }}
-                transition={{ duration: 0.2 }}
+                whileHover={{ y: -6, boxShadow: '0 20px 40px rgba(5,66,74,0.12)' }}
+                transition={{ duration: 0.25 }}
                 style={{
                   background: '#ffffff',
-                  borderRadius: 20,
-                  border: '1px solid rgba(234, 186, 56, 0.2)',
+                  borderRadius: 22,
+                  border: '1px solid rgba(234, 186, 56, 0.25)',
                   overflow: 'hidden',
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.03)',
+                  boxShadow: '0 4px 20px rgba(5,66,74,0.05)',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
@@ -263,67 +263,128 @@ function ServicesView() {
                   width: '100%',
                 }}
               >
-                <div style={{ display: 'flex', gap: 16, padding: 18, flex: 1 }}>
-                  <div style={{ width: 84, height: 84, borderRadius: 16, overflow: 'hidden', flexShrink: 0, border: '1px solid #f1f5f9' }}>
-                    <img
-                      src={img}
-                      alt={s.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        transition: 'transform 0.4s ease',
-                      }}
-                    />
+                {/* 1. Full-Width Prominent Service Image Banner */}
+                <div style={{ position: 'relative', height: 200, width: '100%', overflow: 'hidden', background: '#f1f5f9' }}>
+                  <img
+                    src={img}
+                    alt={s.name}
+                    loading="lazy"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                      transition: 'transform 0.5s ease',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                  />
+                  {/* Subtle Bottom Gradient */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 60%)',
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  {/* Category Pill Top-Left */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 12,
+                      left: 12,
+                      background: 'rgba(5, 66, 74, 0.88)',
+                      backdropFilter: 'blur(8px)',
+                      color: '#ffffff',
+                      padding: '4px 12px',
+                      borderRadius: 99,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <span>{getCategoryIcon(s.category || '')}</span>
+                    <span>{s.category || 'Special Treatment'}</span>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: '#b45309',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        display: 'inline-block',
-                        marginBottom: 2,
-                      }}
-                    >
-                      {s.category || 'Special Treatment'}
-                    </span>
-                    <h3
-                      style={{
-                        margin: '2px 0 6px',
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: '#0f172a',
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {s.name}
-                    </h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#64748b' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={13} style={{ color: '#05424A' }} /> {s.duration || 30} mins
-                      </span>
-                    </div>
+
+                  {/* Duration Pill Top-Right */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 12,
+                      right: 12,
+                      background: 'rgba(255, 255, 255, 0.94)',
+                      backdropFilter: 'blur(8px)',
+                      color: '#05424A',
+                      padding: '4px 11px',
+                      borderRadius: 99,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Clock size={12} color="#05424A" />
+                    <span>{s.duration || 30} mins</span>
                   </div>
                 </div>
 
+                {/* 2. Service Information Body */}
+                <div style={{ padding: '18px 20px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <h3
+                    style={{
+                      margin: '0 0 6px',
+                      fontSize: 17,
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {s.name}
+                  </h3>
+
+                  <p
+                    style={{
+                      margin: '0 0 14px',
+                      fontSize: 13,
+                      color: '#64748b',
+                      lineHeight: 1.5,
+                      flex: 1,
+                    }}
+                  >
+                    {s.description || 'Professional salon therapy tailored with authentic luxury formulations at Shree Beauty Studio.'}
+                  </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#05424a', fontWeight: 600 }}>
+                    <Sparkles size={12} color="#b45309" />
+                    <span>Authentic salon care by senior stylists</span>
+                  </div>
+                </div>
+
+                {/* 3. Price & Action Footer */}
                 <div
                   style={{
-                    padding: '14px 18px',
+                    padding: '14px 20px',
                     background: 'linear-gradient(180deg, #fafaf9 0%, #f4f7f6 100%)',
-                    borderTop: '1px solid rgba(234, 186, 56, 0.15)',
+                    borderTop: '1px solid rgba(234, 186, 56, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em', display: 'block' }}>
-                      Price
+                    <span style={{ fontSize: 10.5, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em', display: 'block' }}>
+                      Transparent Price
                     </span>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: '#05424A' }}>
+                    <span style={{ fontSize: 21, fontWeight: 900, color: '#05424A' }}>
                       ₹{s.price.toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -338,8 +399,8 @@ function ServicesView() {
                       background: 'linear-gradient(135deg, #05424A 0%, #032b30 100%)',
                       color: '#ffffff',
                       fontWeight: 700,
-                      fontSize: 12.5,
-                      padding: '9px 18px',
+                      fontSize: 13,
+                      padding: '10px 20px',
                       borderRadius: 99,
                       textDecoration: 'none',
                       boxShadow: '0 4px 12px rgba(5,66,74,0.25)',
