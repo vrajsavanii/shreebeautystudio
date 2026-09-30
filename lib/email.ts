@@ -31,17 +31,20 @@ export function getResendClient(customApiKey?: string): Resend | null {
   }
 }
 
+export const DEFAULT_SENDER_EMAIL = 'Shree Beauty Studio <appointments@shreebeauty.studio>';
+export const DEFAULT_REPLY_TO = 'shreebeauty.studio22@gmail.com';
+
 /**
  * Returns the default "From" address for email dispatch.
  */
 export function getDefaultFromEmail(customFrom?: string): string {
   if (customFrom?.trim()) return customFrom.trim();
   if (process.env.RESEND_FROM_EMAIL?.trim()) return process.env.RESEND_FROM_EMAIL.trim();
-  return 'Shree Beauty Studio <onboarding@resend.dev>';
+  return DEFAULT_SENDER_EMAIL;
 }
 
 /**
- * Generic email dispatcher via Resend SDK - Globally Disabled
+ * Generic email dispatcher via Resend SDK
  */
 export async function sendResendEmail({
   to,
@@ -49,6 +52,7 @@ export async function sendResendEmail({
   html,
   text,
   from,
+  replyTo,
   apiKey,
 }: {
   to: string | string[];
@@ -56,17 +60,58 @@ export async function sendResendEmail({
   html: string;
   text?: string;
   from?: string;
+  replyTo?: string;
   apiKey?: string;
 }): Promise<EmailSendResult> {
-  console.log('[Email Service] Email dispatching is globally disabled.');
-  return {
-    success: false,
-    error: 'Email functionality has been disabled by administrator.',
-  };
+  const client = getResendClient(apiKey);
+  if (!client) {
+    return {
+      success: false,
+      error: 'Resend API key is missing. Please configure RESEND_API_KEY in environment or settings.',
+    };
+  }
+
+  const sender = getDefaultFromEmail(from);
+  const recipients = Array.isArray(to) ? to : [to];
+  const replyToAddress = replyTo?.trim() || process.env.RESEND_REPLY_TO?.trim() || DEFAULT_REPLY_TO;
+
+  if (!recipients.length || !recipients[0]) {
+    return { success: false, error: 'Recipient email address is required.' };
+  }
+
+  try {
+    const response = await client.emails.send({
+      from: sender,
+      to: recipients,
+      replyTo: replyToAddress,
+      subject,
+      html,
+      text: text || subject,
+    });
+
+    if (response.error) {
+      console.error('[Resend Send Error]:', response.error);
+      return {
+        success: false,
+        error: response.error.message || 'Failed to send email via Resend',
+      };
+    }
+
+    return {
+      success: true,
+      id: response.data?.id,
+    };
+  } catch (err: any) {
+    console.error('[Resend Exception]:', err);
+    return {
+      success: false,
+      error: err?.message || 'Unexpected error occurred while dispatching email',
+    };
+  }
 }
 
 /**
- * Generic email dispatcher via Gmail SMTP (Nodemailer) - Globally Disabled
+ * Generic email dispatcher via Gmail SMTP (Nodemailer)
  */
 export async function sendGmailSmtpEmail({
   to,
@@ -76,6 +121,7 @@ export async function sendGmailSmtpEmail({
   user,
   pass,
   from,
+  replyTo,
 }: {
   to: string | string[];
   subject: string;
@@ -84,34 +130,110 @@ export async function sendGmailSmtpEmail({
   user?: string;
   pass?: string;
   from?: string;
+  replyTo?: string;
 }): Promise<EmailSendResult> {
-  console.log('[Email Service] Email dispatching is globally disabled.');
-  return {
-    success: false,
-    error: 'Email functionality has been disabled by administrator.',
-  };
+  const smtpUser = user?.trim() || process.env.GMAIL_USER?.trim() || DEFAULT_REPLY_TO;
+  const smtpPass = (pass?.trim() || process.env.GMAIL_APP_PASSWORD?.trim() || process.env.SMTP_PASSWORD?.trim() || '').replace(/\s+/g, '');
+
+  if (!smtpPass) {
+    return {
+      success: false,
+      error: 'Gmail App Password is not configured.',
+    };
+  }
+
+  const recipients = Array.isArray(to) ? to.join(', ') : to;
+  const senderAddress = from?.trim() || `Shree Beauty Studio <${smtpUser}>`;
+  const replyToAddress = replyTo?.trim() || DEFAULT_REPLY_TO;
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+
+    const info = await transporter.sendMail({
+      from: senderAddress,
+      to: recipients,
+      replyTo: replyToAddress,
+      subject,
+      text: text || subject,
+      html,
+    });
+
+    return {
+      success: true,
+      id: info.messageId,
+    };
+  } catch (err: any) {
+    console.error('[Gmail SMTP Exception]:', err);
+    return {
+      success: false,
+      error: err?.message || 'Failed to dispatch email via Gmail SMTP',
+    };
+  }
 }
 
 /**
- * Universal email dispatcher - Globally Disabled
+ * Universal email dispatcher:
+ * Automatically tries Resend first with custom domain. If Resend is missing/fails, falls back to Gmail SMTP seamlessly.
  */
 export async function sendUniversalEmail({
   to,
   subject,
   html,
   text,
+  replyTo,
   settings,
 }: {
   to: string | string[];
   subject: string;
   html: string;
   text?: string;
+  replyTo?: string;
   settings?: any;
 }): Promise<EmailSendResult> {
-  console.log('[Email Service] Email dispatching is globally disabled.');
+  const apiKey = settings?.resendApiKey || process.env.RESEND_API_KEY;
+  const replyToAddress = replyTo?.trim() || DEFAULT_REPLY_TO;
+
+  if (apiKey) {
+    const resendRes = await sendResendEmail({
+      to,
+      subject,
+      html,
+      text,
+      from: settings?.resendFromEmail || process.env.RESEND_FROM_EMAIL,
+      replyTo: replyToAddress,
+      apiKey,
+    });
+    if (resendRes.success) {
+      return resendRes;
+    }
+    console.warn('[Universal Email] Resend failed, falling back to Gmail SMTP:', resendRes.error);
+  }
+
+  // Fallback to Gmail SMTP if configured
+  const smtpUser = settings?.smtpUser || process.env.GMAIL_USER || DEFAULT_REPLY_TO;
+  const smtpPass = settings?.smtpPass || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASSWORD;
+  if (smtpPass) {
+    return await sendGmailSmtpEmail({
+      to,
+      subject,
+      html,
+      text,
+      user: smtpUser,
+      pass: smtpPass,
+      from: `Shree Beauty Studio <${smtpUser}>`,
+      replyTo: replyToAddress,
+    });
+  }
+
   return {
     success: false,
-    error: 'Email functionality has been disabled by administrator.',
+    error: 'Resend API Key is missing or invalid, and no Gmail App Password is configured.',
   };
 }
 

@@ -290,7 +290,81 @@ Have a wonderful day! 🙏✨`;
   };
 
   const handleSendEmail = async () => {
-    toast('Email functionality has been disabled.', 'info');
+    const cust = (salonData?.customers || []).find((c: any) => c.mobile === invoice.mobile);
+    let targetEmail = cust?.email;
+
+    if (!targetEmail) {
+      const inputEmail = window.prompt(`Enter customer email address for ${invoice.customer}:`, '');
+      if (!inputEmail || !inputEmail.includes('@')) {
+        if (inputEmail) toast('Invalid email address entered.', 'error');
+        return;
+      }
+      targetEmail = inputEmail.trim();
+    }
+
+    setEmailResult({ status: 'sending', message: `Sending invoice email to ${targetEmail}…` });
+    const invoiceEmailSubject = `📄 Official Invoice #${invoice.no} from ${salon}`;
+    const invoiceSummaryText = buildRichInvoiceMessage();
+    const defaultGmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
+    const defaultMailtoUrl = `mailto:${encodeURIComponent(targetEmail)}?subject=${encodeURIComponent(invoiceEmailSubject)}&body=${encodeURIComponent(invoiceSummaryText)}`;
+
+    try {
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'invoice',
+          to: targetEmail,
+          subject: invoiceEmailSubject,
+          data: {
+            customerName: invoice.customer,
+            invoiceNo: invoice.no,
+            date: invoice.date,
+            total: invoice.total,
+            mode: invoice.mode,
+            lines: invoice.lines,
+            salonName: salon,
+          },
+          apiKey: salonData?.settings?.resendApiKey,
+          fromEmail: salonData?.settings?.resendFromEmail,
+          replyTo: 'shreebeauty.studio22@gmail.com',
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailResult({ status: 'sent', message: `✅ Invoice successfully emailed to ${targetEmail}!` });
+        toast(`✅ Invoice successfully emailed to ${targetEmail}!`);
+        setEmailFallback(null);
+        setTimeout(() => setEmailResult({ status: 'idle', message: '' }), 5000);
+      } else {
+        const finalGmailUrl = data.fallback?.gmailUrl || defaultGmailUrl;
+        const finalMailtoUrl = data.fallback?.mailtoUrl || defaultMailtoUrl;
+
+        setEmailFallback({
+          targetEmail,
+          gmailUrl: finalGmailUrl,
+          mailtoUrl: finalMailtoUrl,
+          subject: invoiceEmailSubject,
+          body: invoiceSummaryText,
+          isDomainRestriction: false,
+        });
+
+        setEmailResult({ status: 'idle', message: '' });
+        toast('Click below to dispatch invoice via Gmail or Mail app.', 'info');
+      }
+    } catch {
+      setEmailFallback({
+        targetEmail,
+        gmailUrl: defaultGmailUrl,
+        mailtoUrl: defaultMailtoUrl,
+        subject: invoiceEmailSubject,
+        body: invoiceSummaryText,
+        isDomainRestriction: false,
+      });
+      setEmailResult({ status: 'idle', message: '' });
+      toast('Click below to open Gmail or your default email app to dispatch.', 'info');
+    }
   };
 
   const handlePrint = () => {
@@ -1031,7 +1105,113 @@ Have a wonderful day! 🙏✨`;
             </div>
           )}
 
+          {/* Email Fallback Card for Seamless Dispatch */}
+          {emailFallback && (
+            <div
+              style={{
+                background: '#FEF2F2',
+                border: '1.5px solid #FECACA',
+                borderRadius: 10,
+                padding: '12px 14px',
+                marginBottom: 10,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#991B1B' }}>
+                  <AlertCircle size={15} color="#DC2626" />
+                  <span>Dispatch Invoice via Email</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEmailFallback(null)}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    color: '#991B1B',
+                    padding: 2,
+                  }}
+                  title="Dismiss"
+                >
+                  <X size={14} />
+                </button>
+              </div>
 
+              <div style={{ fontSize: 11.5, color: '#7F1D1D', lineHeight: 1.45 }}>
+                Send official pre-formatted invoice receipt directly to <b>{emailFallback.targetEmail}</b>:
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                <a
+                  href={emailFallback.gmailUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-sm"
+                  style={{
+                    background: '#EA4335',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <Mail size={13} /> Open in Gmail Compose
+                </a>
+
+                <a
+                  href={emailFallback.mailtoUrl}
+                  className="btn btn-sm"
+                  style={{
+                    background: '#05424A',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: 11.5,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <Send size={13} /> Open Mail App
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(emailFallback.body);
+                    toast('📋 Invoice email body copied to clipboard!');
+                  }}
+                  className="btn btn-sm"
+                  style={{
+                    background: '#ffffff',
+                    color: '#374151',
+                    border: '1px solid #D1D5DB',
+                    fontWeight: 600,
+                    fontSize: 11.5,
+                    padding: '7px 12px',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <Copy size={13} /> Copy Email Body
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* WhatsApp Payment Requirement Alert */}
           {(waResult.isPaymentRequired || (waResult.status === 'failed' && salonData?.settings?.whatsappPaymentIssue)) && (
@@ -1355,6 +1535,46 @@ Have a wonderful day! 🙏✨`;
               </a>
             )}
 
+            {/* Email Invoice Button */}
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={handleSendEmail}
+              disabled={emailResult.status === 'sending'}
+              style={{
+                background: '#FDF2F8',
+                color: '#9D174D',
+                fontWeight: 700,
+                border: '1px solid #FBCFE8',
+                padding: '9px 10px',
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                fontSize: 12,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+              title="Send Official Tax Invoice Receipt to Customer Email"
+            >
+              {emailResult.status === 'sending' ? (
+                <>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span>Sending…</span>
+                </>
+              ) : emailResult.status === 'sent' ? (
+                <>
+                  <CheckCircle2 size={14} />
+                  <span>Sent!</span>
+                </>
+              ) : (
+                <>
+                  <Mail size={15} />
+                  <span>Email Invoice</span>
+                </>
+              )}
+            </button>
 
             {/* Thermal PDF Button */}
             <button
