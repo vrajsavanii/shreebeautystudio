@@ -17,20 +17,9 @@ export default function PublicBridalPage() {
   const packages = data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES;
   const whatsapp = data?.settings?.whatsapp || '919773240010';
 
-  React.useEffect(() => {
-    fetch('/api/public-data')
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success && json.bridalPackages) {
-          useSalonStore.getState().setData({
-            services: json.services,
-            bridalPackages: json.bridalPackages,
-            settings: json.settings,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  // NOTE: PublicLayoutClient already fetches /api/public-data and hydrates
+  // the store on every public page — no need to fetch again here.
+
 
   const bridal = packages.filter((p) => (p.type || '').toLowerCase().includes('bridal'));
   const siders = packages.filter((p) => (p.type || '').toLowerCase().includes('sider'));

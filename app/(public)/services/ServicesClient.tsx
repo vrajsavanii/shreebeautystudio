@@ -21,20 +21,9 @@ function ServicesView() {
   const { data } = useSalonStore();
   const services: Service[] = data?.services || [];
 
-  React.useEffect(() => {
-    fetch('/api/public-data')
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success && json.services) {
-          useSalonStore.getState().setData({
-            services: json.services,
-            bridalPackages: json.bridalPackages,
-            settings: json.settings,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  // NOTE: PublicLayoutClient already fetches /api/public-data and hydrates
+  // the store on every public page — no need to fetch again here.
+
 
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [search, setSearch] = useState('');
