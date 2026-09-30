@@ -113,11 +113,35 @@ export interface Staff {
   joiningDate?: string;
 }
 
+export interface CustomerAddress {
+  id: string;
+  name: string;
+  mobile: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+  type: 'Home' | 'Work' | 'Other';
+  isDefault?: boolean;
+}
+
 export interface Customer {
   id: string;
   name: string;
   mobile: string;
   email?: string;
+  passwordHash?: string;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  status?: 'active' | 'pending' | 'suspended';
+  profileImage?: string;
+  gender?: 'Female' | 'Male' | 'Other' | 'Prefer not to say';
+  addresses?: CustomerAddress[];
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
   birthday?: string;
   anniversary?: string; // Wedding Date
   engagementDate?: string; // Sagai / Engagement Date

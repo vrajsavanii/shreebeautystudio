@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Calendar, Sparkles } from 'lucide-react';
+import { Menu, X, Calendar, User, ChevronDown, LogOut, MapPin, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+import { useCustomerAuth } from '@/lib/customer-context';
 
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
@@ -21,8 +22,11 @@ const NAV_LINKS = [
 export default function CustomerNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { data } = useSalonStore();
+  const { customer, authenticated, logout } = useCustomerAuth();
   const salonName = data?.settings?.salon || 'Shree Beauty Studio';
 
   useEffect(() => {
@@ -42,6 +46,23 @@ export default function CustomerNavbar() {
     };
   }, [menuOpen]);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close dropdown on route change
+  useEffect(() => {
+    setProfileDropdownOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
+
   const navStyle = scrolled ? {
     background: 'rgba(3, 43, 48, 0.97)',
     backdropFilter: 'blur(24px) saturate(180%)',
@@ -54,6 +75,13 @@ export default function CustomerNavbar() {
     WebkitBackdropFilter: 'blur(16px)',
     borderBottom: '1px solid rgba(234, 186, 56, 0.15)',
     boxShadow: '0 4px 24px rgba(0, 0, 0, 0.18)',
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'C';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   };
 
   return (
@@ -111,7 +139,7 @@ export default function CustomerNavbar() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 28,
+              gap: 26,
             }}
           >
             {NAV_LINKS.map((link) => {
@@ -151,8 +179,280 @@ export default function CustomerNavbar() {
             })}
           </div>
 
-          {/* Actions: Book Button & Mobile Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          {/* Actions: Customer Profile / Login & Book Button & Mobile Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {authenticated && customer ? (
+              /* Logged In Customer Profile Dropdown */
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: 'rgba(234, 186, 56, 0.12)',
+                    border: '1px solid rgba(234, 186, 56, 0.4)',
+                    padding: '5px 12px 5px 6px',
+                    borderRadius: 99,
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  aria-expanded={profileDropdownOpen}
+                  aria-haspopup="true"
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
+                      color: '#032B30',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: 13,
+                      overflow: 'hidden',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                    }}
+                  >
+                    {customer.profileImage ? (
+                      <img
+                        src={customer.profileImage}
+                        alt={customer.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      getInitials(customer.name)
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#ffffff',
+                      maxWidth: 110,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {customer.name?.split(' ')[0] || 'Account'}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    style={{
+                      color: '#EABA38',
+                      transform: profileDropdownOpen ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.2s ease',
+                    }}
+                  />
+                </button>
+
+                {profileDropdownOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: 250,
+                      background: '#ffffff',
+                      borderRadius: 16,
+                      boxShadow: '0 16px 40px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                      padding: '12px 8px',
+                      zIndex: 1100,
+                      animation: 'fadeIn 0.15s ease-out',
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: '8px 12px 12px',
+                        borderBottom: '1px solid #f1f5f9',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
+                        {customer.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: '#64748b',
+                          marginTop: 2,
+                          wordBreak: 'break-all',
+                        }}
+                      >
+                        {customer.phone ? `+91 ${customer.phone}` : customer.email}
+                      </div>
+                      {typeof customer.loyaltyPoints === 'number' && (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            marginTop: 6,
+                            padding: '2px 8px',
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            borderRadius: 99,
+                            fontSize: 11,
+                            fontWeight: 700,
+                          }}
+                        >
+                          <Sparkles size={11} color="#d97706" />
+                          <span>{customer.loyaltyPoints} Rewards Points</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <Link
+                      href="/profile"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 12px',
+                        color: '#334155',
+                        textDecoration: 'none',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        borderRadius: 8,
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <User size={15} color="#05424A" />
+                      <span>My Profile</span>
+                    </Link>
+
+                    <Link
+                      href="/profile?tab=appointments"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 12px',
+                        color: '#334155',
+                        textDecoration: 'none',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        borderRadius: 8,
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <Calendar size={15} color="#05424A" />
+                      <span>My Bookings</span>
+                    </Link>
+
+                    <Link
+                      href="/profile?tab=addresses"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 12px',
+                        color: '#334155',
+                        textDecoration: 'none',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        borderRadius: 8,
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <MapPin size={15} color="#05424A" />
+                      <span>Saved Addresses</span>
+                    </Link>
+
+                    <Link
+                      href="/profile?tab=security"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 12px',
+                        color: '#334155',
+                        textDecoration: 'none',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        borderRadius: 8,
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <Lock size={15} color="#05424A" />
+                      <span>Change Password</span>
+                    </Link>
+
+                    <div style={{ height: 1, background: '#f1f5f9', margin: '6px 0' }} />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        logout();
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '9px 12px',
+                        color: '#dc2626',
+                        background: 'transparent',
+                        border: 'none',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'background 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <LogOut size={15} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Logged Out: Sign In / Register Button */
+              <Link
+                href="/login"
+                className="cust-btn-login"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(234, 186, 56, 0.35)',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  padding: '7px 14px',
+                  borderRadius: 99,
+                  textDecoration: 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <User size={14} style={{ color: '#EABA38' }} />
+                <span>Login / Sign Up</span>
+              </Link>
+            )}
+
             <Link
               href="/book"
               className="cust-btn-gold"
@@ -186,7 +486,7 @@ export default function CustomerNavbar() {
                 color: '#ffffff',
                 cursor: 'pointer',
                 padding: 6,
-                display: 'none', // Overridden in media query
+                display: 'none', // Overridden in CSS media queries
               }}
             >
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -204,9 +504,90 @@ export default function CustomerNavbar() {
               padding: '16px 20px 24px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 14,
+              gap: 12,
             }}
           >
+            {/* Authenticated user banner in mobile menu */}
+            {authenticated && customer ? (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(234, 186, 56, 0.3)',
+                  borderRadius: 14,
+                  padding: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
+                      color: '#032B30',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: 14,
+                    }}
+                  >
+                    {getInitials(customer.name)}
+                  </div>
+                  <div>
+                    <div style={{ color: '#ffffff', fontWeight: 700, fontSize: 14 }}>
+                      {customer.name}
+                    </div>
+                    <div style={{ color: '#EABA38', fontSize: 12 }}>
+                      {customer.phone ? `+91 ${customer.phone}` : customer.email}
+                    </div>
+                  </div>
+                </div>
+                <Link
+                  href="/profile"
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    background: 'rgba(234, 186, 56, 0.2)',
+                    color: '#EABA38',
+                    padding: '6px 12px',
+                    borderRadius: 99,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Profile
+                </Link>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(234, 186, 56, 0.4)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  padding: '10px 16px',
+                  borderRadius: 12,
+                  textDecoration: 'none',
+                  marginBottom: 6,
+                }}
+              >
+                <User size={16} color="#EABA38" />
+                Customer Login / Sign Up
+              </Link>
+            )}
+
             {NAV_LINKS.map((link) => {
               const isActive = pathname === link.href;
               return (
@@ -227,6 +608,33 @@ export default function CustomerNavbar() {
                 </Link>
               );
             })}
+
+            {authenticated && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  logout();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'none',
+                  border: 'none',
+                  color: '#f87171',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  padding: '8px 0',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+              >
+                <LogOut size={16} />
+                Sign Out
+              </button>
+            )}
+
             <Link
               href="/book"
               onClick={() => setMenuOpen(false)}

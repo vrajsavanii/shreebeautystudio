@@ -36,6 +36,7 @@ export function middleware(request: NextRequest) {
 
   const adminToken = request.cookies.get('shree_admin_token')?.value;
   const adminRole = request.cookies.get('shree_admin_role')?.value;
+  const customerToken = request.cookies.get('shree_customer_token')?.value;
 
   // 2. Admin Route Authentication & Role Guard
   if (pathname.startsWith('/admin')) {
@@ -43,6 +44,7 @@ export function middleware(request: NextRequest) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
       loginUrl.searchParams.set('redirect', pathname);
+      loginUrl.searchParams.set('staff', 'true');
       return NextResponse.redirect(loginUrl);
     }
 
@@ -59,16 +61,41 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 3. Prevent logged-in admins from accessing /login
+  // 3. Customer Route Authentication Guard
+  if (pathname === '/account') {
+    const profileUrl = request.nextUrl.clone();
+    profileUrl.pathname = '/profile';
+    return NextResponse.redirect(profileUrl);
+  }
+
+  if (pathname === '/profile' || pathname.startsWith('/profile/')) {
+    if (!customerToken) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // 4. Smart redirect from /login if already authenticated
   if (pathname === '/login') {
-    if (adminToken) {
+    const redirectParam = request.nextUrl.searchParams.get('redirect');
+    const isStaffQuery = request.nextUrl.searchParams.get('staff') === 'true';
+
+    if (adminToken && (isStaffQuery || redirectParam?.startsWith('/admin'))) {
       const targetUrl = request.nextUrl.clone();
       targetUrl.pathname = adminRole === 'Salesperson' ? '/admin/billing' : '/admin';
       return NextResponse.redirect(targetUrl);
     }
+
+    if (customerToken && !isStaffQuery && !redirectParam?.startsWith('/admin')) {
+      const targetUrl = request.nextUrl.clone();
+      targetUrl.pathname = redirectParam || '/profile';
+      return NextResponse.redirect(targetUrl);
+    }
   }
 
-  // 4. Set security headers
+  // 5. Set security headers
   const response = NextResponse.next();
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');

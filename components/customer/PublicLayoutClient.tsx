@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import CustomerNavbar from '@/components/customer/CustomerNavbar';
 import CustomerFooter from '@/components/customer/CustomerFooter';
 import { useSalonStore } from '@/lib/store';
+import { CustomerAuthProvider } from '@/lib/customer-context';
 
 const WHATSAPP_SVG = () => (
   <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
@@ -50,78 +51,80 @@ export default function PublicLayoutClient({ children }: { children: React.React
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-      {/* ─── Announcement Banner ─── */}
-      {bannerVisible && (
-        <div className="announcement-banner">
-          <span className="banner-text">{BANNER_MESSAGES[bannerIdx]}</span>
-          <button
-            type="button"
-            className="dismiss-btn"
-            onClick={() => setBannerVisible(false)}
-            aria-label="Dismiss announcement"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+    <CustomerAuthProvider>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+        {/* ─── Announcement Banner ─── */}
+        {bannerVisible && (
+          <div className="announcement-banner">
+            <span className="banner-text">{BANNER_MESSAGES[bannerIdx]}</span>
+            <button
+              type="button"
+              className="dismiss-btn"
+              onClick={() => setBannerVisible(false)}
+              aria-label="Dismiss announcement"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
-      <CustomerNavbar />
-      <main style={{ flex: 1 }}>{children}</main>
-      <CustomerFooter />
+        <CustomerNavbar />
+        <main style={{ flex: 1 }}>{children}</main>
+        <CustomerFooter />
 
-      {/* ─── Premium Expanding WhatsApp Float Button ─── */}
-      <a
-        href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%27d%20like%20to%20book%20an%20appointment.`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="cust-whatsapp-float"
-        aria-label="Chat with Shree Beauty Studio on WhatsApp"
-        onMouseEnter={() => setWaHover(true)}
-        onMouseLeave={() => setWaHover(false)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: waHover ? 10 : 0,
-          borderRadius: 99,
-          padding: waHover ? '13px 20px 13px 14px' : '13px 14px',
-          color: '#ffffff',
-          textDecoration: 'none',
-          maxWidth: waHover ? 210 : 50,
-          overflow: 'hidden',
-          transition: 'all 0.35s cubic-bezier(0.34,1.56,0.64,1)',
-        }}
-      >
-        <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <WHATSAPP_SVG />
-          <span
-            style={{
-              position: 'absolute',
-              top: -2,
-              right: -2,
-              width: 9,
-              height: 9,
-              borderRadius: '50%',
-              background: '#ffffff',
-              border: '1.5px solid rgba(37,211,102,0.9)',
-              boxShadow: '0 0 8px rgba(34,197,94,0.9)',
-              animation: 'glow-pulse 2s infinite ease-in-out',
-            }}
-          />
-        </span>
-        <span
+        {/* ─── Premium Expanding WhatsApp Float Button ─── */}
+        <a
+          href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%27d%20like%20to%20book%20an%20appointment.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cust-whatsapp-float"
+          aria-label="Chat with Shree Beauty Studio on WhatsApp"
+          onMouseEnter={() => setWaHover(true)}
+          onMouseLeave={() => setWaHover(false)}
           style={{
-            fontSize: 13,
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-            opacity: waHover ? 1 : 0,
-            width: waHover ? 'auto' : 0,
-            transition: 'opacity 0.25s ease 0.05s',
+            display: 'flex',
+            alignItems: 'center',
+            gap: waHover ? 10 : 0,
+            borderRadius: 99,
+            padding: waHover ? '13px 20px 13px 14px' : '13px 14px',
+            color: '#ffffff',
+            textDecoration: 'none',
+            maxWidth: waHover ? 210 : 50,
+            overflow: 'hidden',
+            transition: 'all 0.35s cubic-bezier(0.34,1.56,0.64,1)',
           }}
         >
-          Book via WhatsApp
-        </span>
-      </a>
-    </div>
+          <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <WHATSAPP_SVG />
+            <span
+              style={{
+                position: 'absolute',
+                top: -2,
+                right: -2,
+                width: 9,
+                height: 9,
+                borderRadius: '50%',
+                background: '#ffffff',
+                border: '1.5px solid rgba(37,211,102,0.9)',
+                boxShadow: '0 0 8px rgba(34,197,94,0.9)',
+                animation: 'glow-pulse 2s infinite ease-in-out',
+              }}
+            />
+          </span>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              opacity: waHover ? 1 : 0,
+              width: waHover ? 'auto' : 0,
+              transition: 'opacity 0.25s ease 0.05s',
+            }}
+          >
+            Book via WhatsApp
+          </span>
+        </a>
+      </div>
+    </CustomerAuthProvider>
   );
 }
