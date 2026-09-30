@@ -161,6 +161,63 @@ export default function FinanceAccountingPage() {
     }
   }, [searchParams]);
 
+  // Auto-reconcile and fix any legacy double-deducted invoices on load
+  useEffect(() => {
+    let hasChanges = false;
+    const updatedInvoices = (data?.invoices || []).map((inv) => {
+      const total = Number(inv.total || 0);
+      const adv = Number(inv.advance || 0);
+      const paid = Number(inv.paid || 0);
+      const bal = Number(inv.balance || 0);
+
+      const cleanInvCustomer = (inv.customer || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+      const cleanInvMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
+
+      const linkedBridal = (data?.bridal || []).find((b) => {
+        if (b.id && inv.bridalBookingId && b.id === inv.bridalBookingId) return true;
+        const cleanBName = (b.name || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+        const cleanBMobile = (b.mobile || '').replace(/\D/g, '').slice(-10);
+        if (cleanInvMobile && cleanBMobile && cleanInvMobile === cleanBMobile) return true;
+        if (cleanInvCustomer && cleanBName && cleanInvCustomer === cleanBName) return true;
+        return false;
+      });
+
+      if (linkedBridal) {
+        const bridalAdv = Number(linkedBridal.advance || 0);
+        const bridalTotal = Number(linkedBridal.package || linkedBridal.totalAmount || total);
+        const bridalBal = linkedBridal.balance !== undefined ? Number(linkedBridal.balance) : Math.max(0, bridalTotal - bridalAdv);
+        if (inv.advance !== bridalAdv || inv.balance !== bridalBal || inv.paid !== 0) {
+          hasChanges = true;
+          return {
+            ...inv,
+            bridalBookingId: linkedBridal.id,
+            total: bridalTotal,
+            advance: bridalAdv,
+            paid: 0,
+            balance: bridalBal,
+          };
+        }
+      } else if (adv > 0 && paid > 0 && (paid === adv || bal === total - adv * 2)) {
+        hasChanges = true;
+        return {
+          ...inv,
+          advance: adv,
+          paid: 0,
+          balance: Math.max(0, total - adv),
+        };
+      }
+      return inv;
+    });
+
+    if (hasChanges) {
+      updateData((d) => ({
+        ...d,
+        invoices: updatedInvoices,
+      }));
+      scheduleSave();
+    }
+  }, [data?.invoices, data?.bridal]);
+
   // ── Form States ─────────────────────────────────────────────────────────────
 
   // Quick Sale Form
@@ -252,25 +309,26 @@ export default function FinanceAccountingPage() {
       let rawPaid = Number(inv.paid || 0);
       let balance = Number(inv.balance !== undefined ? inv.balance : total - adv - rawPaid);
 
+      const cleanInvCustomer = (inv.customer || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+      const cleanInvMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
+
       // Check if linked bridal booking exists to verify real advance & balance
-      const linkedBridal = (data.bridal || []).find(
-        (b) =>
-          b.id === inv.bridalBookingId ||
-          (b.name && b.name.toLowerCase().trim() === (inv.customer || '').toLowerCase().trim())
-      );
+      const linkedBridal = (data.bridal || []).find((b) => {
+        if (b.id && inv.bridalBookingId && b.id === inv.bridalBookingId) return true;
+        const cleanBName = (b.name || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+        const cleanBMobile = (b.mobile || '').replace(/\D/g, '').slice(-10);
+        if (cleanInvMobile && cleanBMobile && cleanInvMobile === cleanBMobile) return true;
+        if (cleanInvCustomer && cleanBName && cleanInvCustomer === cleanBName) return true;
+        return false;
+      });
+
       if (linkedBridal) {
         const bridalAdv = Number(linkedBridal.advance || 0);
         const bridalTotal = Number(linkedBridal.package || linkedBridal.totalAmount || total);
-        if (
-          bridalAdv > 0 &&
-          (rawPaid === bridalAdv ||
-            rawPaid + adv === bridalAdv * 2 ||
-            balance === bridalTotal - bridalAdv * 2)
-        ) {
-          adv = bridalAdv;
-          rawPaid = 0;
-          balance = Math.max(0, bridalTotal - bridalAdv);
-        }
+        const bridalBal = linkedBridal.balance !== undefined ? Number(linkedBridal.balance) : Math.max(0, bridalTotal - bridalAdv);
+        adv = bridalAdv;
+        balance = bridalBal;
+        rawPaid = 0;
       } else if (
         adv > 0 &&
         (rawPaid === adv || balance === total - adv * 2)
@@ -367,7 +425,7 @@ export default function FinanceAccountingPage() {
 
     // Sort newest date first
     return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [data.invoices, data.purchases, data.vouchers, data.expenses]);
+  }, [data.invoices, data.purchases, data.vouchers, data.expenses, data.bridal, data.appointments]);
 
   // ── KPI Metrics Calculations ───────────────────────────────────────────────
   const metrics = useMemo(() => {

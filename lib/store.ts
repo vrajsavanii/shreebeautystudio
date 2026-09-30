@@ -1020,29 +1020,31 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
           const paid = Number(inv.paid || 0);
           const balance = Number(inv.balance || 0);
 
+          const cleanInvCustomer = (inv.customer || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+          const cleanInvMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
+
           // Check if linked bridal booking exists
-          const linkedBridal = bridalList.find(
-            (b: any) =>
-              b.id === inv.bridalBookingId ||
-              (b.name && b.name.toLowerCase().trim() === (inv.customer || '').toLowerCase().trim())
-          );
+          const linkedBridal = bridalList.find((b: any) => {
+            if (b.id && inv.bridalBookingId && b.id === inv.bridalBookingId) return true;
+            const cleanBName = (b.name || '').replace(/^Z\d{2}\s+/i, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase().trim();
+            const cleanBMobile = (b.mobile || '').replace(/\D/g, '').slice(-10);
+            if (cleanInvMobile && cleanBMobile && cleanInvMobile === cleanBMobile) return true;
+            if (cleanInvCustomer && cleanBName && cleanInvCustomer === cleanBName) return true;
+            return false;
+          });
+
           if (linkedBridal) {
             const bridalAdv = Number(linkedBridal.advance || 0);
             const bridalTotal = Number(linkedBridal.package || linkedBridal.totalAmount || total);
-            if (
-              bridalAdv > 0 &&
-              (paid === bridalAdv ||
-                paid + advance === bridalAdv * 2 ||
-                balance === bridalTotal - bridalAdv * 2)
-            ) {
-              return {
-                ...inv,
-                total: bridalTotal,
-                advance: bridalAdv,
-                paid: 0,
-                balance: Math.max(0, bridalTotal - bridalAdv),
-              };
-            }
+            const bridalBal = linkedBridal.balance !== undefined ? Number(linkedBridal.balance) : Math.max(0, bridalTotal - bridalAdv);
+            return {
+              ...inv,
+              bridalBookingId: linkedBridal.id,
+              total: bridalTotal,
+              advance: bridalAdv,
+              paid: 0,
+              balance: bridalBal,
+            };
           }
 
           // If advance and paid were both set to the advance amount (legacy duplicate), fix paid to 0 and balance
