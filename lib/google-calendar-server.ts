@@ -564,14 +564,20 @@ export async function autoSyncBridalToGoogleCalendar(
 
   let syncedCount = 0;
   for (const payload of payloads) {
+    // Extract Ref ID or function title to allow multiple functions on the SAME day!
+    const refMatch = payload.description?.match(/🔖 Ref ID:\s*([^\n\r]+)/);
+    const eventRefId = refMatch ? refMatch[1].trim() : `${b.id}-${payload.summary.replace(/\s+/g, '_')}`;
+
     const res = await syncEventToGoogleCalendar(payload, settings, {
-      bookingId: b.id,
-      id: b.id,
+      bookingId: eventRefId,
+      parentBookingId: b.id,
+      id: eventRefId,
       customerName: cleanName || b.name,
       name: cleanName || b.name,
       phone: cleanPhone || b.mobile,
       mobile: cleanPhone || b.mobile,
-      date: normalizeDateToYYYYMMDD(b.weddingDate || b.date),
+      date: payload.start.dateTime.split('T')[0],
+      title: payload.summary,
     });
     if (res.success) {
       syncedCount++;
@@ -1006,25 +1012,25 @@ function doPost(e) {
     var startTime = new Date(ev.start.dateTime);
     var endTime = new Date(ev.end.dateTime);
     
-    // 🛡️ Deduplicate on THAT EXACT DAY ONLY: Remove duplicate / old event for this customer on this date
+    // 🛡️ Deduplicate on THAT EXACT DAY ONLY: Remove duplicate / old event for this EXACT function on this date
     var searchTitle = (ev.summary || '').toLowerCase();
-    var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\\d{2}\\s+/i, '').trim();
+    var customerName = (data.customerName || data.customer || (data.appointment ? data.appointment.customer : '') || (data.bridal ? data.bridal.name : '') || '').toLowerCase().replace(/^z\d{2}\s+/i, '').trim();
     if (!customerName && ev.summary) {
-      var cleanSum = ev.summary.replace(/^[^\\w\\s]+/u, '').trim();
+      var cleanSum = ev.summary.replace(/[^\w\s]+/u, '').trim();
       var parts = cleanSum.split('—');
       if (parts.length > 0) customerName = parts[0].trim().toLowerCase();
     }
     var bookingId = (data.bookingId || data.id || (data.appointment ? data.appointment.id : '') || (data.bridal ? data.bridal.id : '') || '').toLowerCase();
     var rawPhone = data.phone || data.mobile || '';
-    var cleanPhone = rawPhone.toString().replace(/\\D/g, '').slice(-10);
+    var cleanPhone = rawPhone.toString().replace(/\D/g, '').slice(-10);
     
     var dayStart = new Date(startTime.getTime());
     dayStart.setHours(0, 0, 0, 0);
     var dayEnd = new Date(startTime.getTime());
     dayEnd.setHours(23, 59, 59, 999);
     
-    // Clean duplicates in Primary Calendar
-    deleteMatchingEventsFromCal(cal, dayStart, dayEnd, bookingId, customerName, searchTitle, cleanPhone);
+    // Clean exact duplicate function event in Primary Calendar (e.g. Wedding replaces previous Wedding, Mandap replaces previous Mandap, NOT deleting other functions!)
+    deleteMatchingEventsFromCal(cal, dayStart, dayEnd, bookingId, customerName, searchTitle, cleanPhone, true);
     
     // 👥 Multi-Account Guest Emails (All attendees + extra staff/owners)
     var guestList = [];
@@ -1044,7 +1050,7 @@ function doPost(e) {
       try {
         var extraCal = CalendarApp.getCalendarById(guestList[k]);
         if (extraCal && extraCal.getId() !== cal.getId()) {
-          deleteMatchingEventsFromCal(extraCal, dayStart, dayEnd, bookingId, customerName, searchTitle, cleanPhone);
+          deleteMatchingEventsFromCal(extraCal, dayStart, dayEnd, bookingId, customerName, searchTitle, cleanPhone, true);
         }
       } catch (eCleanExtra) {}
     }
@@ -1089,7 +1095,7 @@ function doPost(e) {
 }
 
 // 🛡️ Helper to cleanly delete matching events from any calendar on a specific date range
-function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, customerName, searchTitle, cleanPhone) {
+function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, customerName, searchTitle, cleanPhone, isCreateDedupe) {
   if (!calInstance) return 0;
   var count = 0;
   try {
@@ -1097,7 +1103,7 @@ function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, c
     var normCustomer = (customerName || '').toLowerCase().trim();
     var normBookingId = (bookingId || '').toLowerCase().trim();
     var normTitle = (searchTitle || '').toLowerCase().trim();
-    var normPhone = (cleanPhone || '').toString().replace(/\\D/g, '').slice(-10);
+    var normPhone = (cleanPhone || '').toString().replace(/\D/g, '').slice(-10);
 
     for (var d = 0; d < events.length; d++) {
       var currentEv = events[d];
@@ -1105,27 +1111,29 @@ function deleteMatchingEventsFromCal(calInstance, fromDate, toDate, bookingId, c
       var cDesc = (currentEv.getDescription() || '').toLowerCase();
       var match = false;
 
-      // 1. UNIQUE BOOKING REF ID MATCH (Guaranteed safe: only deletes events of this exact booking!)
-      if (normBookingId && normBookingId.length >= 2 && (cDesc.indexOf(normBookingId) !== -1 || cTitle.indexOf(normBookingId) !== -1)) {
-        match = true;
-      }
-      // 2. Fallback ONLY when NO Booking ID is provided (e.g. manual cleanup/purge by customer name)
-      else if (!normBookingId && normCustomer && normCustomer.length >= 2) {
-        var cleanTitle = cTitle.replace(/[^\\w\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
-        var cleanDesc = cDesc.replace(/[^\\w\\s]/g, ' ').replace(/\\s+/g, ' ').trim();
-        var titleWords = cleanTitle.split(' ');
-        
-        if (cTitle.indexOf(normCustomer) !== -1 || cDesc.indexOf(normCustomer) !== -1 || titleWords.indexOf(normCustomer) !== -1 || cleanTitle.indexOf(normCustomer) !== -1) {
+      // 1. When creating an event (isCreateDedupe === true): Match EXACT Ref ID or Function Title
+      if (isCreateDedupe) {
+        if (normBookingId && normBookingId.length >= 2 && (cDesc.indexOf('ref id: ' + normBookingId) !== -1 || cDesc.indexOf(normBookingId) !== -1)) {
+          match = true;
+        } else if (normTitle && normTitle.length >= 2 && cTitle === normTitle) {
           match = true;
         }
       }
-      // 3. Fallback ONLY when NO Booking ID: Phone number match
-      else if (!normBookingId && normPhone && normPhone.length >= 6 && (cDesc.indexOf(normPhone) !== -1 || cTitle.indexOf(normPhone) !== -1)) {
-        match = true;
-      }
-      // 4. Fallback ONLY when NO Booking ID: Title match
-      else if (!normBookingId && normTitle && normTitle.length >= 2 && (cTitle.indexOf(normTitle) !== -1 || normTitle.indexOf(cTitle) !== -1)) {
-        match = true;
+      // 2. Full Booking Purge / Deletion (isCreateDedupe is false)
+      else {
+        if (normBookingId && normBookingId.length >= 2 && (cDesc.indexOf(normBookingId) !== -1 || cTitle.indexOf(normBookingId) !== -1)) {
+          match = true;
+        } else if (!normBookingId && normCustomer && normCustomer.length >= 2) {
+          var cleanTitle = cTitle.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+          var titleWords = cleanTitle.split(' ');
+          if (cTitle.indexOf(normCustomer) !== -1 || cDesc.indexOf(normCustomer) !== -1 || titleWords.indexOf(normCustomer) !== -1 || cleanTitle.indexOf(normCustomer) !== -1) {
+            match = true;
+          }
+        } else if (!normBookingId && normPhone && normPhone.length >= 6 && (cDesc.indexOf(normPhone) !== -1 || cTitle.indexOf(normPhone) !== -1)) {
+          match = true;
+        } else if (!normBookingId && normTitle && normTitle.length >= 2 && (cTitle.indexOf(normTitle) !== -1 || normTitle.indexOf(cTitle) !== -1)) {
+          match = true;
+        }
       }
 
       if (match) {

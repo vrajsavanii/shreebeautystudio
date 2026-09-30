@@ -28,16 +28,42 @@ export default function DashboardPage() {
     const custs = data?.customers || [];
     const invt = data?.inventory || [];
 
+    const billedBridalIds = new Set<string>();
+    invs.forEach((inv) => {
+      if (inv.bridalBookingId) billedBridalIds.add(inv.bridalBookingId);
+    });
+
+    const unbilledBridals = bridals.filter(
+      (b) => b.status !== 'Cancelled' && !billedBridalIds.has(b.id)
+    );
+
     const todayAppts = appts.filter(
       (a) => a.date === today && a.status !== 'Cancelled'
     );
     const todayInvoices = invs.filter((i) => i.date === today);
-    const todayCollection = todayInvoices.reduce(
-      (s, i) => s + Number(i.paid) + Number(i.advance), 0
-    );
+    const todayCollection = todayInvoices.reduce((s, i) => {
+      const adv = Number(i.advance || 0);
+      const paid = Number(i.paid || 0);
+      // If paid was set identical to advance (legacy bridal bill), avoid double counting
+      const effectivePaidToday = (paid === adv && adv > 0) ? 0 : paid;
+      return s + adv + effectivePaidToday;
+    }, 0);
+
     const pendingAmount =
-      invs.reduce((s, i) => s + Number(i.balance), 0) +
-      bridals.reduce((s, b) => s + Number(b.balance), 0);
+      invs.reduce((s, i) => s + Math.max(0, Number(i.balance || 0)), 0) +
+      unbilledBridals.reduce(
+        (s, b) =>
+          s +
+          Math.max(
+            0,
+            Number(
+              b.balance !== undefined
+                ? b.balance
+                : Number(b.package || 0) - Number(b.advance || 0)
+            )
+          ),
+        0
+      );
     const lowStock = invt.filter((i) => i.stock <= i.low).length;
 
     // 7-day revenue sparkline

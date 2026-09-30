@@ -522,7 +522,7 @@ const OTHER_EVENT_OPTIONS = [
             subtotal: booking.package,
             total: booking.package,
             advance: booking.advance,
-            paid: booking.advance,
+            paid: 0,
             balance: Math.max(0, booking.package - booking.advance),
           };
         }
@@ -816,7 +816,7 @@ const OTHER_EVENT_OPTIONS = [
       total: totalPkg,
       advance: advPaid,
       advanceMode: (b as any).advanceAccount || b.advanceMode || 'Cash',
-      paid: advPaid,
+      paid: 0,
       balance: bal,
       mode: (b as any).advanceAccount || b.advanceMode || data?.settings?.payments?.[0] || 'Cash',
     };

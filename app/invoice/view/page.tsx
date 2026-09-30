@@ -204,32 +204,50 @@ function InvoiceViewerContent() {
           }}
         >
           {/* Header & Logo */}
-          <div style={{ textAlign: 'center', paddingBottom: 6, marginBottom: 12 }}>
+          <div style={{ textAlign: 'center', marginBottom: 10 }}>
             {SHREE_INVOICE_BILL_LOGO_BASE64 ? (
               <img
                 src={SHREE_INVOICE_BILL_LOGO_BASE64}
                 alt="Shree Beauty Studio"
-                style={{ maxWidth: 210, width: '60%', height: 'auto', margin: '0 auto 6px', display: 'block' }}
+                style={{ maxWidth: 215, width: '62%', height: 'auto', objectFit: 'contain', margin: '0 auto 6px', display: 'block' }}
               />
             ) : null}
-            <p style={{ fontSize: 11.5, color: '#333333', margin: '4px 0 0', lineHeight: 1.4, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
+            <div style={{ fontSize: 12.5, color: '#000000', lineHeight: 1.4, maxWidth: 360, margin: '0 auto 2px', fontWeight: 500 }}>
               {salonAddress}
-            </p>
-            <p style={{ fontSize: 11.5, color: '#333333', margin: '2px 0 0', fontWeight: 600 }}>
-              📞 +91 97732 40010, 9825339924
-            </p>
+            </div>
+            <div style={{ fontSize: 12, color: '#000000', lineHeight: 1.4, fontWeight: 500 }}>
+              Email: <b>shreebeauty.studio22@gmail.com</b>
+            </div>
+            <div style={{ fontSize: 12.5, color: '#000000', lineHeight: 1.4, fontWeight: 700, marginTop: 2 }}>
+              Phone / WhatsApp: +91 919773240010, 9825339924
+            </div>
           </div>
 
-          {/* Customer & Invoice Meta Details */}
-          <div style={{ fontSize: 12, lineHeight: 1.6, borderBottom: '1.5px dashed #000000', paddingBottom: 12, marginBottom: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span><strong>Bill No:</strong> {invoice.no}</span>
-              <span><strong>Date:</strong> {formatIndianDate(invoice.date)}</span>
-            </div>
-            <div><strong>Customer:</strong> {invoice.customer}</div>
-            {invoice.mobile && <div><strong>Mobile:</strong> +91 {invoice.mobile}</div>}
-            <div><strong>Payment Mode:</strong> {invoice.mode || 'Cash'}</div>
-          </div>
+          {/* Customer & Invoice Meta Details with subtle dividers */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10, marginBottom: 12, fontSize: 13 }}>
+            <tbody>
+              <tr style={{ borderBottom: '1px solid #eef2f6' }}>
+                <td style={{ width: '85px', padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>Inv. No :</td>
+                <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>{invoice.no.replace(/^INV-/, '')}</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #eef2f6' }}>
+                <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>Date :</td>
+                <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>{formatIndianDate(invoice.date)}</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #eef2f6' }}>
+                <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>Name :</td>
+                <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000', textTransform: 'uppercase' }}>{invoice.customer || 'Customer'}</td>
+              </tr>
+              <tr style={{ borderBottom: '1px solid #eef2f6' }}>
+                <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>Phone :</td>
+                <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>{invoice.mobile || '—'}</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>Payment :</td>
+                <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>{invoice.mode || 'Cash'}</td>
+              </tr>
+            </tbody>
+          </table>
 
           {/* Table of Line Items */}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginBottom: 14 }}>

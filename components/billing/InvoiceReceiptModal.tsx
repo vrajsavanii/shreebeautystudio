@@ -579,47 +579,47 @@ Have a wonderful day! 🙏✨`;
               </div>
             </div>
 
-            {/* Header Info Left Column */}
+            {/* Header Info Left Column with subtle dividers */}
             <table
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                marginBottom: 10,
-                fontSize: 12.5,
+                marginTop: 10,
+                marginBottom: 12,
+                fontSize: 13,
               }}
             >
               <tbody>
-                <tr>
+                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
                   <td
                     style={{
-                      width: '28%',
-                      padding: '2px 0',
+                      width: '85px',
+                      padding: '4.5px 0',
                       fontWeight: 700,
                       color: '#000000',
                     }}
                   >
                     Inv. No :
                   </td>
-                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 600, color: '#000000' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
                     {invNo}
                   </td>
                 </tr>
-                <tr>
-                  <td style={{ width: '28%', padding: '2px 0', fontWeight: 700, color: '#000000' }}>
+                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
                     Date :
                   </td>
-                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 600, color: '#000000' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
                     {invDate}
                   </td>
                 </tr>
-                <tr>
-                  <td style={{ width: '28%', padding: '2px 0', fontWeight: 700, color: '#000000' }}>
+                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
                     Name :
                   </td>
                   <td
                     style={{
-                      width: '72%',
-                      padding: '2px 0',
+                      padding: '4.5px 0',
                       fontWeight: 700,
                       color: '#000000',
                       textTransform: 'uppercase',
@@ -628,20 +628,20 @@ Have a wonderful day! 🙏✨`;
                     {invoice.customer || 'Customer'}
                   </td>
                 </tr>
-                <tr>
-                  <td style={{ width: '28%', padding: '2px 0', fontWeight: 700, color: '#000000' }}>
+                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
                     Phone :
                   </td>
-                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 600, color: '#000000' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
                     {invoice.mobile || '—'}
                   </td>
                 </tr>
                 {invoice.mode ? (
                 <tr>
-                  <td style={{ width: '28%', padding: '2px 0', fontWeight: 700, color: '#000000' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
                     Payment :
                   </td>
-                  <td style={{ width: '72%', padding: '2px 0', fontWeight: 600, color: '#000000' }}>
+                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
                     {invoice.mode}
                   </td>
                 </tr>
