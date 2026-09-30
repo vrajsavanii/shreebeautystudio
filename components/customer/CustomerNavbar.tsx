@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Calendar, User, ChevronDown, LogOut, MapPin, Lock, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Menu, X, Calendar, User, ChevronDown, LogOut, MapPin, Lock, Sparkles, CheckCircle2, Phone } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -656,6 +656,30 @@ export default function CustomerNavbar() {
               <Calendar size={16} />
               Book Appointment Now
             </Link>
+
+            {/* Quick Studio Call Contacts */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                marginTop: 12,
+                paddingTop: 12,
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                fontSize: 12.5,
+                color: '#EABA38',
+              }}
+            >
+              <Phone size={13} style={{ flexShrink: 0 }} />
+              <a href="tel:+919773240010" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+                +91 97732 40010
+              </a>
+              <span style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
+              <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+                +91 98241 83769
+              </a>
+            </div>
           </div>
         )}
       </nav>

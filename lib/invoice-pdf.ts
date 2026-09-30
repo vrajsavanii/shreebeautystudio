@@ -52,8 +52,8 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
     '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const salonEmail = 'shreebeauty.studio22@gmail.com';
   const salonPhone = salonData?.settings?.whatsapp
-    ? `${salonData.settings.whatsapp}, 9825339924`
-    : '919773240010, 9825339924';
+    ? `${salonData.settings.whatsapp}, ${salonData.settings?.phone2 || '9824183769'}`
+    : '919773240010, 9824183769';
 
   const invNo = inv.no.replace(/^INV-/, '');
   const invDate = formatIndianDate(inv.date);

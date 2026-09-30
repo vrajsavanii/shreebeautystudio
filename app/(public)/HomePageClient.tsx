@@ -1255,6 +1255,10 @@ export default function PublicHomePage() {
                   <a href="tel:+919773240010" style={{ color: '#05424A', fontWeight: 700, textDecoration: 'none' }}>
                     +91 97732 40010
                   </a>
+                  <span style={{ color: '#94a3b8', margin: '0 6px' }}>·</span>
+                  <a href="tel:+919824183769" style={{ color: '#05424A', fontWeight: 700, textDecoration: 'none' }}>
+                    +91 98241 83769
+                  </a>
                 </p>
               </div>
             </div>

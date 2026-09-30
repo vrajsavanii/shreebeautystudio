@@ -465,11 +465,19 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="form-group">
-                <label className="label">WhatsApp Number (with country code)</label>
+                <label className="label">Primary WhatsApp / Call Number (with country code)</label>
                 <input
                   type="tel" className="input" value={s.whatsapp}
                   onChange={(e) => update('whatsapp', e.target.value)}
                   placeholder="919773240010"
+                />
+              </div>
+              <div className="form-group">
+                <label className="label">Secondary Studio Call Number</label>
+                <input
+                  type="tel" className="input" value={s.phone2 || '9824183769'}
+                  onChange={(e) => update('phone2', e.target.value)}
+                  placeholder="9824183769"
                 />
               </div>
               <div className="form-group">

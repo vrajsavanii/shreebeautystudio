@@ -224,7 +224,7 @@ export function buildAppointmentEventPayload(
     a.notes ? `📝 Special Notes: ${a.notes}` : '',
     `🔖 Ref ID: ${a.id}`,
     `📍 Location: ${address}`,
-    `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
+    `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'} / +91 ${settings?.phone2 || '9824183769'}`,
   ].filter(Boolean);
 
   // ATTENDEES NOTE: Never add the customer's email to Google Calendar attendees!
@@ -334,7 +334,7 @@ export function buildBridalEventPayloads(
       b.notes ? `📝 Special Notes: ${b.notes}` : '',
       `🔖 Booking ID: ${b.id}`,
       `🔖 Ref ID: ${b.id}-${eventLabel}`,
-      `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
+      `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'} / +91 ${settings?.phone2 || '9824183769'}`,
     ].filter(Boolean);
 
     return {

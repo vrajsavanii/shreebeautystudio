@@ -22,6 +22,7 @@ export default function CustomerFooter() {
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const whatsapp = settings?.whatsapp || '919773240010';
+  const phone2 = settings?.phone2 || '9824183769';
   const openTime = settings?.open || '10:00';
   const closeTime = settings?.close || '19:00';
   const instagramHandle = settings?.instagramHandle || '@shreebeauty.studio';
@@ -118,18 +119,36 @@ export default function CustomerFooter() {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
                 background: 'rgba(255, 255, 255, 0.1)',
                 color: '#ffffff',
                 fontWeight: 600,
-                fontSize: 12.5,
-                padding: '7px 14px',
+                fontSize: 12,
+                padding: '7px 12px',
                 borderRadius: 99,
                 textDecoration: 'none',
               }}
             >
-              <Phone size={14} />
-              Call Studio
+              <Phone size={13} />
+              +91 97732 40010
+            </a>
+            <a
+              href={`tel:+91${phone2.replace(/\D/g, '').slice(-10)}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: '#ffffff',
+                fontWeight: 600,
+                fontSize: 12,
+                padding: '7px 12px',
+                borderRadius: 99,
+                textDecoration: 'none',
+              }}
+            >
+              <Phone size={13} />
+              +91 98241 83769
             </a>
           </div>
           {/* Social Media */}
@@ -248,11 +267,16 @@ export default function CustomerFooter() {
               <Clock size={16} color="#EABA38" style={{ flexShrink: 0 }} />
               <span>{openTime} – {closeTime} · Open All 7 Days</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
-              <Phone size={16} color="#EABA38" style={{ flexShrink: 0 }} />
-              <a href="tel:+919773240010" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
-                +91 97732 40010
-              </a>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
+              <Phone size={16} color="#EABA38" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <a href="tel:+919773240010" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+                  +91 97732 40010
+                </a>
+                <a href={`tel:+91${phone2.replace(/\D/g, '').slice(-10)}`} style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+                  +91 98241 83769
+                </a>
+              </div>
             </div>
           </div>
         </div>

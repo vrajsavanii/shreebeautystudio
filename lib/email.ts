@@ -363,7 +363,7 @@ function baseLayout(content: string, previewText: string = ''): string {
           <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; text-decoration: underline; font-weight: 700;">📍 Google Maps Location</a> &bull; 
           <a href="https://www.instagram.com/shreebeauty.studio/" style="color: ${BRAND_COLORS.primary}; text-decoration: underline; font-weight: 700;">📸 Instagram: @shreebeauty.studio</a>
         </p>
-        <p>For inquiries, WhatsApp us at <a href="https://wa.me/919773240010">+91 97732 40010</a></p>
+        <p>For inquiries, Call / WhatsApp: <a href="https://wa.me/919773240010">+91 97732 40010</a> &bull; <a href="tel:+919824183769">+91 98241 83769</a></p>
         <p style="margin-top: 12px; font-size: 11px; color: #94A3B8;">&copy; ${new Date().getFullYear()} Shree Beauty Studio. All rights reserved.</p>
       </div>
     </div>

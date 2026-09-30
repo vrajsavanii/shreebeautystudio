@@ -219,7 +219,7 @@ function InvoiceViewerContent() {
               Email: <b>shreebeauty.studio22@gmail.com</b>
             </div>
             <div style={{ fontSize: 12.5, color: '#000000', lineHeight: 1.4, fontWeight: 700, marginTop: 2 }}>
-              Phone / WhatsApp: +91 919773240010, 9825339924
+              Phone / WhatsApp: +91 97732 40010, +91 98241 83769
             </div>
           </div>
 

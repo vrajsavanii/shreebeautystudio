@@ -11,8 +11,9 @@ const BASE_URL = 'https://shreebeauty.studio';
 export const BUSINESS = {
   name: 'Shree Beauty Studio',
   url: BASE_URL,
-  telephone: '+91-97732-40010',
+  telephone: ['+91-97732-40010', '+91-98241-83769'],
   whatsapp: '919773240010',
+  secondaryPhone: '9824183769',
   address: {
     streetAddress: '22, Radhika Society, Opp. Cancer Hospital',
     addressLocality: 'Katargam',

@@ -515,7 +515,9 @@ export default function AboutClient() {
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                 <Phone size={18} style={{ color: '#eaba38', flexShrink: 0 }} />
                 <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)' }}>
-                  +91 97732 40010
+                  <a href="tel:+919773240010" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>+91 97732 40010</a>
+                  <span style={{ color: '#eaba38', margin: '0 8px' }}>·</span>
+                  <a href="tel:+919824183769" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>+91 98241 83769</a>
                 </span>
               </div>
             </div>

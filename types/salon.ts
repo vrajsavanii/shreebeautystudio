@@ -3,6 +3,7 @@
 export interface SalonSettings {
   salon: string;
   whatsapp: string;
+  phone2?: string; // Secondary Studio Call Number (e.g. 9824183769)
   open: string;
   close: string;
   address: string;

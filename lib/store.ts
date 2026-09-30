@@ -55,6 +55,7 @@ export const DEFAULT_DATA: SalonData = {
   settings: {
     salon: 'Shree Beauty Studio',
     whatsapp: '919773240010',
+    phone2: '9824183769',
     open: '10:00',
     close: '19:00',
     address: '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004',
