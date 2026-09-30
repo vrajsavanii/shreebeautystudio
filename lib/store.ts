@@ -1010,6 +1010,8 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     appointments: Array.isArray(incoming.appointments) ? incoming.appointments : [],
     invoices: (() => {
       const inc = Array.isArray(incoming.invoices) ? incoming.invoices : [];
+      const bridalList = Array.isArray(incoming.bridal) ? incoming.bridal : [];
+
       return inc
         .filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025')
         .map((inv: any) => {
@@ -1018,14 +1020,51 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
           const paid = Number(inv.paid || 0);
           const balance = Number(inv.balance || 0);
 
-          // If advance and paid were both set to the advance amount (legacy duplicate), fix paid to 0
-          if (advance > 0 && paid > 0 && advance === paid && total - advance === balance) {
+          // Check if linked bridal booking exists
+          const linkedBridal = bridalList.find(
+            (b: any) =>
+              b.id === inv.bridalBookingId ||
+              (b.name && b.name.toLowerCase().trim() === (inv.customer || '').toLowerCase().trim())
+          );
+          if (linkedBridal) {
+            const bridalAdv = Number(linkedBridal.advance || 0);
+            const bridalTotal = Number(linkedBridal.package || linkedBridal.totalAmount || total);
+            if (
+              bridalAdv > 0 &&
+              (paid === bridalAdv ||
+                paid + advance === bridalAdv * 2 ||
+                balance === bridalTotal - bridalAdv * 2)
+            ) {
+              return {
+                ...inv,
+                total: bridalTotal,
+                advance: bridalAdv,
+                paid: 0,
+                balance: Math.max(0, bridalTotal - bridalAdv),
+              };
+            }
+          }
+
+          // If advance and paid were both set to the advance amount (legacy duplicate), fix paid to 0 and balance
+          if (advance > 0 && paid > 0 && advance === paid) {
             return {
               ...inv,
+              advance,
               paid: 0,
               balance: Math.max(0, total - advance),
             };
           }
+
+          // If balance was double-deducted (total - advance * 2)
+          if (advance > 0 && balance === total - advance * 2) {
+            return {
+              ...inv,
+              advance,
+              paid: 0,
+              balance: Math.max(0, total - advance),
+            };
+          }
+
           return inv;
         });
     })(),

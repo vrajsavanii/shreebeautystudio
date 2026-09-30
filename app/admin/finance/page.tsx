@@ -248,15 +248,41 @@ export default function FinanceAccountingPage() {
     // 1. Invoices (Sales)
     (data.invoices || []).forEach((inv) => {
       const total = Number(inv.total || 0);
-      const adv = Number(inv.advance || 0);
-      const rawPaid = Number(inv.paid || 0);
-      const balance =
-        inv.balance !== undefined
-          ? Math.max(0, Number(inv.balance))
-          : Math.max(0, total - adv - rawPaid);
-      const paid = Math.max(0, total - balance);
+      let adv = Number(inv.advance || 0);
+      let rawPaid = Number(inv.paid || 0);
+      let balance = Number(inv.balance !== undefined ? inv.balance : total - adv - rawPaid);
+
+      // Check if linked bridal booking exists to verify real advance & balance
+      const linkedBridal = (data.bridal || []).find(
+        (b) =>
+          b.id === inv.bridalBookingId ||
+          (b.name && b.name.toLowerCase().trim() === (inv.customer || '').toLowerCase().trim())
+      );
+      if (linkedBridal) {
+        const bridalAdv = Number(linkedBridal.advance || 0);
+        const bridalTotal = Number(linkedBridal.package || linkedBridal.totalAmount || total);
+        if (
+          bridalAdv > 0 &&
+          (rawPaid === bridalAdv ||
+            rawPaid + adv === bridalAdv * 2 ||
+            balance === bridalTotal - bridalAdv * 2)
+        ) {
+          adv = bridalAdv;
+          rawPaid = 0;
+          balance = Math.max(0, bridalTotal - bridalAdv);
+        }
+      } else if (
+        adv > 0 &&
+        (rawPaid === adv || balance === total - adv * 2)
+      ) {
+        rawPaid = 0;
+        balance = Math.max(0, total - adv);
+      }
+
+      const effectiveBalance = Math.max(0, balance);
+      const paid = Math.max(0, total - effectiveBalance);
       let status: 'Paid' | 'Partial' | 'Unpaid' = 'Unpaid';
-      if (balance <= 0) status = 'Paid';
+      if (effectiveBalance <= 0) status = 'Paid';
       else if (paid > 0) status = 'Partial';
 
       list.push({
@@ -268,7 +294,7 @@ export default function FinanceAccountingPage() {
         partyMobile: inv.mobile || '',
         totalAmount: total,
         paidAmount: paid,
-        balanceDue: balance,
+        balanceDue: effectiveBalance,
         paymentMode: inv.mode || 'Cash',
         status,
         notes: (inv.lines || []).map((i: InvoiceLine) => i.name).join(', '),
