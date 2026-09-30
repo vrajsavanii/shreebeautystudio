@@ -3,18 +3,19 @@
 // ZERO DUPLICATION GUARANTEED: Every service and category has its own distinct, verified image.
 
 export const studioPhotos = {
-  reception: '/studio-photos/0U3A2557.JPG.jpeg',
-  lounge: '/studio-photos/0U3A2553.JPG.jpeg',
-  bridalSuite: '/studio-photos/0U3A2566.JPG.jpeg',
-  stylingFloor: '/studio-photos/0U3A2567.JPG.jpeg',
-  stations: '/studio-photos/0U3A2560.JPG.jpeg',
-  stationsWide: '/studio-photos/0U3A2561.JPG.jpeg',
-  hairWash: '/studio-photos/0U3A2558.JPG.jpeg',
-  pedicure: '/studio-photos/0U3A2572.JPG.jpeg',
-  products: '/studio-photos/0U3A2574.JPG.jpeg',
-  entrance: '/studio-photos/0U3A2570.JPG.jpeg',
-  sideStations: '/studio-photos/0U3A2568.JPG.jpeg',
+  reception: '/studio-photos/0U3A2557.webp',
+  lounge: '/studio-photos/0U3A2553.webp',
+  bridalSuite: '/studio-photos/0U3A2566.webp',
+  stylingFloor: '/studio-photos/0U3A2567.webp',
+  stations: '/studio-photos/0U3A2560.webp',
+  stationsWide: '/studio-photos/0U3A2561.webp',
+  hairWash: '/studio-photos/0U3A2558.webp',
+  pedicure: '/studio-photos/0U3A2572.webp',
+  products: '/studio-photos/0U3A2574.webp',
+  entrance: '/studio-photos/0U3A2570.webp',
+  sideStations: '/studio-photos/0U3A2568.webp',
 };
+
 
 export interface StudioGalleryItem {
   id: string;
