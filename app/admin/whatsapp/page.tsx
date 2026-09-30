@@ -1342,259 +1342,135 @@ export default function WhatsAppHubPage() {
               Connect your studio WhatsApp to start 1-click dispatching
             </p>
 
-            {/* Crisp Clean QR Code Container - Works Directly In-Page */}
+            {/* Official WhatsApp Web Launcher Card */}
             <div
               style={{
-                background: '#ffffff',
-                padding: 16,
-                borderRadius: 16,
-                border: '2px solid #86efac',
-                boxShadow: '0 6px 20px rgba(37,211,102,0.12)',
-                marginBottom: 14,
-                position: 'relative',
-                display: 'inline-block',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                background: 'linear-gradient(135deg, #05424A 0%, #075e54 100%)',
+                color: '#ffffff',
+                borderRadius: 14,
+                padding: '16px 18px',
+                width: '100%',
+                maxWidth: 440,
+                marginBottom: 16,
+                textAlign: 'left',
+                boxShadow: '0 6px 20px rgba(5, 66, 74, 0.25)',
+                border: '1.5px solid #25D366',
               }}
-              onClick={handleConnectDevice}
-              title="Click to Connect Directly & Open Smart Desk In-Page"
             >
-              <div style={{ position: 'relative' }}>
-                <img
-                  key={qrKey}
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https%3A%2F%2Fwa.me%2F91${salonPhone.replace(/\D/g, '').slice(-10)}%3Ftext%3DShreeBeautyStudio_QR_Connect_Key_${qrKey}&margin=6`}
-                  alt="Scan WhatsApp QR Code"
-                  style={{ width: 190, height: 190, display: 'block', borderRadius: 10 }}
-                />
-
-                {/* Subtle Center WhatsApp Badge */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    background: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
-                    border: '2px solid #25D366',
-                  }}
-                >
-                  <MessageCircle size={22} color="#25D366" fill="#25D366" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Globe size={16} color="#053320" />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 13.5 }}>🌐 Official WhatsApp Web</div>
+                    <div style={{ fontSize: 10.5, color: '#86efac' }}>web.whatsapp.com for Linked Devices</div>
+                  </div>
                 </div>
+                <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>
+                  Desktop Mode
+                </span>
               </div>
 
-              {/* In-Page Quick Connect Tap Prompt */}
-              <div
+              <p style={{ fontSize: 11.5, color: '#e2e8f0', margin: '0 0 12px', lineHeight: 1.45 }}>
+                તમારા મોબાઈલના <strong>Linked Devices &gt; Link a Device</strong> સ્કેનર વડે કમ્પ્યુટરમાં WhatsApp Web ચાલુ કરવા માટે નીચેનું બટન દબાવો:
+              </p>
+
+              <button
+                type="button"
+                onClick={() => window.open('https://web.whatsapp.com', '_blank', 'noopener,noreferrer')}
                 style={{
-                  marginTop: 10,
-                  fontSize: 11.5,
-                  fontWeight: 800,
-                  color: '#166534',
-                  background: '#dcfce7',
-                  padding: '4px 10px',
-                  borderRadius: 99,
+                  width: '100%',
+                  background: '#25D366',
+                  color: '#053320',
+                  border: 'none',
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 900,
+                  cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 5,
+                  gap: 8,
+                  boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                <Zap size={12} color="#16a34a" /> <span>Click to Connect In-Page (અહીં જ કનેક્ટ કરો)</span>
-              </div>
+                <ExternalLink size={15} /> 🚀 Open web.whatsapp.com (WhatsApp Web ખોલો)
+              </button>
             </div>
 
-            {/* Helpful Notice */}
+            {/* In-Page Quick Connect Tap Prompt */}
             <div
               style={{
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                borderRadius: 10,
-                padding: '10px 14px',
-                maxWidth: 420,
+                background: '#f8fafc',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: 14,
+                padding: '16px',
                 width: '100%',
-                marginBottom: 14,
+                maxWidth: 440,
                 textAlign: 'left',
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 8,
-              }}
-            >
-              <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div style={{ fontSize: 12, color: '#166534', lineHeight: 1.45 }}>
-                <strong>ડાયરેક્ટ ઇન-પેજ કનેક્શન:</strong> કોઈ પોપ-અપ વિન્ડો વગર અહીં જ <strong>'Link Device & Open Smart Desk'</strong> પર ક્લિક કરો અથવા ફોન WhatsApp વડે QR સ્કેન કરો.
-              </div>
-            </div>
-
-            {/* Step-by-Step Instructions */}
-            <div style={{ display: 'grid', gap: 10, textAlign: 'left', maxWidth: 420, width: '100%', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    border: '1.5px solid #86efac',
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  1
-                </div>
-                <div style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.4 }}>
-                  Open WhatsApp on your mobile, <strong>tap on ⋮ icon</strong> (Settings on iPhone)
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    border: '1.5px solid #86efac',
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  2
-                </div>
-                <div style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.4 }}>
-                  Tap <strong>&quot;Linked devices&quot;</strong> &gt; <strong>&quot;Link a device&quot;</strong>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    border: '1.5px solid #86efac',
-                    background: '#f0fdf4',
-                    color: '#166534',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  3
-                </div>
-                <div style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.4 }}>
-                  Click <strong>&quot;Link Device &amp; Open Smart Desk&quot;</strong> to start sending in 1-click!
-                </div>
-              </div>
-            </div>
-
-            {/* Checkbox */}
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 12.5,
-                color: '#475569',
-                cursor: 'pointer',
                 marginBottom: 16,
               }}
             >
-              <input
-                type="checkbox"
-                checked={keepSignedIn}
-                onChange={(e) => setKeepSignedIn(e.target.checked)}
-                style={{ width: 15, height: 15, accentColor: '#16a34a' }}
-              />
-              <span>Proceed with <strong>Standard Usage Terms</strong> (Stay signed in)</span>
-            </label>
+              <div style={{ fontWeight: 800, fontSize: 13, color: '#0f172a', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Zap size={15} color="#16a34a" /> <span>⚡ સલૂન સોફ્ટવેર સાથે સીધું 1-ક્લિક કનેક્શન:</span>
+              </div>
+              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 12px', lineHeight: 1.45 }}>
+                કોઈપણ વધારાનું સેટઅપ કર્યા વગર સીધા ચેટ ડેસ્ક પર જવા માટે નીચેનું બટન દબાવો:
+              </p>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 380 }}>
               <button
                 type="button"
                 onClick={handleConnectDevice}
                 style={{
-                  background: 'linear-gradient(135deg, #25D366, #15803d)',
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #05424A, #0f766e)',
                   color: '#ffffff',
                   border: 'none',
-                  padding: '12px 20px',
-                  borderRadius: 10,
-                  fontSize: 13.5,
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  fontSize: 12.5,
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
                 }}
               >
-                <Zap size={16} /> 🟢 Link Device &amp; Open Smart Desk (ડિવાઇસ કનેક્ટ કરો)
+                <Zap size={14} color="#86efac" /> 🟢 Open In-Page Smart Desk (ચેટ વર્કસ્પેસ ખોલો)
               </button>
+            </div>
 
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  type="button"
-                  onClick={handleConnectDevice}
-                  style={{
-                    flex: 1.2,
-                    background: '#05424A',
-                    border: '1px solid #05424A',
-                    color: '#ffffff',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    fontSize: 11.5,
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 5,
-                  }}
-                >
-                  <Zap size={13} color="#86efac" /> ⚡ Open In-Page Smart Desk
-                </button>
+            {/* Step-by-Step Instructions */}
+            <div style={{ display: 'grid', gap: 10, textAlign: 'left', maxWidth: 440, width: '100%', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#05424A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                  1
+                </div>
+                <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.4 }}>
+                  ઉપરના <strong>&quot;Open web.whatsapp.com&quot;</strong> બટન પર ક્લિક કરો જેથી WhatsApp Web નું ઓફિશિયલ પેજ ખૂલશે.
+                </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => setPhoneLinkModal(true)}
-                  style={{
-                    flex: 1,
-                    background: '#f8fafc',
-                    border: '1px solid #cbd5e1',
-                    color: '#334155',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <Smartphone size={13} /> Pairing Code
-                </button>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#05424A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                  2
+                </div>
+                <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.4 }}>
+                  તમારા મોબાઈલમાં WhatsApp ખોલી <strong>⋮ (Menu) &gt; Linked Devices &gt; Link a Device</strong> દબાવો.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#05424A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                  3
+                </div>
+                <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.4 }}>
+                  WhatsApp Web ની સ્ક્રીન પર દેખાતો QR કોડ સ્કેન કરો એટલે તમારું કમ્પ્યુટર WhatsApp સાથે લિંક થઈ જશે!
+                </div>
               </div>
             </div>
           </div>
