@@ -65,11 +65,39 @@ export default function AICopilotWidget() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const pendingWorkerReqs = useRef<Map<string, (data: any) => void>>(new Map());
 
   // Synchronization refs to avoid race conditions in continuous speech events
   const shouldKeepListeningRef = useRef(false);
   const isSpeakingRef = useRef(false);
   const isProcessingRef = useRef(false);
+
+  // Initialize Web Worker for background AI processing
+  useEffect(() => {
+    if (typeof Worker !== 'undefined') {
+      try {
+        const w = new Worker('/copilot-worker.js');
+        workerRef.current = w;
+        w.onmessage = (e) => {
+          const { requestId, type: msgType, success, data: rData, error } = e.data;
+          const resolver = pendingWorkerReqs.current.get(requestId);
+          if (resolver) {
+            pendingWorkerReqs.current.delete(requestId);
+            resolver({ success, data: rData, error });
+          }
+        };
+        w.onerror = (err) => {
+          console.warn('[Copilot Worker Error]:', err.message);
+        };
+      } catch (err) {
+        console.warn('[Worker Init] Web Workers not supported, falling back to main thread');
+      }
+    }
+    return () => {
+      workerRef.current?.terminate();
+    };
+  }, []);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -238,15 +266,40 @@ Total Registered Customers: ${custs}`;
         content: m.text,
       }));
 
-      const res = await fetch('/api/copilot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: query,
-          contextSummary: buildContextSummary(),
-          history: historyPayload,
-        }),
-      });
+      const res = await (async () => {
+        // Try Web Worker first (keeps main thread free for voice recognition)
+        if (workerRef.current) {
+          const reqId = `copilot_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+          return new Promise<Response>((resolve) => {
+            pendingWorkerReqs.current.set(reqId, (workerResult) => {
+              // Fabricate a fake Response-like object so downstream code stays the same
+              resolve({
+                ok: workerResult.success !== false,
+                json: async () => workerResult.data || { success: false, error: workerResult.error },
+              } as any);
+            });
+            workerRef.current!.postMessage({
+              type: 'COPILOT_REQUEST',
+              requestId: reqId,
+              payload: {
+                prompt: query,
+                contextSummary: buildContextSummary(),
+                history: historyPayload,
+              },
+            });
+          });
+        }
+        // Fallback: main thread fetch
+        return fetch('/api/copilot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: query,
+            contextSummary: buildContextSummary(),
+            history: historyPayload,
+          }),
+        });
+      })();
 
       const json = await res.json();
 

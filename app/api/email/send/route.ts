@@ -3,15 +3,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   sendResendEmail,
-  sendUniversalEmail,
-  renderAppointmentConfirmationHtml,
+  renderAppointmentConfirmedHtml,
+  renderBookingPendingHtml,
   renderAppointmentReminderHtml,
   renderMilestoneWishHtml,
   renderInvoiceReceiptHtml,
   DEFAULT_REPLY_TO,
-  DEFAULT_SENDER_EMAIL,
   getSenderEmailForType,
-  SENDER_EMAILS,
 } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
@@ -23,82 +21,110 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Valid recipient email address is required.' }, { status: 400 });
     }
 
+    // Support both flat params (from appointments page) and nested { data: {...} }
+    const p = data || body;
+
     let emailHtml = '';
     let emailSubject = subject;
     let plainTextSummary = '';
 
     switch (type) {
       case 'confirmation': {
-        emailSubject = emailSubject || `✨ Appointment Confirmed — ${data?.service || 'Shree Beauty Studio'}`;
-        emailHtml = renderAppointmentConfirmationHtml({
-          customerName: data?.customerName || 'Valued Guest',
-          service: data?.service || 'Salon Service',
-          staff: data?.staff || 'Studio Stylist',
-          date: data?.date || '',
-          time: data?.time || '',
-          price: data?.price,
-          address: data?.address,
-          salonName: data?.salonName,
+        // Sent by admin when confirming a pending booking
+        emailSubject = emailSubject || `✅ Appointment Confirmed — ${p?.service || 'Shree Beauty Studio'}`;
+        emailHtml = renderAppointmentConfirmedHtml({
+          customerName: p?.customerName || 'Valued Guest',
+          service: p?.service || 'Salon Service',
+          staff: p?.staff || 'Studio Specialist',
+          date: p?.date || '',
+          time: p?.time || '',
+          price: p?.price,
+          address: p?.address,
+          salonName: p?.salonName,
         });
-        plainTextSummary = `✨ Appointment Confirmed: ${data?.service} on ${data?.date} at ${data?.time}`;
+        plainTextSummary = `✅ Your appointment for ${p?.service} on ${p?.date} at ${p?.time} has been confirmed!`;
+        break;
+      }
+
+      case 'booking_pending': {
+        // Sent immediately when customer books online (pending admin confirmation)
+        emailSubject = emailSubject || `📋 Booking Received — ${p?.service || 'Shree Beauty Studio'} (Pending Confirmation)`;
+        emailHtml = renderBookingPendingHtml({
+          customerName: p?.customerName || 'Valued Guest',
+          service: p?.service || 'Salon Service',
+          date: p?.date || '',
+          time: p?.time || '',
+          salonName: p?.salonName,
+        });
+        plainTextSummary = `We've received your booking request for ${p?.service} on ${p?.date}. We'll confirm shortly!`;
         break;
       }
 
       case 'reminder': {
-        emailSubject = emailSubject || `⏰ Reminder: Upcoming Appointment at ${data?.salonName || 'Shree Beauty Studio'}`;
+        emailSubject = emailSubject || `⏰ Reminder: Upcoming Appointment at ${p?.salonName || 'Shree Beauty Studio'}`;
         emailHtml = renderAppointmentReminderHtml({
-          customerName: data?.customerName || 'Valued Guest',
-          service: data?.service || 'Salon Service',
-          staff: data?.staff || 'Studio Specialist',
-          date: data?.date || '',
-          time: data?.time || '',
-          address: data?.address,
-          salonName: data?.salonName,
+          customerName: p?.customerName || 'Valued Guest',
+          service: p?.service || 'Salon Service',
+          staff: p?.staff || 'Studio Specialist',
+          date: p?.date || '',
+          time: p?.time || '',
+          address: p?.address,
+          salonName: p?.salonName,
         });
-        plainTextSummary = `⏰ Reminder: Your appointment for ${data?.service} is scheduled on ${data?.date} at ${data?.time}`;
+        plainTextSummary = `⏰ Reminder: Your appointment for ${p?.service} is scheduled on ${p?.date} at ${p?.time}`;
         break;
       }
 
       case 'milestone': {
-        const milestoneType = data?.milestoneType || 'birthday';
-        const title = milestoneType === 'anniversary' ? 'Happy Wedding Anniversary! 💍' : milestoneType === 'sagai' ? 'Happy Engagement Anniversary! ✨' : 'Happy Birthday! 🎂';
+        const milestoneType = p?.milestoneType || p?.type || 'birthday';
+        const title =
+          milestoneType === 'anniversary'
+            ? 'Happy Wedding Anniversary! 💍'
+            : milestoneType === 'sagai'
+            ? 'Happy Engagement Anniversary! ✨'
+            : 'Happy Birthday! 🎂';
         emailSubject = emailSubject || `${title} — Special Gift from Shree Beauty Studio`;
         emailHtml = renderMilestoneWishHtml({
-          customerName: data?.customerName || 'Valued Guest',
+          customerName: p?.customerName || 'Valued Guest',
           type: milestoneType,
-          yearsCount: data?.yearsCount,
-          discountPercent: data?.discountPercent || 15,
-          couponCode: data?.couponCode || 'SHREE-CELEBRATE',
-          salonName: data?.salonName,
+          yearsCount: p?.yearsCount,
+          discountPercent: p?.discountPercent || 15,
+          couponCode: p?.couponCode || 'SHREE-CELEBRATE',
+          salonName: p?.salonName,
         });
         plainTextSummary = `${title} — Enjoy a special discount gift on your next salon visit!`;
         break;
       }
 
       case 'invoice': {
-        emailSubject = emailSubject || `📄 Official Invoice #${data?.invoiceNo || ''} from ${data?.salonName || 'Shree Beauty Studio'}`;
+        emailSubject = emailSubject || `📄 Official Invoice #${p?.invoiceNo || ''} from ${p?.salonName || 'Shree Beauty Studio'}`;
         emailHtml = renderInvoiceReceiptHtml({
-          customerName: data?.customerName || 'Valued Customer',
-          invoiceNo: data?.invoiceNo || 'INV-001',
-          date: data?.date || new Date().toISOString().slice(0, 10),
-          total: data?.total || 0,
-          mode: data?.mode || 'GPay UPI',
-          lines: data?.lines || [],
-          salonName: data?.salonName,
+          customerName: p?.customerName || 'Valued Customer',
+          invoiceNo: p?.invoiceNo || 'INV-001',
+          date: p?.date || new Date().toISOString().slice(0, 10),
+          total: p?.total || 0,
+          mode: p?.mode || 'GPay UPI',
+          lines: p?.lines || [],
+          salonName: p?.salonName,
         });
-        const linesText = (data?.lines || [])
+        const linesText = (p?.lines || [])
           .map((l: any) => `• ${l.name} (${l.qty || 1}x) - ₹${l.price * (l.qty || 1)}`)
           .join('\n');
-        plainTextSummary = `🧾 INVOICE RECEIPT — ${data?.salonName || 'Shree Beauty Studio'}\n────────────────────────────\nDear ${data?.customerName || 'Customer'},\nThank you for visiting ${data?.salonName || 'Shree Beauty Studio'}!\n\n📄 Invoice No: ${data?.invoiceNo || 'INV-001'}\n📅 Date: ${data?.date || ''}\n💳 Payment Mode: ${data?.mode || 'GPay UPI'}\n\nServices / Items:\n${linesText || '• Salon Services'}\n\n💵 Total Bill: ₹${data?.total || 0}\n\n📍 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004\n📞 +91 97732 40010\nThank you & have a wonderful day! ✨`;
+        plainTextSummary = `🧾 INVOICE — ${p?.salonName || 'Shree Beauty Studio'}\nDear ${p?.customerName || 'Customer'},\n\nInvoice No: ${p?.invoiceNo || 'INV-001'}\nDate: ${p?.date || ''}\nPayment: ${p?.mode || 'GPay UPI'}\n\n${linesText || '• Salon Services'}\n\nTotal: ₹${p?.total || 0}\n\n📍 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat\n📞 +91 97732 40010\nThank you! ✨`;
         break;
       }
 
       case 'custom':
       default: {
         if (!body.html && !body.message) {
-          return NextResponse.json({ error: 'Message content or HTML is required for custom email' }, { status: 400 });
+          return NextResponse.json(
+            { error: 'Message content or HTML is required for custom email' },
+            { status: 400 }
+          );
         }
-        emailHtml = body.html || `<div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">${body.message}</div>`;
+        emailHtml =
+          body.html ||
+          `<div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">${body.message}</div>`;
         emailSubject = emailSubject || 'Message from Shree Beauty Studio';
         plainTextSummary = body.message || emailSubject;
         break;
@@ -118,34 +144,26 @@ export async function POST(req: NextRequest) {
       apiKey,
     });
 
-    // Fallback URLs for client-side dispatch (Gmail Web & Mailto)
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(plainTextSummary)}`;
     const mailtoUrl = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(plainTextSummary)}`;
 
     if (!result.success) {
       console.warn('[Email Send] Resend failed:', result.error);
-      return NextResponse.json({
-        success: false,
-        error: result.error,
-        fallback: {
-          subject: emailSubject,
-          body: plainTextSummary,
-          gmailUrl,
-          mailtoUrl,
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.error,
+          fallback: { subject: emailSubject, body: plainTextSummary, gmailUrl, mailtoUrl },
         },
-      }, { status: 200 });
+        { status: 200 }
+      );
     }
 
     return NextResponse.json({
       success: true,
       id: result.id,
       message: 'Email dispatched successfully!',
-      fallback: {
-        subject: emailSubject,
-        body: plainTextSummary,
-        gmailUrl,
-        mailtoUrl,
-      },
+      fallback: { subject: emailSubject, body: plainTextSummary, gmailUrl, mailtoUrl },
     });
   } catch (err: any) {
     console.error('[Email Send API Error]:', err);

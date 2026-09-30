@@ -1,7 +1,7 @@
 // app/api/booking/create/route.ts
 // Creates a new appointment with double-booking prevention via optimistic concurrency
 import { NextRequest, NextResponse } from 'next/server';
-import { sendResendEmail, renderAppointmentConfirmationHtml, DEFAULT_REPLY_TO, DEFAULT_SENDER_EMAIL } from '@/lib/email';
+import { sendResendEmail, renderBookingPendingHtml, DEFAULT_REPLY_TO, SENDER_EMAILS } from '@/lib/email';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       service: service.name,
       staff: staffName,
       advance: 0,
-      status: 'Confirmed' as const,
+      status: 'Pending' as const,
       workStatus: 'Booked' as const,
       notes: notes ? `Online Booking: ${notes}` : 'Booked via Online Booking',
     };
@@ -183,23 +183,20 @@ export async function POST(req: NextRequest) {
     if (cleanEmail) {
       try {
         const salonName = data.settings?.salon || 'Shree Beauty Studio';
-        const html = renderAppointmentConfirmationHtml({
+        const html = renderBookingPendingHtml({
           customerName: customerName.trim(),
           service: service.name,
-          staff: staffName,
           date,
           time,
-          price: service.price,
-          address: data.settings?.address,
           salonName,
         });
 
         sendResendEmail({
           to: cleanEmail,
-          subject: `✨ Appointment Confirmed — ${service.name} at ${salonName}`,
+          subject: `📋 Booking Received — ${service.name} at ${salonName} (Pending Confirmation)`,
           html,
           apiKey: data.settings?.resendApiKey,
-          from: data.settings?.resendFromEmail || process.env.RESEND_FROM_EMAIL || DEFAULT_SENDER_EMAIL,
+          from: SENDER_EMAILS.appointments,
           replyTo: DEFAULT_REPLY_TO,
         }).catch((emailErr) => {
           console.warn('[Resend Booking Email Warning]:', emailErr);
@@ -217,21 +214,22 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to: `91${mobile}`,
-          message: `✨ *APPOINTMENT CONFIRMED — ${data.settings?.salon || 'Shree Beauty Studio'}* ✨
+          message: `📋 *BOOKING RECEIVED — ${data.settings?.salon || 'Shree Beauty Studio'}*
 ────────────────────────────
 Dear ${customerName},
-Your appointment is confirmed! Here are your booking details:
+Thank you for booking with us! Your appointment is pending confirmation.
 
 📅 Date: ${date}
 ⏰ Time: ${time}
 💄 Service: ${service.name}
-👩‍💼 Professional: ${staffName}
-💰 Price: ₹${service.price}
-📍 Address: ${data.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
-📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
-📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)
+💰 Estimated Price: ₹${service.price}
 
-Thank you for choosing ${data.settings?.salon || 'Shree Beauty Studio'}! We look forward to pampering you. 💖`,
+✅ We will confirm your appointment shortly and notify you here on WhatsApp.
+📍 Location: ${data.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
+📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
+
+For queries, reply here or call +91 97732 40010.
+Thank you for choosing ${data.settings?.salon || 'Shree Beauty Studio'}! 💖`,
         }),
       }).catch(() => {});
     } catch {

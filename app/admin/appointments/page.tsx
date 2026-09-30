@@ -283,6 +283,34 @@ export default function AppointmentsPage() {
       toast(`📲 WhatsApp App opened with confirmation for ${appt.customer}!`);
     }
 
+    // 2. Send Confirmation Email to customer (best-effort, non-blocking)
+    if (cleanEmail) {
+      const salon = data?.settings?.salon || 'Shree Beauty Studio';
+      const foundSvc = (data?.services || []).find((s) => s.name.toLowerCase() === appt.service?.toLowerCase());
+      fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'confirmation',
+          to: cleanEmail,
+          subject: `✅ Appointment Confirmed — ${appt.service} at ${salon}`,
+          customerName: appt.customer,
+          service: appt.service,
+          staff: appt.staff || 'Studio Specialist',
+          date: appt.date,
+          time: appt.time,
+          price: foundSvc?.price ?? appt.price,
+          address: data?.settings?.address,
+          salonName: salon,
+        }),
+      })
+        .then((r) => r.json())
+        .then((r) => {
+          if (r.success) toast(`📧 Confirmation email sent to ${cleanEmail}`);
+        })
+        .catch(() => {});
+    }
+
     // 3. Auto-save to Google Calendar in cloud
     fetch('/api/calendar/auto-sync', {
       method: 'POST',

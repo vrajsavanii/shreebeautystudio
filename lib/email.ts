@@ -409,6 +409,140 @@ export function renderAppointmentConfirmationHtml(props: AppointmentConfirmation
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 1b. BOOKING RECEIVED EMAIL (online booking — admin must confirm)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface BookingPendingEmailProps {
+  customerName: string;
+  service: string;
+  date: string;
+  time: string;
+  salonName?: string;
+}
+
+export function renderBookingPendingHtml(props: BookingPendingEmailProps): string {
+  const { customerName, service, date, time, salonName = 'Shree Beauty Studio' } = props;
+
+  const content = `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <span class="pill pill-gold">📋 BOOKING REQUEST RECEIVED</span>
+      <h2 style="color: ${BRAND_COLORS.primary}; font-size: 22px; margin: 14px 0 6px;">Thank you, ${customerName}!</h2>
+      <p style="color: ${BRAND_COLORS.muted}; font-size: 14px; margin: 0;">We've received your appointment request at ${salonName}. Our team will confirm your slot within a few hours.</p>
+    </div>
+
+    <div style="background: linear-gradient(135deg, ${BRAND_COLORS.primaryDark}08 0%, ${BRAND_COLORS.gold}10 100%); border: 1px solid ${BRAND_COLORS.gold}33; border-radius: 12px; padding: 20px 24px; margin-bottom: 24px;">
+      <div style="font-size: 12px; font-weight: 700; color: ${BRAND_COLORS.primary}; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px;">Your Booking Summary</div>
+      <table class="table">
+        <tr>
+          <td class="label">📅 Requested Date</td>
+          <td class="val">${date}</td>
+        </tr>
+        <tr>
+          <td class="label">⏰ Requested Time</td>
+          <td class="val" style="color: ${BRAND_COLORS.primary};">${time}</td>
+        </tr>
+        <tr>
+          <td class="label">💄 Service</td>
+          <td class="val">${service}</td>
+        </tr>
+        <tr>
+          <td class="label">📊 Status</td>
+          <td class="val"><span style="background:#FEF9C3;color:#854D0E;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;">⏳ Pending Confirmation</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="background-color: #EFF6FF; border-left: 3px solid #3B82F6; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px;">
+      <p style="margin: 0; font-size: 13px; color: #1E3A5F; line-height: 1.6;">
+        <strong>⏳ What happens next?</strong><br/>
+        Our team reviews your request and will send you a <strong>confirmation message via WhatsApp and email</strong> shortly. Please keep an eye on your inbox and phone.
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="https://wa.me/919773240010" class="btn">Chat with Us on WhatsApp</a>
+    </div>
+
+    <p style="font-size: 12.5px; color: ${BRAND_COLORS.muted}; text-align: center; margin-top: 20px;">
+      📍 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004<br/>
+      <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; font-weight: 700;">Get Directions ↗</a>
+    </p>
+  `;
+
+  return baseLayout(content, `Your booking request for ${service} on ${date} has been received!`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1c. APPOINTMENT CONFIRMED BY ADMIN EMAIL
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface AppointmentConfirmedEmailProps {
+  customerName: string;
+  service: string;
+  staff: string;
+  date: string;
+  time: string;
+  price?: number;
+  address?: string;
+  salonName?: string;
+}
+
+export function renderAppointmentConfirmedHtml(props: AppointmentConfirmedEmailProps): string {
+  const { customerName, service, staff, date, time, price, address, salonName = 'Shree Beauty Studio' } = props;
+
+  const content = `
+    <div style="text-align: center; margin-bottom: 24px;">
+      <span class="pill pill-gold">✅ APPOINTMENT CONFIRMED</span>
+      <h2 style="color: ${BRAND_COLORS.primary}; font-size: 22px; margin: 14px 0 6px;">You're all set, ${customerName}! 💖</h2>
+      <p style="color: ${BRAND_COLORS.muted}; font-size: 14px; margin: 0;">Your appointment has been confirmed by our team. We look forward to welcoming you at ${salonName}.</p>
+    </div>
+
+    <table class="table">
+      <tr>
+        <td class="label">📅 Date</td>
+        <td class="val">${date}</td>
+      </tr>
+      <tr>
+        <td class="label">⏰ Time</td>
+        <td class="val" style="color: ${BRAND_COLORS.primary}; font-size: 16px;">${time}</td>
+      </tr>
+      <tr>
+        <td class="label">💄 Service</td>
+        <td class="val" style="color: ${BRAND_COLORS.primary};">${service}</td>
+      </tr>
+      <tr>
+        <td class="label">👩‍💼 Your Specialist</td>
+        <td class="val">${staff || 'Studio Specialist'}</td>
+      </tr>
+      ${price !== undefined ? `
+      <tr>
+        <td class="label">💰 Estimated Amount</td>
+        <td class="val">₹${price}</td>
+      </tr>` : ''}
+      <tr>
+        <td class="label">📍 Studio Location</td>
+        <td class="val" style="font-size: 13px;">
+          ${address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'}<br/>
+          <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; font-weight: 700; text-decoration: underline; font-size: 12px; display: inline-block; margin-top: 4px;">📍 Get Directions ↗</a>
+        </td>
+      </tr>
+    </table>
+
+    <div style="text-align: center; margin-top: 28px;">
+      <a href="https://wa.me/919773240010" class="btn">Chat on WhatsApp</a>
+    </div>
+
+    <div style="background-color: #F8FAFC; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border-left: 3px solid ${BRAND_COLORS.primary};">
+      <p style="margin: 0; font-size: 12.5px; color: ${BRAND_COLORS.muted}; line-height: 1.5;">
+        <strong>Studio Policy:</strong> Please arrive 5-10 minutes prior to your scheduled slot. If you need to reschedule or cancel, kindly let us know at least 2 hours in advance via WhatsApp.
+      </p>
+    </div>
+  `;
+
+  return baseLayout(content, `Your ${service} appointment at ${salonName} on ${date} is confirmed!`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 2. APPOINTMENT REMINDER EMAIL
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -525,7 +659,7 @@ export function renderMilestoneWishHtml(props: MilestoneWishEmailProps): string 
     </div>
 
     <div style="text-align: center;">
-      <a href="https://wa.me/919876543210" class="btn">Claim &amp; Book Pampering Session</a>
+      <a href="https://wa.me/919773240010" class="btn">Claim &amp; Book Pampering Session</a>
     </div>
 
     <p style="font-size: 13px; color: ${BRAND_COLORS.muted}; text-align: center; margin-top: 24px;">
@@ -599,7 +733,7 @@ export function renderInvoiceReceiptHtml(props: InvoiceReceiptEmailProps): strin
     </table>
 
     <div style="text-align: center; margin-top: 24px;">
-      <a href="https://wa.me/919876543210" class="btn">Book Your Next Session</a>
+      <a href="https://wa.me/919773240010" class="btn">Book Your Next Session</a>
     </div>
 
     <p style="font-size: 12px; color: ${BRAND_COLORS.muted}; text-align: center; margin-top: 16px;">
@@ -631,7 +765,7 @@ export function renderMarketingCampaignHtml(props: MarketingCampaignEmailProps):
     promoCode,
     discountText,
     ctaText = 'Book Appointment Now',
-    ctaLink = 'http://localhost:3000/book',
+    ctaLink = 'https://shreebeauty.studio/book',
     salonName = 'Shree Beauty Studio',
   } = props;
 
