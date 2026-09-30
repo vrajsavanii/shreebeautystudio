@@ -1010,7 +1010,24 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     appointments: Array.isArray(incoming.appointments) ? incoming.appointments : [],
     invoices: (() => {
       const inc = Array.isArray(incoming.invoices) ? incoming.invoices : [];
-      return inc.filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025');
+      return inc
+        .filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025')
+        .map((inv: any) => {
+          const total = Number(inv.total || 0);
+          const advance = Number(inv.advance || 0);
+          const paid = Number(inv.paid || 0);
+          const balance = Number(inv.balance || 0);
+
+          // If advance and paid were both set to the advance amount (legacy duplicate), fix paid to 0
+          if (advance > 0 && paid > 0 && advance === paid && total - advance === balance) {
+            return {
+              ...inv,
+              paid: 0,
+              balance: Math.max(0, total - advance),
+            };
+          }
+          return inv;
+        });
     })(),
     inventory: (() => {
       const incomingList = Array.isArray(incoming.inventory) ? incoming.inventory : [];

@@ -823,10 +823,14 @@ const OTHER_EVENT_OPTIONS = [
 
     updateData((d) => {
       const otherInvoices = (d.invoices || []).filter((i) => i.id !== invId);
+      const updatedBridal = (d.bridal || []).map((br) =>
+        br.id === b.id ? { ...br, invoiceId: invId } : br
+      );
       return {
         ...d,
         invoiceSeq: invSeq,
         invoices: [newInv, ...otherInvoices],
+        bridal: updatedBridal,
       };
     });
 

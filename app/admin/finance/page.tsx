@@ -248,8 +248,13 @@ export default function FinanceAccountingPage() {
     // 1. Invoices (Sales)
     (data.invoices || []).forEach((inv) => {
       const total = Number(inv.total || 0);
-      const paid = Number(inv.paid || 0) + Number(inv.advance || 0);
-      const balance = Math.max(0, total - paid);
+      const adv = Number(inv.advance || 0);
+      const rawPaid = Number(inv.paid || 0);
+      const balance =
+        inv.balance !== undefined
+          ? Math.max(0, Number(inv.balance))
+          : Math.max(0, total - adv - rawPaid);
+      const paid = Math.max(0, total - balance);
       let status: 'Paid' | 'Partial' | 'Unpaid' = 'Unpaid';
       if (balance <= 0) status = 'Paid';
       else if (paid > 0) status = 'Partial';
@@ -383,12 +388,19 @@ export default function FinanceAccountingPage() {
 
     // Sales
     (data.invoices || []).forEach((inv) => {
-      const paid = Number(inv.paid || 0) + Number(inv.advance || 0);
+      const total = Number(inv.total || 0);
+      const adv = Number(inv.advance || 0);
+      const rawPaid = Number(inv.paid || 0);
+      const bal =
+        inv.balance !== undefined
+          ? Math.max(0, Number(inv.balance))
+          : Math.max(0, total - adv - rawPaid);
+      const actualPaid = Math.max(0, total - bal);
       const mode = (inv.mode || 'Cash').toLowerCase();
       if (mode.includes('cash')) {
-        cashIn += paid;
+        cashIn += actualPaid;
       } else {
-        bankUpiBalance += paid;
+        bankUpiBalance += actualPaid;
       }
     });
 
@@ -446,7 +458,18 @@ export default function FinanceAccountingPage() {
       const adv = Number(a.advance || 0);
       if (adv > 0 && a.status !== 'Cancelled') {
         totalAdvancesCollected += adv;
-        const isConverted = !!a.invoiceId || a.workStatus === 'Billed' || a.status === 'Completed';
+        const isConverted = !!(
+          a.invoiceId ||
+          a.workStatus === 'Billed' ||
+          a.status === 'Completed' ||
+          (data.invoices || []).some(
+            (i) =>
+              i.appointmentId === a.id ||
+              (i.customer &&
+                i.customer.toLowerCase().trim() === (a.customer || '').toLowerCase().trim() &&
+                i.date === a.date)
+          )
+        );
         if (!isConverted) {
           activeAdvances += adv;
           activeAdvanceCount++;
@@ -468,7 +491,7 @@ export default function FinanceAccountingPage() {
           raw: a,
         });
 
-        // Add to cash in hand / bank if not yet part of an invoice
+        // Add to cash in hand / bank only if not yet part of an invoice
         if (!isConverted) {
           const mode = (a.advanceMode || 'Cash').toLowerCase();
           if (mode.includes('cash')) {
@@ -484,7 +507,16 @@ export default function FinanceAccountingPage() {
       const adv = Number(b.advance || 0);
       if (adv > 0 && b.status !== 'Cancelled') {
         totalAdvancesCollected += adv;
-        const isConverted = !!(b.invoiceId || b.isCompleted);
+        const isConverted = !!(
+          b.invoiceId ||
+          b.isCompleted ||
+          (data.invoices || []).some(
+            (i) =>
+              i.bridalBookingId === b.id ||
+              (i.customer &&
+                i.customer.toLowerCase().trim() === (b.name || '').toLowerCase().trim())
+          )
+        );
         if (!isConverted) {
           activeAdvances += adv;
           activeAdvanceCount++;
@@ -495,7 +527,7 @@ export default function FinanceAccountingPage() {
           customer: b.name || 'Bride',
           mobile: b.mobile || '',
           service: `${b.packageType || 'Bridal'} — ${b.packageName || 'Package'}`,
-          date: b.weddingDate || todayISO(),
+          date: b.weddingDate || b.date || todayISO(),
           advance: adv,
           totalPrice: Number(b.package || 0),
           balance: Math.max(0, Number(b.package || 0) - adv),
@@ -506,7 +538,7 @@ export default function FinanceAccountingPage() {
           raw: b,
         });
 
-        // Add to cash in hand / bank if not yet part of an invoice
+        // Add to cash in hand / bank only if not yet part of an invoice
         if (!isConverted) {
           const mode = (b.advanceAccount || 'Cash').toLowerCase();
           if (mode.includes('cash')) {
