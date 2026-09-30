@@ -117,7 +117,7 @@ export async function insertGoogleCalendarV3Event(
   eventPayload: GoogleCalendarEventPayload
 ): Promise<{ id: string; htmlLink?: string }> {
   const targetCalId = calendarId || 'primary';
-  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalId)}/events`;
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalId)}/events?sendUpdates=none`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -227,10 +227,11 @@ export function buildAppointmentEventPayload(
     `📞 Studio Contact: +91 ${settings?.whatsapp || '9773240010'}`,
   ].filter(Boolean);
 
+  // ATTENDEES NOTE: Never add the customer's email to Google Calendar attendees!
+  // Doing so causes Google Calendar to dispatch meeting invites from Sandip Bhalani (organizer)
+  // with Google Meet links, confusing customers of a physical beauty salon.
+  // Google Calendar events are strictly internal reminders for salon owners & beauticians.
   const attendees: Array<{ email: string; displayName?: string }> = [];
-  if (a.email?.trim() && a.email.includes('@')) {
-    attendees.push({ email: a.email.trim(), displayName: a.customer });
-  }
   if (settings?.googleCalendarOwnerEmail?.trim()) {
     const ownerEmails = settings.googleCalendarOwnerEmail
       .split(/[,;\n]+/)
@@ -252,8 +253,11 @@ export function buildAppointmentEventPayload(
     overrides.push({ method: 'email', minutes: Math.max(r1, r2, 1440) });
   }
 
+  const isPending = a.status === 'Pending';
+  const prefix = isPending ? '⏳ [PENDING]' : '💅';
+
   return {
-    summary: `💅 ${a.customer} — ${a.service}`,
+    summary: `${prefix} ${a.customer} — ${a.service}`,
     description: lines.join('\n'),
     location: address,
     start: { dateTime: startISO, timeZone: 'Asia/Kolkata' },
@@ -277,10 +281,8 @@ export function buildBridalEventPayloads(
   const salon = settings?.salon || 'Shree Beauty Studio';
   const address = b.venue || settings?.address || 'Surat, Gujarat';
 
+  // Internal salon staff/owner reminders only — NO customer calendar invites!
   const attendees: Array<{ email: string; displayName?: string }> = [];
-  if (b.email?.trim() && b.email.includes('@')) {
-    attendees.push({ email: b.email.trim(), displayName: b.name });
-  }
   if (settings?.googleCalendarOwnerEmail?.trim()) {
     const ownerEmails = settings.googleCalendarOwnerEmail
       .split(/[,;\n]+/)
@@ -1059,7 +1061,7 @@ function doPost(e) {
       description: ev.description,
       location: ev.location,
       guests: guestList.join(','),
-      sendInvites: true // Sends Google Calendar invite so it appears cleanly in their calendar (1 single event, never duplicate!)
+      sendInvites: false // Salon internal calendar reminder — never send customer invites or Google Meet!
     };
     
     // 1. Create single shared event in Primary Google Calendar

@@ -416,18 +416,34 @@ export default function PublicBookingPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <img
-              src="/shree-logo-transparent.png"
-              alt={salon}
+            <div
               style={{
-                width: 54,
-                height: 54,
-                borderRadius: '50%',
+                width: 56,
+                height: 56,
+                borderRadius: 14,
+                background: '#ffffff',
                 border: '2px solid #eaba38',
-                objectFit: 'cover',
-                boxShadow: '0 4px 14px rgba(234,186,56,0.3)',
+                boxShadow: '0 4px 14px rgba(234,186,56,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                overflow: 'hidden',
+                padding: 2,
               }}
-            />
+            >
+              <img
+                src="/only-logo.jpg"
+                alt={salon}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: 10,
+                  display: 'block',
+                }}
+              />
+            </div>
             <div>
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>
                 {salon}

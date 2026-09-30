@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Pencil, Trash2, Heart, Calendar, MessageCircle, ChevronRight, ChevronLeft,
   Sparkles, Check, Crown, User, CalendarDays, ShoppingBag, FileText, CheckCircle,
-  Receipt, Download, Eye, Loader2, ExternalLink, RefreshCw
+  Receipt, Download, Eye, Loader2, ExternalLink, RefreshCw, Mail, Zap
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -775,6 +775,76 @@ const OTHER_EVENT_OPTIONS = [
     (b.includeOther && b.otherDate) && `${b.otherEventName || 'Pre-Event'}: ${fmtDate(b.otherDate)}${b.otherTime ? ` @ ${b.otherTime}` : ''}`,
   ].filter(Boolean).join(' • ');
 
+  const handleSendEmailBridal = async (b: BridalBooking) => {
+    const cleanEmail = b.email?.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      toast(`No email address recorded for ${b.name}.`, 'error');
+      return;
+    }
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    toast(`⏳ Dispatching bridal confirmation email to ${cleanEmail}…`, 'info');
+    try {
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'confirmation',
+          to: cleanEmail,
+          subject: `👑 Bridal Booking Confirmed — ${b.packageName || 'Bridal Package'} at ${salon}`,
+          customerName: b.name,
+          service: b.packageName || 'Bridal & Events Package',
+          staff: 'Studio Bridal Specialist',
+          date: b.weddingDate || b.date,
+          time: b.weddingTime || '16:00',
+          price: b.package,
+          address: data?.settings?.address,
+          salonName: salon,
+          apiKey: data?.settings?.resendApiKey,
+          fromEmail: data?.settings?.resendFromEmail,
+        }),
+      });
+      const resJson = await res.json();
+      if (resJson.success) {
+        toast(`📧 Bridal confirmation email dispatched to ${cleanEmail}!`);
+      } else {
+        toast(resJson.error || 'Failed to dispatch email.', 'error');
+      }
+    } catch {
+      toast('Network error sending email.', 'error');
+    }
+  };
+
+  const handleSendWhatsAppAPIBridal = async (b: BridalBooking) => {
+    if (!b.mobile) {
+      toast(`No mobile number found for ${b.name}.`, 'error');
+      return;
+    }
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const msg = bridalMessage(b.name, eventSummary(b) || 'Bridal & Events', b.weddingDate || b.date, b.venue || '', salon);
+    toast(`⏳ Sending WhatsApp via Cloud API to ${b.name}…`, 'info');
+    try {
+      const res = await sendDirectWhatsAppMessage(b.mobile, msg, data?.settings);
+      if (res.success) {
+        toast(`⚡ WhatsApp confirmation dispatched to ${b.name} via API!`);
+      } else {
+        toast(`⚠️ API Send: ${res.message || 'Outside 24h window'}. Use Direct WA button.`, 'error');
+      }
+    } catch (err: any) {
+      toast(`⚠️ WhatsApp API Error: ${err?.message || 'Failed'}`);
+    }
+  };
+
+  const handleSendDirectWABridal = (b: BridalBooking) => {
+    if (!b.mobile) {
+      toast(`No mobile number found for ${b.name}.`, 'error');
+      return;
+    }
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const msg = bridalMessage(b.name, eventSummary(b) || 'Bridal & Events', b.weddingDate || b.date, b.venue || '', salon);
+    openWAApp(b.mobile, msg);
+    toast(`📲 Opened WhatsApp App / Web for ${b.name}`);
+  };
+
   // Generate an official Invoice with ONLY the package name mentioned as line item
   const handleGenerateInvoice = (b: BridalBooking) => {
     const totalPkg = Number(b.package || 0);
@@ -985,7 +1055,45 @@ const OTHER_EVENT_OPTIONS = [
                             >
                               <Receipt size={12} /> Bill
                             </button>
-                            <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit"><Pencil size={13} /></button>
+
+                            <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit">
+                              <Pencil size={13} />
+                            </button>
+
+                            {/* Separate Email Button */}
+                            {b.email && (
+                              <button
+                                type="button"
+                                className="btn-icon"
+                                style={{ background: '#fdf2f8', color: '#db2777' }}
+                                title="📧 Send Bridal Confirmation Email ONLY to Bride"
+                                onClick={() => handleSendEmailBridal(b)}
+                              >
+                                <Mail size={13} />
+                              </button>
+                            )}
+
+                            {/* Separate WhatsApp Cloud API Button */}
+                            <button
+                              type="button"
+                              className="btn-icon"
+                              style={{ background: '#f0fdf4', color: '#16a34a' }}
+                              title="⚡ Send WhatsApp via Official Cloud API ONLY"
+                              onClick={() => handleSendWhatsAppAPIBridal(b)}
+                            >
+                              <Zap size={13} />
+                            </button>
+
+                            {/* Separate Direct WhatsApp Web / App Button */}
+                            <button
+                              type="button"
+                              className="btn-icon wa"
+                              title="💬 Open Direct WhatsApp Chat ONLY"
+                              onClick={() => handleSendDirectWABridal(b)}
+                            >
+                              <MessageCircle size={13} />
+                            </button>
+
                             <button
                               onClick={() => setCalendarModalBridal(b)}
                               className="btn-icon"
@@ -1000,6 +1108,7 @@ const OTHER_EVENT_OPTIONS = [
                             >
                               {syncingId === b.id ? <Loader2 size={13} className="spin" /> : <Calendar size={13} />}
                             </button>
+
                             <a
                               href={getBridalGoogleCalendarUrl(b, data?.settings?.salon, data?.settings?.address)}
                               target="_blank"
@@ -1017,17 +1126,10 @@ const OTHER_EVENT_OPTIONS = [
                             >
                               <ExternalLink size={13} />
                             </a>
-                            <button
-                              className="btn-icon wa"
-                              title="📲 Send via WhatsApp App"
-                              onClick={() => {
-                                openWAApp(b.mobile, bridalMessage(b.name, eventSummary(b) || 'Bridal & Events', b.weddingDate, b.venue || '', data?.settings?.salon || 'Shree Beauty Studio'));
-                                toast('📲 Opening WhatsApp App…');
-                              }}
-                            >
-                              <MessageCircle size={13} />
+
+                            <button className="btn-icon danger" onClick={() => setDeleteId(b.id)} title="Delete">
+                              <Trash2 size={13} />
                             </button>
-                            <button className="btn-icon danger" onClick={() => setDeleteId(b.id)} title="Delete"><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </motion.tr>

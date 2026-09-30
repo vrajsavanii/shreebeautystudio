@@ -429,49 +429,55 @@ export default function PublicHomePage() {
 
         {/* Main Display Grid */}
         <div className="cust-studio-display-grid">
-          {/* Main Visual */}
+          {/* Main Visual: All images mounted, pure CSS opacity crossfade — 0 blink, 0 lag */}
           <div className="cust-studio-main-card">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeAmbiance.id}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                style={{ width: '100%', height: '100%', minHeight: 480, position: 'relative' }}
-              >
+            {STUDIO_GALLERY.map((item) => {
+              const isActive = item.id === activeAmbianceId;
+              return (
                 <img
-                  src={activeAmbiance.image}
-                  alt={activeAmbiance.title}
+                  key={item.id}
+                  src={item.image}
+                  alt={item.title}
                   className="cust-studio-main-img"
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    opacity: isActive ? 1 : 0,
+                    transform: isActive ? 'scale(1)' : 'scale(1.04)',
+                    transition: 'opacity 0.5s ease-in-out, transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    pointerEvents: 'none',
+                  }}
                 />
-                <div className="cust-studio-overlay">
-                  <span
-                    style={{
-                      background: 'rgba(212, 175, 55, 0.9)',
-                      color: '#032B30',
-                      padding: '4px 12px',
-                      borderRadius: 99,
-                      fontSize: 11,
-                      fontWeight: 800,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
-                      display: 'inline-block',
-                      alignSelf: 'flex-start',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {activeAmbiance.subtitle}
-                  </span>
-                  <h3 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: '#FFFFFF' }}>
-                    {activeAmbiance.title}
-                  </h3>
-                  <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.9)', lineHeight: 1.5, maxWidth: 540 }}>
-                    {activeAmbiance.description}
-                  </p>
-                </div>
-              </motion.div>
-            </AnimatePresence>
+              );
+            })}
+            <div className="cust-studio-overlay" style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
+              <span
+                style={{
+                  background: 'rgba(212, 175, 55, 0.9)',
+                  color: '#032B30',
+                  padding: '4px 12px',
+                  borderRadius: 99,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  display: 'inline-block',
+                  alignSelf: 'flex-start',
+                  marginBottom: 8,
+                }}
+              >
+                {activeAmbiance.subtitle}
+              </span>
+              <h3 style={{ margin: '0 0 6px', fontSize: 24, fontWeight: 700, color: '#FFFFFF', transition: 'all 0.3s ease' }}>
+                {activeAmbiance.title}
+              </h3>
+              <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.9)', lineHeight: 1.5, maxWidth: 540, transition: 'all 0.3s ease' }}>
+                {activeAmbiance.description}
+              </p>
+            </div>
           </div>
 
           {/* Details & Architecture Card */}

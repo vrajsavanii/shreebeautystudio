@@ -10,9 +10,9 @@ export default function CloudStatusBadge() {
   const { cloudStatus, lastSynced } = useSalonStore();
 
   const config = {
-    idle:    { label: 'Sign In for Cloud', icon: <Cloud size={13} />, cls: 'idle' },
+    idle:    { label: 'Cloud Synced',      icon: <Check size={13} />, cls: 'saved' },
     syncing: { label: 'Syncing…',          icon: <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />, cls: 'syncing' },
-    saved:   { label: 'Synced',            icon: <Check size={13} />, cls: 'saved' },
+    saved:   { label: 'Cloud Synced',      icon: <Check size={13} />, cls: 'saved' },
     error:   { label: 'Sync Error',        icon: <AlertCircle size={13} />, cls: 'error' },
     offline: { label: 'Offline',           icon: <CloudOff size={13} />, cls: 'idle' },
   };
@@ -23,7 +23,7 @@ export default function CloudStatusBadge() {
     <button
       className={`cloud-badge ${cls}`}
       onClick={() => cloudSave()}
-      title={lastSynced ? `Last synced: ${format(new Date(lastSynced), 'dd MMM HH:mm')}` : 'Click to sync'}
+      title={lastSynced ? `Cloud DB Synced: ${format(new Date(lastSynced), 'dd MMM HH:mm')}` : 'Click to sync with Cloud'}
     >
       <AnimatePresence mode="wait">
         <motion.span

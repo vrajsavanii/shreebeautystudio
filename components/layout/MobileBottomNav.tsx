@@ -180,8 +180,15 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const [activeTabSection, setActiveTabSection] = useState<'quick' | 'modules'>('quick');
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
     const handleOpenMore = () => setMoreOpen(true);
     const handleToggleMore = () => setMoreOpen((prev) => !prev);
     const handleOpenQuick = () => {
@@ -193,14 +200,29 @@ export default function MobileBottomNav() {
     window.addEventListener('toggle-mobile-more', handleToggleMore);
     window.addEventListener('open-quick-entry', handleOpenQuick);
     return () => {
+      window.removeEventListener('resize', checkMobile);
       window.removeEventListener('open-mobile-more', handleOpenMore);
       window.removeEventListener('toggle-mobile-more', handleToggleMore);
       window.removeEventListener('open-quick-entry', handleOpenQuick);
     };
   }, []);
 
+  if (!isMobile) {
+    return null;
+  }
+
   return (
     <>
+      <style>{`
+        @media (min-width: 768px) {
+          .mobile-bottom-nav {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            height: 0 !important;
+          }
+        }
+      `}</style>
       {/* ── 1. MORE MANAGEMENT & QUICK ENTRY DRAWER (MODAL) ── */}
       <AnimatePresence>
         {moreOpen && (
@@ -533,11 +555,10 @@ export default function MobileBottomNav() {
         )}
       </AnimatePresence>
 
-      {/* ── 2. VIBRANT COLORFUL 5-TAB MOBILE BOTTOM NAVIGATION BAR ── */}
+      {/* ── 2. VIBRANT COLORFUL 5-TAB MOBILE BOTTOM NAVIGATION BAR (Mobile Only < 768px) ── */}
       <nav
-        className="mobile-bottom-nav no-print"
+        className="mobile-bottom-nav no-print md:hidden"
         style={{
-          display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           height: 64,

@@ -164,12 +164,12 @@ export function getCategoryIcon(category: string): string {
 // All 47 images below are individually verified, return HTTP 200, and are 100% unique!
 
 export const EXACT_SERVICE_IMAGES: Record<string, string> = {
-  // Hair Care & Styling (Each service has a distinct, title-accurate image)
-  'hair cut & style': 'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&q=80&auto=format&fit=crop',
-  'hair spa treatment': 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80&auto=format&fit=crop',
+  // Hair Care & Styling (Local optimized & title-accurate)
+  'hair cut & style': '/services/hair_cut_style.webp',
+  'hair spa treatment': '/services/hair_spa_wash.webp',
   'keratin smooth treatment': 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=800&q=80&auto=format&fit=crop',
-  'root touchup / gray coverage': 'https://images.unsplash.com/photo-1562322140-8baeececf3df?w=800&q=80&auto=format&fit=crop',
-  'global hair coloring': 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=800&q=80&auto=format&fit=crop',
+  'root touchup / gray coverage': '/services/root_touchup.webp',
+  'global hair coloring': '/services/global_hair_color.webp',
   'hair rebonding / smoothening': 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=800&q=80&auto=format&fit=crop',
   'hair botox treatment': 'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=800&q=80&auto=format&fit=crop',
   'nanoplastia hair smoothing': 'https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?w=800&q=80&auto=format&fit=crop',
@@ -178,12 +178,12 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'balayage ombre highlights': 'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=800&q=80&auto=format&fit=crop',
   'head massage & champi': 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800&q=80&auto=format&fit=crop',
 
-  // Skin Care & Facials (Each facial has its own distinct treatment/mask visual)
+  // Skin Care & Facials (Local optimized & title-accurate)
   'herbal deep cleanup': 'https://images.unsplash.com/photo-1576426863848-c21f53c60b19?w=800&q=80&auto=format&fit=crop',
   'fruit glow facial': 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=80&auto=format&fit=crop',
   'gold radiance facial': 'https://images.unsplash.com/photo-1571290274554-6a2eaa771e5f?w=800&q=80&auto=format&fit=crop',
-  'diamond insta-glow facial': 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&q=80&auto=format&fit=crop',
-  'full face bleach & pack': 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800&q=80&auto=format&fit=crop',
+  'diamond insta-glow facial': '/services/diamond_facial.webp',
+  'full face bleach & pack': '/services/face_bleach_pack.webp',
   'o3+ advanced d-tan facial': 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?w=800&q=80&auto=format&fit=crop',
   'hydra glow facial': 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=800&q=80&auto=format&fit=crop',
   'anti-acne purifying facial': 'https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=800&q=80&auto=format&fit=crop',
@@ -192,19 +192,19 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'charcoal detox facial': 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800&q=80&auto=format&fit=crop',
   'collagen anti-aging facial': 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&q=80&auto=format&fit=crop',
 
-  // Waxing & Threading (Specific body/face/threading visuals)
-  'eyebrow & upper lip threading': 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=800&q=80&auto=format&fit=crop',
-  'full arms + underarms rica wax': 'https://images.unsplash.com/photo-1552693673-1bf958298935?w=800&q=80&auto=format&fit=crop',
-  'full legs honey wax': 'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80&auto=format&fit=crop',
-  'full body waxing package': 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80&auto=format&fit=crop',
+  // Waxing & Threading (Local optimized & title-accurate)
+  'eyebrow & upper lip threading': '/services/eyebrow_threading.webp',
+  'full arms + underarms rica wax': '/services/waxing_arms.webp',
+  'full legs honey wax': '/services/waxing_legs.webp',
+  'full body waxing package': '/services/waxing_package.webp',
   'bikini & brazilian wax': 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&q=80&auto=format&fit=crop',
   'underarms rica wax': 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80&auto=format&fit=crop',
   'full face threading': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80&auto=format&fit=crop',
   'chocolate waxing': 'https://images.unsplash.com/photo-1517456793572-1d8efd6dc135?w=800&q=80&auto=format&fit=crop',
 
-  // Hands, Feet & Nails (Individual distinct nail art and pedicure visuals)
-  'classic pedicure': 'https://images.unsplash.com/photo-1519415943484-9fa1873496d4?w=800&q=80&auto=format&fit=crop',
-  'spa manicure & pedicure combo': 'https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=800&q=80&auto=format&fit=crop',
+  // Hands, Feet & Nails (Local optimized & title-accurate)
+  'classic pedicure': '/services/pedicure_spa.webp',
+  'spa manicure & pedicure combo': '/services/pedicure_spa.webp',
   'gel polish application': 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&q=80&auto=format&fit=crop',
   'acrylic nail extensions set': 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=800&q=80&auto=format&fit=crop',
   'bridal nail art couture': 'https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=800&q=80&auto=format&fit=crop',
@@ -212,10 +212,10 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'french gel manicure': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80&auto=format&fit=crop',
   'chrome metallic nail art': 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=800&q=80&auto=format&fit=crop',
 
-  // Makeup & Bridal (Rich traditional and contemporary makeover visuals)
+  // Makeup & Bridal (Local optimized & title-accurate)
   'hd party makeup': 'https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=800&q=80&auto=format&fit=crop',
   'airbrush engagement makeup': 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80&auto=format&fit=crop',
-  'royal bridal hd makeup package': 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=800&q=80&auto=format&fit=crop',
+  'royal bridal hd makeup package': '/services/royal_bridal_makeup.webp',
   'saree / dupatta draping': 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?w=800&q=80&auto=format&fit=crop',
   'navratri garba makeup': 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80&auto=format&fit=crop',
   'engagement & sangeet makeup': 'https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=800&q=80&auto=format&fit=crop',

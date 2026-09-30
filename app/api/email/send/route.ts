@@ -140,6 +140,7 @@ export async function POST(req: NextRequest) {
       html: emailHtml,
       text: plainTextSummary,
       from: fromAddress,
+      type,
       replyTo: replyToAddress,
       apiKey,
     });

@@ -1517,7 +1517,15 @@ a, button, input, select, textarea {
 }
 
 .mobile-bottom-nav {
-  display: none;
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
 }
 
 @media (max-width: 900px) {

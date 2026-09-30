@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw, Mail, Zap } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM, FIFTEEN_MIN_TIME_SLOTS } from '@/lib/utils';
@@ -258,7 +258,6 @@ export default function AppointmentsPage() {
   }, [appointments, search, activeTab, today]);
 
   const handleConfirmAppointment = (appt: Appointment) => {
-    const cleanEmail = appt.email?.trim() || undefined;
     const updatedAppt: Appointment = {
       ...appt,
       status: 'Confirmed',
@@ -272,22 +271,36 @@ export default function AppointmentsPage() {
     scheduleSave();
     toast(`🎉 Appointment Confirmed for ${appt.customer}!`);
 
-    // 1. WhatsApp Confirmation Message (Utilizes Approved Official Template)
-    if (appt.mobile) {
-      const salon = data?.settings?.salon || 'Shree Beauty Studio';
-      const address = data?.settings?.address || 'Surat, Gujarat';
-      const customTpl = data?.settings?.whatsappTemplates?.['appointment'] || data?.settings?.whatsappTemplates?.['confirmation'];
-      const msg = appointmentCustomerMessage(updatedAppt, salon, address, customTpl);
-      // Send WhatsApp confirmation via WhatsApp App
-      openWAApp(appt.mobile, msg);
-      toast(`📲 WhatsApp App opened with confirmation for ${appt.customer}!`);
-    }
+    // Auto-save & activate Google Calendar reminder in real time for admin side
+    fetch('/api/calendar/auto-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'appointment',
+        appointment: updatedAppt,
+        settings: data?.settings,
+      }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.provider !== 'feed_and_invite') {
+          toast('📅 Active in Admin Google Calendar in Real Time!');
+        }
+      })
+      .catch(() => {});
+  };
 
-    // 2. Send Confirmation Email to customer (best-effort, non-blocking)
-    if (cleanEmail) {
-      const salon = data?.settings?.salon || 'Shree Beauty Studio';
-      const foundSvc = (data?.services || []).find((s) => s.name.toLowerCase() === appt.service?.toLowerCase());
-      fetch('/api/email/send', {
+  const handleSendEmailConfirmation = async (appt: Appointment) => {
+    const cleanEmail = appt.email?.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      toast(`No valid email address found for ${appt.customer}.`, 'error');
+      return;
+    }
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const foundSvc = (data?.services || []).find((s) => s.name.toLowerCase() === appt.service?.toLowerCase());
+    toast(`⏳ Dispatching confirmation email to ${cleanEmail}…`, 'info');
+    try {
+      const res = await fetch('/api/email/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -302,32 +315,54 @@ export default function AppointmentsPage() {
           price: foundSvc?.price ?? appt.price,
           address: data?.settings?.address,
           salonName: salon,
+          apiKey: data?.settings?.resendApiKey,
+          fromEmail: data?.settings?.resendFromEmail,
         }),
-      })
-        .then((r) => r.json())
-        .then((r) => {
-          if (r.success) toast(`📧 Confirmation email sent to ${cleanEmail}`);
-        })
-        .catch(() => {});
+      });
+      const resJson = await res.json();
+      if (resJson.success) {
+        toast(`📧 Confirmation email dispatched to ${cleanEmail}!`);
+      } else {
+        toast(resJson.error || 'Failed to dispatch email.', 'error');
+      }
+    } catch {
+      toast('Network error sending email.', 'error');
     }
+  };
 
-    // 3. Auto-save to Google Calendar in cloud
-    fetch('/api/calendar/auto-sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'appointment',
-        appointment: updatedAppt,
-        settings: data?.settings,
-      }),
-    })
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && res.provider !== 'feed_and_invite') {
-          toast('📅 Auto-saved to Google Calendar in Cloud!');
-        }
-      })
-      .catch(() => {});
+  const handleSendWhatsAppAPI = async (appt: Appointment) => {
+    if (!appt.mobile) {
+      toast(`No mobile number found for ${appt.customer}.`, 'error');
+      return;
+    }
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const address = data?.settings?.address || 'Surat, Gujarat';
+    const customTpl = data?.settings?.whatsappTemplates?.['appointment'] || data?.settings?.whatsappTemplates?.['confirmation'];
+    const msg = appointmentCustomerMessage(appt, salon, address, customTpl);
+    toast(`⏳ Sending WhatsApp via Cloud API to ${appt.customer}…`, 'info');
+    try {
+      const res = await sendDirectWhatsAppMessage(appt.mobile, msg, data?.settings);
+      if (res.success) {
+        toast(`⚡ WhatsApp confirmation dispatched to ${appt.customer} via API!`);
+      } else {
+        toast(`⚠️ API Send: ${res.message || 'Outside 24h window'}. Use Direct WA button.`, 'error');
+      }
+    } catch (err: any) {
+      toast(`⚠️ WhatsApp API Error: ${err?.message || 'Failed'}`);
+    }
+  };
+
+  const handleSendDirectWhatsApp = (appt: Appointment) => {
+    if (!appt.mobile) {
+      toast(`No mobile number found for ${appt.customer}.`, 'error');
+      return;
+    }
+    const salon = data?.settings?.salon || 'Shree Beauty Studio';
+    const address = data?.settings?.address || 'Surat, Gujarat';
+    const customTpl = data?.settings?.whatsappTemplates?.['appointment'] || data?.settings?.whatsappTemplates?.['confirmation'];
+    const msg = appointmentCustomerMessage(appt, salon, address, customTpl);
+    openWAApp(appt.mobile, msg);
+    toast(`📲 Opened WhatsApp App / Web for ${appt.customer}`);
   };
 
   const handleRejectAppointment = async (appt: Appointment) => {
@@ -1239,9 +1274,40 @@ export default function AppointmentsPage() {
                                   </>
                                 )}
 
-                                <button className="btn-icon edit" onClick={() => openEdit(a)} title="Edit">
-                                  <Pencil size={12} />
+                                {/* Separate Email Button (Sends Email Only) */}
+                                {a.email && (
+                                  <button
+                                    type="button"
+                                    className="btn-icon"
+                                    style={{ background: '#fdf2f8', color: '#db2777' }}
+                                    title="📧 Send Confirmation Email ONLY to Customer"
+                                    onClick={() => handleSendEmailConfirmation(a)}
+                                  >
+                                    <Mail size={12} />
+                                  </button>
+                                )}
+
+                                {/* Separate WhatsApp Cloud API Button (Dispatches via Meta API Only) */}
+                                <button
+                                  type="button"
+                                  className="btn-icon"
+                                  style={{ background: '#f0fdf4', color: '#16a34a' }}
+                                  title="⚡ Send WhatsApp via Official Cloud API ONLY"
+                                  onClick={() => handleSendWhatsAppAPI(a)}
+                                >
+                                  <Zap size={12} />
                                 </button>
+
+                                {/* Separate Direct WhatsApp Web / App Button (Opens Chat Only) */}
+                                <button
+                                  type="button"
+                                  className="btn-icon wa"
+                                  title="💬 Open Direct WhatsApp Chat ONLY"
+                                  onClick={() => handleSendDirectWhatsApp(a)}
+                                >
+                                  <MessageCircle size={12} />
+                                </button>
+
                                 <a
                                   href={getAppointmentGoogleCalendarUrl(a, data?.settings?.salon, data?.settings?.address)}
                                   target="_blank"
@@ -1259,18 +1325,11 @@ export default function AppointmentsPage() {
                                 >
                                   <Calendar size={12} />
                                 </a>
-                                <button
-                                  className="btn-icon wa"
-                                  title="📲 Send via WhatsApp App"
-                                  onClick={() => {
-                                    const customTpl = data?.settings?.whatsappTemplates?.['appointment'] || data?.settings?.whatsappTemplates?.['confirmation'];
-                                    const msg = appointmentCustomerMessage(a, data.settings.salon, data.settings.address || 'Surat, Gujarat', customTpl);
-                                    openWAApp(a.mobile, msg);
-                                    toast(`📲 Opening WhatsApp App for ${a.customer}…`);
-                                  }}
-                                >
-                                  <MessageCircle size={12} />
+
+                                <button className="btn-icon edit" onClick={() => openEdit(a)} title="Edit">
+                                  <Pencil size={12} />
                                 </button>
+
                                 <button className="btn-icon danger" onClick={() => setDeleteId(a.id)} title="Delete">
                                   <Trash2 size={12} />
                                 </button>

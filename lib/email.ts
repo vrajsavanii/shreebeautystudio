@@ -44,31 +44,59 @@ export const DEFAULT_SENDER_EMAIL = SENDER_EMAILS.appointments;
 export const DEFAULT_REPLY_TO = 'shreebeauty.studio22@gmail.com';
 
 /**
+ * Normalizes any sender email to strictly have the studio display name "Shree Beauty Studio".
+ * Guaranteed to never display raw email addresses (appo...@shreebeauty.studio) or personal names.
+ */
+export function formatStudioSender(rawEmail?: string, type?: string): string {
+  const STUDIO_NAME = 'Shree Beauty Studio';
+  const normalized = (type || '').toLowerCase().trim();
+
+  let targetEmail = 'appointments@shreebeauty.studio';
+  if (normalized === 'invoice' || normalized === 'billing' || normalized === 'receipt') {
+    targetEmail = 'billing@shreebeauty.studio';
+  } else if (normalized === 'milestone' || normalized === 'marketing' || normalized === 'offer' || normalized === 'contact') {
+    targetEmail = 'contact@shreebeauty.studio';
+  }
+
+  const candidate = (rawEmail || '').trim();
+  if (candidate) {
+    const match = candidate.match(/<([^>]+)>/) || candidate.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    if (match && match[1]) {
+      const emailOnly = match[1].trim();
+      if (emailOnly.includes('shreebeauty.studio')) {
+        return `${STUDIO_NAME} <${emailOnly}>`;
+      }
+    }
+  }
+
+  return `${STUDIO_NAME} <${targetEmail}>`;
+}
+
+/**
  * Returns the professional "From" address for a specific email category.
- * Appointments -> appointments@shreebeauty.studio
- * Billing/Invoices -> billing@shreebeauty.studio
- * Milestones/Offers -> contact@shreebeauty.studio
+ * Appointments -> Shree Beauty Studio <appointments@shreebeauty.studio>
+ * Billing/Invoices -> Shree Beauty Studio <billing@shreebeauty.studio>
+ * Milestones/Offers -> Shree Beauty Studio <contact@shreebeauty.studio>
  */
 export function getSenderEmailForType(type?: string, customFrom?: string): string {
-  if (customFrom?.trim()) return customFrom.trim();
   const normalized = (type || '').toLowerCase().trim();
-  if (normalized === 'invoice' || normalized === 'billing' || normalized === 'receipt') {
-    return process.env.RESEND_BILLING_EMAIL?.trim() || SENDER_EMAILS.billing;
-  }
-  if (normalized === 'confirmation' || normalized === 'reminder' || normalized === 'appointment' || normalized === 'booking') {
-    return process.env.RESEND_APPOINTMENTS_EMAIL?.trim() || process.env.RESEND_APPOINTMENT_EMAIL?.trim() || SENDER_EMAILS.appointments;
-  }
-  if (normalized === 'milestone' || normalized === 'marketing' || normalized === 'offer' || normalized === 'contact') {
-    return process.env.RESEND_CONTACT_EMAIL?.trim() || SENDER_EMAILS.contact;
-  }
-  return process.env.RESEND_FROM_EMAIL?.trim() || DEFAULT_SENDER_EMAIL;
+  const raw =
+    customFrom?.trim() ||
+    ((normalized === 'invoice' || normalized === 'billing' || normalized === 'receipt')
+      ? process.env.RESEND_BILLING_EMAIL?.trim()
+      : (normalized === 'confirmation' || normalized === 'reminder' || normalized === 'appointment' || normalized === 'booking')
+      ? (process.env.RESEND_APPOINTMENTS_EMAIL?.trim() || process.env.RESEND_APPOINTMENT_EMAIL?.trim())
+      : (normalized === 'milestone' || normalized === 'contact' || normalized === 'marketing')
+      ? process.env.RESEND_CONTACT_EMAIL?.trim()
+      : process.env.RESEND_FROM_EMAIL?.trim());
+  return formatStudioSender(raw, type);
 }
 
 /**
  * Returns the default "From" address for email dispatch.
  */
 export function getDefaultFromEmail(customFrom?: string, type?: string): string {
-  return getSenderEmailForType(type, customFrom);
+  return formatStudioSender(customFrom, type);
 }
 
 /**
@@ -80,6 +108,7 @@ export async function sendResendEmail({
   html,
   text,
   from,
+  type,
   replyTo,
   apiKey,
 }: {
@@ -88,6 +117,7 @@ export async function sendResendEmail({
   html: string;
   text?: string;
   from?: string;
+  type?: string;
   replyTo?: string;
   apiKey?: string;
 }): Promise<EmailSendResult> {
@@ -99,7 +129,7 @@ export async function sendResendEmail({
     };
   }
 
-  const sender = getDefaultFromEmail(from);
+  const sender = formatStudioSender(from, type);
   const recipients = Array.isArray(to) ? to : [to];
   const replyToAddress = replyTo?.trim() || process.env.RESEND_REPLY_TO?.trim() || DEFAULT_REPLY_TO;
 
@@ -214,6 +244,7 @@ export async function sendUniversalEmail({
   subject,
   html,
   text,
+  type,
   replyTo,
   settings,
 }: {
@@ -221,11 +252,13 @@ export async function sendUniversalEmail({
   subject: string;
   html: string;
   text?: string;
+  type?: string;
   replyTo?: string;
   settings?: any;
 }): Promise<EmailSendResult> {
   const apiKey = settings?.resendApiKey || process.env.RESEND_API_KEY;
   const replyToAddress = replyTo?.trim() || DEFAULT_REPLY_TO;
+  const fromAddress = formatStudioSender(settings?.resendFromEmail || process.env.RESEND_FROM_EMAIL, type);
 
   if (apiKey) {
     const resendRes = await sendResendEmail({
@@ -233,7 +266,8 @@ export async function sendUniversalEmail({
       subject,
       html,
       text,
-      from: settings?.resendFromEmail || process.env.RESEND_FROM_EMAIL,
+      from: fromAddress,
+      type,
       replyTo: replyToAddress,
       apiKey,
     });

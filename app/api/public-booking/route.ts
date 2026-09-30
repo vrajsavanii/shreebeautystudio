@@ -5,7 +5,7 @@ import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
 import { uid, todayISO, isPastTimeForDate } from '@/lib/utils';
 import { sendDirectWhatsAppMessage, sendWhatsAppTemplateMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage, bridalMessage, appointmentStaffMessage } from '@/lib/whatsapp';
-import { sendUniversalEmail, renderAppointmentConfirmationHtml } from '@/lib/email';
+import { sendUniversalEmail, renderAppointmentConfirmationHtml, renderBookingPendingHtml } from '@/lib/email';
 import { autoSyncAppointmentToGoogleCalendar, autoSyncBridalToGoogleCalendar } from '@/lib/google-calendar-server';
 
 export const dynamic = 'force-dynamic';
@@ -291,16 +291,24 @@ export async function POST(request: Request) {
         const bookingDate = newAppointment.date || newBridal?.weddingDate || '';
         const bookingTime = newAppointment.time || '10:00 AM';
 
-        const emailHtml = renderAppointmentConfirmationHtml({
-          customerName,
-          service: serviceTitle,
-          staff: staffTitle,
-          date: bookingDate,
-          time: bookingTime,
-          price: newAppointment.price || newBridal?.package,
-          address,
-          salonName: salon,
-        });
+        const emailHtml = isPending
+          ? renderBookingPendingHtml({
+              customerName,
+              service: serviceTitle,
+              date: bookingDate,
+              time: bookingTime,
+              salonName: salon,
+            })
+          : renderAppointmentConfirmationHtml({
+              customerName,
+              service: serviceTitle,
+              staff: staffTitle,
+              date: bookingDate,
+              time: bookingTime,
+              price: newAppointment.price || newBridal?.package,
+              address,
+              salonName: salon,
+            });
 
         emailResult = await sendUniversalEmail({
           to: email,
@@ -316,17 +324,19 @@ export async function POST(request: Request) {
       }
     }
 
-    // 9. Auto-sync directly to Google Calendar in the Cloud
+    // 9. Auto-sync directly to Google Calendar in the Cloud (active when confirmed)
     let calendarSyncResult: any = null;
-    try {
-      if (type === 'bridal' && newBridal) {
-        calendarSyncResult = await autoSyncBridalToGoogleCalendar(newBridal, updatedData.settings);
-      } else {
-        calendarSyncResult = await autoSyncAppointmentToGoogleCalendar(newAppointment, updatedData.settings);
+    if (!isPending) {
+      try {
+        if (type === 'bridal' && newBridal) {
+          calendarSyncResult = await autoSyncBridalToGoogleCalendar(newBridal, updatedData.settings);
+        } else {
+          calendarSyncResult = await autoSyncAppointmentToGoogleCalendar(newAppointment, updatedData.settings);
+        }
+        console.log('[Public Booking Google Calendar Auto-Sync]:', calendarSyncResult);
+      } catch (err: any) {
+        console.warn('[Public Booking Google Calendar Auto-Sync Error]:', err?.message);
       }
-      console.log('[Public Booking Google Calendar Auto-Sync]:', calendarSyncResult);
-    } catch (err: any) {
-      console.warn('[Public Booking Google Calendar Auto-Sync Error]:', err?.message);
     }
 
     return NextResponse.json({

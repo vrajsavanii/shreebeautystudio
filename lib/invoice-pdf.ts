@@ -497,6 +497,35 @@ export async function sendInvoicePDFViaWhatsApp(
 /**
  * Build rich WhatsApp text for an invoice, including a 1-click link to view/download the official PDF online.
  */
+/**
+ * Caption text accompanying PDF documents. Keeps the message clean, brief, and dignified without
+ * redundant service line duplication since the full itemized breakdown is already in the PDF itself.
+ */
+export function buildInvoicePDFShareCaption(inv: Invoice, salonData?: SalonData): string {
+  const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
+  const salonAddress = salonData?.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat';
+  const totalAmt = Number(inv.total || 0);
+  const balanceDue = Number(
+    inv.balance !== undefined ? inv.balance : Math.max(0, totalAmt - Number(inv.advance || 0) - Number(inv.paid || 0))
+  );
+
+  return `✨ *${salon.toUpperCase()}* ✨
+🧾 *Official Invoice Receipt #${inv.no}*
+
+Dear *${inv.customer || 'Valued Customer'}*,
+Thank you for visiting ${salon}! 💖
+
+📄 Your official tax invoice document is attached below.
+💰 *Total Amount:* ₹${totalAmt.toLocaleString('en-IN')}
+${balanceDue > 0 ? `⚠️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')}\n` : '✅ *Payment Status:* Paid in Full\n'}
+📍 *Studio:* ${salonAddress}
+📞 *Contact:* +91 97732 40010
+Have a wonderful day! 🙏✨`;
+}
+
+/**
+ * Build rich WhatsApp text for an invoice, including a 1-click link to view/download the official PDF online.
+ */
 export function buildPublicInvoiceMessage(inv: Invoice, salonData?: SalonData): string {
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
   const salonAddress =
@@ -513,7 +542,7 @@ export function buildPublicInvoiceMessage(inv: Invoice, salonData?: SalonData): 
   const linesList = (inv.lines || [])
     .map(
       (l: any) =>
-        `• ${cleanServiceNameForBill(l.name)} (${l.qty || 1}x) : ₹${Number(
+        `• *${cleanServiceNameForBill(l.name)}* (${l.qty || 1}x) — ₹${Number(
           l.price * (l.qty || 1)
         ).toLocaleString('en-IN')}`
     )
@@ -525,29 +554,29 @@ export function buildPublicInvoiceMessage(inv: Invoice, salonData?: SalonData): 
       : 'https://shreebeauty.studio';
   const publicPdfUrl = `${origin}/invoice/view?no=${encodeURIComponent(inv.no || 'INV-1001')}`;
 
-  return `✨ *${salon.toUpperCase()} — INVOICE #${inv.no}* ✨
+  return `✨ *${salon.toUpperCase()}* ✨
+🧾 *OFFICIAL INVOICE #${inv.no}*
 ────────────────────────────
-Dear ${inv.customer || 'Customer'},
+Dear *${inv.customer || 'Valued Customer'}*,
 Thank you for visiting ${salon}! 💖
 
-📄 *Invoice No:* ${inv.no}
 📅 *Date:* ${formatIndianDate(inv.date)}
 💳 *Payment Mode:* ${inv.mode || 'Cash'}
 
-*Services & Items:*
+💅 *Services & Treatments:*
 ${linesList || '• Salon Service'}
 
 ────────────────────────────
-*Total Bill:* ₹${totalAmt.toLocaleString('en-IN')}
-*Amount Paid:* ₹${(paymentPaid + advanceAmt).toLocaleString('en-IN')}
-*Balance Due:* ₹${balanceDue.toLocaleString('en-IN')}
+💰 *Total Bill:* ₹${totalAmt.toLocaleString('en-IN')}
+💵 *Amount Paid:* ₹${(paymentPaid + advanceAmt).toLocaleString('en-IN')}
+${balanceDue > 0 ? `⚠️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')}` : '✅ *Payment Status:* Paid in Full'}
 ────────────────────────────
 
-📄 *Download / View Official PDF Bill:*
+📄 *Download / View PDF Bill:*
 👉 ${publicPdfUrl}
 
-📍 ${salonAddress}
-📞 +91 97732 40010
+📍 *Location:* ${salonAddress}
+📞 *Contact:* +91 97732 40010
 Have a wonderful day! 🙏✨`;
 }
 
@@ -567,6 +596,7 @@ export async function shareInvoicePDFViaDirectWhatsApp(
 }> {
   const cleanMobile = (inv.mobile || '').replace(/\D/g, '').slice(-10);
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
+  const pdfCaption = buildInvoicePDFShareCaption(inv, salonData);
   const messageText = buildPublicInvoiceMessage(inv, salonData);
 
   try {
@@ -586,7 +616,7 @@ export async function shareInvoicePDFViaDirectWhatsApp(
           await navigator.share({
             files: [pdfFile],
             title: `${salon} Invoice #${inv.no}`,
-            text: messageText,
+            text: pdfCaption,
           });
           return {
             success: true,
