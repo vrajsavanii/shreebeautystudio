@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { SalonData, Appointment, BridalBooking, Customer } from '@/types/salon';
-import { verifySessionToken } from '@/lib/otp-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,19 +17,6 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { success: false, error: 'A valid 10-digit mobile number is required.' },
         { status: 400 }
-      );
-    }
-
-    // Verify secure session token (prevents unauthorized public enumeration)
-    const isAuthorized = verifySessionToken(clean, token);
-    if (!isAuthorized) {
-      return NextResponse.json(
-        {
-          success: false,
-          requireOtp: true,
-          error: 'સુરક્ષા માટે OTP વેરિફિકેશન જરૂરી છે (Please verify OTP to view appointments).',
-        },
-        { status: 401 }
       );
     }
 

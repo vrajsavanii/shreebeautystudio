@@ -1,27 +1,26 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone,
-  ShieldCheck,
   Calendar,
   Clock,
-  User,
   Sparkles,
   AlertCircle,
   CheckCircle2,
-  Lock,
+  Search,
   ArrowRight,
   RotateCcw,
-  LogOut,
-  Send,
-  MessageCircle,
+  Loader2,
+  CalendarCheck,
+  MapPin,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
+import { useCustomerAuth } from '@/lib/customer-context';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 15 },
@@ -31,76 +30,20 @@ const fadeUp = {
 function MyAppointmentsView() {
   const searchParams = useSearchParams();
   const { data } = useSalonStore();
+  const { customer, authenticated } = useCustomerAuth();
 
-  // Multi-step flow: 'phone' -> 'otp' -> 'verified'
-  const [step, setStep] = useState<'phone' | 'otp' | 'verified'>('phone');
   const [mobile, setMobile] = useState('');
-  const [maskedMobile, setMaskedMobile] = useState('');
-  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '']);
-  const [authToken, setAuthToken] = useState<string>('');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searched, setSearched] = useState(false);
   const [matches, setMatches] = useState<any[]>([]);
   const [customerName, setCustomerName] = useState('');
 
-  // Resend Timer
-  const [timer, setTimer] = useState(45);
-  const [canResend, setCanResend] = useState(false);
-  const [fallbackWaUrl, setFallbackWaUrl] = useState('');
-
-  const otpInputRefs = [
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null),
-  ];
-
-  // Timer countdown
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (step === 'otp' && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => {
-          if (prev <= 1) {
-            setCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [step, timer]);
-
-  // Check existing session in sessionStorage
-  useEffect(() => {
-    const savedToken = sessionStorage.getItem('shree_appt_token');
-    const savedMobile = sessionStorage.getItem('shree_appt_mobile');
-    if (savedToken && savedMobile && savedMobile.length === 10) {
-      setMobile(savedMobile);
-      setAuthToken(savedToken);
-      fetchVerifiedAppointments(savedMobile, savedToken);
-    }
-  }, []);
-
-  // Check URL params for mobile
-  useEffect(() => {
-    const paramMobile = searchParams.get('mobile');
-    if (paramMobile && step === 'phone') {
-      const clean = paramMobile.replace(/\D/g, '').slice(-10);
-      if (clean.length === 10) {
-        setMobile(clean);
-      }
-    }
-  }, [searchParams, step]);
-
-  // Step 1: Send OTP
-  const handleSendOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const clean = mobile.replace(/\D/g, '').slice(-10);
+  // Fetch appointments for a mobile number (direct lookup, no OTP)
+  const fetchAppointments = useCallback(async (targetMobile: string) => {
+    const clean = targetMobile.replace(/\D/g, '').slice(-10);
     if (clean.length !== 10) {
-      setError('કૃપા કરીને માન્ય ૧૦ આંકડાનો મોબાઈલ નંબર નાખો.');
+      setError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
@@ -108,138 +51,14 @@ function MyAppointmentsView() {
     setError('');
 
     try {
-      const res = await fetch('/api/my-appointments/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: clean }),
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        setError(json.error || 'OTP મોકલવામાં નિષ્ફળતા. કૃપા કરીને ફરી પ્રયાસ કરો.');
-        return;
-      }
-
-      setMaskedMobile(json.maskedMobile || `+91 ${clean.slice(0, 5)} ***${clean.slice(-2)}`);
-      if (json.fallbackWaUrl) setFallbackWaUrl(json.fallbackWaUrl);
-      setStep('otp');
-      setTimer(45);
-      setCanResend(false);
-      setOtpDigits(['', '', '', '']);
-
-      // Focus first OTP box
-      setTimeout(() => {
-        otpInputRefs[0].current?.focus();
-      }, 150);
-    } catch {
-      setError('સર્વર કનેક્શનમાં ભૂલ આવી. ફરી પ્રયાસ કરો.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 2: Handle OTP input changes
-  const handleOtpChange = (index: number, val: string) => {
-    const digit = val.replace(/\D/g, '').slice(-1);
-    const nextDigits = [...otpDigits];
-    nextDigits[index] = digit;
-    setOtpDigits(nextDigits);
-
-    if (digit && index < 3) {
-      otpInputRefs[index + 1].current?.focus();
-    }
-
-    // Auto submit if all 4 digits entered
-    if (digit && index === 3 && nextDigits.every((d) => d !== '')) {
-      handleVerifyOtp(nextDigits.join(''));
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
-      otpInputRefs[index - 1].current?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 4);
-    if (!pasted) return;
-
-    const nextDigits = ['', '', '', ''];
-    for (let i = 0; i < pasted.length; i++) {
-      nextDigits[i] = pasted[i];
-    }
-    setOtpDigits(nextDigits);
-
-    if (pasted.length === 4) {
-      handleVerifyOtp(pasted);
-    } else {
-      otpInputRefs[Math.min(pasted.length, 3)].current?.focus();
-    }
-  };
-
-  // Step 2: Verify OTP
-  const handleVerifyOtp = async (codeToVerify?: string) => {
-    const code = codeToVerify || otpDigits.join('');
-    const clean = mobile.replace(/\D/g, '').slice(-10);
-
-    if (code.length !== 4) {
-      setError('કૃપા કરીને પૂરો ૪ આંકડાનો OTP દાખલ કરો.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/my-appointments/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: clean, otp: code }),
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        setError(json.error || 'અમાન્ય OTP. કૃપા કરીને ફરીથી તપાસો.');
-        return;
-      }
-
-      const token = json.token;
-      setAuthToken(token);
-      sessionStorage.setItem('shree_appt_token', token);
-      sessionStorage.setItem('shree_appt_mobile', clean);
-
-      await fetchVerifiedAppointments(clean, token);
-    } catch {
-      setError('ચકાસણી દરમિયાન સર્વર કનેક્શનમાં ભૂલ આવી.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 3: Fetch verified appointments using HMAC session token
-  const fetchVerifiedAppointments = async (cleanNum: string, token: string) => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch(`/api/my-appointments?mobile=${cleanNum}&token=${token}`);
+      const res = await fetch(`/api/my-appointments?mobile=${clean}`);
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        if (json.requireOtp) {
-          sessionStorage.removeItem('shree_appt_token');
-          sessionStorage.removeItem('shree_appt_mobile');
-          setStep('phone');
-          setError('તમારી સિક્યોરિટી સેશન સમય સમાપ્ત થયો છે. કૃપા કરીને નવો OTP મેળવો.');
-          return;
-        }
-        setError(json.error || 'એપોઇન્ટમેન્ટ્સ લોડ કરવામાં ભૂલ આવી.');
+        setError(json.error || 'Failed to load appointments. Please try again.');
         return;
       }
 
-      // Merge appointments and bridal
       const appts = json.appointments || [];
       const bridal = (json.bridal || []).map((b: any) => ({
         id: b.id,
@@ -249,13 +68,14 @@ function MyAppointmentsView() {
         mobile: b.mobile,
         service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
         advance: b.advance || 0,
-        price: b.totalAmount || b.price || 0,
+        price: b.totalAmount || b.package || b.price || 0,
         status: b.status || 'Confirmed',
         notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
       }));
 
       const all = [...appts, ...bridal].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
       setMatches(all);
+      setSearched(true);
 
       if (json.customer?.name) {
         setCustomerName(json.customer.name);
@@ -265,46 +85,67 @@ function MyAppointmentsView() {
         setCustomerName('');
       }
 
-      setStep('verified');
+      sessionStorage.setItem('shree_appt_mobile', clean);
     } catch {
-      setError('એપોઇન્ટમેન્ટ્સ લોડ કરવામાં ભૂલ આવી.');
+      setError('Network error while fetching appointments.');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Pre-fill and auto-search if logged in or URL param or sessionStorage
+  useEffect(() => {
+    const paramMobile = searchParams.get('mobile');
+    const savedMobile = typeof window !== 'undefined' ? sessionStorage.getItem('shree_appt_mobile') : null;
+    const authMobile = customer?.phone;
+
+    const initialMobile = paramMobile || authMobile || savedMobile || '';
+    const clean = initialMobile.replace(/\D/g, '').slice(-10);
+
+    if (clean.length === 10) {
+      setMobile(clean);
+      fetchAppointments(clean);
+    }
+  }, [searchParams, customer, fetchAppointments]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchAppointments(mobile);
   };
 
-  // Logout / Lock
-  const handleLogout = () => {
-    sessionStorage.removeItem('shree_appt_token');
-    sessionStorage.removeItem('shree_appt_mobile');
-    setAuthToken('');
+  const handleResetSearch = () => {
+    setSearched(false);
     setMatches([]);
-    setCustomerName('');
-    setStep('phone');
-    setOtpDigits(['', '', '', '']);
     setError('');
+    sessionStorage.removeItem('shree_appt_mobile');
   };
 
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 20px 80px' }}>
-      {/* Header Badge */}
+    <div
+      style={{
+        maxWidth: 860,
+        margin: '0 auto',
+        padding: 'clamp(24px, 4vw, 48px) 16px 80px',
+        fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
+      }}
+    >
+      {/* Page Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <span
-          className="cust-section-badge"
           style={{
-            background: 'rgba(5,66,74,0.08)',
-            color: '#05424A',
-            border: '1px solid rgba(5,66,74,0.2)',
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
+            background: 'rgba(234, 186, 56, 0.12)',
+            color: '#05424A',
+            border: '1px solid rgba(234, 186, 56, 0.3)',
             padding: '6px 16px',
             borderRadius: 99,
             fontSize: 12.5,
             fontWeight: 700,
           }}
         >
-          <ShieldCheck size={14} color="#05424A" /> 100% Secure Client Portal
+          <CalendarCheck size={14} color="#05424A" /> Direct Client Appointment Tracker
         </span>
         <h1
           style={{
@@ -318,15 +159,15 @@ function MyAppointmentsView() {
           My Salon Appointments &amp; Bridal Bookings
         </h1>
         <p style={{ fontSize: 14.5, color: '#64748b', margin: 0, maxWidth: 580, marginInline: 'auto' }}>
-          તમારી સુરક્ષા અને પ્રાઇવસી માટે OTP વેરિફિકેશન દ્વારા એપોઇન્ટમેન્ટ્સ, સર્વિસિસ અને બુકિંગ હિસ્ટ્રી સુરક્ષિત જુઓ.
+          Enter your 10-digit mobile number to instantly view your upcoming salon appointments, bridal bookings &amp; service passes.
         </p>
       </div>
 
       <AnimatePresence mode="wait">
-        {/* ─── STEP 1: ENTER MOBILE NUMBER ─── */}
-        {step === 'phone' && (
+        {/* ─── Search Form (When not searched or user wants to search another) ─── */}
+        {!searched ? (
           <motion.div
-            key="phone-step"
+            key="search-box"
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -336,7 +177,7 @@ function MyAppointmentsView() {
               borderRadius: 22,
               border: '1px solid #e2e8f0',
               padding: '32px 28px',
-              boxShadow: '0 8px 30px rgba(5,66,74,0.05)',
+              boxShadow: '0 8px 30px rgba(5,66,74,0.06)',
               maxWidth: 540,
               margin: '0 auto',
             }}
@@ -354,19 +195,19 @@ function MyAppointmentsView() {
                   color: '#05424A',
                 }}
               >
-                <Lock size={22} />
+                <Phone size={22} />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
-                  મોબાઈલ વેરિફિકેશન (Mobile OTP)
+                  Look Up Your Bookings
                 </h3>
                 <p style={{ margin: '2px 0 0', fontSize: 13, color: '#64748b' }}>
-                  તમારો રજિસ્ટર્ડ ૧૦ આંકડાનો મોબાઈલ નંબર દાખલ કરો
+                  No OTP required — instant appointment lookup
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleSendOtp}>
+            <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: 18 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
                   Mobile Number (મોબાઈલ નંબર)
@@ -407,6 +248,7 @@ function MyAppointmentsView() {
                       letterSpacing: '0.04em',
                       outline: 'none',
                       transition: 'border-color 0.2s ease',
+                      boxSizing: 'border-box',
                     }}
                     onFocus={(e) => (e.target.style.borderColor = '#05424A')}
                     onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
@@ -457,11 +299,14 @@ function MyAppointmentsView() {
                 }}
               >
                 {loading ? (
-                  <span>ઓટીપી મોકલાઈ રહ્યો છે...</span>
+                  <>
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Searching appointments…</span>
+                  </>
                 ) : (
                   <>
-                    <Send size={16} />
-                    <span>Send Secure OTP (ઓટીપી મેળવો)</span>
+                    <Search size={16} color="#EABA38" />
+                    <span>View My Appointments</span>
                   </>
                 )}
               </button>
@@ -480,191 +325,20 @@ function MyAppointmentsView() {
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={13} color="#16a34a" /> 100% Private
+                <CheckCircle2 size={13} color="#16a34a" /> Instant 1-Click Search
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={13} color="#16a34a" /> WhatsApp Delivery
+                <CheckCircle2 size={13} color="#16a34a" /> Google Calendar Sync
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={13} color="#16a34a" /> Fast 1-Click Sync
+                <CheckCircle2 size={13} color="#16a34a" /> Free Appointment Passes
               </span>
             </div>
           </motion.div>
-        )}
-
-        {/* ─── STEP 2: ENTER OTP ─── */}
-        {step === 'otp' && (
+        ) : (
+          /* ─── Appointments Results Dashboard ─── */
           <motion.div
-            key="otp-step"
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            style={{
-              background: '#ffffff',
-              borderRadius: 22,
-              border: '1px solid #e2e8f0',
-              padding: '32px 28px',
-              boxShadow: '0 8px 30px rgba(5,66,74,0.05)',
-              maxWidth: 540,
-              margin: '0 auto',
-              textAlign: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: '50%',
-                background: '#f0fdf4',
-                color: '#16a34a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                border: '1px solid #bbf7d0',
-              }}
-            >
-              <ShieldCheck size={26} />
-            </div>
-
-            <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: '#0f172a' }}>
-              OTP દાખલ કરો (Enter 4-Digit OTP)
-            </h3>
-            <p style={{ margin: '0 0 20px', fontSize: 13.5, color: '#64748b' }}>
-              સુરક્ષા કોડ <strong>{maskedMobile}</strong> પર મોકલવામાં આવ્યો છે.
-            </p>
-
-            {/* 4 Box OTP Input */}
-            <div
-              style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}
-              onPaste={handleOtpPaste}
-            >
-              {otpDigits.map((digit, idx) => (
-                <input
-                  key={idx}
-                  ref={otpInputRefs[idx]}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                  style={{
-                    width: 54,
-                    height: 60,
-                    borderRadius: 14,
-                    border: digit ? '2px solid #05424A' : '1.5px solid #cbd5e1',
-                    background: digit ? '#f8fafc' : '#ffffff',
-                    fontSize: 24,
-                    fontWeight: 800,
-                    textAlign: 'center',
-                    color: '#0f172a',
-                    outline: 'none',
-                    boxShadow: digit ? '0 2px 8px rgba(5,66,74,0.1)' : 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                />
-              ))}
-            </div>
-
-            {error && (
-              <div
-                style={{
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  borderRadius: 10,
-                  padding: '10px 14px',
-                  color: '#b91c1c',
-                  fontSize: 13,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  marginBottom: 18,
-                  textAlign: 'left',
-                }}
-              >
-                <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => handleVerifyOtp()}
-              disabled={loading || otpDigits.some((d) => d === '')}
-              style={{
-                width: '100%',
-                padding: '14px 20px',
-                borderRadius: 14,
-                background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: 15,
-                border: 'none',
-                cursor: loading || otpDigits.some((d) => d === '') ? 'not-allowed' : 'pointer',
-                opacity: loading || otpDigits.some((d) => d === '') ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                boxShadow: '0 4px 14px rgba(5,66,74,0.25)',
-                marginBottom: 16,
-              }}
-            >
-              {loading ? (
-                <span>વેરિફાઈ થઈ રહ્યું છે...</span>
-              ) : (
-                <>
-                  <CheckCircle2 size={17} />
-                  <span>Verify &amp; View Bookings (વેરિફાઈ કરો)</span>
-                </>
-              )}
-            </button>
-
-            {/* Resend OTP / Change Mobile */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13, color: '#64748b' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('phone');
-                  setError('');
-                }}
-                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-              >
-                Change Number (નંબર બદલો)
-              </button>
-
-              {canResend ? (
-                <button
-                  type="button"
-                  onClick={() => handleSendOtp()}
-                  disabled={loading}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#05424A',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <RotateCcw size={13} />
-                  <span>Resend OTP (ફરી મોકલો)</span>
-                </button>
-              ) : (
-                <span>Resend in {timer}s</span>
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* ─── STEP 3: VERIFIED APPOINTMENTS DASHBOARD ─── */}
-        {step === 'verified' && (
-          <motion.div
-            key="verified-step"
+            key="results-dashboard"
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -689,8 +363,8 @@ function MyAppointmentsView() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div
                   style={{
-                    width: 40,
-                    height: 40,
+                    width: 44,
+                    height: 44,
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
                     color: '#EABA38',
@@ -698,7 +372,7 @@ function MyAppointmentsView() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 800,
-                    fontSize: 16,
+                    fontSize: 17,
                   }}
                 >
                   {customerName ? customerName.charAt(0).toUpperCase() : 'S'}
@@ -707,14 +381,39 @@ function MyAppointmentsView() {
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
                     {customerName ? customerName : 'Shree Beauty Client'} ✨
                   </div>
-                  <div style={{ fontSize: 12, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
-                    <ShieldCheck size={13} />
-                    <span>Verified Mobile: +91 {mobile}</span>
+                  <div style={{ fontSize: 12.5, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                    <Phone size={13} color="#05424A" />
+                    <span>Mobile: +91 {mobile}</span>
+                    <span style={{ color: '#cbd5e1', margin: '0 4px' }}>·</span>
+                    <span style={{ color: '#05424A', fontWeight: 700 }}>
+                      {matches.length} {matches.length === 1 ? 'Booking' : 'Bookings'} Found
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleResetSearch}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#f8fafc',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    padding: '8px 14px',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <RotateCcw size={13} />
+                  <span>Check Another Number</span>
+                </button>
+
                 <Link
                   href="/book"
                   style={{
@@ -728,32 +427,12 @@ function MyAppointmentsView() {
                     fontSize: 13,
                     fontWeight: 700,
                     textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(5,66,74,0.2)',
                   }}
                 >
                   <Sparkles size={13} color="#EABA38" />
                   <span>Book New Service</span>
                 </Link>
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: '#f1f5f9',
-                    color: '#475569',
-                    border: '1px solid #cbd5e1',
-                    padding: '8px 14px',
-                    borderRadius: 10,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <LogOut size={13} />
-                  <span>Lock &amp; Logout</span>
-                </button>
               </div>
             </div>
 
@@ -773,7 +452,7 @@ function MyAppointmentsView() {
                   No Bookings Found (કોઈ બુકિંગ મળ્યું નથી)
                 </h3>
                 <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748b' }}>
-                  આ મોબાઈલ નંબર (+91 {mobile}) હેઠળ હાલ કોઈ એપોઇન્ટમેન્ટ નોંધાયેલ નથી.
+                  No appointments were found for mobile +91 {mobile}. Would you like to schedule one now?
                 </p>
                 <Link
                   href="/book"
@@ -927,6 +606,8 @@ function MyAppointmentsView() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
