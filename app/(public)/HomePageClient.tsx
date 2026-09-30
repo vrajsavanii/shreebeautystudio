@@ -233,9 +233,9 @@ export default function PublicHomePage() {
         <div className="floating-orb floating-orb-gold" style={{ width: 550, height: 550, top: '-20%', left: '-10%', opacity: 0.35 }} />
         <div className="floating-orb floating-orb-teal" style={{ width: 600, height: 600, bottom: '-25%', right: '-10%', opacity: 0.4 }} />
 
-        <div className="cust-hero-split">
-          {/* Left Column: Editorial Copy & CTAs */}
-          <motion.div initial="hidden" animate="visible" variants={stagger} style={{ textAlign: 'left' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+          {/* Centered Hero Content */}
+          <motion.div initial="hidden" animate="visible" variants={stagger} style={{ textAlign: 'center' }}>
             <motion.div variants={fadeUp} className="cust-hero-badge-pill">
               <Sparkles size={14} color="#D4AF37" />
               <span>Katargam, Surat · 25+ Years of Mastery</span>
@@ -264,8 +264,8 @@ export default function PublicHomePage() {
                 fontSize: 'clamp(15px, 1.8vw, 17.5px)',
                 lineHeight: 1.65,
                 color: 'rgba(255, 255, 255, 0.86)',
-                maxWidth: 580,
-                margin: '0 0 32px',
+                maxWidth: 620,
+                margin: '0 auto 32px',
               }}
             >
               Step into Surat&apos;s premier salon sanctuary. Indulge in bespoke bridal couture makeovers,
@@ -275,7 +275,7 @@ export default function PublicHomePage() {
 
             <motion.div
               variants={fadeUp}
-              style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 36 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 36 }}
             >
               <Link href="/book" className="cust-btn-primary btn-glow">
                 <Calendar size={16} />
@@ -316,6 +316,7 @@ export default function PublicHomePage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: 20,
                 flexWrap: 'wrap',
                 fontSize: 12.5,
