@@ -65,8 +65,181 @@ function ServicesView() {
     return list;
   }, [services, search, activeCategory, sortBy]);
 
+  // Salon background images for page ambiance
+  const salonBgImages = [
+    '/studio-bg/salon-bg-1.webp',
+    '/studio-bg/salon-bg-2.webp',
+    '/studio-bg/salon-bg-3.webp',
+    '/studio-bg/salon-bg-4.webp',
+    '/studio-bg/salon-bg-5.webp',
+  ];
+  const [bgIndex, setBgIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % salonBgImages.length);
+    }, 8000);
+    return () => clearInterval(timer);
+  }, [salonBgImages.length]);
+
   return (
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '40px 20px 80px' }}>
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Full-page salon background */}
+      {salonBgImages.map((src, i) => (
+        <div
+          key={src}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 0,
+            backgroundImage: `url(${src})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
+            opacity: bgIndex === i ? 1 : 0,
+            transition: 'opacity 2s ease-in-out',
+            willChange: 'opacity',
+          }}
+        />
+      ))}
+      {/* Overlay for readability */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(245,248,250,0.92) 30%, rgba(240,245,247,0.95) 70%, rgba(255,255,255,0.97) 100%)',
+          backdropFilter: 'blur(2px)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* ─── Hero Banner with Salon Interior ─── */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          margin: '0 auto',
+          maxWidth: 1320,
+          padding: '20px 20px 0',
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          style={{
+            position: 'relative',
+            borderRadius: 28,
+            overflow: 'hidden',
+            height: 'clamp(200px, 32vw, 340px)',
+            boxShadow: '0 12px 48px rgba(5,66,74,0.2), 0 2px 8px rgba(0,0,0,0.08)',
+          }}
+        >
+          {/* Carousel of salon backgrounds */}
+          {salonBgImages.map((src, i) => (
+            <div
+              key={`hero-${src}`}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url(${src})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center 40%',
+                opacity: bgIndex === i ? 1 : 0,
+                transition: 'opacity 2s ease-in-out',
+              }}
+            />
+          ))}
+          {/* Gradient Overlay */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(135deg, rgba(3,43,48,0.78) 0%, rgba(5,66,74,0.55) 50%, rgba(3,43,48,0.72) 100%)',
+            }}
+          />
+          {/* Hero Content */}
+          <div
+            style={{
+              position: 'relative',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'column',
+              padding: '24px 32px',
+              textAlign: 'center',
+              zIndex: 1,
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'rgba(234,186,56,0.2)',
+                border: '1px solid rgba(234,186,56,0.5)',
+                borderRadius: 99,
+                padding: '5px 16px',
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#EABA38',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                marginBottom: 14,
+              }}
+            >
+              <Sparkles size={13} /> Our Salon Interior
+            </span>
+            <h2
+              className="display-font"
+              style={{
+                fontSize: 'clamp(22px, 4.5vw, 38px)',
+                fontWeight: 800,
+                color: '#ffffff',
+                margin: '0 0 8px',
+                textShadow: '0 2px 12px rgba(0,0,0,0.3)',
+              }}
+            >
+              Welcome to Shree Beauty Studio
+            </h2>
+            <p
+              style={{
+                fontSize: 'clamp(13px, 2vw, 15px)',
+                color: 'rgba(255,255,255,0.85)',
+                maxWidth: 520,
+                margin: 0,
+                lineHeight: 1.6,
+              }}
+            >
+              Experience luxury treatments in our beautifully designed salon — crafted for your comfort
+            </p>
+            {/* Navigation dots */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+              {salonBgImages.map((_, i) => (
+                <button
+                  key={`dot-${i}`}
+                  type="button"
+                  onClick={() => setBgIndex(i)}
+                  style={{
+                    width: bgIndex === i ? 24 : 8,
+                    height: 8,
+                    borderRadius: 99,
+                    border: 'none',
+                    background: bgIndex === i ? '#EABA38' : 'rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    padding: 0,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 20px 80px', position: 'relative', zIndex: 2 }}>
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -90,12 +263,13 @@ function ServicesView() {
           style={{
             maxWidth: 820,
             margin: '0 auto',
-            background: 'linear-gradient(135deg, rgba(5,66,74,0.06) 0%, rgba(234,186,56,0.12) 100%)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(234,186,56,0.12) 100%)',
+            backdropFilter: 'blur(12px)',
             border: '1.5px solid rgba(234,186,56,0.35)',
             borderRadius: 16,
             padding: '16px 20px',
             textAlign: 'left',
-            boxShadow: '0 4px 16px rgba(5,66,74,0.04)',
+            boxShadow: '0 4px 16px rgba(5,66,74,0.08)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#05424a', fontWeight: 800, fontSize: 13.5 }}>
@@ -124,12 +298,13 @@ function ServicesView() {
       {/* Filter Bar */}
       <div
         style={{
-          background: '#ffffff',
+          background: 'rgba(255,255,255,0.88)',
+          backdropFilter: 'blur(16px)',
           borderRadius: 20,
-          border: '1px solid rgba(5,66,74,0.1)',
+          border: '1px solid rgba(5,66,74,0.12)',
           padding: '18px 20px',
           marginBottom: 32,
-          boxShadow: '0 4px 24px rgba(5,66,74,0.05), 0 1px 4px rgba(0,0,0,0.03)',
+          boxShadow: '0 8px 32px rgba(5,66,74,0.08), 0 1px 4px rgba(0,0,0,0.04)',
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
@@ -272,14 +447,15 @@ function ServicesView() {
                 variants={fadeUp}
                 initial="hidden"
                 animate="visible"
-                whileHover={{ y: -6, boxShadow: '0 20px 40px rgba(5,66,74,0.12)' }}
+                whileHover={{ y: -6, boxShadow: '0 20px 48px rgba(5,66,74,0.18)' }}
                 transition={{ duration: 0.25 }}
                 style={{
-                  background: '#ffffff',
+                  background: 'rgba(255,255,255,0.92)',
+                  backdropFilter: 'blur(12px)',
                   borderRadius: 22,
                   border: '1px solid rgba(234, 186, 56, 0.25)',
                   overflow: 'hidden',
-                  boxShadow: '0 4px 20px rgba(5,66,74,0.05)',
+                  boxShadow: '0 4px 24px rgba(5,66,74,0.08)',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
@@ -502,6 +678,7 @@ function ServicesView() {
           </Link>
         </div>
       )}
+    </div>
     </div>
   );
 }
