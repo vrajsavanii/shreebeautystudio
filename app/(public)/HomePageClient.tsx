@@ -193,26 +193,6 @@ export default function PublicHomePage() {
   // Real Studio Ambiance Showcase State
   const [activeAmbianceId, setActiveAmbianceId] = useState<string>('reception');
 
-<<<<<<< HEAD
-  // NOTE: PublicLayoutClient already fetches /api/public-data and hydrates
-  // the store — no need to fetch again here.
-
-=======
-  React.useEffect(() => {
-    fetch('/api/public-data')
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success && json.services) {
-          useSalonStore.getState().setData({
-            services: json.services,
-            settings: json.settings,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
->>>>>>> 39e67af (feat: restrict bridal packages to admin panel only and clean public site navigation)
-
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const whatsapp = settings?.whatsapp || '919773240010';
