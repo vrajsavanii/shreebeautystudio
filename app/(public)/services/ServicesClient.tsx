@@ -106,15 +106,15 @@ function ServicesView() {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#ffffff', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: 18 }}>💇‍♀️</span>
               <div>
-                <strong style={{ color: '#05424a', display: 'block' }}>Hair Services (Customized by Length):</strong>
-                Prices start from base rate and vary based on your <b>Hair Length &amp; Density</b> (Short / Shoulder / Waist).
+                <strong style={{ color: '#05424a', display: 'block' }}>Hair Services (According to Hair Length):</strong>
+                Prices start from base rate and vary according to your <b>Hair Length &amp; Density</b> (Short / Shoulder / Waist).
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#ffffff', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: 18 }}>✨</span>
               <div>
-                <strong style={{ color: '#05424a', display: 'block' }}>Skin Services (Customized by Skin Type):</strong>
-                Prices start from base rate and are customized according to your <b>Skin Type &amp; Analysis</b> (Glow / Anti-Acne / D-Tan).
+                <strong style={{ color: '#05424a', display: 'block' }}>Skin Services (According to Skin Type):</strong>
+                Prices start from base rate and vary according to your <b>Skin Type &amp; Analysis</b> (Glow / Anti-Acne / D-Tan).
               </div>
             </div>
           </div>

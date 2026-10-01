@@ -521,7 +521,7 @@ export default function PublicHomePage() {
             Luxury Beauty &amp; Starting Rates
           </h2>
           <p style={{ color: '#475569' }}>
-            From clinical skin restoration to couture hair smoothing — hair service prices are based on hair length &amp; volume, and skin services on skin type &amp; consultation.
+            From clinical skin restoration to couture hair smoothing — hair service prices are according to hair length &amp; density, and skin services according to skin type &amp; condition.
           </p>
         </div>
 

@@ -49,27 +49,27 @@ const DEFAULT_CATEGORIES = [
 
 const SALON_PRESET_PACKAGES = [
   {
-    title: '💇 Hair Care & Styling Pack (Price as per Hair Length)',
+    title: '💇 Hair Care & Styling Pack (Price According to Hair Length)',
     category: 'Hair Care & Styling',
     services: [
-      { name: 'Hair Cut & Style', price: 350, duration: 30, description: 'Starting price • Varies by short/medium/long hair length & styling' },
-      { name: 'Hair Spa Treatment', price: 850, duration: 45, description: 'Starts from • Customized deep nourishing spa mask as per hair length & density' },
-      { name: 'Keratin Smooth Treatment', price: 3500, duration: 120, description: 'Starts from • Price calculated as per hair length (Short / Medium / Long / Waist)' },
+      { name: 'Hair Cut & Style', price: 350, duration: 30, description: 'Starting price • According to hair length & styling (Short/Medium/Long)' },
+      { name: 'Hair Spa Treatment', price: 850, duration: 45, description: 'Starts from • Deep nourishing spa mask according to hair length & density' },
+      { name: 'Keratin Smooth Treatment', price: 3500, duration: 120, description: 'Starts from • Price calculated according to hair length (Short / Medium / Long / Waist)' },
       { name: 'Root Touchup / Gray Coverage', price: 1200, duration: 60, description: 'Starts from • L\'Oreal professional root color & regrowth coverage' },
-      { name: 'Global Hair Coloring', price: 2800, duration: 90, description: 'Starts from • Full length global shade as per hair length and volume' },
-      { name: 'Hair Rebonding / Smoothening', price: 4200, duration: 150, description: 'Starts from • Permanent straightening as per hair length & texture' },
+      { name: 'Global Hair Coloring', price: 2800, duration: 90, description: 'Starts from • Full length global shade according to hair length and volume' },
+      { name: 'Hair Rebonding / Smoothening', price: 4200, duration: 150, description: 'Starts from • Permanent straightening according to hair length & texture' },
     ],
   },
   {
-    title: '💆 Skin Care & Facials Pack (Customized as per Skin Type)',
+    title: '💆 Skin Care & Facials Pack (Price According to Skin Type)',
     category: 'Skin Care & Facials',
     services: [
-      { name: 'Herbal Deep Cleanup', price: 450, duration: 30, description: 'Starts from • Deep pore cleansing tailored for oily/normal/dry skin' },
-      { name: 'Fruit Glow Facial', price: 850, duration: 45, description: 'Starts from • Natural antioxidant fruit facial customized to skin condition' },
-      { name: 'Gold Radiance Facial', price: 1500, duration: 60, description: 'Starts from • 24K gold foil radiance treatment tailored to skin type' },
-      { name: 'Diamond Insta-Glow Facial', price: 2200, duration: 60, description: 'Starts from • Polishing & micro-exfoliation customized to skin sensitivity' },
-      { name: 'O3+ Advanced D-Tan Facial', price: 2500, duration: 60, description: 'Starts from • Sun tan removal & pigmentation treatment for your skin profile' },
-      { name: 'Full Face Bleach & Pack', price: 350, duration: 25, description: 'Starts from • Gentle glow bleach & soothing pack suited to skin sensitivity' },
+      { name: 'Herbal Deep Cleanup', price: 450, duration: 30, description: 'Starts from • Deep pore cleansing according to skin type & condition' },
+      { name: 'Fruit Glow Facial', price: 850, duration: 45, description: 'Starts from • Natural antioxidant fruit facial according to skin type & condition' },
+      { name: 'Gold Radiance Facial', price: 1500, duration: 60, description: 'Starts from • 24K gold foil radiance treatment according to skin type' },
+      { name: 'Diamond Insta-Glow Facial', price: 2200, duration: 60, description: 'Starts from • Polishing & micro-exfoliation according to skin sensitivity' },
+      { name: 'O3+ Advanced D-Tan Facial', price: 2500, duration: 60, description: 'Starts from • Sun tan removal & pigmentation treatment according to skin profile' },
+      { name: 'Full Face Bleach & Pack', price: 350, duration: 25, description: 'Starts from • Gentle glow bleach & soothing pack according to skin sensitivity' },
     ],
   },
   {
@@ -761,7 +761,7 @@ export default function ServicesPage() {
                         Starting Price:
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}>
-                        {basis.basis === 'hair' ? 'As per Hair Length' : basis.basis === 'skin' ? 'As per Skin Type' : 'Base Rate'}
+                        {basis.basis === 'hair' ? 'According to Hair Length' : basis.basis === 'skin' ? 'According to Skin Type' : 'Base Rate'}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -949,7 +949,7 @@ export default function ServicesPage() {
             <label className="label">
               Starting Rate / Price (₹) *
               <span className="label-hint" style={{ fontSize: 10.5, color: 'var(--teal)', marginLeft: 4 }}>
-                (Hair = length basis • Skin = skin type basis)
+                (Hair = According to Hair Length • Skin = According to Skin Type)
               </span>
             </label>
             <input

@@ -914,7 +914,7 @@ export default function PublicBookingPage() {
                     >
                       <Sparkles size={15} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
                       <div>
-                        <strong>Starting Rates Notice:</strong> Hair service prices are customized based on <b>hair length &amp; volume</b> (Short / Medium / Long / Waist), and skin treatments based on <b>skin type &amp; condition</b>.
+                        <strong>Starting Rates Notice:</strong> Hair service prices vary according to <b>hair length &amp; density</b> (Short / Medium / Long / Waist), and skin treatments vary according to <b>skin type &amp; condition</b>.
                       </div>
                     </div>
 

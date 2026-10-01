@@ -187,10 +187,10 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
       basis: 'hair',
       label: 'According to Hair Length & Density',
       badge: '💇‍♀️ According to Hair Length',
-      shortBadge: 'Hair Length Based',
-      badgeShort: 'Hair Length Based',
-      gujaratiNote: 'Price varies by hair length & density',
-      noteGuj: 'Price varies by hair length & density',
+      shortBadge: 'According to Hair Length',
+      badgeShort: 'According to Hair Length',
+      gujaratiNote: 'According to Hair Length & Density',
+      noteGuj: 'According to Hair Length & Density',
     };
   }
 
@@ -214,10 +214,10 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
       basis: 'skin',
       label: 'According to Skin Type & Condition',
       badge: '✨ According to Skin Type',
-      shortBadge: 'Skin Type Based',
-      badgeShort: 'Skin Type Based',
-      gujaratiNote: 'Price tailored to skin type & condition',
-      noteGuj: 'Price tailored to skin type & condition',
+      shortBadge: 'According to Skin Type',
+      badgeShort: 'According to Skin Type',
+      gujaratiNote: 'According to Skin Type & Condition',
+      noteGuj: 'According to Skin Type & Condition',
     };
   }
 
@@ -226,10 +226,10 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
     basis: 'general',
     label: 'Starting Price',
     badge: '🌸 Starting Rate',
-    shortBadge: 'Starting Rate',
-    badgeShort: 'Starting Rate',
-    gujaratiNote: 'Starting price',
-    noteGuj: 'Starting price',
+    shortBadge: 'Starting Price',
+    badgeShort: 'Starting Price',
+    gujaratiNote: 'According to Service Selection',
+    noteGuj: 'According to Service Selection',
   };
 }
 

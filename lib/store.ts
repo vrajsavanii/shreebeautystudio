@@ -97,7 +97,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 350,
       category: 'Hair Care & Styling',
       duration: 30,
-      description: 'Hair wash, precision cut & blowdry styling (Starting rate, according to hair length)',
+      description: 'Hair wash, precision cut & blowdry styling (Starting rate, according to hair length & styling)',
     },
     {
       id: 'mthj3pougzpyx',
@@ -105,7 +105,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 850,
       category: 'Hair Care & Styling',
       duration: 45,
-      description: 'Deep nourishing & repair hair spa mask (Starting rate, customized by hair length & texture)',
+      description: 'Deep nourishing & repair hair spa mask (Starting rate, according to hair length & density)',
     },
     {
       id: 'mthj3pouc66cv',
@@ -113,7 +113,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 3500,
       category: 'Hair Care & Styling',
       duration: 120,
-      description: 'Frizz control & long-lasting glass shine (Starting rate, priced according to hair length & volume)',
+      description: 'Frizz control & long-lasting glass shine (Starting rate, according to hair length & volume)',
     },
     {
       id: 'mthj3pouobl3b',
@@ -121,7 +121,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 1200,
       category: 'Hair Care & Styling',
       duration: 60,
-      description: "L'Oreal professional root color & gray coverage (Starting rate)",
+      description: "L'Oreal professional root color & gray coverage (Starting rate, according to hair length)",
     },
     {
       id: 'mthj3pouniuzd',
@@ -129,7 +129,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 2800,
       category: 'Hair Care & Styling',
       duration: 90,
-      description: 'Full length rich global fashion color (Starting rate, priced according to hair length & volume)',
+      description: 'Full length rich global fashion color (Starting rate, according to hair length & volume)',
     },
     {
       id: 'mthj3pou6tt7h',
@@ -137,7 +137,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 4200,
       category: 'Hair Care & Styling',
       duration: 150,
-      description: 'Permanent silk-straight smoothing (Starting rate, priced according to hair length & volume)',
+      description: 'Permanent silk-straight smoothing (Starting rate, according to hair length & volume)',
     },
     {
       id: 'mthj3pou1own7',
@@ -145,7 +145,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 450,
       category: 'Skin Care & Facials',
       duration: 30,
-      description: 'Deep pore cleansing & gentle exfoliation (Starting rate, tailored for all skin types)',
+      description: 'Deep pore cleansing & gentle exfoliation (Starting rate, according to skin type & condition)',
     },
     {
       id: 'mthj3pouyccs0',
@@ -153,7 +153,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 850,
       category: 'Skin Care & Facials',
       duration: 45,
-      description: 'Natural fruit extract glow facial (Starting rate, tailored for dehydrated & dull skin)',
+      description: 'Natural fruit extract glow facial (Starting rate, according to skin type & condition)',
     },
     {
       id: 'mthj3pou3s32d',
@@ -161,7 +161,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 1500,
       category: 'Skin Care & Facials',
       duration: 60,
-      description: '24K gold foil festive glow facial (Starting rate, customized according to skin tone & analysis)',
+      description: '24K gold foil festive glow facial (Starting rate, according to skin type & tone)',
     },
     {
       id: 'mthj3pou72gss',
@@ -169,7 +169,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 2200,
       category: 'Skin Care & Facials',
       duration: 60,
-      description: 'Skin brightening & anti-tan diamond facial (Starting rate, tailored for sensitive/mature skin)',
+      description: 'Skin brightening & anti-tan diamond facial (Starting rate, according to skin type & sensitivity)',
     },
     {
       id: 'mthj3pou00a7i',
@@ -177,7 +177,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 350,
       category: 'Skin Care & Facials',
       duration: 25,
-      description: 'Insta bleach with cooling soothing face pack (Starting rate, customized for sensitive skin)',
+      description: 'Insta bleach with cooling soothing face pack (Starting rate, according to skin type & sensitivity)',
     },
     {
       id: 'mthj3pouyzh8b',
