@@ -1,10 +1,6 @@
 // lib/customer-auth.ts
 // Production-Ready Customer Authentication & Identity Management for Shree Beauty Studio
 import crypto from 'crypto';
-// @ts-ignore
-import bcrypt from 'bcryptjs';
-// @ts-ignore
-import jwt from 'jsonwebtoken';
 import { getSupabaseAdmin } from './supabase-server';
 import { SalonData, Customer, CustomerAddress } from '@/types/salon';
 import { DEFAULT_DATA } from './store';
@@ -59,15 +55,28 @@ export function normalizeEmail(email: string): string {
   return (email || '').trim().toLowerCase();
 }
 
-// ── Password Hashing ────────────────────────────────────────────────────────
+// ── Secure Built-in Password Hashing (PBKDF2 with SHA-512) ───────────────────
 export async function hashPassword(plainText: string): Promise<string> {
-  const salt = await bcrypt.genSalt(10);
-  return bcrypt.hash(plainText, salt);
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = crypto.pbkdf2Sync(plainText, salt, 100000, 64, 'sha512').toString('hex');
+  return `pbkdf2$100000$${salt}$${derivedKey}`;
 }
 
 export async function verifyPassword(plainText: string, hash: string): Promise<boolean> {
   if (!plainText || !hash) return false;
-  return bcrypt.compare(plainText, hash);
+  // Fallback for plain text matching if legacy
+  if (!hash.includes('$')) {
+    return plainText === hash;
+  }
+  const parts = hash.split('$');
+  if (parts.length === 4 && parts[0] === 'pbkdf2') {
+    const iterations = parseInt(parts[1], 10) || 100000;
+    const salt = parts[2];
+    const originalHash = parts[3];
+    const derivedKey = crypto.pbkdf2Sync(plainText, salt, iterations, 64, 'sha512').toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(derivedKey, 'hex'), Buffer.from(originalHash, 'hex'));
+  }
+  return false;
 }
 
 // ── OTP Management ──────────────────────────────────────────────────────────
@@ -141,7 +150,7 @@ export function verifyAuthOtp(
   return { valid: true };
 }
 
-// ── JWT Session Management ──────────────────────────────────────────────────
+// ── Zero-Dependency Built-in JWT Session Management (HMAC-SHA256) ─────────────
 export interface CustomerJwtPayload {
   customerId: string;
   name: string;
@@ -152,23 +161,70 @@ export interface CustomerJwtPayload {
   exp?: number;
 }
 
+function base64UrlEncode(str: string): string {
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+}
+
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return Buffer.from(base64, 'base64').toString('utf-8');
+}
+
 export function signCustomerToken(customer: Customer): string {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
   const payload: CustomerJwtPayload = {
     customerId: customer.id,
     name: customer.name,
     mobile: normalizeMobile(customer.mobile).clean,
     email: customer.email ? normalizeEmail(customer.email) : undefined,
     status: customer.status || 'active',
+    iat: now,
+    exp: now + 30 * 24 * 60 * 60, // 30 days
   };
 
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+  const signature = crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
 }
 
 export function verifyCustomerToken(token: string): CustomerJwtPayload | null {
-  if (!token) return null;
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+
+  const [encodedHeader, encodedPayload, signature] = parts;
+  const expectedSig = crypto
+    .createHmac('sha256', JWT_SECRET)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  if (signature !== expectedSig) return null;
+
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as CustomerJwtPayload;
-    return decoded;
+    const payload = JSON.parse(base64UrlDecode(encodedPayload)) as CustomerJwtPayload;
+    if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) {
+      return null;
+    }
+    return payload;
   } catch {
     return null;
   }
