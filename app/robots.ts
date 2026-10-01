@@ -10,7 +10,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: [
           '/',
           '/services',
-          '/bridal',
           '/book',
           '/my-appointments',
           '/faq',

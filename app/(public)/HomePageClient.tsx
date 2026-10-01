@@ -12,7 +12,7 @@ import {
   studioPhotos, STUDIO_GALLERY, StudioGalleryItem, customerImages,
   getCategoryIcon, getCategoryImage, getServiceImage
 } from '@/lib/customer-images';
-import { useSalonStore, DEFAULT_BRIDAL_PACKAGES, DEFAULT_DATA } from '@/lib/store';
+import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
 import StudioMap3D from '@/components/customer/StudioMap3D';
 
 const fadeUp = {
@@ -189,14 +189,29 @@ export default function PublicHomePage() {
   const { data } = useSalonStore();
   const settings = data?.settings;
   const services = (data?.services && data.services.length > 0) ? data.services : DEFAULT_DATA.services;
-  const bridalPackages = (data?.bridalPackages && data.bridalPackages.length > 0) ? data.bridalPackages : DEFAULT_BRIDAL_PACKAGES;
 
   // Real Studio Ambiance Showcase State
   const [activeAmbianceId, setActiveAmbianceId] = useState<string>('reception');
 
+<<<<<<< HEAD
   // NOTE: PublicLayoutClient already fetches /api/public-data and hydrates
   // the store — no need to fetch again here.
 
+=======
+  React.useEffect(() => {
+    fetch('/api/public-data')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.services) {
+          useSalonStore.getState().setData({
+            services: json.services,
+            settings: json.settings,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+>>>>>>> 39e67af (feat: restrict bridal packages to admin panel only and clean public site navigation)
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
@@ -626,181 +641,7 @@ export default function PublicHomePage() {
         </div>
       </section>
 
-      {/* ─── 5. COUTURE BRIDAL SANCTUARY (Features Actual Bridal Suite) ── */}
-      <section className="cust-section-dark" id="bridal">
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div className="cust-section-header">
-            <span className="cust-section-badge cust-section-badge-light">
-              <Crown size={13} style={{ display: 'inline' }} /> Bridal Sanctuary
-            </span>
-            <h2 className="light">Couture Bridal &amp; Siders Makeovers</h2>
-            <p className="light">
-              Featuring our private VIP Bridal Suite. Complete privacy for your wedding trousseau, jewelry,
-              and royal makeover by master artists.
-            </p>
-          </div>
-
-          {/* Genuine Bridal Suite Visual + Package Showcase Split */}
-          <div className="cust-bridal-showcase-grid" style={{ marginBottom: 40 }}>
-            {/* Real Bridal Room Photo Card */}
-            <div
-              style={{
-                position: 'relative',
-                borderRadius: 22,
-                overflow: 'hidden',
-                border: '1px solid rgba(212, 175, 55, 0.4)',
-                boxShadow: '0 16px 48px rgba(0, 0, 0, 0.4)',
-                height: 400,
-              }}
-            >
-              <img
-                src={studioPhotos.bridalSuite}
-                alt="Private Couture Bridal Suite Shree Beauty Studio"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <div
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(180deg, rgba(3,43,48,0.2) 0%, rgba(3,43,48,0.85) 100%)',
-                  padding: 24,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-end',
-                }}
-              >
-                <span
-                  style={{
-                    background: '#D4AF37',
-                    color: '#032B30',
-                    padding: '4px 12px',
-                    borderRadius: 99,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    alignSelf: 'flex-start',
-                    marginBottom: 8,
-                  }}
-                >
-                  Actual Private Suite
-                </span>
-                <h3 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: '#FFFFFF' }}>
-                  Private VIP Bridal Suite
-                </h3>
-                <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>
-                  Equipped with floor-to-ceiling oval mirror, professional makeup vanity lighting, and
-                  absolute privacy for brides and their families.
-                </p>
-              </div>
-            </div>
-
-            {/* Top 2 Featured Packages */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
-              {bridalPackages.slice(0, 2).map((pkg) => (
-                <div
-                  key={pkg.id}
-                  className="bridal-card-3d"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.07)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(212, 175, 55, 0.35)',
-                    borderRadius: 20,
-                    padding: 22,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <span
-                        style={{
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          color: '#F7E7A6',
-                          background: 'rgba(212, 175, 55, 0.18)',
-                          padding: '3px 10px',
-                          borderRadius: 99,
-                        }}
-                      >
-                        {pkg.type}
-                      </span>
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)' }}>
-                        {pkg.sessions} {pkg.sessions === 1 ? 'Session' : 'Sessions'}
-                      </span>
-                    </div>
-
-                    <h3 style={{ margin: '0 0 8px', fontSize: 19, fontWeight: 800, color: '#ffffff' }}>
-                      {pkg.name}
-                    </h3>
-                    <p style={{ margin: '0 0 16px', fontSize: 12.5, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5 }}>
-                      {pkg.includes}
-                    </p>
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
-                      <span style={{ fontSize: 24, fontWeight: 800, color: '#D4AF37' }}>
-                        ₹{pkg.price.toLocaleString('en-IN')}
-                      </span>
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>/ package</span>
-                    </div>
-
-                    <Link
-                      href={`/book?bridal=${encodeURIComponent(pkg.name)}`}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 6,
-                        background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
-                        color: '#032B30',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        padding: '10px 16px',
-                        borderRadius: 12,
-                        textDecoration: 'none',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <Sparkles size={14} />
-                      <span>Book Package</span>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Link to Full Bridal Page */}
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Link
-              href="/bridal"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                background: 'rgba(255, 255, 255, 0.1)',
-                color: '#ffffff',
-                fontWeight: 600,
-                fontSize: 14,
-                padding: '12px 26px',
-                borderRadius: 99,
-                textDecoration: 'none',
-                border: '1px solid rgba(212, 175, 55, 0.35)',
-              }}
-            >
-              <span>Explore All 13 Bridal &amp; Siders Packages</span>
-              <ArrowRight size={15} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── 6. WHY SURAT CHOOSES US (Clean Gold/Teal/Green - ZERO Red) ── */}
+      {/* ─── 5. WHY SURAT CHOOSES US (Clean Gold/Teal/Green - ZERO Red) ── */}
       <section className="cust-section">
         <div className="cust-section-header">
           <span className="cust-section-badge">The Shree Difference</span>

@@ -272,7 +272,7 @@ export default function AboutClient() {
 
             <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
               <Link
-                href="/bridal"
+                href="/book"
                 className="btn-glow"
                 style={{
                   display: 'inline-flex',
@@ -288,7 +288,7 @@ export default function AboutClient() {
                   boxShadow: '0 8px 20px rgba(5,66,74,0.3)',
                 }}
               >
-                <span>View Bridal Packages</span>
+                <span>Book Your Appointment</span>
                 <ArrowRight size={15} />
               </Link>
               <Link
