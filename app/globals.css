@@ -1719,9 +1719,16 @@ a, button, input, select, textarea {
     padding: 10px 14px !important;
     gap: 10px !important;
   }
-  .cust-navbar-logo img {
-    height: 46px !important;
-    max-width: 180px !important;
+  .cust-logo-badge {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .cust-logo-title {
+    font-size: 16.5px !important;
+  }
+  .cust-logo-sub {
+    font-size: 8.5px !important;
+    letter-spacing: 0.12em !important;
   }
   .cust-btn-login {
     display: none !important;
@@ -1743,9 +1750,15 @@ a, button, input, select, textarea {
     padding: 8px 12px !important;
     gap: 8px !important;
   }
-  .cust-navbar-logo img {
-    height: 42px !important;
-    max-width: 160px !important;
+  .cust-logo-badge {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .cust-logo-title {
+    font-size: 15px !important;
+  }
+  .cust-logo-sub {
+    font-size: 7.5px !important;
   }
   .cust-nav-profile-name {
     display: none !important;
