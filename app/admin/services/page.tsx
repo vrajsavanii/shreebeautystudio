@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, money } from '@/lib/utils';
+import { uid, money, getServicePricingBasis } from '@/lib/utils';
 import { openWAApp } from '@/lib/whatsapp';
 import { Service } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
@@ -49,27 +49,27 @@ const DEFAULT_CATEGORIES = [
 
 const SALON_PRESET_PACKAGES = [
   {
-    title: '💇 Hair Care & Styling Pack',
+    title: '💇 Hair Care & Styling Pack (Price as per Hair Length)',
     category: 'Hair Care & Styling',
     services: [
-      { name: 'Hair Cut & Style', price: 350, duration: 30, description: 'Hair wash, cut & blowdry styling' },
-      { name: 'Hair Spa Treatment', price: 850, duration: 45, description: 'Deep nourishing hair spa mask' },
-      { name: 'Keratin Smooth Treatment', price: 3500, duration: 120, description: 'Frizz control & hair smoothing' },
-      { name: 'Root Touchup / Gray Coverage', price: 1200, duration: 60, description: 'L\'Oreal professional root color' },
-      { name: 'Global Hair Coloring', price: 2800, duration: 90, description: 'Full length global hair color' },
-      { name: 'Hair Rebonding / Smoothening', price: 4200, duration: 150, description: 'Permanent hair straightening' },
+      { name: 'Hair Cut & Style', price: 350, duration: 30, description: 'Starting price • Varies by short/medium/long hair length & styling' },
+      { name: 'Hair Spa Treatment', price: 850, duration: 45, description: 'Starts from • Customized deep nourishing spa mask as per hair length & density' },
+      { name: 'Keratin Smooth Treatment', price: 3500, duration: 120, description: 'Starts from • Price calculated as per hair length (Short / Medium / Long / Waist)' },
+      { name: 'Root Touchup / Gray Coverage', price: 1200, duration: 60, description: 'Starts from • L\'Oreal professional root color & regrowth coverage' },
+      { name: 'Global Hair Coloring', price: 2800, duration: 90, description: 'Starts from • Full length global shade as per hair length and volume' },
+      { name: 'Hair Rebonding / Smoothening', price: 4200, duration: 150, description: 'Starts from • Permanent straightening as per hair length & texture' },
     ],
   },
   {
-    title: '💆 Skin Care & Facials Pack',
+    title: '💆 Skin Care & Facials Pack (Customized as per Skin Type)',
     category: 'Skin Care & Facials',
     services: [
-      { name: 'Herbal Deep Cleanup', price: 450, duration: 30, description: 'Deep cleansing & exfoliation' },
-      { name: 'Fruit Glow Facial', price: 850, duration: 45, description: 'Natural fruit extract facial' },
-      { name: 'Gold Radiance Facial', price: 1500, duration: 60, description: '24K gold foil glow facial' },
-      { name: 'Diamond Insta-Glow Facial', price: 2200, duration: 60, description: 'Skin brightening diamond facial' },
-      { name: 'O3+ Advanced D-Tan Facial', price: 2500, duration: 60, description: 'Sun tan removal & hydration' },
-      { name: 'Full Face Bleach & Pack', price: 350, duration: 25, description: 'Insta bleach with cooling face pack' },
+      { name: 'Herbal Deep Cleanup', price: 450, duration: 30, description: 'Starts from • Deep pore cleansing tailored for oily/normal/dry skin' },
+      { name: 'Fruit Glow Facial', price: 850, duration: 45, description: 'Starts from • Natural antioxidant fruit facial customized to skin condition' },
+      { name: 'Gold Radiance Facial', price: 1500, duration: 60, description: 'Starts from • 24K gold foil radiance treatment tailored to skin type' },
+      { name: 'Diamond Insta-Glow Facial', price: 2200, duration: 60, description: 'Starts from • Polishing & micro-exfoliation customized to skin sensitivity' },
+      { name: 'O3+ Advanced D-Tan Facial', price: 2500, duration: 60, description: 'Starts from • Sun tan removal & pigmentation treatment for your skin profile' },
+      { name: 'Full Face Bleach & Pack', price: 350, duration: 25, description: 'Starts from • Gentle glow bleach & soothing pack suited to skin sensitivity' },
     ],
   },
   {
@@ -437,9 +437,13 @@ export default function ServicesPage() {
 
   // WhatsApp Rate Card Text Formatter
   const rateCardText = useMemo(() => {
-    let msg = `✨ *${salonName.toUpperCase()} — SERVICES & RATE CARD* ✨\n`;
+    let msg = `✨ *${salonName.toUpperCase()} — SERVICES & STARTING RATE CARD* ✨\n`;
     if (salonAddress) msg += `📍 ${salonAddress}\n`;
     if (salonPhone) msg += `📞 Booking WhatsApp: +${salonPhone}\n`;
+    msg += `────────────────────────────\n`;
+    msg += `💡 *Pricing Note / ભાવ માહિતી:*\n`;
+    msg += `💇‍♀️ Hair service rates are Starting Prices based on *Hair Length & Volume* (Short / Medium / Long / Waist).\n`;
+    msg += `✨ Skin care & facials are customized according to *Skin Type & Condition*.\n`;
     msg += `────────────────────────────\n\n`;
 
     const grouped: Record<string, Service[]> = {};
@@ -452,13 +456,16 @@ export default function ServicesPage() {
     Object.entries(grouped).forEach(([cat, list]) => {
       msg += `🏷️ *${cat.toUpperCase()}*\n`;
       list.forEach((s) => {
-        msg += `• *${s.name}* — ₹${s.price} (${s.duration || 45} mins)\n`;
+        const basis = getServicePricingBasis(s.category, s.name);
+        const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
+        msg += `• *${s.name}* — Starts from ₹${s.price}${tag} (${s.duration || 45} mins)\n`;
         if (s.description) msg += `  _${s.description}_\n`;
       });
       msg += `\n`;
     });
 
     msg += `────────────────────────────\n`;
+    msg += `💇‍♀️ *વાળની લંબાઈ (Hair Length) અને સ્કિન પ્રકાર (Skin Type) મુજબ ભાવ નક્કી થાય છે.*\n`;
     msg += `💖 *Thank you for choosing ${salonName}!*`;
     return msg;
   }, [services, salonName, salonAddress, salonPhone]);
@@ -632,6 +639,45 @@ export default function ServicesPage() {
         })}
       </div>
 
+      {/* Dynamic Pricing Policy Banner */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #f0fdfa 0%, #fdf2f8 50%, #eff6ff 100%)',
+          border: '1px solid #ccfbf1',
+          borderRadius: 12,
+          padding: '12px 16px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>💡</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+              Starting Rate Policy / ભાવ નિયમ
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4, marginTop: 2 }}>
+              💇‍♀️ <b>Hair Services:</b> Starting prices quoted; varies according to <b>Hair Length & Density</b> (Short / Medium / Long / Waist). • ✨ <b>Skin Services:</b> Custom tailored according to <b>Skin Type & Concerns</b>.
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: 11 }}>
+            💇‍♀️ Hair Length Based
+          </span>
+          <span className="badge" style={{ background: '#fdf2f8', color: '#be185d', border: '1px solid #fbcfe8', fontSize: 11 }}>
+            ✨ Skin Type Based
+          </span>
+          <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontSize: 11 }}>
+            🌸 Starts From ₹
+          </span>
+        </div>
+      </div>
+
       {/* Services Content: Grid Cards or Table */}
       {filtered.length === 0 ? (
         <div className="card">
@@ -658,82 +704,109 @@ export default function ServicesPage() {
             gap: 14,
           }}
         >
-          {filtered.map((s) => (
-            <motion.div
-              key={s.id}
-              variants={fadeSlideUp}
-              className="card"
-              style={{
-                padding: '16px 18px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                transition: 'all 0.18s ease',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                  <span className="badge badge-teal" style={{ fontSize: 10.5 }}>
-                    {s.category || 'General'}
-                  </span>
+          {filtered.map((s) => {
+            const basis = getServicePricingBasis(s.category, s.name);
+            return (
+              <motion.div
+                key={s.id}
+                variants={fadeSlideUp}
+                className="card"
+                style={{
+                  padding: '16px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  transition: 'all 0.18s ease',
+                  borderTop: basis.basis === 'hair' ? '3px solid #0d9488' : basis.basis === 'skin' ? '3px solid #db2777' : '1px solid var(--border)',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <span className="badge badge-teal" style={{ fontSize: 10.5 }}>
+                      {s.category || 'General'}
+                    </span>
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: 10,
+                        background: basis.basis === 'hair' ? '#ecfdf5' : basis.basis === 'skin' ? '#fdf2f8' : '#f8fafc',
+                        color: basis.basis === 'hair' ? '#065f46' : basis.basis === 'skin' ? '#9d174d' : '#475569',
+                        border: `1px solid ${basis.basis === 'hair' ? '#a7f3d0' : basis.basis === 'skin' ? '#fbcfe8' : '#e2e8f0'}`,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {basis.badgeShort}
+                    </span>
+                  </div>
+
+                  <h3 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--text)', margin: '4px 0 2px' }}>
+                    {s.name}
+                  </h3>
+
+                  {s.description && (
+                    <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: '0 0 8px', lineHeight: 1.4 }}>
+                      {s.description}
+                    </p>
+                  )}
+
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--muted)', fontSize: 11, fontWeight: 600 }}>
-                    <Clock size={11} /> {s.duration || 45} min
+                    <Clock size={11} /> {s.duration || 45} min • {basis.noteGuj}
                   </div>
                 </div>
 
-                <h3 style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--text)', margin: '4px 0 2px' }}>
-                  {s.name}
-                </h3>
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 12, marginTop: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Starting Price:
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}>
+                        {basis.basis === 'hair' ? 'As per Hair Length' : basis.basis === 'skin' ? 'As per Skin Type' : 'Base Rate'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600, marginRight: 3 }}>Starts</span>
+                      <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--teal)' }}>
+                        {money(s.price)}+
+                      </span>
+                    </div>
+                  </div>
 
-                {s.description && (
-                  <p style={{ fontSize: 11.5, color: 'var(--muted)', margin: '0 0 10px', lineHeight: 1.4 }}>
-                    {s.description}
-                  </p>
-                )}
-              </div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: 5 }}>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        style={{ fontSize: 11, padding: '4px 8px', color: 'var(--teal)', borderColor: 'var(--teal-subtle)' }}
+                        title="Quick Bill in POS"
+                        onClick={() => handleQuickBill(s)}
+                      >
+                        <Zap size={11} /> Bill
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        style={{ fontSize: 11, padding: '4px 8px', color: 'var(--blue)' }}
+                        title="Book Appointment"
+                        onClick={() => handleQuickBook(s)}
+                      >
+                        <Calendar size={11} /> Book
+                      </button>
+                    </div>
 
-              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 12, marginTop: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>Treatment Fee:</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--teal)' }}>
-                    {money(s.price)}
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="btn-icon edit" onClick={() => openEdit(s)} title="Edit Service">
+                        <Pencil size={13} />
+                      </button>
+                      <button className="btn-icon danger" onClick={() => setDeleteId(s.id)} title="Delete Service">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', gap: 5 }}>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-ghost"
-                      style={{ fontSize: 11, padding: '4px 8px', color: 'var(--teal)', borderColor: 'var(--teal-subtle)' }}
-                      title="Quick Bill in POS"
-                      onClick={() => handleQuickBill(s)}
-                    >
-                      <Zap size={11} /> Bill
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-ghost"
-                      style={{ fontSize: 11, padding: '4px 8px', color: 'var(--blue)' }}
-                      title="Book Appointment"
-                      onClick={() => handleQuickBook(s)}
-                    >
-                      <Calendar size={11} /> Book
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn-icon edit" onClick={() => openEdit(s)} title="Edit Service">
-                      <Pencil size={13} />
-                    </button>
-                    <button className="btn-icon danger" onClick={() => setDeleteId(s.id)} title="Delete Service">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </motion.div>
       ) : (
         /* High Density Table View (Zero Horizontal Scroll) */
@@ -743,41 +816,61 @@ export default function ServicesPage() {
               <thead>
                 <tr>
                   <th>Treatment Service</th>
-                  <th>Category</th>
+                  <th>Category & Basis</th>
                   <th>Duration</th>
-                  <th>Rate / Price (₹)</th>
+                  <th>Starting Rate (₹)</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
-                {filtered.map((s) => (
-                  <motion.tr key={s.id} variants={fadeSlideUp}>
-                    <td>
-                      <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 13.5 }}>
-                        {s.name}
-                      </div>
-                      {s.description && (
-                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                          {s.description}
+                {filtered.map((s) => {
+                  const basis = getServicePricingBasis(s.category, s.name);
+                  return (
+                    <motion.tr key={s.id} variants={fadeSlideUp}>
+                      <td>
+                        <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: 13.5 }}>
+                          {s.name}
                         </div>
-                      )}
-                    </td>
-                    <td>
-                      <span className="badge badge-teal" style={{ fontSize: 11 }}>
-                        {s.category || 'General'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--muted)' }}>
-                        <Clock size={12} /> {s.duration || 45} min
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--teal)' }}>
-                        {money(s.price)}
-                      </div>
-                    </td>
-                    <td>
+                        {s.description && (
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                            {s.description}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 10.5, color: 'var(--teal)', marginTop: 2 }}>
+                          {basis.noteGuj}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                          <span className="badge badge-teal" style={{ fontSize: 10.5 }}>
+                            {s.category || 'General'}
+                          </span>
+                          <span
+                            className="badge"
+                            style={{
+                              fontSize: 10,
+                              background: basis.basis === 'hair' ? '#ecfdf5' : basis.basis === 'skin' ? '#fdf2f8' : '#f8fafc',
+                              color: basis.basis === 'hair' ? '#065f46' : basis.basis === 'skin' ? '#9d174d' : '#475569',
+                            }}
+                          >
+                            {basis.badgeShort}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--muted)' }}>
+                          <Clock size={12} /> {s.duration || 45} min
+                        </div>
+                      </td>
+                      <td>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Starts From</div>
+                          <div style={{ fontWeight: 800, fontSize: 14.5, color: 'var(--teal)' }}>
+                            {money(s.price)}+
+                          </div>
+                        </div>
+                      </td>
+                      <td>
                       <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                         <button
                           type="button"
@@ -806,7 +899,8 @@ export default function ServicesPage() {
                       </div>
                     </td>
                   </motion.tr>
-                ))}
+                );
+              })}
               </motion.tbody>
             </table>
           </div>
@@ -852,7 +946,12 @@ export default function ServicesPage() {
           </div>
 
           <div className="form-group">
-            <label className="label">Price (₹) *</label>
+            <label className="label">
+              Starting Rate / Price (₹) *
+              <span className="label-hint" style={{ fontSize: 10.5, color: 'var(--teal)', marginLeft: 4 }}>
+                (Hair = length basis • Skin = skin type basis)
+              </span>
+            </label>
             <input
               type="number"
               min="0"

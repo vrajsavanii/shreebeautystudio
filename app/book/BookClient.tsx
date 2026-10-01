@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, fmtDate, money, isPastTimeForDate, getFirstFutureSlot } from '@/lib/utils';
+import { uid, todayISO, fmtDate, money, isPastTimeForDate, getFirstFutureSlot, getServicePricingBasis } from '@/lib/utils';
 import { Appointment, BridalBooking, BridalPackage } from '@/types/salon';
 import { sendDirectWhatsAppMessage, appointmentCustomerMessage, appointmentRequestPendingMessage, bridalRequestPendingMessage } from '@/lib/whatsapp';
 import { sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
@@ -885,7 +885,7 @@ export default function PublicBookingPage() {
             >
               {/* REGULAR SALON SERVICES */}
               <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Scissors size={18} color="#05424a" /> 1. Select Service(s) *
                       </h3>
@@ -894,6 +894,28 @@ export default function PublicBookingPage() {
                           {selectedServices.length} Selected ({money(regularTotal)})
                         </span>
                       )}
+                    </div>
+
+                    {/* Starting Price & Customization Note */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(5,66,74,0.05) 0%, rgba(234,186,56,0.1) 100%)',
+                        border: '1px solid rgba(234,186,56,0.3)',
+                        borderRadius: 12,
+                        padding: '10px 14px',
+                        marginBottom: 14,
+                        fontSize: 12,
+                        color: '#334155',
+                        lineHeight: 1.45,
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 8,
+                      }}
+                    >
+                      <Sparkles size={15} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <strong>Starting Rates Notice:</strong> Hair service prices are customized by <b>hair length &amp; volume</b> (વાળની લંબાઈ મુજબ), and skin treatments by <b>skin type &amp; consultation</b> (સ્કિન મુજબ).
+                      </div>
                     </div>
 
                     {/* Quick Category Filter Pills */}
@@ -1027,6 +1049,7 @@ export default function PublicBookingPage() {
                         filteredServices.map((s) => {
                           const isSelected = selectedServices.includes(s.name);
                           const sImg = getServiceImage(s.name, s.category);
+                          const pricingBasis = getServicePricingBasis(s.category, s.name);
                           return (
                             <button
                               key={s.id || s.name}
@@ -1064,12 +1087,27 @@ export default function PublicBookingPage() {
                                 <div style={{ fontWeight: 800, fontSize: 13.5, color: isSelected ? '#05424a' : '#1e293b', lineHeight: 1.3 }}>
                                   {s.name}
                                 </div>
-                                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                   <span>⏱ {s.duration || 30} mins</span>
-                                  {s.category && <span>• {s.category}</span>}
+                                  <span
+                                    style={{
+                                      fontWeight: 700,
+                                      fontSize: 10,
+                                      color: pricingBasis.type === 'hair' ? '#0e7490' : pricingBasis.type === 'skin' ? '#a16207' : '#64748b',
+                                      background: pricingBasis.type === 'hair' ? '#ecfeff' : pricingBasis.type === 'skin' ? '#fefce8' : '#f1f5f9',
+                                      padding: '1px 6px',
+                                      borderRadius: 4,
+                                      border: pricingBasis.type === 'hair' ? '1px solid #cffafe' : pricingBasis.type === 'skin' ? '1px solid #fef08a' : '1px solid #e2e8f0',
+                                    }}
+                                  >
+                                    {pricingBasis.shortBadge}
+                                  </span>
                                 </div>
                               </div>
                               <div style={{ pointerEvents: 'none', textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: 9.5, fontWeight: 800, color: '#05424a', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                  Starts From
+                                </div>
                                 <div style={{ fontWeight: 900, fontSize: 14.5, color: '#16a34a' }}>
                                   {money(s.price)}
                                 </div>

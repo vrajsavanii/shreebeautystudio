@@ -97,7 +97,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 350,
       category: 'Hair Care & Styling',
       duration: 30,
-      description: 'Hair wash, cut & blowdry styling',
+      description: 'Hair wash, precision cut & blowdry styling (Starting rate, according to hair length)',
     },
     {
       id: 'mthj3pougzpyx',
@@ -105,7 +105,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 850,
       category: 'Hair Care & Styling',
       duration: 45,
-      description: 'Deep nourishing hair spa mask',
+      description: 'Deep nourishing & repair hair spa mask (Starting rate, customized by hair length & texture)',
     },
     {
       id: 'mthj3pouc66cv',
@@ -113,7 +113,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 3500,
       category: 'Hair Care & Styling',
       duration: 120,
-      description: 'Frizz control & hair smoothing',
+      description: 'Frizz control & long-lasting glass shine (Starting rate, priced according to hair length & volume)',
     },
     {
       id: 'mthj3pouobl3b',
@@ -121,7 +121,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 1200,
       category: 'Hair Care & Styling',
       duration: 60,
-      description: "L'Oreal professional root color",
+      description: "L'Oreal professional root color & gray coverage (Starting rate)",
     },
     {
       id: 'mthj3pouniuzd',
@@ -129,7 +129,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 2800,
       category: 'Hair Care & Styling',
       duration: 90,
-      description: 'Full length global hair color',
+      description: 'Full length rich global fashion color (Starting rate, priced according to hair length & volume)',
     },
     {
       id: 'mthj3pou6tt7h',
@@ -137,7 +137,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 4200,
       category: 'Hair Care & Styling',
       duration: 150,
-      description: 'Permanent hair straightening',
+      description: 'Permanent silk-straight smoothing (Starting rate, priced according to hair length & volume)',
     },
     {
       id: 'mthj3pou1own7',
@@ -145,7 +145,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 450,
       category: 'Skin Care & Facials',
       duration: 30,
-      description: 'Deep cleansing & exfoliation',
+      description: 'Deep pore cleansing & gentle exfoliation (Starting rate, tailored for all skin types)',
     },
     {
       id: 'mthj3pouyccs0',
@@ -153,7 +153,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 850,
       category: 'Skin Care & Facials',
       duration: 45,
-      description: 'Natural fruit extract facial',
+      description: 'Natural fruit extract glow facial (Starting rate, tailored for dehydrated & dull skin)',
     },
     {
       id: 'mthj3pou3s32d',
@@ -161,7 +161,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 1500,
       category: 'Skin Care & Facials',
       duration: 60,
-      description: '24K gold foil glow facial',
+      description: '24K gold foil festive glow facial (Starting rate, customized according to skin tone & analysis)',
     },
     {
       id: 'mthj3pou72gss',
@@ -169,7 +169,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 2200,
       category: 'Skin Care & Facials',
       duration: 60,
-      description: 'Skin brightening diamond facial',
+      description: 'Skin brightening & anti-tan diamond facial (Starting rate, tailored for sensitive/mature skin)',
     },
     {
       id: 'mthj3pou00a7i',
@@ -177,7 +177,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 350,
       category: 'Skin Care & Facials',
       duration: 25,
-      description: 'Insta bleach with cooling face pack',
+      description: 'Insta bleach with cooling soothing face pack (Starting rate, customized for sensitive skin)',
     },
     {
       id: 'mthj3pouyzh8b',
@@ -185,7 +185,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 80,
       category: 'Waxing & Threading',
       duration: 15,
-      description: 'Precision threading shaping',
+      description: 'Precision threading & facial hair shaping',
     },
     {
       id: 'mthj3pougqclr',
@@ -193,7 +193,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 650,
       category: 'Waxing & Threading',
       duration: 30,
-      description: 'Rica peel-off wax for sensitive skin',
+      description: 'Italian Rica peel-off wax for sensitive skin & painless tan removal',
     },
     {
       id: 'mthj3pouzgszl',
@@ -201,7 +201,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 550,
       category: 'Waxing & Threading',
       duration: 30,
-      description: 'Smooth legs waxing',
+      description: 'Silky smooth moisturizing legs wax',
     },
     {
       id: 'mthj3pou3irar',
@@ -209,7 +209,7 @@ export const DEFAULT_DATA: SalonData = {
       price: 1800,
       category: 'Waxing & Threading',
       duration: 90,
-      description: 'Full body smooth waxing',
+      description: 'Full body smooth luxury waxing package (Starting rate)',
     },
   ],
   staff: [

@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, Clock, Sparkles, Filter, Calendar, ArrowRight } from 'lucide-react';
 import { getCategoryIcon, getServiceImage, getUniqueServiceImageMap } from '@/lib/customer-images';
+import { getServicePricingBasis } from '@/lib/utils';
 import { useSalonStore } from '@/lib/store';
 import { Service } from '@/types/salon';
 
@@ -78,11 +79,46 @@ function ServicesView() {
         </span>
         <h1 className="display-font" style={{ fontSize: 'clamp(28px, 5vw, 46px)', fontWeight: 700, color: '#0f172a', margin: '8px 0 12px', fontStyle: 'italic' }}>
           <span style={{ display: 'block', fontSize: '0.55em', fontWeight: 800, color: '#05424A', letterSpacing: '0.02em', fontStyle: 'normal', fontFamily: 'Plus Jakarta Sans, sans-serif', textTransform: 'uppercase', marginBottom: 4 }}>Shree Beauty Studio</span>
-          Salon Services &amp; Transparent Pricing
+          Salon Services &amp; Starting Rates
         </h1>
-        <p style={{ fontSize: 15, color: '#64748b', maxWidth: 600, margin: '0 auto', lineHeight: 1.65 }}>
-          Explore our complete collection of {services.length} signature therapies with upfront pricing and duration.
+        <p style={{ fontSize: 15, color: '#64748b', maxWidth: 640, margin: '0 auto 20px', lineHeight: 1.65 }}>
+          Explore our complete collection of {services.length} signature salon therapies. All prices listed are starting rates — final quotation is customized according to your exact requirements.
         </p>
+
+        {/* Informative Pricing Policy Banner (Hair Length & Skin Type Guide) */}
+        <div
+          style={{
+            maxWidth: 820,
+            margin: '0 auto',
+            background: 'linear-gradient(135deg, rgba(5,66,74,0.06) 0%, rgba(234,186,56,0.12) 100%)',
+            border: '1.5px solid rgba(234,186,56,0.35)',
+            borderRadius: 16,
+            padding: '16px 20px',
+            textAlign: 'left',
+            boxShadow: '0 4px 16px rgba(5,66,74,0.04)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#05424a', fontWeight: 800, fontSize: 13.5 }}>
+            <Sparkles size={16} color="#d97706" />
+            <span>How Our Pricing Works (પારદર્શક ભાવ નીતિ):</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, fontSize: 12.5, color: '#334155', lineHeight: 1.5 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#ffffff', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: 18 }}>💇‍♀️</span>
+              <div>
+                <strong style={{ color: '#05424a', display: 'block' }}>Hair Services (વાળની લંબાઈ મુજબ):</strong>
+                Prices start from base rate and vary based on your <b>Hair Length &amp; Density</b> (Short / Shoulder / Waist).
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#ffffff', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: 18 }}>✨</span>
+              <div>
+                <strong style={{ color: '#05424a', display: 'block' }}>Skin Services (સ્કિન પ્રકાર મુજબ):</strong>
+                Prices start from base rate and are customized according to your <b>Skin Type &amp; Analysis</b> (Glow / Anti-Acne / D-Tan).
+              </div>
+            </div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Filter Bar */}
@@ -229,6 +265,7 @@ function ServicesView() {
         >
           {filtered.map((s: Service) => {
             const img = serviceImageMap.get(s.id) || getServiceImage(s.name, s.category);
+            const pricingBasis = getServicePricingBasis(s.category, s.name);
             return (
               <motion.div
                 key={s.id}
@@ -328,17 +365,54 @@ function ServicesView() {
 
                 {/* 2. Service Information Body */}
                 <div style={{ padding: '18px 20px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <h3
-                    style={{
-                      margin: '0 0 6px',
-                      fontSize: 17,
-                      fontWeight: 800,
-                      color: '#0f172a',
-                      lineHeight: 1.35,
-                    }}
-                  >
-                    {s.name}
-                  </h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontSize: 17,
+                        fontWeight: 800,
+                        color: '#0f172a',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {s.name}
+                    </h3>
+                  </div>
+
+                  {/* Pricing Basis Tag (Hair Length / Skin Type) */}
+                  <div style={{ marginBottom: 10 }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '3px 9px',
+                        borderRadius: 8,
+                        background:
+                          pricingBasis.type === 'hair'
+                            ? '#ecfeff'
+                            : pricingBasis.type === 'skin'
+                            ? '#fefce8'
+                            : '#f1f5f9',
+                        color:
+                          pricingBasis.type === 'hair'
+                            ? '#0e7490'
+                            : pricingBasis.type === 'skin'
+                            ? '#a16207'
+                            : '#475569',
+                        border:
+                          pricingBasis.type === 'hair'
+                            ? '1px solid #cffafe'
+                            : pricingBasis.type === 'skin'
+                            ? '1px solid #fef08a'
+                            : '1px solid #e2e8f0',
+                      }}
+                    >
+                      {pricingBasis.badge}
+                    </span>
+                  </div>
 
                   <p
                     style={{
@@ -354,7 +428,7 @@ function ServicesView() {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#05424a', fontWeight: 600 }}>
                     <Sparkles size={12} color="#b45309" />
-                    <span>Authentic salon care by senior stylists</span>
+                    <span>{pricingBasis.label}</span>
                   </div>
                 </div>
 
@@ -370,11 +444,12 @@ function ServicesView() {
                   }}
                 >
                   <div>
-                    <span style={{ fontSize: 10.5, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em', display: 'block' }}>
-                      Transparent Price
+                    <span style={{ fontSize: 10, color: '#05424A', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', display: 'block' }}>
+                      Starts From
                     </span>
-                    <span style={{ fontSize: 21, fontWeight: 900, color: '#05424A' }}>
-                      ₹{s.price.toLocaleString('en-IN')}
+                    <span style={{ fontSize: 20, fontWeight: 900, color: '#05424A' }}>
+                      ₹{s.price.toLocaleString('en-IN')}{' '}
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>onwards</span>
                     </span>
                   </div>
 
@@ -389,13 +464,13 @@ function ServicesView() {
                       color: '#ffffff',
                       fontWeight: 700,
                       fontSize: 13,
-                      padding: '10px 20px',
+                      padding: '10px 18px',
                       borderRadius: 99,
                       textDecoration: 'none',
                       boxShadow: '0 4px 12px rgba(5,66,74,0.25)',
                     }}
                   >
-                    <span>Book Now</span>
+                    <span>Book Slot</span>
                     <ArrowRight size={13} />
                   </Link>
                 </div>

@@ -1,7 +1,9 @@
 // lib/customer-auth.ts
 // Production-Ready Customer Authentication & Identity Management for Shree Beauty Studio
 import crypto from 'crypto';
+// @ts-ignore
 import bcrypt from 'bcryptjs';
+// @ts-ignore
 import jwt from 'jsonwebtoken';
 import { getSupabaseAdmin } from './supabase-server';
 import { SalonData, Customer, CustomerAddress } from '@/types/salon';

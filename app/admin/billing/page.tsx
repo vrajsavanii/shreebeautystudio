@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate, formatCustomerContactName } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, formatCustomerContactName, getServicePricingBasis } from '@/lib/utils';
 import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransaction, BridalBooking } from '@/types/salon';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -423,14 +423,18 @@ function BillingContent() {
 
   const allItems = useMemo(
     () => [
-      ...allServices.map((s) => ({
-        label: `[Service] ${s.name} (${money(s.price)})`,
-        name: s.name,
-        price: s.price,
-        type: 'S' as const,
-        barcode: '',
-        brand: '',
-      })),
+      ...allServices.map((s) => {
+        const basis = getServicePricingBasis(s.category, s.name);
+        const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
+        return {
+          label: `[Service] ${s.name} (Starts ${money(s.price)}${tag})`,
+          name: s.name,
+          price: s.price,
+          type: 'S' as const,
+          barcode: '',
+          brand: '',
+        };
+      }),
       ...allProducts.map((p) => ({
         label: `[Product] ${p.name}${p.brand ? ` · ${p.brand}` : ''}${p.barcode ? ` [Barcode: ${p.barcode}]` : ''} (${money(p.sell)})`,
         name: p.name,

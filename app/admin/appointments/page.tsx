@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw, Mail, Zap } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM, FIFTEEN_MIN_TIME_SLOTS } from '@/lib/utils';
+import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM, FIFTEEN_MIN_TIME_SLOTS, getServicePricingBasis } from '@/lib/utils';
 import { Appointment, AppointmentStatus, WorkStatus, Invoice, StudioHoliday, HolidayType } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -1605,11 +1605,15 @@ export default function AppointmentsPage() {
               onChange={(e) => handleServiceSelect(e.target.value)}
             />
             <datalist id="appt-service-list">
-              {(data?.services || []).map((s) => (
-                <option key={s.id} value={s.name}>
-                  {s.name} — {money(s.price)}
-                </option>
-              ))}
+              {(data?.services || []).map((s) => {
+                const basis = getServicePricingBasis(s.category, s.name);
+                const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
+                return (
+                  <option key={s.id} value={s.name}>
+                    {s.name} — Starts {money(s.price)}{tag}
+                  </option>
+                );
+              })}
             </datalist>
             {errors.service && <span className="error-msg">{errors.service.message}</span>}
           </div>

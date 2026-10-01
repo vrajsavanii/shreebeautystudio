@@ -146,3 +146,90 @@ export const FIFTEEN_MIN_TIME_SLOTS: { value: string; label: string }[] = Array.
   const label = `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
   return { value: val, label };
 });
+
+/**
+ * Categorizes service pricing basis:
+ * - Hair services: priced according to Hair Length & Density
+ * - Skin services: priced according to Skin Type & Condition
+ * - Other services: general starting rate
+ */
+export interface ServicePricingBasis {
+  type: 'hair' | 'skin' | 'general';
+  basis: 'hair' | 'skin' | 'general';
+  label: string;
+  badge: string;
+  shortBadge: string;
+  badgeShort: string;
+  gujaratiNote: string;
+  noteGuj: string;
+}
+
+export function getServicePricingBasis(category?: string, name?: string): ServicePricingBasis {
+  const lowerCat = (category || '').toLowerCase();
+  const lowerName = (name || '').toLowerCase();
+
+  const isHair =
+    lowerCat.includes('hair') ||
+    lowerName.includes('hair') ||
+    lowerName.includes('keratin') ||
+    lowerName.includes('botox') ||
+    lowerName.includes('smoothening') ||
+    lowerName.includes('rebonding') ||
+    lowerName.includes('color') ||
+    lowerName.includes('spa') ||
+    lowerName.includes('cut') ||
+    lowerName.includes('nanoplastia') ||
+    lowerName.includes('straightening');
+
+  if (isHair) {
+    return {
+      type: 'hair',
+      basis: 'hair',
+      label: 'According to Hair Length & Density',
+      badge: '💇‍♀️ According to Hair Length',
+      shortBadge: 'Hair Length Based',
+      badgeShort: 'Hair Length Based',
+      gujaratiNote: 'વાળની લંબાઈ અને ઘનતા મુજબ ભાવ',
+      noteGuj: 'વાળની લંબાઈ અને ઘનતા મુજબ ભાવ',
+    };
+  }
+
+  const isSkin =
+    lowerCat.includes('skin') ||
+    lowerCat.includes('facial') ||
+    lowerCat.includes('bleach') ||
+    lowerName.includes('facial') ||
+    lowerName.includes('cleanup') ||
+    lowerName.includes('bleach') ||
+    lowerName.includes('glow') ||
+    lowerName.includes('d-tan') ||
+    lowerName.includes('o3+') ||
+    lowerName.includes('hydra') ||
+    lowerName.includes('acne') ||
+    lowerName.includes('peel');
+
+  if (isSkin) {
+    return {
+      type: 'skin',
+      basis: 'skin',
+      label: 'According to Skin Type & Condition',
+      badge: '✨ According to Skin Type',
+      shortBadge: 'Skin Type Based',
+      badgeShort: 'Skin Type Based',
+      gujaratiNote: 'સ્કિનના પ્રકાર અને સ્થિતિ મુજબ ભાવ',
+      noteGuj: 'સ્કિનના પ્રકાર અને સ્થિતિ મુજબ ભાવ',
+    };
+  }
+
+  return {
+    type: 'general',
+    basis: 'general',
+    label: 'Starting Price',
+    badge: '🌸 Starting Rate',
+    shortBadge: 'Starting Rate',
+    badgeShort: 'Starting Rate',
+    gujaratiNote: 'શરૂઆતી ભાવ',
+    noteGuj: 'શરૂઆતી ભાવ',
+  };
+}
+

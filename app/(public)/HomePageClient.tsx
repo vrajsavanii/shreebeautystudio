@@ -13,6 +13,7 @@ import {
   getCategoryIcon, getCategoryImage, getServiceImage
 } from '@/lib/customer-images';
 import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
+import { getServicePricingBasis } from '@/lib/utils';
 import StudioMap3D from '@/components/customer/StudioMap3D';
 
 const fadeUp = {
@@ -517,11 +518,10 @@ export default function PublicHomePage() {
             <Sparkles size={12} style={{ display: 'inline' }} /> Signature Menu
           </span>
           <h2 className="display-font" style={{ fontStyle: 'italic', color: '#032B30' }}>
-            Luxury Beauty &amp; Wellness Services
+            Luxury Beauty &amp; Starting Rates
           </h2>
           <p style={{ color: '#475569' }}>
-            From clinical skin restoration to couture hair smoothing, every treatment is tailored to
-            your individual beauty aspirations.
+            From clinical skin restoration to couture hair smoothing — hair service prices are based on hair length &amp; volume, and skin services on skin type &amp; consultation.
           </p>
         </div>
 
@@ -573,6 +573,7 @@ export default function PublicHomePage() {
                   <div className="card-service-items">
                     {catServices.slice(0, 3).map((s) => {
                       const sImg = getServiceImage(s.name, s.category);
+                      const pricingBasis = getServicePricingBasis(s.category, s.name);
                       return (
                         <div key={s.id || s.name} className="card-service-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(5,66,74,0.12)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -580,10 +581,16 @@ export default function PublicHomePage() {
                           </div>
                           <div className="service-name" style={{ flex: 1, minWidth: 0 }}>
                             <span title={s.name} style={{ fontWeight: 600, fontSize: 13.5, color: '#1e293b' }}>{s.name}</span>
+                            <span style={{ display: 'block', fontSize: 10.5, color: '#64748b', fontWeight: 600 }}>
+                              {pricingBasis.shortBadge}
+                            </span>
                           </div>
-                          <span className="service-price" style={{ color: '#05424A', fontWeight: 700, fontSize: 13.5 }}>
-                            ₹{s.price.toLocaleString('en-IN')}
-                          </span>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <span className="service-price" style={{ color: '#05424A', fontWeight: 800, fontSize: 13.5, display: 'block' }}>
+                              ₹{s.price.toLocaleString('en-IN')}
+                              <span style={{ fontSize: 10.5, color: '#64748b', fontWeight: 700, marginLeft: 2 }}>+</span>
+                            </span>
+                          </div>
                         </div>
                       );
                     })}
