@@ -115,71 +115,21 @@ export default function CustomerNavbar() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
               textDecoration: 'none',
               minWidth: 0,
             }}
           >
-            {/* Zoomed-in only-logo circular badge */}
-            <div
-              className="cust-logo-badge"
+            <img
+              src={SHREE_LOGO_BASE64}
+              alt={salonName}
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                background: '#ffffff',
-                border: '2.5px solid #EABA38',
-                boxShadow: '0 3px 14px rgba(234, 186, 56, 0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
+                height: '46px',
+                width: 'auto',
+                maxWidth: '260px',
+                objectFit: 'contain',
+                display: 'block',
               }}
-            >
-              <img
-                src="/only-logo.jpg"
-                alt={salonName}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  transform: 'scale(1.22)',
-                  display: 'block',
-                }}
-              />
-            </div>
-
-            {/* Salon Brand Title & Subtitle */}
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span
-                className="cust-logo-title"
-                style={{
-                  fontFamily: 'serif',
-                  fontSize: 19,
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  letterSpacing: '0.02em',
-                  lineHeight: 1.15,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {salonName}
-              </span>
-              <span
-                className="cust-logo-sub"
-                style={{
-                  fontSize: 9.5,
-                  color: '#EABA38',
-                  fontWeight: 700,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Beauty Studio &amp; Spa
-              </span>
-            </div>
+            />
           </Link>
 
           {/* Desktop Navigation Links */}
