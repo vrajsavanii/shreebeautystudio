@@ -441,7 +441,7 @@ export default function ServicesPage() {
     if (salonAddress) msg += `📍 ${salonAddress}\n`;
     if (salonPhone) msg += `📞 Booking WhatsApp: +${salonPhone}\n`;
     msg += `────────────────────────────\n`;
-    msg += `💡 *Pricing Note / ભાવ માહિતી:*\n`;
+    msg += `💡 *Pricing Policy:*\n`;
     msg += `💇‍♀️ Hair service rates are Starting Prices based on *Hair Length & Volume* (Short / Medium / Long / Waist).\n`;
     msg += `✨ Skin care & facials are customized according to *Skin Type & Condition*.\n`;
     msg += `────────────────────────────\n\n`;
@@ -465,7 +465,7 @@ export default function ServicesPage() {
     });
 
     msg += `────────────────────────────\n`;
-    msg += `💇‍♀️ *વાળની લંબાઈ (Hair Length) અને સ્કિન પ્રકાર (Skin Type) મુજબ ભાવ નક્કી થાય છે.*\n`;
+    msg += `💇‍♀️ *Hair service prices vary by length & skin services are customized by skin type.*\n`;
     msg += `💖 *Thank you for choosing ${salonName}!*`;
     return msg;
   }, [services, salonName, salonAddress, salonPhone]);
@@ -658,7 +658,7 @@ export default function ServicesPage() {
           <span style={{ fontSize: 20 }}>💡</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-              Starting Rate Policy / ભાવ નિયમ
+              Starting Rate Policy
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4, marginTop: 2 }}>
               💇‍♀️ <b>Hair Services:</b> Starting prices quoted; varies according to <b>Hair Length & Density</b> (Short / Medium / Long / Waist). • ✨ <b>Skin Services:</b> Custom tailored according to <b>Skin Type & Concerns</b>.

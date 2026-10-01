@@ -100,20 +100,20 @@ function ServicesView() {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#05424a', fontWeight: 800, fontSize: 13.5 }}>
             <Sparkles size={16} color="#d97706" />
-            <span>How Our Pricing Works (પારદર્શક ભાવ નીતિ):</span>
+            <span>How Our Pricing Works (Transparent Pricing Policy):</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, fontSize: 12.5, color: '#334155', lineHeight: 1.5 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#ffffff', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: 18 }}>💇‍♀️</span>
               <div>
-                <strong style={{ color: '#05424a', display: 'block' }}>Hair Services (વાળની લંબાઈ મુજબ):</strong>
+                <strong style={{ color: '#05424a', display: 'block' }}>Hair Services (Customized by Length):</strong>
                 Prices start from base rate and vary based on your <b>Hair Length &amp; Density</b> (Short / Shoulder / Waist).
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: '#ffffff', padding: '10px 14px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: 18 }}>✨</span>
               <div>
-                <strong style={{ color: '#05424a', display: 'block' }}>Skin Services (સ્કિન પ્રકાર મુજબ):</strong>
+                <strong style={{ color: '#05424a', display: 'block' }}>Skin Services (Customized by Skin Type):</strong>
                 Prices start from base rate and are customized according to your <b>Skin Type &amp; Analysis</b> (Glow / Anti-Acne / D-Tan).
               </div>
             </div>

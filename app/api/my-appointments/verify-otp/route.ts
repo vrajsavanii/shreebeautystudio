@@ -13,14 +13,14 @@ export async function POST(req: NextRequest) {
 
     if (clean.length !== 10) {
       return NextResponse.json(
-        { success: false, error: 'માન્ય ૧૦ આંકડાનો મોબાઈલ નંબર જરૂરી છે.' },
+        { success: false, error: 'Valid 10-digit mobile number is required.' },
         { status: 400 }
       );
     }
 
     if (!code || code.trim().length !== 4) {
       return NextResponse.json(
-        { success: false, error: 'કૃપા કરીને ૪ આંકડાનો સાચો OTP દાખલ કરો.' },
+        { success: false, error: 'Please enter the valid 4-digit OTP.' },
         { status: 400 }
       );
     }
@@ -29,20 +29,20 @@ export async function POST(req: NextRequest) {
 
     if (!result.valid) {
       return NextResponse.json(
-        { success: false, error: result.error || 'અમાન્ય OTP. કૃપા કરીને ફરીથી તપાસો.' },
+        { success: false, error: result.error || 'Invalid OTP. Please check and try again.' },
         { status: 400 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'OTP સફળતાપૂર્વક વેરિફાઈ થઈ ગયો છે.',
+      message: 'OTP verified successfully.',
       token: result.token,
     });
   } catch (err: any) {
     console.error('Error in verify-otp route:', err);
     return NextResponse.json(
-      { success: false, error: err?.message || 'OTP ચકાસણીમાં સર્વર ભૂલ આવી.' },
+      { success: false, error: err?.message || 'Server error during OTP verification.' },
       { status: 500 }
     );
   }

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
     if (clean.length !== 10) {
       return NextResponse.json(
-        { success: false, error: 'કૃપા કરીને માન્ય ૧૦ આંકડાનો મોબાઈલ નંબર નાખો (Please enter valid 10-digit mobile).' },
+        { success: false, error: 'Please enter a valid 10-digit mobile number.' },
         { status: 400 }
       );
     }
@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
     // Generate 4-digit OTP
     const { otp, expiresAt } = generateAndStoreOtp(clean);
 
-    // Formatted message in Gujarati + English
-    const message = `🌸 *Shree Beauty Studio | સિક્યોરિટી ઓટીપી*\n\nતમારી એપોઇન્ટમેન્ટ્સ & બુકિંગ હિસ્ટ્રી જોવા માટેનો સિક્યોર વેરિફિકેશન કોડ:\n\n🔢 *${otp}*\n\n_(આ કોડ ૫ મિનિટ માટે માન્ય છે. કોઈ સાથે શેર કરશો નહીં.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 97732 40010`;
+    // Formatted message in English
+    const message = `🌸 *Shree Beauty Studio | Security OTP*\n\nYour security verification code to access your appointment & booking history is:\n\n🔢 *${otp}*\n\n_(This code is valid for 5 minutes. Please do not share it with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 97732 40010\n🌐 https://shreebeauty.studio`;
 
     // Attempt to send via WhatsApp Cloud API
     let sentViaWhatsApp = false;
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'OTP સફળતાપૂર્વક મોકલવામાં આવ્યો છે.',
+      message: 'OTP sent successfully.',
       maskedMobile,
       expiresAt,
       sentViaWhatsApp,

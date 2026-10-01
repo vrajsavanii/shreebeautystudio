@@ -26,18 +26,11 @@ export async function dispatchCustomerOtp({
       ? 'Secure Login'
       : 'Password Reset';
 
-  const actionGujarati =
-    purpose === 'signup'
-      ? 'નવું એકાઉન્ટ રજીસ્ટ્રેશન'
-      : purpose === 'login'
-      ? 'સિક્યોર લોગીન'
-      : 'પાસવર્ડ રીસેટ';
-
   // 1. Mobile Channel -> WhatsApp
   if (type === 'mobile') {
     const cleanMobile = target.replace(/\D/g, '').slice(-10);
 
-    const message = `🌸 *Shree Beauty Studio | ${actionGujarati}*\n\n${name ? `નમસ્તે ${name},\n` : ''}તમારા એકાઉન્ટના *${actionLabel}* માટેનો સિક્યોરિટી વેરિફિકેશન કોડ:\n\n🔢 *${code}*\n\n_(આ કોડ ૧૦ મિનિટ માટે માન્ય છે. સુરક્ષા માટે કોઈ સાથે શેર કરશો નહીં.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 97732 40010\n🌐 https://shreebeauty.studio`;
+    const message = `🌸 *Shree Beauty Studio | ${actionLabel}*\n\n${name ? `Hello ${name},\n` : ''}Your security verification code for *${actionLabel}* is:\n\n🔢 *${code}*\n\n_(This code is valid for 10 minutes. For security, please do not share this code with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 97732 40010\n🌐 https://shreebeauty.studio`;
 
     let sentViaWhatsApp = false;
     const fallbackUrl = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(message)}`;

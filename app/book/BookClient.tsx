@@ -643,9 +643,9 @@ export default function PublicBookingPage() {
                 }}
               >
                 <div style={{ fontWeight: 800, fontSize: 13.5, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  📢 અગત્યની સૂચના (Booking Status):
+                  📢 Important Booking Notice:
                 </div>
-                તમારું અપોઇન્ટમેન્ટ બુકિંગ સ્ટુડિયો ટીમ તરફથી <b>Confirm (મંજૂર)</b> કરવામાં આવ્યા પછી જ Final થશે. કન્ફર્મ થતાં જ તમને WhatsApp પર <b>Confirmed મેસેજ અને સમય</b> મોકલવામાં આવશે.
+                Your appointment will be finalized once our studio team approves and confirms the schedule. You will receive a <b>WhatsApp confirmation message with your exact appointment time</b>.
               </div>
 
               {/* Booking Summary Box */}
@@ -665,7 +665,7 @@ export default function PublicBookingPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
                   <span style={{ color: '#64748b' }}>Booking Status:</span>
                   <span style={{ fontWeight: 800, color: '#b45309', background: '#fef3c7', padding: '2px 10px', borderRadius: 99, fontSize: 12 }}>
-                    ⏳ Pending Salon Confirmation (કન્ફર્મેશન બાકી)
+                    ⏳ Pending Salon Confirmation
                   </span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: 8 }}>
@@ -914,7 +914,7 @@ export default function PublicBookingPage() {
                     >
                       <Sparkles size={15} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
                       <div>
-                        <strong>Starting Rates Notice:</strong> Hair service prices are customized by <b>hair length &amp; volume</b> (વાળની લંબાઈ મુજબ), and skin treatments by <b>skin type &amp; consultation</b> (સ્કિન મુજબ).
+                        <strong>Starting Rates Notice:</strong> Hair service prices are customized based on <b>hair length &amp; volume</b> (Short / Medium / Long / Waist), and skin treatments based on <b>skin type &amp; condition</b>.
                       </div>
                     </div>
 

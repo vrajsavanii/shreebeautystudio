@@ -189,8 +189,8 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
       badge: '💇‍♀️ According to Hair Length',
       shortBadge: 'Hair Length Based',
       badgeShort: 'Hair Length Based',
-      gujaratiNote: 'વાળની લંબાઈ અને ઘનતા મુજબ ભાવ',
-      noteGuj: 'વાળની લંબાઈ અને ઘનતા મુજબ ભાવ',
+      gujaratiNote: 'Price varies by hair length & density',
+      noteGuj: 'Price varies by hair length & density',
     };
   }
 
@@ -216,8 +216,8 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
       badge: '✨ According to Skin Type',
       shortBadge: 'Skin Type Based',
       badgeShort: 'Skin Type Based',
-      gujaratiNote: 'સ્કિનના પ્રકાર અને સ્થિતિ મુજબ ભાવ',
-      noteGuj: 'સ્કિનના પ્રકાર અને સ્થિતિ મુજબ ભાવ',
+      gujaratiNote: 'Price tailored to skin type & condition',
+      noteGuj: 'Price tailored to skin type & condition',
     };
   }
 
@@ -228,8 +228,8 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
     badge: '🌸 Starting Rate',
     shortBadge: 'Starting Rate',
     badgeShort: 'Starting Rate',
-    gujaratiNote: 'શરૂઆતી ભાવ',
-    noteGuj: 'શરૂઆતી ભાવ',
+    gujaratiNote: 'Starting price',
+    noteGuj: 'Starting price',
   };
 }
 

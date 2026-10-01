@@ -868,13 +868,13 @@ export function buildHolidayEventPayload(
   const endISO = `${endDate}T21:00:00+05:30`;
 
   let icon = '🏖️';
-  let titlePrefix = 'Holiday (રજા)';
+  let titlePrefix = 'Holiday';
   if (h.type === 'Full Booking') {
     icon = '⛔';
-    titlePrefix = 'Slots Full (હાઉસફુલ)';
+    titlePrefix = 'Slots Full';
   } else if (h.type === 'Closed') {
     icon = '🔒';
-    titlePrefix = 'Studio Closed (બંધ)';
+    titlePrefix = 'Studio Closed';
   } else if (h.type === 'Maintenance') {
     icon = '🛠️';
     titlePrefix = 'Maintenance';
@@ -919,13 +919,13 @@ export async function autoSyncDeleteHoliday(
   settings?: Partial<SalonSettings>
 ) {
   let icon = '🏖️';
-  let titlePrefix = 'Holiday (રજા)';
+  let titlePrefix = 'Holiday';
   if (h.type === 'Full Booking') {
     icon = '⛔';
-    titlePrefix = 'Slots Full (હાઉસફુલ)';
+    titlePrefix = 'Slots Full';
   } else if (h.type === 'Closed') {
     icon = '🔒';
-    titlePrefix = 'Studio Closed (બંધ)';
+    titlePrefix = 'Studio Closed';
   } else if (h.type === 'Maintenance') {
     icon = '🛠️';
     titlePrefix = 'Maintenance';
