@@ -93,6 +93,8 @@ export interface SalonSettings {
   aiCopilotVoiceReplies?: boolean;    // Enable audio voice spoken responses
 }
 
+export type ServicePricingType = 'fixed' | 'hair_length' | 'skin_type' | 'starting';
+
 export interface Service {
   id: string;
   name: string;
@@ -100,6 +102,7 @@ export interface Service {
   duration: number;
   category?: string;
   description?: string;
+  pricingType?: ServicePricingType;
 }
 
 export interface Staff {

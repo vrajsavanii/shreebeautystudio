@@ -32,11 +32,48 @@ import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, money, getServicePricingBasis } from '@/lib/utils';
 import { openWAApp } from '@/lib/whatsapp';
-import { Service } from '@/types/salon';
+import { Service, ServicePricingType } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
+
+const PRICING_TYPE_OPTIONS: Array<{
+  value: ServicePricingType;
+  label: string;
+  badge: string;
+  sublabel: string;
+  icon: string;
+}> = [
+  {
+    value: 'fixed',
+    label: 'Fixed Price',
+    badge: '🏷️ Fixed Rate',
+    sublabel: 'Exact fixed price (e.g. Eyebrow ₹50, Threading, Waxing)',
+    icon: '🏷️',
+  },
+  {
+    value: 'hair_length',
+    label: 'According to Hair Length',
+    badge: '💇‍♀️ Hair Length',
+    sublabel: 'Starts from base rate (Short / Medium / Long / Waist)',
+    icon: '💇‍♀️',
+  },
+  {
+    value: 'skin_type',
+    label: 'According to Skin Type',
+    badge: '✨ Skin Type',
+    sublabel: 'Starts from base rate (Glow, Acne, D-Tan, Sensitive)',
+    icon: '✨',
+  },
+  {
+    value: 'starting',
+    label: 'Starting Price (General)',
+    badge: '🌸 Starts From',
+    sublabel: 'General treatment starting price (Starts from ₹...)',
+    icon: '🌸',
+  },
+];
 
 const DEFAULT_CATEGORIES = [
   'Hair Care & Styling',
@@ -318,6 +355,7 @@ export default function ServicesPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     formState: { errors },
   } = useForm<Service>({
@@ -325,18 +363,24 @@ export default function ServicesPage() {
       id: '',
       name: '',
       category: 'Hair Care & Styling',
+      pricingType: 'hair_length',
       price: '' as any,
       duration: 45,
       description: '',
     },
   });
 
+  const selectedPricingType = (watch('pricingType') || 'fixed') as ServicePricingType;
+
   const openNew = () => {
     setEditId(null);
+    const cat = activeCategory !== 'all' ? activeCategory : 'Hair Care & Styling';
+    const autoBasis = getServicePricingBasis(cat, '');
     reset({
       id: '',
       name: '',
-      category: activeCategory !== 'all' ? activeCategory : 'Hair Care & Styling',
+      category: cat,
+      pricingType: autoBasis.pricingType,
       price: '' as any,
       duration: 45,
       description: '',
@@ -346,10 +390,12 @@ export default function ServicesPage() {
 
   const openEdit = (s: Service) => {
     setEditId(s.id);
+    const basis = getServicePricingBasis(s.category, s.name, s.pricingType);
     reset({
       id: s.id,
       name: s.name,
       category: s.category || 'Hair Care & Styling',
+      pricingType: s.pricingType || basis.pricingType,
       price: s.price,
       duration: s.duration || 45,
       description: s.description || '',
@@ -360,6 +406,7 @@ export default function ServicesPage() {
   const onSubmit = (form: Service) => {
     const numPrice = Number(form.price || 0);
     const numDuration = Number(form.duration || 30);
+    const chosenPricingType = (form.pricingType || getServicePricingBasis(form.category, form.name).pricingType) as ServicePricingType;
 
     if (!form.name.trim()) {
       toast('Please enter a service name', 'error');
@@ -380,6 +427,7 @@ export default function ServicesPage() {
                 ...s,
                 name: form.name.trim(),
                 category: form.category?.trim() || 'General',
+                pricingType: chosenPricingType,
                 price: numPrice,
                 duration: numDuration,
                 description: form.description?.trim() || '',
@@ -398,6 +446,7 @@ export default function ServicesPage() {
       id: uid(),
       name: form.name.trim(),
       category: form.category?.trim() || 'General',
+      pricingType: chosenPricingType,
       price: numPrice,
       duration: numDuration,
       description: form.description?.trim() || '',
@@ -456,9 +505,10 @@ export default function ServicesPage() {
     Object.entries(grouped).forEach(([cat, list]) => {
       msg += `🏷️ *${cat.toUpperCase()}*\n`;
       list.forEach((s) => {
-        const basis = getServicePricingBasis(s.category, s.name);
+        const basis = getServicePricingBasis(s.category, s.name, s.pricingType);
         const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
-        msg += `• *${s.name}* — Starts from ₹${s.price}${tag} (${s.duration || 45} mins)\n`;
+        const priceStr = basis.isFixed ? `Fixed ${money(s.price)}` : `Starts from ${money(s.price)}+`;
+        msg += `• *${s.name}* — ${priceStr}${tag} (${s.duration || 45} mins)\n`;
         if (s.description) msg += `  _${s.description}_\n`;
       });
       msg += `\n`;
@@ -658,22 +708,22 @@ export default function ServicesPage() {
           <span style={{ fontSize: 20 }}>💡</span>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-              Starting Rate Policy
+              Pricing Basis Options
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4, marginTop: 2 }}>
-              💇‍♀️ <b>Hair Services:</b> Starting prices quoted; varies according to <b>Hair Length & Density</b> (Short / Medium / Long / Waist). • ✨ <b>Skin Services:</b> Custom tailored according to <b>Skin Type & Concerns</b>.
+              🏷️ <b>Fixed Price:</b> Exact rate for standard services (Eyebrow, Threading, Waxing). • 💇‍♀️ <b>Hair Services:</b> Starting prices quoted according to <b>Hair Length & Density</b>. • ✨ <b>Skin Services:</b> Custom tailored according to <b>Skin Type & Concerns</b>.
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <span className="badge" style={{ background: '#f0fdfa', color: '#0f766e', border: '1px solid #99f6e4', fontSize: 11 }}>
+            🏷️ Fixed Price
+          </span>
           <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: 11 }}>
             💇‍♀️ Hair Length Based
           </span>
           <span className="badge" style={{ background: '#fdf2f8', color: '#be185d', border: '1px solid #fbcfe8', fontSize: 11 }}>
             ✨ Skin Type Based
-          </span>
-          <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontSize: 11 }}>
-            🌸 Starts From ₹
           </span>
         </div>
       </div>
@@ -705,7 +755,7 @@ export default function ServicesPage() {
           }}
         >
           {filtered.map((s) => {
-            const basis = getServicePricingBasis(s.category, s.name);
+            const basis = getServicePricingBasis(s.category, s.name, s.pricingType);
             return (
               <motion.div
                 key={s.id}
@@ -717,7 +767,7 @@ export default function ServicesPage() {
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   transition: 'all 0.18s ease',
-                  borderTop: basis.basis === 'hair' ? '3px solid #0d9488' : basis.basis === 'skin' ? '3px solid #db2777' : '1px solid var(--border)',
+                  borderTop: basis.basis === 'hair' ? '3px solid #0d9488' : basis.basis === 'skin' ? '3px solid #db2777' : basis.isFixed ? '3px solid #0f766e' : '1px solid var(--border)',
                 }}
               >
                 <div>
@@ -729,9 +779,9 @@ export default function ServicesPage() {
                       className="badge"
                       style={{
                         fontSize: 10,
-                        background: basis.basis === 'hair' ? '#ecfdf5' : basis.basis === 'skin' ? '#fdf2f8' : '#f8fafc',
-                        color: basis.basis === 'hair' ? '#065f46' : basis.basis === 'skin' ? '#9d174d' : '#475569',
-                        border: `1px solid ${basis.basis === 'hair' ? '#a7f3d0' : basis.basis === 'skin' ? '#fbcfe8' : '#e2e8f0'}`,
+                        background: basis.isFixed ? '#f0fdfa' : basis.basis === 'hair' ? '#ecfdf5' : basis.basis === 'skin' ? '#fdf2f8' : '#f8fafc',
+                        color: basis.isFixed ? '#0f766e' : basis.basis === 'hair' ? '#065f46' : basis.basis === 'skin' ? '#9d174d' : '#475569',
+                        border: `1px solid ${basis.isFixed ? '#99f6e4' : basis.basis === 'hair' ? '#a7f3d0' : basis.basis === 'skin' ? '#fbcfe8' : '#e2e8f0'}`,
                         fontWeight: 700,
                       }}
                     >
@@ -758,16 +808,18 @@ export default function ServicesPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
                     <div>
                       <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Starting Price:
+                        {basis.isFixed ? 'Fixed Rate:' : 'Starting Price:'}
                       </div>
                       <div style={{ fontSize: 10, color: 'var(--teal)', fontWeight: 600 }}>
-                        {basis.basis === 'hair' ? 'According to Hair Length' : basis.basis === 'skin' ? 'According to Skin Type' : 'Base Rate'}
+                        {basis.label}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600, marginRight: 3 }}>Starts</span>
+                      {!basis.isFixed && (
+                        <span style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 600, marginRight: 3 }}>Starts</span>
+                      )}
                       <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--teal)' }}>
-                        {money(s.price)}+
+                        {money(s.price)}{basis.isFixed ? '' : '+'}
                       </span>
                     </div>
                   </div>
@@ -818,13 +870,13 @@ export default function ServicesPage() {
                   <th>Treatment Service</th>
                   <th>Category & Basis</th>
                   <th>Duration</th>
-                  <th>Starting Rate (₹)</th>
+                  <th>Rate (₹)</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
                 {filtered.map((s) => {
-                  const basis = getServicePricingBasis(s.category, s.name);
+                  const basis = getServicePricingBasis(s.category, s.name, s.pricingType);
                   return (
                     <motion.tr key={s.id} variants={fadeSlideUp}>
                       <td>
@@ -849,8 +901,8 @@ export default function ServicesPage() {
                             className="badge"
                             style={{
                               fontSize: 10,
-                              background: basis.basis === 'hair' ? '#ecfdf5' : basis.basis === 'skin' ? '#fdf2f8' : '#f8fafc',
-                              color: basis.basis === 'hair' ? '#065f46' : basis.basis === 'skin' ? '#9d174d' : '#475569',
+                              background: basis.isFixed ? '#f0fdfa' : basis.basis === 'hair' ? '#ecfdf5' : basis.basis === 'skin' ? '#fdf2f8' : '#f8fafc',
+                              color: basis.isFixed ? '#0f766e' : basis.basis === 'hair' ? '#065f46' : basis.basis === 'skin' ? '#9d174d' : '#475569',
                             }}
                           >
                             {basis.badgeShort}
@@ -864,9 +916,11 @@ export default function ServicesPage() {
                       </td>
                       <td>
                         <div>
-                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Starts From</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                            {basis.isFixed ? 'Fixed Rate' : 'Starts From'}
+                          </div>
                           <div style={{ fontWeight: 800, fontSize: 14.5, color: 'var(--teal)' }}>
-                            {money(s.price)}+
+                            {money(s.price)}{basis.isFixed ? '' : '+'}
                           </div>
                         </div>
                       </td>
@@ -927,7 +981,7 @@ export default function ServicesPage() {
             <input
               type="text"
               className={`input ${errors.name ? 'error' : ''}`}
-              placeholder="e.g. Hydra Deep Cleanse Facial / Hair Spa & Scalp Detox"
+              placeholder="e.g. Eyebrow, Hydra Facial, Keratin Smooth Treatment"
               {...register('name', { required: 'Service name is required' })}
               autoFocus
             />
@@ -936,7 +990,15 @@ export default function ServicesPage() {
 
           <div className="form-group">
             <label className="label">Category *</label>
-            <select className="input" {...register('category')}>
+            <select
+              className="input"
+              {...register('category')}
+              onChange={(e) => {
+                setValue('category', e.target.value);
+                const suggestedBasis = getServicePricingBasis(e.target.value, watch('name'));
+                setValue('pricingType', suggestedBasis.pricingType, { shouldDirty: true });
+              }}
+            >
               {categories.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -947,19 +1009,89 @@ export default function ServicesPage() {
 
           <div className="form-group">
             <label className="label">
-              Starting Rate / Price (₹) *
+              {selectedPricingType === 'fixed' ? 'Fixed Price (₹) *' : 'Starting Price (₹) *'}
               <span className="label-hint" style={{ fontSize: 10.5, color: 'var(--teal)', marginLeft: 4 }}>
-                (Hair = According to Hair Length • Skin = According to Skin Type)
+                {selectedPricingType === 'fixed'
+                  ? '(Exact rate)'
+                  : selectedPricingType === 'hair_length'
+                  ? '(According to Hair Length)'
+                  : selectedPricingType === 'skin_type'
+                  ? '(According to Skin Type)'
+                  : '(Starts From)'}
               </span>
             </label>
             <input
               type="number"
               min="0"
               className={`input ${errors.price ? 'error' : ''}`}
-              placeholder="e.g. 1200"
+              placeholder={selectedPricingType === 'fixed' ? 'e.g. 50' : 'e.g. 1200'}
               {...register('price', { required: 'Price is required' })}
             />
             {errors.price && <span className="error-msg">{errors.price.message}</span>}
+          </div>
+
+          {/* Pricing Model Option Selector */}
+          <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+            <label className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Pricing Type / Options *</span>
+              <span className="label-hint" style={{ color: 'var(--teal)', fontWeight: 700, fontSize: 11.5 }}>
+                {selectedPricingType === 'fixed'
+                  ? '🏷️ Fixed Price (Exact Rate, No "+")'
+                  : selectedPricingType === 'hair_length'
+                  ? '💇‍♀️ Starts from ₹... (According to Hair Length)'
+                  : selectedPricingType === 'skin_type'
+                  ? '✨ Starts from ₹... (According to Skin Type)'
+                  : '🌸 General Starting Price'}
+              </span>
+            </label>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              {PRICING_TYPE_OPTIONS.map((opt) => {
+                const isSelected = selectedPricingType === opt.value;
+                return (
+                  <div
+                    key={opt.value}
+                    onClick={() => setValue('pricingType', opt.value, { shouldDirty: true })}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      border: `1.5px solid ${isSelected ? 'var(--teal)' : '#cbd5e1'}`,
+                      background: isSelected ? '#f0fdfa' : '#ffffff',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 9,
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? '0 2px 8px rgba(13,148,136,0.18)' : 'none',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="pricingTypeRadio"
+                      checked={isSelected}
+                      onChange={() => setValue('pricingType', opt.value, { shouldDirty: true })}
+                      style={{ marginTop: 2, accentColor: 'var(--teal)', cursor: 'pointer' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: isSelected ? '#0f766e' : '#1e293b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>{opt.icon}</span>
+                        <span>{opt.label}</span>
+                      </div>
+                      <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 2, lineHeight: 1.3 }}>
+                        {opt.sublabel}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="form-group">

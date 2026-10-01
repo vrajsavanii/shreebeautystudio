@@ -1606,11 +1606,12 @@ export default function AppointmentsPage() {
             />
             <datalist id="appt-service-list">
               {(data?.services || []).map((s) => {
-                const basis = getServicePricingBasis(s.category, s.name);
+                const basis = getServicePricingBasis(s.category, s.name, s.pricingType);
                 const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
+                const priceLabel = basis.isFixed ? `Fixed ${money(s.price)}` : `Starts ${money(s.price)}${tag}`;
                 return (
                   <option key={s.id} value={s.name}>
-                    {s.name} — Starts {money(s.price)}{tag}
+                    {s.name} — {priceLabel}
                   </option>
                 );
               })}

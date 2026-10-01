@@ -573,7 +573,7 @@ export default function PublicHomePage() {
                   <div className="card-service-items">
                     {catServices.slice(0, 3).map((s) => {
                       const sImg = getServiceImage(s.name, s.category);
-                      const pricingBasis = getServicePricingBasis(s.category, s.name);
+                      const pricingBasis = getServicePricingBasis(s.category, s.name, s.pricingType);
                       return (
                         <div key={s.id || s.name} className="card-service-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(5,66,74,0.12)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -588,7 +588,9 @@ export default function PublicHomePage() {
                           <div style={{ textAlign: 'right', flexShrink: 0 }}>
                             <span className="service-price" style={{ color: '#05424A', fontWeight: 800, fontSize: 13.5, display: 'block' }}>
                               ₹{s.price.toLocaleString('en-IN')}
-                              <span style={{ fontSize: 10.5, color: '#64748b', fontWeight: 700, marginLeft: 2 }}>+</span>
+                              {!pricingBasis.isFixed && (
+                                <span style={{ fontSize: 10.5, color: '#64748b', fontWeight: 700, marginLeft: 2 }}>+</span>
+                              )}
                             </span>
                           </div>
                         </div>

@@ -424,10 +424,11 @@ function BillingContent() {
   const allItems = useMemo(
     () => [
       ...allServices.map((s) => {
-        const basis = getServicePricingBasis(s.category, s.name);
+        const basis = getServicePricingBasis(s.category, s.name, s.pricingType);
         const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
+        const priceLabel = basis.isFixed ? `Fixed ${money(s.price)}` : `Starts ${money(s.price)}${tag}`;
         return {
-          label: `[Service] ${s.name} (Starts ${money(s.price)}${tag})`,
+          label: `[Service] ${s.name} (${priceLabel})`,
           name: s.name,
           price: s.price,
           type: 'S' as const,

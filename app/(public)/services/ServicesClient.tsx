@@ -265,7 +265,7 @@ function ServicesView() {
         >
           {filtered.map((s: Service) => {
             const img = serviceImageMap.get(s.id) || getServiceImage(s.name, s.category);
-            const pricingBasis = getServicePricingBasis(s.category, s.name);
+            const pricingBasis = getServicePricingBasis(s.category, s.name, s.pricingType);
             return (
               <motion.div
                 key={s.id}
@@ -391,19 +391,25 @@ function ServicesView() {
                         padding: '3px 9px',
                         borderRadius: 8,
                         background:
-                          pricingBasis.type === 'hair'
+                          pricingBasis.isFixed
+                            ? '#f0fdfa'
+                            : pricingBasis.type === 'hair'
                             ? '#ecfeff'
                             : pricingBasis.type === 'skin'
                             ? '#fefce8'
                             : '#f1f5f9',
                         color:
-                          pricingBasis.type === 'hair'
+                          pricingBasis.isFixed
+                            ? '#0f766e'
+                            : pricingBasis.type === 'hair'
                             ? '#0e7490'
                             : pricingBasis.type === 'skin'
                             ? '#a16207'
                             : '#475569',
                         border:
-                          pricingBasis.type === 'hair'
+                          pricingBasis.isFixed
+                            ? '1px solid #99f6e4'
+                            : pricingBasis.type === 'hair'
                             ? '1px solid #cffafe'
                             : pricingBasis.type === 'skin'
                             ? '1px solid #fef08a'
@@ -445,11 +451,13 @@ function ServicesView() {
                 >
                   <div>
                     <span style={{ fontSize: 10, color: '#05424A', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em', display: 'block' }}>
-                      Starts From
+                      {pricingBasis.isFixed ? 'Fixed Price' : 'Starts From'}
                     </span>
                     <span style={{ fontSize: 20, fontWeight: 900, color: '#05424A' }}>
                       ₹{s.price.toLocaleString('en-IN')}{' '}
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>onwards</span>
+                      {!pricingBasis.isFixed && (
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>onwards</span>
+                      )}
                     </span>
                   </div>
 

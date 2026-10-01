@@ -1049,7 +1049,7 @@ export default function PublicBookingPage() {
                         filteredServices.map((s) => {
                           const isSelected = selectedServices.includes(s.name);
                           const sImg = getServiceImage(s.name, s.category);
-                          const pricingBasis = getServicePricingBasis(s.category, s.name);
+                          const pricingBasis = getServicePricingBasis(s.category, s.name, s.pricingType);
                           return (
                             <button
                               key={s.id || s.name}
@@ -1093,11 +1093,11 @@ export default function PublicBookingPage() {
                                     style={{
                                       fontWeight: 700,
                                       fontSize: 10,
-                                      color: pricingBasis.type === 'hair' ? '#0e7490' : pricingBasis.type === 'skin' ? '#a16207' : '#64748b',
-                                      background: pricingBasis.type === 'hair' ? '#ecfeff' : pricingBasis.type === 'skin' ? '#fefce8' : '#f1f5f9',
+                                      color: pricingBasis.isFixed ? '#0f766e' : pricingBasis.type === 'hair' ? '#0e7490' : pricingBasis.type === 'skin' ? '#a16207' : '#64748b',
+                                      background: pricingBasis.isFixed ? '#f0fdfa' : pricingBasis.type === 'hair' ? '#ecfeff' : pricingBasis.type === 'skin' ? '#fefce8' : '#f1f5f9',
                                       padding: '1px 6px',
                                       borderRadius: 4,
-                                      border: pricingBasis.type === 'hair' ? '1px solid #cffafe' : pricingBasis.type === 'skin' ? '1px solid #fef08a' : '1px solid #e2e8f0',
+                                      border: pricingBasis.isFixed ? '1px solid #99f6e4' : pricingBasis.type === 'hair' ? '1px solid #cffafe' : pricingBasis.type === 'skin' ? '1px solid #fef08a' : '1px solid #e2e8f0',
                                     }}
                                   >
                                     {pricingBasis.shortBadge}
@@ -1106,10 +1106,10 @@ export default function PublicBookingPage() {
                               </div>
                               <div style={{ pointerEvents: 'none', textAlign: 'right', flexShrink: 0 }}>
                                 <div style={{ fontSize: 9.5, fontWeight: 800, color: '#05424a', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                                  Starts From
+                                  {pricingBasis.isFixed ? 'Fixed Price' : 'Starts From'}
                                 </div>
                                 <div style={{ fontWeight: 900, fontSize: 14.5, color: '#16a34a' }}>
-                                  {money(s.price)}
+                                  {money(s.price)}{pricingBasis.isFixed ? '' : '+'}
                                 </div>
                                 <span
                                   style={{

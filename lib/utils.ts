@@ -147,26 +147,136 @@ export const FIFTEEN_MIN_TIME_SLOTS: { value: string; label: string }[] = Array.
   return { value: val, label };
 });
 
+import { ServicePricingType } from '@/types/salon';
+
 /**
  * Categorizes service pricing basis:
+ * - Fixed: exact fixed price (e.g. Eyebrow, Threading, Waxing)
  * - Hair services: priced according to Hair Length & Density
  * - Skin services: priced according to Skin Type & Condition
- * - Other services: general starting rate
+ * - Starting rate: general starting price
  */
 export interface ServicePricingBasis {
-  type: 'hair' | 'skin' | 'general';
-  basis: 'hair' | 'skin' | 'general';
+  type: 'hair' | 'skin' | 'general' | 'fixed';
+  basis: 'hair' | 'skin' | 'general' | 'fixed';
+  pricingType: ServicePricingType;
+  isFixed: boolean;
   label: string;
   badge: string;
   shortBadge: string;
   badgeShort: string;
+  pricePrefix: string;
+  priceSuffix: string;
   gujaratiNote: string;
   noteGuj: string;
 }
 
-export function getServicePricingBasis(category?: string, name?: string): ServicePricingBasis {
+export function getServicePricingBasis(
+  category?: string,
+  name?: string,
+  explicitPricingType?: ServicePricingType
+): ServicePricingBasis {
+  // If explicitly selected in service editor
+  if (explicitPricingType === 'fixed') {
+    return {
+      type: 'fixed',
+      basis: 'fixed',
+      pricingType: 'fixed',
+      isFixed: true,
+      label: 'Fixed Price',
+      badge: '🏷️ Fixed Price',
+      shortBadge: 'Fixed Price',
+      badgeShort: 'Fixed Price',
+      pricePrefix: 'Fixed',
+      priceSuffix: '',
+      gujaratiNote: 'Fixed Price',
+      noteGuj: 'Fixed Price',
+    };
+  }
+
+  if (explicitPricingType === 'hair_length') {
+    return {
+      type: 'hair',
+      basis: 'hair',
+      pricingType: 'hair_length',
+      isFixed: false,
+      label: 'According to Hair Length & Density',
+      badge: '💇‍♀️ According to Hair Length',
+      shortBadge: 'According to Hair Length',
+      badgeShort: 'According to Hair Length',
+      pricePrefix: 'Starts From',
+      priceSuffix: '+',
+      gujaratiNote: 'According to Hair Length & Density',
+      noteGuj: 'According to Hair Length & Density',
+    };
+  }
+
+  if (explicitPricingType === 'skin_type') {
+    return {
+      type: 'skin',
+      basis: 'skin',
+      pricingType: 'skin_type',
+      isFixed: false,
+      label: 'According to Skin Type & Condition',
+      badge: '✨ According to Skin Type',
+      shortBadge: 'According to Skin Type',
+      badgeShort: 'According to Skin Type',
+      pricePrefix: 'Starts From',
+      priceSuffix: '+',
+      gujaratiNote: 'According to Skin Type & Condition',
+      noteGuj: 'According to Skin Type & Condition',
+    };
+  }
+
+  if (explicitPricingType === 'starting') {
+    return {
+      type: 'general',
+      basis: 'general',
+      pricingType: 'starting',
+      isFixed: false,
+      label: 'Starting Price',
+      badge: '🌸 Starting Rate',
+      shortBadge: 'Starting Price',
+      badgeShort: 'Starting Price',
+      pricePrefix: 'Starts From',
+      priceSuffix: '+',
+      gujaratiNote: 'According to Service Selection',
+      noteGuj: 'According to Service Selection',
+    };
+  }
+
+  // Automatic deduction from category / name when pricingType is not yet explicitly set
   const lowerCat = (category || '').toLowerCase();
   const lowerName = (name || '').toLowerCase();
+
+  // Threading / Waxing / Eyebrow / Lip / Chin are explicitly Fixed by default
+  const isFixedDefault =
+    lowerCat.includes('threading') ||
+    lowerCat.includes('wax') ||
+    lowerName.includes('threading') ||
+    lowerName.includes('eyebrow') ||
+    lowerName.includes('upper lip') ||
+    lowerName.includes('forehead') ||
+    lowerName.includes('chin') ||
+    lowerName.includes('draping') ||
+    lowerName.includes('saree');
+
+  if (isFixedDefault) {
+    return {
+      type: 'fixed',
+      basis: 'fixed',
+      pricingType: 'fixed',
+      isFixed: true,
+      label: 'Fixed Price',
+      badge: '🏷️ Fixed Price',
+      shortBadge: 'Fixed Price',
+      badgeShort: 'Fixed Price',
+      pricePrefix: 'Fixed',
+      priceSuffix: '',
+      gujaratiNote: 'Fixed Price',
+      noteGuj: 'Fixed Price',
+    };
+  }
 
   const isHair =
     lowerCat.includes('hair') ||
@@ -177,7 +287,6 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
     lowerName.includes('rebonding') ||
     lowerName.includes('color') ||
     lowerName.includes('spa') ||
-    lowerName.includes('cut') ||
     lowerName.includes('nanoplastia') ||
     lowerName.includes('straightening');
 
@@ -185,10 +294,14 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
     return {
       type: 'hair',
       basis: 'hair',
+      pricingType: 'hair_length',
+      isFixed: false,
       label: 'According to Hair Length & Density',
       badge: '💇‍♀️ According to Hair Length',
       shortBadge: 'According to Hair Length',
       badgeShort: 'According to Hair Length',
+      pricePrefix: 'Starts From',
+      priceSuffix: '+',
       gujaratiNote: 'According to Hair Length & Density',
       noteGuj: 'According to Hair Length & Density',
     };
@@ -197,10 +310,8 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
   const isSkin =
     lowerCat.includes('skin') ||
     lowerCat.includes('facial') ||
-    lowerCat.includes('bleach') ||
     lowerName.includes('facial') ||
     lowerName.includes('cleanup') ||
-    lowerName.includes('bleach') ||
     lowerName.includes('glow') ||
     lowerName.includes('d-tan') ||
     lowerName.includes('o3+') ||
@@ -212,10 +323,14 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
     return {
       type: 'skin',
       basis: 'skin',
+      pricingType: 'skin_type',
+      isFixed: false,
       label: 'According to Skin Type & Condition',
       badge: '✨ According to Skin Type',
       shortBadge: 'According to Skin Type',
       badgeShort: 'According to Skin Type',
+      pricePrefix: 'Starts From',
+      priceSuffix: '+',
       gujaratiNote: 'According to Skin Type & Condition',
       noteGuj: 'According to Skin Type & Condition',
     };
@@ -224,10 +339,14 @@ export function getServicePricingBasis(category?: string, name?: string): Servic
   return {
     type: 'general',
     basis: 'general',
+    pricingType: 'starting',
+    isFixed: false,
     label: 'Starting Price',
     badge: '🌸 Starting Rate',
     shortBadge: 'Starting Price',
     badgeShort: 'Starting Price',
+    pricePrefix: 'Starts From',
+    priceSuffix: '+',
     gujaratiNote: 'According to Service Selection',
     noteGuj: 'According to Service Selection',
   };
