@@ -314,8 +314,7 @@ export default function PublicHomePage() {
                     <Star key={i} size={12} fill="#D4AF37" />
                   ))}
                 </div>
-                <span style={{ fontWeight: 700, color: '#FFFFFF' }}>4.9★ Google</span>
-                <span style={{ color: '#D4AF37' }}>(150+ Reviews)</span>
+                <span style={{ fontWeight: 700, color: '#FFFFFF' }}>4.9★ Google Rating</span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -739,7 +738,7 @@ export default function PublicHomePage() {
             </span>
             <h2 style={{ color: '#032B30' }}>Loved by Hundreds of Surat Brides &amp; Clients</h2>
             <p style={{ color: '#64748B' }}>
-              Real reviews from our clients on Google Maps. 4.9★ average from 150+ happy clients in Katargam, Surat.
+              Real reviews from our clients on Google Maps. 4.9★ average from happy clients in Katargam, Surat.
             </p>
           </div>
         </div>
@@ -837,7 +836,7 @@ export default function PublicHomePage() {
             }}
           >
             <img src="https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_28dp.png" alt="Google" width={20} height={20} />
-            <span>4.9★ on Google Maps · 150+ Verified Reviews</span>
+            <span>4.9★ on Google Maps · Verified Reviews</span>
             <ChevronRight size={14} color="#94a3b8" />
           </motion.a>
         </div>
