@@ -1720,8 +1720,8 @@ a, button, input, select, textarea {
     gap: 10px !important;
   }
   .cust-navbar-logo img {
-    height: 40px !important;
-    max-width: 220px !important;
+    height: 38px !important;
+    max-width: 140px !important;
   }
   .cust-btn-login {
     display: none !important;
@@ -1744,8 +1744,8 @@ a, button, input, select, textarea {
     gap: 8px !important;
   }
   .cust-navbar-logo img {
-    height: 35px !important;
-    max-width: 190px !important;
+    height: 34px !important;
+    max-width: 125px !important;
   }
   .cust-nav-profile-name {
     display: none !important;

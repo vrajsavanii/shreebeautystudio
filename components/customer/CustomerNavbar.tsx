@@ -125,7 +125,7 @@ export default function CustomerNavbar() {
               style={{
                 height: '46px',
                 width: 'auto',
-                maxWidth: '280px',
+                maxWidth: '175px',
                 objectFit: 'contain',
                 display: 'block',
               }}
