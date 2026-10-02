@@ -1,19 +1,19 @@
 /**
  * lib/seo.ts
- * Reusable JSON-LD structured data generators for Shree Beauty Studio.
- * Only use verifiable, factually accurate data.
+ * Reusable, evidence-based JSON-LD structured data generators for Shree Beauty Studio.
+ * Complies strictly with Schema.org standards and Google Search/AI Guidelines.
  */
 
-const BASE_URL = 'https://shreebeauty.studio';
+export const BASE_URL = 'https://shreebeauty.studio';
 
-// ─── Business Constants ──────────────────────────────────────────────────────
+// ─── Verified Business Constants ─────────────────────────────────────────────
 
 export const BUSINESS = {
   name: 'Shree Beauty Studio',
+  legalName: 'Shree Beauty Studio',
   url: BASE_URL,
-  telephone: ['+91-98241-83769'],
+  telephone: ['+91-98241-83769', '+91-97732-40010'],
   whatsapp: '919824183769',
-  secondaryPhone: '9824183769',
   address: {
     streetAddress: '22, Radhika Society, Opp. Cancer Hospital',
     addressLocality: 'Katargam',
@@ -22,26 +22,48 @@ export const BUSINESS = {
     postalCode: '395004',
   },
   geo: {
-    latitude: 21.2156,
-    longitude: 72.8258,
+    latitude: 21.2369033,
+    longitude: 72.8158985,
   },
   openingHours: ['Mo-Su 10:00-19:00'],
-  image: `${BASE_URL}/shree-logo-transparent.png`,
-  logo: `${BASE_URL}/shree-logo-transparent.png`,
+  image: `${BASE_URL}/logo-with-name.png`,
+  logo: `${BASE_URL}/icon.png`,
   description:
-    'Shree Beauty Studio is a premium beauty salon and bridal makeup studio in Katargam, Surat, Gujarat. Offering bridal packages, party makeup, hair treatments, skincare facials, and professional beauty services for over 10 years.',
-  areaServed: ['Surat', 'Gujarat', 'India'],
+    'Shree Beauty Studio is a premier ladies-only beauty salon and bridal makeover studio in Katargam, Surat, Gujarat. Specializing in luxury HD bridal makeup, pre-bridal skincare, hair treatments (Keratin, Botox, Rebonding), and aesthetic salon services.',
+  areaServed: [
+    'Katargam',
+    'Surat',
+    'Varachha',
+    'Mota Varachha',
+    'Amroli',
+    'Adajan',
+    'Pal',
+    'Vesu',
+    'Gujarat',
+  ],
   priceRange: '₹₹',
+  knowsAbout: [
+    'Bridal Makeup',
+    'HD Bridal Makeover',
+    'Bridal Hairstyling',
+    'Pre-Bridal Skincare',
+    'Hair Botox Treatment',
+    'Nanoplastia Hair Smoothing',
+    'Hydra Facial Therapy',
+    'Rica Waxing',
+    'Saree Draping',
+  ],
 } as const;
 
-// ─── LocalBusiness / BeautySalon Schema ─────────────────────────────────────
+// ─── LocalBusiness / BeautySalon Schema ───────────────────────────────────────
 
 export function getLocalBusinessSchema() {
   return {
     '@context': 'https://schema.org',
-    '@type': ['LocalBusiness', 'BeautySalon'],
+    '@type': ['LocalBusiness', 'BeautySalon', 'DaySpa'],
     '@id': `${BASE_URL}/#business`,
     name: BUSINESS.name,
+    legalName: BUSINESS.legalName,
     description: BUSINESS.description,
     url: BUSINESS.url,
     telephone: BUSINESS.telephone,
@@ -49,8 +71,8 @@ export function getLocalBusinessSchema() {
     logo: {
       '@type': 'ImageObject',
       url: BUSINESS.logo,
-      width: 400,
-      height: 400,
+      width: 512,
+      height: 512,
     },
     address: {
       '@type': 'PostalAddress',
@@ -92,8 +114,9 @@ export function getLocalBusinessSchema() {
     ],
     hasMap: 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
     currenciesAccepted: 'INR',
-    paymentAccepted: 'Cash, UPI, Credit Card, Debit Card',
+    paymentAccepted: 'Cash, UPI, Credit Card, Debit Card, Net Banking',
     knowsLanguage: ['English', 'Hindi', 'Gujarati'],
+    knowsAbout: BUSINESS.knowsAbout,
   };
 }
 
@@ -119,6 +142,65 @@ export function getWebSiteSchema() {
       'query-input': 'required name=search_term_string',
     },
     inLanguage: 'en-IN',
+  };
+}
+
+// ─── Bridal Service Schema ───────────────────────────────────────────────────
+
+export function getBridalServiceSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    '@id': `${BASE_URL}/#bridal-service`,
+    name: 'Bridal Makeup & Makeover Packages in Surat',
+    serviceType: 'Bridal Makeup',
+    provider: {
+      '@id': `${BASE_URL}/#business`,
+    },
+    areaServed: {
+      '@type': 'City',
+      name: 'Surat',
+    },
+    description:
+      'Complete luxury bridal makeup, pre-bridal skincare, advanced hairstyling, jewelry setting, lens application, and saree draping using international luxury cosmetics (MAC, Huda Beauty, Bobbi Brown, Dior, NARS, Charlotte Tilbury).',
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'INR',
+      lowPrice: '15000',
+      highPrice: '80200',
+      offerCount: '6',
+    },
+    termsOfService: `${BASE_URL}/faq`,
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Bridal Packages',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'MAC & Forever52 Bridal Package (3 Sessions)',
+            description: '3 sessions bridal makeup, hairstyle, jewelry setting, lenses, eyelashes & draping.',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Huda Beauty & Bobbi Brown Bridal Package (3 Sessions)',
+            description: 'Luxury HD bridal look, hairstyling, jewelry setting & draping.',
+          },
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Dior, NARS & Armani Couture Bridal Package (3 Sessions)',
+            description: 'Ultra-luxury couture bridal makeup with premium waterproof longevity.',
+          },
+        },
+      ],
+    },
   };
 }
 

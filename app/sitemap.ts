@@ -14,10 +14,28 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
+      url: `${BASE_URL}/bridal`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
+    {
       url: `${BASE_URL}/services`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/contact`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
+      url: `${BASE_URL}/about`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.8,
     },
     {
       url: `${BASE_URL}/book`,
@@ -35,13 +53,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/faq`,
       lastModified: now,
       changeFrequency: 'monthly',
-      priority: 0.7,
-    },
-    {
-      url: `${BASE_URL}/about`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.7,
+      priority: 0.75,
     },
     {
       url: `${BASE_URL}/my-appointments`,
@@ -55,7 +67,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${BASE_URL}/blog/${post.slug}`,
     lastModified: now,
     changeFrequency: 'monthly',
-    priority: 0.8,
+    priority: 0.75,
   }));
 
   return [...staticPages, ...blogPages];

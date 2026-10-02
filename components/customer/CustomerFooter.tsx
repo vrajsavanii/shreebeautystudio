@@ -253,7 +253,7 @@ export default function CustomerFooter() {
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Link
-                href="/ContactUs"
+                href="/contact"
                 style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}

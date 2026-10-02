@@ -12,10 +12,11 @@ import { useCustomerAuth } from '@/lib/customer-context';
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/services', label: 'Services' },
+  { href: '/bridal', label: 'Bridal' },
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/faq', label: 'FAQ' },
-  { href: '/ContactUs', label: 'Contact Us' },
+  { href: '/contact', label: 'Contact Us' },
   { href: '/my-appointments', label: 'My Appointments' },
 ];
 
