@@ -42,18 +42,18 @@ export default function CustomerFooter() {
       <div
         className="cust-footer-inner"
         style={{
-          maxWidth: 1240,
+          maxWidth: 1080,
           margin: '0 auto',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'flex-start',
           flexWrap: 'wrap',
-          gap: 'clamp(36px, 6vw, 64px)',
+          gap: 'clamp(48px, 8vw, 110px)',
           marginBottom: 44,
         }}
       >
         {/* Left Column: Brand & Bio */}
-        <div style={{ flex: '1 1 380px', maxWidth: 500 }}>
+        <div style={{ flex: '1 1 360px', maxWidth: 480 }}>
           <div style={{ marginBottom: 18 }}>
             <img
               src={settings?.logoUrl || SHREE_LOGO_BASE64}
@@ -294,7 +294,7 @@ export default function CustomerFooter() {
       {/* Bottom Bar */}
       <div
         style={{
-          maxWidth: 1240,
+          maxWidth: 1080,
           margin: '0 auto',
           paddingTop: 24,
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
