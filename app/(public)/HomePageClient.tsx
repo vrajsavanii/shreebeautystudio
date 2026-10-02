@@ -224,11 +224,6 @@ export default function PublicHomePage() {
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
           {/* Centered Hero Content */}
           <motion.div initial="hidden" animate="visible" variants={stagger} style={{ textAlign: 'center' }}>
-            <motion.div variants={fadeUp} className="cust-hero-badge-pill">
-              <Sparkles size={14} color="#D4AF37" />
-              <span>Katargam, Surat · 25+ Years of Mastery</span>
-            </motion.div>
-
             <motion.h1
               className="display-font"
               variants={fadeUp}
