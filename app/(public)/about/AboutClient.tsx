@@ -542,7 +542,7 @@ export default function AboutClient() {
                 <span>Book Appointment Online</span>
               </Link>
               <a
-                href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20know%20more%20about%20your%20studio."
+                href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AWhatsApp%20Message"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

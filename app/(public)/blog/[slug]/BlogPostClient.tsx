@@ -975,7 +975,7 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               <span>Book Appointment Online</span>
             </Link>
             <a
-              href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20read%20your%20blog%20post%20and%20would%20like%20to%20consult."
+              href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AWhatsApp%20Message"
               target="_blank"
               rel="noopener noreferrer"
               style={{

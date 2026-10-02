@@ -74,7 +74,7 @@ export default function PublicLayoutClient({ children }: { children: React.React
 
         {/* ─── Premium Expanding WhatsApp Float Button ─── */}
         <a
-          href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%27d%20like%20to%20book%20an%20appointment.`}
+          href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20!%0AWhatsApp%20Message`}
           target="_blank"
           rel="noopener noreferrer"
           className="cust-whatsapp-float"

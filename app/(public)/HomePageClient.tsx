@@ -273,7 +273,7 @@ export default function PublicHomePage() {
               </Link>
 
               <a
-                href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20inquire%20about%20booking%20an%20appointment.`}
+                href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20!%0AWhatsApp%20Message`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -925,7 +925,7 @@ export default function PublicHomePage() {
                 <span>Book Your Appointment</span>
               </Link>
               <a
-                href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%27d%20like%20to%20know%20more%20about%20your%20services.`}
+                href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20!%0AWhatsApp%20Message`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="cust-btn-secondary"

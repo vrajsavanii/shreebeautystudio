@@ -94,7 +94,7 @@ export default function CustomerFooter() {
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
             <a
-              href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20book%20an%20appointment."
+              href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AWhatsApp%20Message"
               target="_blank"
               rel="noopener noreferrer"
               style={{
