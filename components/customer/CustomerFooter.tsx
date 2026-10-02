@@ -59,16 +59,17 @@ export default function CustomerFooter() {
       >
         {/* Column 1: Brand & Bio */}
         <div>
-          <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 16 }}>
             <img
               src={SHREE_LOGO_BASE64}
               alt={salonName}
               style={{
                 width: '100%',
-                maxWidth: 180,
+                maxWidth: 260,
                 height: 'auto',
                 display: 'block',
                 objectFit: 'contain',
+                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
               }}
             />
           </div>

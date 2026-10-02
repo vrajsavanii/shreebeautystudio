@@ -123,11 +123,12 @@ export default function CustomerNavbar() {
               src={SHREE_LOGO_BASE64}
               alt={salonName}
               style={{
-                height: '46px',
+                height: '54px',
                 width: 'auto',
-                maxWidth: '175px',
+                maxWidth: '220px',
                 objectFit: 'contain',
                 display: 'block',
+                filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.25))',
               }}
             />
           </Link>

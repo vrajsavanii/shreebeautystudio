@@ -59,7 +59,7 @@ export default function Sidebar() {
           alt={salonName}
           style={{
             width: '100%',
-            maxWidth: '190px',
+            maxWidth: '230px',
             height: 'auto',
             display: 'block',
             objectFit: 'contain',
