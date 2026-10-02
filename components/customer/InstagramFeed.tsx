@@ -109,31 +109,6 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
         }}
       />
 
-      {/* Instagram watermark (84×84px Frosted Glass) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          width: 'clamp(60px, 14vw, 84px)',
-          height: 'clamp(60px, 14vw, 84px)',
-          borderRadius: 20,
-          background: 'rgba(0, 0, 0, 0.55)',
-          backdropFilter: 'blur(14px)',
-          WebkitBackdropFilter: 'blur(14px)',
-          border: '1.5px solid rgba(255, 255, 255, 0.22)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.35)',
-          zIndex: 2,
-          transition: 'all 0.3s ease',
-          transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-        }}
-      >
-        <Instagram size={40} color="#ffffff" strokeWidth={1.8} />
-      </div>
-
       {/* Overlay with likes & comments */}
       <div
         style={{
