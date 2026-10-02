@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description:
     'Cloud-first salon management platform for Shree Beauty Studio, Surat. Book appointments, manage billing, inventory, bridal bookings and more.',
   keywords: ['salon', 'beauty studio', 'parlour management', 'Shree Beauty Studio', 'Surat'],
+  verification: {
+    google: '2EZxH2Nusun00VMqlKGAB6OJv238XGDL5dqSgtrh_hs',
+  },
   icons: {
     icon: [
       { url: '/icon.png?v=3', type: 'image/png' },
@@ -45,6 +48,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <meta name="theme-color" content="#05424A" />
+        <meta name="google-site-verification" content="2EZxH2Nusun00VMqlKGAB6OJv238XGDL5dqSgtrh_hs" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
