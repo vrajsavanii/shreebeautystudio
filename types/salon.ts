@@ -81,9 +81,13 @@ export interface SalonSettings {
   calendarBridalReminderMinutes2?: number; // e.g. 120 (2 hours before) or 0
   calendarEmailReminderEnabled?: boolean; // Send email reminder alongside popup
   calendarDeletePastDays?: number; // Auto delete past events older than N days from calendar (e.g. 2 days)
-  // Social Media & Maps Redirection
   instagramHandle?: string; // e.g. '@shreebeauty.studio'
   instagramUrl?: string; // e.g. 'https://www.instagram.com/shreebeauty.studio/'
+  instagramAccountId?: string; // e.g. '17841408494357129' (Meta Instagram Business Account ID)
+  instagramWidgetType?: 'auto' | 'token' | 'behold' | 'elfsight' | 'snapwidget' | 'custom';
+  instagramAccessToken?: string; // Direct Meta/Instagram User Access Token (Graph API)
+  instagramWidgetId?: string; // e.g. Behold Feed ID or Elfsight App ID
+  instagramEmbedCode?: string; // Custom iframe / script embed HTML
   googleMapsUrl?: string; // e.g. 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'
   googleMapsEmbedUrl?: string; // e.g. custom Google Maps embed URL
   openDays?: string; // e.g. 'Monday – Sunday (Open All 7 Days)'

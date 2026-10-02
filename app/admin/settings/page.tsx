@@ -726,6 +726,128 @@ export default function SettingsPage() {
                     Appears in footer, booking passes, WhatsApp and email templates.
                   </span>
                 </div>
+
+                {/* ── Live Instagram Feed / Auto-Sync Integration ── */}
+                <div style={{
+                  gridColumn: '1 / -1',
+                  marginTop: 8,
+                  padding: 16,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, rgba(234,186,56,0.06), rgba(188,24,136,0.06))',
+                  border: '1px solid rgba(220,39,67,0.2)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>📸</span>
+                      <strong style={{ fontSize: 13.5, color: 'var(--foreground)' }}>Live Auto-Updating Instagram Feed</strong>
+                    </div>
+                    <span style={{
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      borderRadius: 99,
+                      background: s.instagramWidgetId ? 'rgba(34,197,94,0.15)' : 'rgba(100,116,139,0.15)',
+                      color: s.instagramWidgetId ? '#22c55e' : 'var(--muted)',
+                      fontWeight: 700,
+                    }}>
+                      {s.instagramWidgetId ? '● Live Connected' : '○ Curated Default'}
+                    </span>
+                  </div>
+                  
+                  <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                    Connect your real-time Instagram reels and posts to auto-sync directly onto your website homepage.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="label">Sync Method</label>
+                      <select
+                        className="input"
+                        value={s.instagramWidgetType || 'auto'}
+                        onChange={(e) => update('instagramWidgetType', e.target.value as any)}
+                      >
+                        <option value="auto">Behold.so (Easiest 1-Click Live Connect - Free)</option>
+                        <option value="token">Direct Meta/Instagram Access Token (No 3rd Party)</option>
+                        <option value="elfsight">Elfsight Widget</option>
+                        <option value="custom">Custom Embed Code / Iframe</option>
+                      </select>
+                    </div>
+
+                    {s.instagramWidgetType === 'token' && (
+                      <>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="label">Instagram Account ID</label>
+                          <input
+                            type="text"
+                            className="input"
+                            value={s.instagramAccountId || '17841408494357129'}
+                            onChange={(e) => update('instagramAccountId', e.target.value.trim())}
+                            placeholder="17841408494357129"
+                          />
+                        </div>
+                        <div className="form-group" style={{ margin: 0, gridColumn: '1 / -1' }}>
+                          <label className="label">Direct Meta/Instagram Access Token</label>
+                          <input
+                            type="password"
+                            className="input"
+                            value={s.instagramAccessToken || ''}
+                            onChange={(e) => update('instagramAccessToken', e.target.value.trim())}
+                            placeholder="EAA... or IGQVJ..."
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {(s.instagramWidgetType === 'auto' || s.instagramWidgetType === 'behold' || s.instagramWidgetType === 'elfsight' || !s.instagramWidgetType) && (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="label">
+                          {s.instagramWidgetType === 'elfsight' ? 'Elfsight Widget App ID' : 'Behold Feed ID'}
+                        </label>
+                        <input
+                          type="text"
+                          className="input"
+                          value={s.instagramWidgetId || ''}
+                          onChange={(e) => update('instagramWidgetId', e.target.value.trim())}
+                          placeholder={s.instagramWidgetType === 'elfsight' ? 'e.g. 1a2b3c4d-5e6f-...' : 'e.g. gD7gZ8xABC123'}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {s.instagramWidgetType === 'custom' && (
+                    <div className="form-group" style={{ marginTop: 12, marginBottom: 0 }}>
+                      <label className="label">Custom HTML / Iframe Embed Code</label>
+                      <textarea
+                        className="input"
+                        rows={3}
+                        value={s.instagramEmbedCode || ''}
+                        onChange={(e) => update('instagramEmbedCode', e.target.value)}
+                        placeholder="<iframe src='...' or <script ...></script>"
+                      />
+                    </div>
+                  )}
+
+                  {/* Quick Setup Instructions */}
+                  <div style={{
+                    marginTop: 14,
+                    padding: '10px 14px',
+                    borderRadius: 8,
+                    background: 'rgba(0,0,0,0.03)',
+                    fontSize: 11.5,
+                    color: 'var(--muted)',
+                    lineHeight: 1.6,
+                    border: '1px dashed rgba(0,0,0,0.1)',
+                  }}>
+                    💡 <strong>How to connect Instagram live:</strong>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>
+                      <li>
+                        <strong>Option 1 (1-Click Connect - Recommended):</strong> Go to <a href="https://behold.so" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: 700 }}>Behold.so ↗</a>, click <em>Connect Instagram</em> to link <code>@shreebeauty.studio</code>, copy your Feed ID and paste above.
+                      </li>
+                      <li>
+                        <strong>Option 2 (Direct Meta API):</strong> Generate a User Token in <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', fontWeight: 700 }}>Meta for Developers ↗</a> → Instagram Basic Display API and paste the access token above.
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>

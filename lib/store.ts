@@ -87,6 +87,11 @@ export const DEFAULT_DATA: SalonData = {
     openDays: 'Open All 7 Days',
     instagramHandle: '@shreebeauty.studio',
     instagramUrl: 'https://www.instagram.com/shreebeauty.studio/',
+    instagramAccountId: '17841408494357129',
+    instagramWidgetType: 'token',
+    instagramAccessToken: 'EAAPI3xAR034BSnTH6MZBmQfFzkvdhBgjdUUspaC7u5XNMmc05ZCR7yoMvaXhk40IYl39MpIwgTROMaNQYbu2syGQQ5rvHUdj0SuttbB1FHIobn51XAxRRFgvABs8mPhorFhMS1rYW4u6pkTRzew4r0A3yGZBZB80e1AAPZCs7f6ijUAE958zOmcRvqourBgZDZD',
+    instagramWidgetId: '',
+    instagramEmbedCode: '',
     // AI Copilot Defaults
     aiCopilotEnabled: true,
     aiCopilotShortcutEnabled: true,
