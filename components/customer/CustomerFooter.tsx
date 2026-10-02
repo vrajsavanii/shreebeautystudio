@@ -251,16 +251,6 @@ export default function CustomerFooter() {
             >
               Beauty &amp; Care Blog (50+ Guides)
             </Link>
-            <a
-              href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 5 }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Katargam, Surat 📍
-            </a>
           </div>
         </div>
       </div>
