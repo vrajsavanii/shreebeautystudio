@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram, MapPin, Clock, Mail } from 'lucide-react';
+import { Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram, MapPin } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -20,17 +20,8 @@ export default function CustomerFooter() {
   }, []);
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
-  const whatsapp = settings?.whatsapp || '919824183769';
-  const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-  const openTime = settings?.open || '10:00';
-  const closeTime = settings?.close || '19:00';
-  const openDays = settings?.openDays || 'Open All 7 Days';
   const instagramHandle = settings?.instagramHandle || '@shreebeauty.studio';
   const instagramUrl = settings?.instagramUrl || `https://www.instagram.com/${instagramHandle.replace('@', '')}/`;
-  const googleMapsUrl =
-    settings?.googleMapsUrl ||
-    'https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D';
-  const email = 'shreebeauty.studio22@gmail.com';
 
   return (
     <footer
@@ -42,25 +33,28 @@ export default function CustomerFooter() {
         backgroundImage: 'linear-gradient(180deg, #021e22 0%, #011619 100%)',
         backgroundClip: 'padding-box',
         position: 'relative',
-        padding: '56px 20px 24px',
+        padding: '56px 24px 28px',
       }}
     >
       {/* Gold top accent line */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent 0%, #EABA38 30%, #f5d87a 50%, #EABA38 70%, transparent 100%)' }} />
+      
       <div
         className="cust-footer-inner"
         style={{
-          maxWidth: 1280,
+          maxWidth: 1240,
           margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 36,
-          marginBottom: 40,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 'clamp(36px, 6vw, 64px)',
+          marginBottom: 44,
         }}
       >
-        {/* Column 1: Brand & Bio */}
-        <div>
-          <div style={{ marginBottom: 16 }}>
+        {/* Left Column: Brand & Bio */}
+        <div style={{ flex: '1 1 380px', maxWidth: 500 }}>
+          <div style={{ marginBottom: 18 }}>
             <img
               src={settings?.logoUrl || SHREE_LOGO_BASE64}
               alt={salonName}
@@ -90,10 +84,10 @@ export default function CustomerFooter() {
           >
             {salonName}
           </h3>
-          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.65, margin: '0 0 18px' }}>
-            Katargam's premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 25+ years.
+          <p style={{ fontSize: 13.5, color: '#94a3b8', lineHeight: 1.65, margin: '0 0 20px' }}>
+            Katargam&apos;s premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 25+ years.
           </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
             <a
               href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AWhatsApp%20Message"
               target="_blank"
@@ -101,19 +95,19 @@ export default function CustomerFooter() {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 7,
                 background: 'linear-gradient(135deg, #25D366 0%, #1fbe5a 100%)',
                 color: '#ffffff',
                 fontWeight: 700,
-                fontSize: 12,
-                padding: '7px 14px',
+                fontSize: 12.5,
+                padding: '8px 16px',
                 borderRadius: 99,
                 textDecoration: 'none',
-                boxShadow: '0 4px 12px rgba(37,211,102,0.3)',
+                boxShadow: '0 4px 14px rgba(37,211,102,0.35)',
                 border: '1px solid rgba(255,255,255,0.15)',
               }}
             >
-              <MessageCircle size={13} />
+              <MessageCircle size={14} />
               WhatsApp: +91 98241 83769
             </a>
             <a
@@ -121,23 +115,29 @@ export default function CustomerFooter() {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 5,
+                gap: 6,
                 background: 'rgba(255, 255, 255, 0.1)',
                 color: '#ffffff',
                 fontWeight: 600,
-                fontSize: 11.5,
-                padding: '7px 12px',
+                fontSize: 12,
+                padding: '8px 15px',
                 borderRadius: 99,
                 textDecoration: 'none',
-                border: '1px solid rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.1)';
               }}
             >
-              <Phone size={12} />
+              <Phone size={13} />
               Call Studio
             </a>
           </div>
-          {/* Social Media */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div>
             <a
               href={instagramUrl}
               target="_blank"
@@ -146,107 +146,141 @@ export default function CustomerFooter() {
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: 32,
-                height: 32,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-                color: '#ffffff',
+                gap: 8,
+                fontSize: 12.5,
+                color: '#cbd5e1',
                 textDecoration: 'none',
-                boxShadow: '0 4px 12px rgba(220, 39, 67, 0.35)',
-                transition: 'transform 0.2s ease',
+                transition: 'all 0.15s ease',
+                padding: '5px 12px 5px 7px',
+                borderRadius: 99,
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
               }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px) scale(1.1)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
             >
-              <Instagram size={15} />
-            </a>
-            <a
-              href={instagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ fontSize: 12.5, color: '#cbd5e1', textDecoration: 'none', fontWeight: 600 }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
+              <div
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Instagram size={13} color="#fff" />
+              </div>
               {instagramHandle}
             </a>
           </div>
         </div>
 
-        {/* Column 2: Explore Studio */}
-        <div>
-          <h4
-            style={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: '#EABA38',
-              marginBottom: 16,
-            }}
-          >
-            Explore Studio
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Link
-              href="/"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+        {/* Right Columns: Explore Studio & Navigation */}
+        <div style={{ flex: '2 1 480px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'clamp(28px, 4vw, 56px)' }}>
+          {/* Sub-column 1: Studio Services */}
+          <div>
+            <h4
+              style={{
+                fontSize: 13.5,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#EABA38',
+                marginBottom: 16,
+              }}
             >
-              Home
-            </Link>
-            <Link
-              href="/services"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              Explore Studio
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <Link
+                href="/"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                Home
+              </Link>
+              <Link
+                href="/services"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                Services &amp; Pricing Menu
+              </Link>
+              <Link
+                href="/bridal"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                Couture Bridal Packages
+              </Link>
+              <Link
+                href="/about"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                About Us &amp; Heritage
+              </Link>
+            </div>
+          </div>
+
+          {/* Sub-column 2: Inquiries & Guides */}
+          <div>
+            <h4
+              style={{
+                fontSize: 13.5,
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: '#EABA38',
+                marginBottom: 16,
+              }}
             >
-              Services &amp; Pricing Menu
-            </Link>
-            <Link
-              href="/bridal"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Couture Bridal Packages
-            </Link>
-            <Link
-              href="/about"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              About Us &amp; Heritage
-            </Link>
-            <Link
-              href="/blog"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Beauty &amp; Care Blog (50+ Guides)
-            </Link>
-            <Link
-              href="/ContactUs"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Contact Us
-            </Link>
-            <a
-              href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AI%20have%20an%20inquiry"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Direct Inquiry
-            </a>
+              Quick Contact
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+              <Link
+                href="/ContactUs"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                Contact Us
+              </Link>
+              <a
+                href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AI%20have%20an%20inquiry"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 5 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                Direct Inquiry ↗
+              </a>
+              <Link
+                href="/blog"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                Beauty &amp; Care Blog (50+ Guides)
+              </Link>
+              <a
+                href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 5 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                Katargam, Surat 📍
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -273,50 +307,57 @@ export default function CustomerFooter() {
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 8px 24px rgba(5,66,74,0.4)',
-            transition: 'all 0.25s cubic-bezier(0.34,1.56,0.64,1)',
-            animation: 'slide-in-up 0.3s ease',
+            transition: 'all 0.2s ease',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px) scale(1.08)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 28px rgba(234,186,56,0.3)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(5,66,74,0.4)';
+          }}
         >
-          <ChevronUp size={18} />
+          <ChevronUp size={20} />
         </button>
       )}
 
-      {/* Bottom Bar: Copyright & Discreet Staff Portal Link */}
+      {/* Bottom Bar */}
       <div
         style={{
-          maxWidth: 1280,
-          margin: '20px auto 0',
+          maxWidth: 1240,
+          margin: '0 auto',
+          paddingTop: 24,
+          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
+          alignItems: 'center',
           flexWrap: 'wrap',
           gap: 12,
-          fontSize: 12,
+          fontSize: 12.5,
           color: '#64748b',
         }}
       >
         <p style={{ margin: 0 }}>
-          © {currentYear} {salonName}. All rights reserved. Made with{' '}
-          <Heart size={12} style={{ display: 'inline', color: '#ef4444', fill: '#ef4444' }} /> in Surat.
+          &copy; {currentYear} {salonName}. All rights reserved. Made with <Heart size={12} color="#EABA38" fill="#EABA38" style={{ display: 'inline', verticalAlign: 'middle' }} /> in Surat.
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <Link
             href="/admin"
             style={{
-              color: '#94a3b8',
+              color: '#475569',
               textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
               fontSize: 11.5,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
               transition: 'color 0.15s ease',
             }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#475569'; }}
           >
-            <Lock size={12} />
-            Staff &amp; Admin Portal →
+            <Lock size={12} /> Staff &amp; Admin Portal &rarr;
           </Link>
         </div>
       </div>
