@@ -35,12 +35,15 @@ export default function StudioMap3D({
 
   // Default to Realistic 3D Satellite view
   const [viewMode, setViewMode] = useState<'satellite' | 'roadmap'>('satellite');
+  const [isMapInteractive, setIsMapInteractive] = useState(false);
 
   const currentEmbedUrl = embedCustom || (viewMode === 'satellite' ? SATELLITE_EMBED_URL : ROADMAP_EMBED_URL);
 
   return (
     <div
       className={className}
+      onClick={() => setIsMapInteractive(true)}
+      onMouseLeave={() => setIsMapInteractive(false)}
       style={{
         position: 'relative',
         width: '100%',
@@ -191,12 +194,42 @@ export default function StudioMap3D({
           flex: 1,
           display: 'block',
           filter: viewMode === 'satellite' ? 'contrast(1.04) saturate(1.04)' : 'none',
+          pointerEvents: isMapInteractive ? 'auto' : 'none',
         }}
         allowFullScreen={true}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
         title="Shree Beauty Studio Katargam Surat 3D Location Map"
       />
+
+      {/* Tap / Click to interact hint overlay */}
+      {!isMapInteractive && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none',
+            zIndex: 9,
+            background: 'rgba(3, 43, 48, 0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            color: '#ffffff',
+            padding: '8px 18px',
+            borderRadius: 99,
+            fontSize: 12.5,
+            fontWeight: 600,
+            border: '1px solid rgba(234, 186, 56, 0.4)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <span>👆 Click map to pan & explore</span>
+        </div>
+      )}
 
       {/* Floating Bottom Card: Studio Verification & Rating Overlay */}
       {showCardOverlay && (

@@ -242,21 +242,30 @@ export default function InstagramFeed() {
   // Tripled array for desktop infinite loop
   const allPhotos = [...livePhotos, ...livePhotos, ...livePhotos];
 
-  // Auto-scrolling animation (active on desktop)
+  // Auto-scrolling animation (active on desktop only when visible in viewport)
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || typeof window === 'undefined') return;
 
     // Check if on mobile (screen < 640px), let user swipe naturally
-    const isMobile = window.innerWidth < 640;
-    if (isMobile) return;
+    if (window.innerWidth < 640) return;
 
     let animId: number;
-    let scrollPos = 0;
-    const speed = 0.55;
+    let scrollPos = el.scrollLeft || 0;
+    let isVisible = false;
+    const speed = 0.5;
+
+    // Only run animation when element is actually visible in the viewport
+    const observer = new IntersectionObserver(
+      (entries) => {
+        isVisible = entries[0]?.isIntersecting ?? false;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
 
     const animate = () => {
-      if (!isPaused && el) {
+      if (isVisible && !isPaused && el) {
         scrollPos += speed;
         const singleSetWidth = el.scrollWidth / 3;
         if (scrollPos >= singleSetWidth) {
@@ -268,7 +277,10 @@ export default function InstagramFeed() {
     };
 
     animId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animId);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(animId);
+    };
   }, [isPaused, livePhotos]);
 
   const handleManualScroll = (direction: 'left' | 'right') => {

@@ -31,7 +31,21 @@ export default function CustomerNavbar() {
   const salonName = settings?.salon || 'Shree Beauty Studio';
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 40);
+    let lastScrolled = false;
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const isScrolled = window.scrollY > 30;
+          if (isScrolled !== lastScrolled) {
+            setScrolled(isScrolled);
+            lastScrolled = isScrolled;
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -65,17 +79,17 @@ export default function CustomerNavbar() {
   }, [pathname]);
 
   const navStyle = scrolled ? {
-    background: 'rgba(3, 43, 48, 0.97)',
-    backdropFilter: 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+    background: 'rgba(3, 43, 48, 0.98)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
     borderBottom: '1px solid rgba(234, 186, 56, 0.28)',
-    boxShadow: '0 4px 32px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(234,186,56,0.08) inset',
+    boxShadow: '0 4px 28px rgba(0, 0, 0, 0.28)',
   } : {
-    background: 'rgba(3, 43, 48, 0.85)',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
+    background: 'rgba(3, 43, 48, 0.90)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
     borderBottom: '1px solid rgba(234, 186, 56, 0.15)',
-    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.18)',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
   };
 
   const getInitials = (name?: string) => {
@@ -96,7 +110,9 @@ export default function CustomerNavbar() {
           left: 0,
           right: 0,
           zIndex: 1000,
-          transition: 'all 0.3s cubic-bezier(0.25,0.46,0.45,0.94)',
+          transform: 'translateZ(0)',
+          willChange: 'transform',
+          transition: 'background 0.25s ease, box-shadow 0.25s ease',
         }}
       >
         <div

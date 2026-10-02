@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
+import SmoothScrollProvider from '@/components/providers/SmoothScrollProvider';
+import 'lenis/dist/lenis.css';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -68,7 +70,9 @@ export default function RootLayout({
         />
       </head>
       <body>
-        {children}
+        <SmoothScrollProvider>
+          {children}
+        </SmoothScrollProvider>
 
         {/* ── Google Analytics 4 — G-SY02ZF4TB3 ──────────────────────────────
             strategy="afterInteractive" → loads after page hydration,
