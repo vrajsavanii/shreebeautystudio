@@ -232,72 +232,8 @@ export default function CustomerFooter() {
           </div>
         </div>
 
-        {/* Column 3: Client Care & Booking */}
-        <div>
-          <h4
-            style={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: '#EABA38',
-              marginBottom: 16,
-            }}
-          >
-            Client Care &amp; Booking
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Link
-              href="/book"
-              style={{
-                color: '#EABA38',
-                fontWeight: 700,
-                fontSize: 13,
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-            >
-              <span>Book Online Appointment</span>
-              <span style={{ fontSize: 9.5, background: 'rgba(234,186,56,0.2)', color: '#EABA38', padding: '1px 5px', borderRadius: 99, fontWeight: 700 }}>
-                Instant
-              </span>
-            </Link>
-            <Link
-              href="/my-appointments"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Track My Appointments
-            </Link>
-            <Link
-              href="/faq"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Help &amp; Frequently Asked Questions
-            </Link>
-            <Link
-              href="/contact"
-              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              Contact Us &amp; Studio Map
-            </Link>
-            <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 11.5, color: '#94a3b8' }}>
-              <span style={{ color: '#EABA38', fontWeight: 600 }}>✨ Ladies-Only Studio</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Column 4: Contact Us & Location */}
+        {/* Column 3: Contact Us & Location */}
         <div>
           <h4
             style={{
