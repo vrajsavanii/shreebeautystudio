@@ -68,27 +68,6 @@ export default function BridalClient() {
         }}
       >
         <div style={{ maxWidth: 1140, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 2 }}>
-          {/* Eyebrow */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '6px 16px',
-              borderRadius: 999,
-              background: 'rgba(234, 186, 56, 0.12)',
-              border: '1px solid rgba(234, 186, 56, 0.35)',
-              color: '#f5d87a',
-              fontSize: 'clamp(12px, 2vw, 14px)',
-              fontWeight: 600,
-              letterSpacing: '0.04em',
-              marginBottom: 20,
-            }}
-          >
-            <Sparkles size={16} color="#EABA38" />
-            <span>Katargam, Surat · 25+ Years Couture Bridal Heritage</span>
-          </div>
-
           {/* Main H1 */}
           <h1
             style={{
