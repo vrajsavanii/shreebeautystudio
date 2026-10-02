@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram } from 'lucide-react';
+import { Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram, MapPin, Clock, Mail } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -21,8 +21,16 @@ export default function CustomerFooter() {
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const whatsapp = settings?.whatsapp || '919824183769';
+  const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
+  const openTime = settings?.open || '10:00';
+  const closeTime = settings?.close || '19:00';
+  const openDays = settings?.openDays || 'Open All 7 Days';
   const instagramHandle = settings?.instagramHandle || '@shreebeauty.studio';
   const instagramUrl = settings?.instagramUrl || `https://www.instagram.com/${instagramHandle.replace('@', '')}/`;
+  const googleMapsUrl =
+    settings?.googleMapsUrl ||
+    'https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D';
+  const email = 'shreebeauty.studio22@gmail.com';
 
   return (
     <footer
@@ -42,11 +50,11 @@ export default function CustomerFooter() {
       <div
         className="cust-footer-inner"
         style={{
-          maxWidth: 1200,
+          maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: 40,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 36,
           marginBottom: 40,
         }}
       >
@@ -58,7 +66,7 @@ export default function CustomerFooter() {
               alt={salonName}
               style={{
                 width: '100%',
-                maxWidth: 260,
+                maxWidth: 240,
                 height: 'auto',
                 display: 'block',
                 objectFit: 'contain',
@@ -68,7 +76,7 @@ export default function CustomerFooter() {
           </div>
           <h3
             style={{
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: 800,
               letterSpacing: '0.04em',
               margin: '0 0 12px',
@@ -82,10 +90,10 @@ export default function CustomerFooter() {
           >
             {salonName}
           </h3>
-          <p style={{ fontSize: 13.5, color: '#94a3b8', lineHeight: 1.7, margin: '0 0 20px' }}>
+          <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.65, margin: '0 0 18px' }}>
             Katargam's premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies for over 25+ years.
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
             <a
               href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AWhatsApp%20Message"
               target="_blank"
@@ -97,15 +105,15 @@ export default function CustomerFooter() {
                 background: 'linear-gradient(135deg, #25D366 0%, #1fbe5a 100%)',
                 color: '#ffffff',
                 fontWeight: 700,
-                fontSize: 12.5,
-                padding: '8px 16px',
+                fontSize: 12,
+                padding: '7px 14px',
                 borderRadius: 99,
                 textDecoration: 'none',
                 boxShadow: '0 4px 12px rgba(37,211,102,0.3)',
                 border: '1px solid rgba(255,255,255,0.15)',
               }}
             >
-              <MessageCircle size={14} />
+              <MessageCircle size={13} />
               WhatsApp: +91 98241 83769
             </a>
             <a
@@ -117,14 +125,14 @@ export default function CustomerFooter() {
                 background: 'rgba(255, 255, 255, 0.1)',
                 color: '#ffffff',
                 fontWeight: 600,
-                fontSize: 12,
-                padding: '8px 14px',
+                fontSize: 11.5,
+                padding: '7px 12px',
                 borderRadius: 99,
                 textDecoration: 'none',
                 border: '1px solid rgba(255,255,255,0.15)',
               }}
             >
-              <Phone size={13} />
+              <Phone size={12} />
               Call Studio
             </a>
           </div>
@@ -139,25 +147,25 @@ export default function CustomerFooter() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 36,
-                height: 36,
+                width: 32,
+                height: 32,
                 borderRadius: '50%',
                 background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
                 color: '#ffffff',
                 textDecoration: 'none',
                 boxShadow: '0 4px 12px rgba(220, 39, 67, 0.35)',
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                transition: 'transform 0.2s ease',
               }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px) scale(1.1)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = ''; }}
             >
-              <Instagram size={16} />
+              <Instagram size={15} />
             </a>
             <a
               href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: 13, color: '#cbd5e1', textDecoration: 'none', fontWeight: 600 }}
+              style={{ fontSize: 12.5, color: '#cbd5e1', textDecoration: 'none', fontWeight: 600 }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
@@ -170,7 +178,7 @@ export default function CustomerFooter() {
         <div>
           <h4
             style={{
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
@@ -180,10 +188,10 @@ export default function CustomerFooter() {
           >
             Explore Studio
           </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Link
               href="/"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
@@ -191,7 +199,7 @@ export default function CustomerFooter() {
             </Link>
             <Link
               href="/services"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
@@ -199,7 +207,7 @@ export default function CustomerFooter() {
             </Link>
             <Link
               href="/bridal"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
@@ -207,7 +215,7 @@ export default function CustomerFooter() {
             </Link>
             <Link
               href="/about"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
@@ -215,7 +223,7 @@ export default function CustomerFooter() {
             </Link>
             <Link
               href="/blog"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
@@ -228,7 +236,7 @@ export default function CustomerFooter() {
         <div>
           <h4
             style={{
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
@@ -238,13 +246,13 @@ export default function CustomerFooter() {
           >
             Client Care &amp; Booking
           </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Link
               href="/book"
               style={{
                 color: '#EABA38',
                 fontWeight: 700,
-                fontSize: 13.5,
+                fontSize: 13,
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -255,13 +263,13 @@ export default function CustomerFooter() {
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
             >
               <span>Book Online Appointment</span>
-              <span style={{ fontSize: 10, background: 'rgba(234,186,56,0.2)', color: '#EABA38', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>
+              <span style={{ fontSize: 9.5, background: 'rgba(234,186,56,0.2)', color: '#EABA38', padding: '1px 5px', borderRadius: 99, fontWeight: 700 }}>
                 Instant
               </span>
             </Link>
             <Link
               href="/my-appointments"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
@@ -269,15 +277,86 @@ export default function CustomerFooter() {
             </Link>
             <Link
               href="/faq"
-              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
               Help &amp; Frequently Asked Questions
             </Link>
-            <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
-              <span style={{ color: '#EABA38', fontWeight: 600 }}>✨ Ladies-Only Salon</span>
-              <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Opp. Cancer Hospital, Katargam, Surat</div>
+            <Link
+              href="/contact"
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Contact Us &amp; Studio Map
+            </Link>
+            <div style={{ marginTop: 6, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 11.5, color: '#94a3b8' }}>
+              <span style={{ color: '#EABA38', fontWeight: 600 }}>✨ Ladies-Only Studio</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Column 4: Contact Us & Location */}
+        <div>
+          <h4
+            style={{
+              fontSize: 13.5,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: '#EABA38',
+              marginBottom: 16,
+            }}
+          >
+            Contact Us
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: '#cbd5e1', textDecoration: 'none' }}
+              title="Open in Google Maps"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              <MapPin size={15} color="#EABA38" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <span>{address}</span>
+                <span style={{ display: 'block', fontSize: 11, color: '#EABA38', fontWeight: 700, marginTop: 2 }}>
+                  📍 View on Google Maps ↗
+                </span>
+              </div>
+            </a>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+              <Phone size={14} color="#EABA38" style={{ flexShrink: 0 }} />
+              <a
+                href="tel:+919824183769"
+                style={{ color: '#cbd5e1', textDecoration: 'none', fontWeight: 600 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                +91 98241 83769
+              </a>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cbd5e1' }}>
+              <Clock size={14} color="#EABA38" style={{ flexShrink: 0 }} />
+              <span>{openTime} – {closeTime} · {openDays}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+              <Mail size={14} color="#EABA38" style={{ flexShrink: 0 }} />
+              <a
+                href={`mailto:${email}`}
+                style={{ color: '#cbd5e1', textDecoration: 'none', wordBreak: 'break-all', fontSize: 12 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+              >
+                {email}
+              </a>
             </div>
           </div>
         </div>
