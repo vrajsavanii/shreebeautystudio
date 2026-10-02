@@ -45,8 +45,8 @@ export default function CustomerFooter() {
           maxWidth: 1200,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 48,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 40,
           marginBottom: 40,
         }}
       >
@@ -166,7 +166,7 @@ export default function CustomerFooter() {
           </div>
         </div>
 
-        {/* Column 2: Quick Links */}
+        {/* Column 2: Explore Studio */}
         <div>
           <h4
             style={{
@@ -178,30 +178,107 @@ export default function CustomerFooter() {
               marginBottom: 16,
             }}
           >
-            Quick Links
+            Explore Studio
           </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Link href="/" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <Link
+              href="/"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
               Home
             </Link>
-            <Link href="/services" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+            <Link
+              href="/services"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
               Services &amp; Pricing Menu
             </Link>
-            <Link href="/about" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+            <Link
+              href="/bridal"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Couture Bridal Packages
+            </Link>
+            <Link
+              href="/about"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
               About Us &amp; Heritage
             </Link>
-            <Link href="/blog" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+            <Link
+              href="/blog"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
               Beauty &amp; Care Blog (50+ Guides)
             </Link>
-            <Link href="/faq" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
-              Help &amp; FAQs
+          </div>
+        </div>
+
+        {/* Column 3: Client Care & Booking */}
+        <div>
+          <h4
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: '#EABA38',
+              marginBottom: 16,
+            }}
+          >
+            Client Care &amp; Booking
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <Link
+              href="/book"
+              style={{
+                color: '#EABA38',
+                fontWeight: 700,
+                fontSize: 13.5,
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+            >
+              <span>Book Online Appointment</span>
+              <span style={{ fontSize: 10, background: 'rgba(234,186,56,0.2)', color: '#EABA38', padding: '1px 6px', borderRadius: 99, fontWeight: 700 }}>
+                Instant
+              </span>
             </Link>
-            <Link href="/book" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
-              Book Online Appointment
-            </Link>
-            <Link href="/my-appointments" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
+            <Link
+              href="/my-appointments"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
               Track My Appointments
             </Link>
+            <Link
+              href="/faq"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Help &amp; Frequently Asked Questions
+            </Link>
+            <div style={{ marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+              <span style={{ color: '#EABA38', fontWeight: 600 }}>✨ Ladies-Only Salon</span>
+              <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>Opp. Cancer Hospital, Katargam, Surat</div>
+            </div>
           </div>
         </div>
       </div>
