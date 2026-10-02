@@ -309,7 +309,7 @@ export default function CustomerFooter() {
         }}
       >
         <p style={{ margin: 0 }}>
-          &copy; {currentYear} {salonName}. All rights reserved. Made with <Heart size={12} color="#EABA38" fill="#EABA38" style={{ display: 'inline', verticalAlign: 'middle' }} /> in Surat.
+          &copy; {currentYear} {salonName}. All rights reserved. Made with <Heart size={12} color="#ef4444" fill="#ef4444" style={{ display: 'inline', verticalAlign: 'middle' }} /> in Surat.
         </p>
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
