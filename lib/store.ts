@@ -83,6 +83,10 @@ export const DEFAULT_DATA: SalonData = {
     calendarBridalReminderMinutes2: 120,
     calendarEmailReminderEnabled: true,
     calendarDeletePastDays: 2,
+    googleMapsUrl: 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
+    openDays: 'Open All 7 Days',
+    instagramHandle: '@shreebeauty.studio',
+    instagramUrl: 'https://www.instagram.com/shreebeauty.studio/',
     // AI Copilot Defaults
     aiCopilotEnabled: true,
     aiCopilotShortcutEnabled: true,

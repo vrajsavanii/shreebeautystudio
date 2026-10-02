@@ -25,8 +25,9 @@ export default function CustomerNavbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { data } = useSalonStore();
+  const settings = data?.settings;
   const { customer, authenticated, logout } = useCustomerAuth();
-  const salonName = data?.settings?.salon || 'Shree Beauty Studio';
+  const salonName = settings?.salon || 'Shree Beauty Studio';
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -120,7 +121,7 @@ export default function CustomerNavbar() {
             }}
           >
             <img
-              src={SHREE_LOGO_BASE64}
+              src={settings?.logoUrl || SHREE_LOGO_BASE64}
               alt={salonName}
               style={{
                 height: '54px',

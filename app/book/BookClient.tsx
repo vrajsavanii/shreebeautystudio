@@ -712,9 +712,13 @@ export default function PublicBookingPage() {
                   ? getAppointmentGoogleCalendarUrl(confirmedAppt, salon, address)
                   : '';
 
+                const mapsUrl = data?.settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
+                const instaHandle = data?.settings?.instagramHandle || '@shreebeauty.studio';
+                const phoneDisplay = '+91 98241 83769';
+
                 const fullPassText = confirmedBridal
-                  ? `👑 *BRIDAL BOOKING PASS — ${salon.toUpperCase()}* 👑\n────────────────────────────\nDear ${confirmedBridal.name},\nYour bridal booking request has been received! ✨\n\n💄 *Package:* ${confirmedBridal.packageName || 'Bridal Glam'}\n📅 *Wedding Date:* ${fmtDate(confirmedBridal.weddingDate || confirmedBridal.date)}\n📍 *Venue:* ${confirmedBridal.venue || address}\n💵 *Estimated Package:* ₹${confirmedBridal.package || confirmedBridal.totalAmount || 0}\n────────────────────────────\n📍 *Studio Address:*\n${address}\n📍 *Google Map:* https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\n📸 *Instagram:* @shreebeauty.studio\n📞 *WhatsApp Support:* +91 98241 83769\n\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 💖`
-                  : `💅 *APPOINTMENT BOOKING PASS — ${salon.toUpperCase()}* 💅\n────────────────────────────\nDear ${confirmedAppt?.customer},\nYour appointment booking request has been received! ✨\n\n💄 *Service:* ${confirmedAppt?.service}\n📅 *Date:* ${fmtDate(confirmedAppt?.date || todayISO())}\n⏰ *Time:* ${confirmedAppt?.time || 'Selected Slot'}\n${confirmedAppt?.price ? `💵 *Estimated Price:* ₹${confirmedAppt.price}\n` : ''}📍 *Studio Address:*\n${address}\n📍 *Google Map:* https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\n📸 *Instagram:* @shreebeauty.studio\n📞 *Studio Contact:* +91 98241 83769\n────────────────────────────\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 🙏✨`;
+                  ? `👑 *BRIDAL BOOKING PASS — ${salon.toUpperCase()}* 👑\n────────────────────────────\nDear ${confirmedBridal.name},\nYour bridal booking request has been received! ✨\n\n💄 *Package:* ${confirmedBridal.packageName || 'Bridal Glam'}\n📅 *Wedding Date:* ${fmtDate(confirmedBridal.weddingDate || confirmedBridal.date)}\n📍 *Venue:* ${confirmedBridal.venue || address}\n💵 *Estimated Package:* ₹${confirmedBridal.package || confirmedBridal.totalAmount || 0}\n────────────────────────────\n📍 *Studio Address:*\n${address}\n📍 *Google Map:* ${mapsUrl}\n📸 *Instagram:* ${instaHandle}\n📞 *WhatsApp Support:* ${phoneDisplay}\n\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 💖`
+                  : `💅 *APPOINTMENT BOOKING PASS — ${salon.toUpperCase()}* 💅\n────────────────────────────\nDear ${confirmedAppt?.customer},\nYour appointment booking request has been received! ✨\n\n💄 *Service:* ${confirmedAppt?.service}\n📅 *Date:* ${fmtDate(confirmedAppt?.date || todayISO())}\n⏰ *Time:* ${confirmedAppt?.time || 'Selected Slot'}\n${confirmedAppt?.price ? `💵 *Estimated Price:* ₹${confirmedAppt.price}\n` : ''}📍 *Studio Address:*\n${address}\n📍 *Google Map:* ${mapsUrl}\n📸 *Instagram:* ${instaHandle}\n📞 *Studio Contact:* ${phoneDisplay}\n────────────────────────────\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 🙏✨`;
 
                 const salonGreeting = `Hello ${salon}! I have submitted an online appointment request for ${
                   confirmedAppt?.service || confirmedBridal?.packageName
@@ -823,7 +827,7 @@ export default function PublicBookingPage() {
                 </a>
 
                 <a
-                  href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                  href={mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{

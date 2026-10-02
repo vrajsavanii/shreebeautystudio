@@ -61,7 +61,7 @@ export default function CustomerFooter() {
         <div>
           <div style={{ marginBottom: 16 }}>
             <img
-              src={SHREE_LOGO_BASE64}
+              src={settings?.logoUrl || SHREE_LOGO_BASE64}
               alt={salonName}
               style={{
                 width: '100%',
@@ -246,7 +246,7 @@ export default function CustomerFooter() {
             </a>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
               <Clock size={16} color="#EABA38" style={{ flexShrink: 0 }} />
-              <span>{openTime} – {closeTime} · Open All 7 Days</span>
+              <span>{openTime} – {closeTime} · {settings?.openDays || 'Open All 7 Days'}</span>
             </div>
           </div>
         </div>

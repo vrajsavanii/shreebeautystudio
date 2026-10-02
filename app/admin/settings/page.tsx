@@ -18,6 +18,7 @@ import Modal from '@/components/ui/Modal';
 import { supabase } from '@/lib/supabase';
 import { fadeSlideUp, staggerContainer } from '@/variants';
 import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
+import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 
 type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'copilot' | 'cloud' | 'reset';
 
@@ -453,8 +454,18 @@ export default function SettingsPage() {
         {activeTab === 'profile' && (
           <motion.div key="profile" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
             <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
-              <h2>🏪 Salon Profile & Contact</h2>
+              <div>
+                <h2>🏪 Salon Profile, Branding & Google Maps</h2>
+                <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                  All updates here automatically sync across the entire website, customer booking portal, footers, invoices, and WhatsApp AI.
+                </span>
+              </div>
             </div>
+
+            {/* 1. Basic Salon Details */}
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              📌 Basic Information & Contact
+            </h3>
             <div className="form-grid">
               <div className="form-group">
                 <label className="label">Salon / Studio Name</label>
@@ -480,56 +491,241 @@ export default function SettingsPage() {
                   placeholder="9824183769"
                 />
               </div>
-              <div className="form-group">
-                <label className="label">Opening Time</label>
-                <input type="time" step={900} className="input" value={s.open} onChange={(e) => update('open', e.target.value)} />
-              </div>
-              <div className="form-group">
-                <label className="label">Closing Time</label>
-                <input type="time" step={900} className="input" value={s.close} onChange={(e) => update('close', e.target.value)} />
-              </div>
             </div>
-            <div className="form-group">
-              <label className="label">Salon Address (Prints on Invoices)</label>
+
+            <div className="form-group" style={{ marginTop: 12 }}>
+              <label className="label">Salon Full Address (Prints on Invoices, Maps & Customer Passes)</label>
               <textarea
-                className="input" rows={3} value={s.address}
+                className="input" rows={2} value={s.address}
                 onChange={(e) => update('address', e.target.value)}
                 placeholder="Full studio address..."
               />
             </div>
-            <div className="form-grid" style={{ marginTop: 14 }}>
-              <div className="form-group">
-                <label className="label">📸 Instagram Account Handle</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={s.instagramHandle || '@shreebeauty.studio'}
-                  onChange={(e) => {
-                    const handle = e.target.value;
-                    update('instagramHandle', handle);
-                    const cleanHandle = handle.replace('@', '').trim();
-                    if (cleanHandle) {
-                      update('instagramUrl', `https://www.instagram.com/${cleanHandle}/`);
-                    }
-                  }}
-                  placeholder="@shreebeauty.studio"
-                />
-                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3 }}>
-                  Appears in customer footer, booking passes, WhatsApp and email templates.
-                </span>
+
+            {/* 2. Studio Operating Timings & Holidays */}
+            <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                ⏰ Timings, Working Schedule & Holidays
+              </h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="label">Opening Time</label>
+                  <input type="time" step={900} className="input" value={s.open} onChange={(e) => update('open', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="label">Closing Time</label>
+                  <input type="time" step={900} className="input" value={s.close} onChange={(e) => update('close', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="label">Operating Days Schedule</label>
+                  <input
+                    type="text" className="input"
+                    value={s.openDays || 'Open All 7 Days'}
+                    onChange={(e) => update('openDays', e.target.value)}
+                    placeholder="e.g. Open All 7 Days or Mon – Sat (10 AM - 7 PM)"
+                  />
+                </div>
               </div>
-              <div className="form-group">
-                <label className="label">📍 Google Maps Link (Redirection & Reviews)</label>
-                <input
-                  type="url"
-                  className="input"
-                  value={s.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'}
-                  onChange={(e) => update('googleMapsUrl', e.target.value)}
-                  placeholder="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
-                />
-                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3 }}>
-                  Direct map redirection for clients to get GPS directions to the studio.
-                </span>
+
+              {/* Holidays Manager Banner */}
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, rgba(234, 186, 56, 0.12) 0%, rgba(5, 66, 74, 0.08) 100%)',
+                  border: '1px solid rgba(234, 186, 56, 0.3)',
+                  borderRadius: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--foreground)' }}>
+                    🏖️ Studio Holidays & Blocked Dates: {(data?.holidays || []).length} Active
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                    Adding a holiday automatically blocks the date in Online Booking (/book) and syncs with Google Calendar.
+                  </div>
+                </div>
+                <Link
+                  href="/admin/appointments"
+                  className="btn btn-sm"
+                  style={{
+                    background: 'var(--primary)',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                  }}
+                >
+                  <Calendar size={13} />
+                  <span>Manage Holidays &rarr;</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* 3. Studio Logo & Visual Branding */}
+            <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                🎨 Studio Logo & Branding
+              </h3>
+              <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    width: 140,
+                    height: 100,
+                    background: '#021e22',
+                    borderRadius: 12,
+                    padding: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px solid rgba(234, 186, 56, 0.3)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <img
+                    src={s.logoUrl || SHREE_LOGO_BASE64}
+                    alt={s.salon}
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 260 }}>
+                  <div className="form-group">
+                    <label className="label">Custom Logo Image URL / Upload</label>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <input
+                        type="text"
+                        className="input"
+                        style={{ flex: 1, minWidth: 200 }}
+                        value={s.logoUrl || ''}
+                        onChange={(e) => update('logoUrl', e.target.value)}
+                        placeholder="Paste image URL or leave empty to use default logo"
+                      />
+                      <label
+                        className="btn btn-sm"
+                        style={{
+                          background: 'rgba(5, 66, 74, 0.1)',
+                          border: '1px solid var(--border)',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          fontSize: 12,
+                        }}
+                      >
+                        <Upload size={13} />
+                        <span>Upload File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const base64 = ev.target?.result as string;
+                                if (base64) {
+                                  update('logoUrl', base64);
+                                  toast('✅ Logo uploaded successfully!', 'success');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                      {s.logoUrl && (
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ color: 'var(--danger)', fontSize: 12 }}
+                          onClick={() => {
+                            update('logoUrl', undefined);
+                            toast('Logo reset to default', 'info');
+                          }}
+                        >
+                          Reset Default
+                        </button>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                      Logo updates instantly across Website Navbar, Footer, Sidebar, Invoices and Booking Passes.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Google Maps & Social Redirections */}
+            <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                📍 Google Maps & Social Redirections
+              </h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="label">📍 Google Maps Link (Redirection & Navigation)</label>
+                    <a
+                      href={s.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 11.5, color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+                    >
+                      Test Map Link ↗
+                    </a>
+                  </div>
+                  <input
+                    type="url"
+                    className="input"
+                    value={s.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'}
+                    onChange={(e) => update('googleMapsUrl', e.target.value)}
+                    placeholder="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3 }}>
+                    Used on Footer, Home Page, 3D Map, Booking Passes, and Directions buttons.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="label">📸 Instagram Account Handle</label>
+                    <a
+                      href={s.instagramUrl || 'https://www.instagram.com/shreebeauty.studio/'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 11.5, color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+                    >
+                      Open Instagram ↗
+                    </a>
+                  </div>
+                  <input
+                    type="text"
+                    className="input"
+                    value={s.instagramHandle || '@shreebeauty.studio'}
+                    onChange={(e) => {
+                      const handle = e.target.value;
+                      update('instagramHandle', handle);
+                      const cleanHandle = handle.replace('@', '').trim();
+                      if (cleanHandle) {
+                        update('instagramUrl', `https://www.instagram.com/${cleanHandle}/`);
+                      }
+                    }}
+                    placeholder="@shreebeauty.studio"
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3 }}>
+                    Appears in footer, booking passes, WhatsApp and email templates.
+                  </span>
+                </div>
               </div>
             </div>
           </motion.div>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { MapPin, ExternalLink, Navigation, Star } from 'lucide-react';
+import { useSalonStore } from '@/lib/store';
 
 interface StudioMap3DProps {
   height?: number | string;
@@ -27,10 +28,15 @@ export default function StudioMap3D({
   className = '',
   showCardOverlay = true,
 }: StudioMap3DProps) {
+  const { data } = useSalonStore();
+  const settings = data?.settings;
+  const mapsUrl = settings?.googleMapsUrl || STUDIO_GOOGLE_MAPS_URL;
+  const embedCustom = settings?.googleMapsEmbedUrl;
+
   // Default to Realistic 3D Satellite view
   const [viewMode, setViewMode] = useState<'satellite' | 'roadmap'>('satellite');
 
-  const currentEmbedUrl = viewMode === 'satellite' ? SATELLITE_EMBED_URL : ROADMAP_EMBED_URL;
+  const currentEmbedUrl = embedCustom || (viewMode === 'satellite' ? SATELLITE_EMBED_URL : ROADMAP_EMBED_URL);
 
   return (
     <div
@@ -145,7 +151,7 @@ export default function StudioMap3D({
 
         {/* Direct Link to Google 3D / Directions */}
         <a
-          href={STUDIO_GOOGLE_MAPS_URL}
+          href={mapsUrl}
           target="_blank"
           rel="noopener noreferrer"
           title="Open in full Google Maps app for 3D navigation & turn-by-turn directions"
@@ -282,7 +288,7 @@ export default function StudioMap3D({
               </div>
             </div>
             <a
-              href={STUDIO_GOOGLE_MAPS_URL}
+              href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{

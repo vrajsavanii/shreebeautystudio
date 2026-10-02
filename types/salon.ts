@@ -85,6 +85,9 @@ export interface SalonSettings {
   instagramHandle?: string; // e.g. '@shreebeauty.studio'
   instagramUrl?: string; // e.g. 'https://www.instagram.com/shreebeauty.studio/'
   googleMapsUrl?: string; // e.g. 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'
+  googleMapsEmbedUrl?: string; // e.g. custom Google Maps embed URL
+  openDays?: string; // e.g. 'Monday – Sunday (Open All 7 Days)'
+  logoUrl?: string; // Custom studio logo URL / base64 image
   // AI Voice Copilot & Shortcut Settings
   aiCopilotEnabled?: boolean;         // Master Switch: Enable/disable AI Copilot (Default: true)
   aiCopilotShortcutEnabled?: boolean; // Enable/disable Ctrl+K keyboard shortcut (Default: true)

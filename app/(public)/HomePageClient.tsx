@@ -199,6 +199,8 @@ export default function PublicHomePage() {
   const whatsapp = settings?.whatsapp || '919824183769';
   const openTime = settings?.open || '10:00';
   const closeTime = settings?.close || '19:00';
+  const openDays = settings?.openDays || 'Open All 7 Days';
+  const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
 
   // Group services by category
   const categories = Array.from(new Set(services.map((s) => s.category || 'Special Treatments'))).slice(0, 6);
@@ -1009,7 +1011,7 @@ export default function PublicHomePage() {
                   Studio Address
                 </strong>
                 <a
-                  href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                  href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ margin: 0, fontSize: 14, color: '#475569', lineHeight: 1.5, textDecoration: 'none', display: 'block' }}
@@ -1044,7 +1046,7 @@ export default function PublicHomePage() {
                   Operating Hours
                 </strong>
                 <p style={{ margin: 0, fontSize: 14, color: '#475569' }}>
-                  {openTime} – {closeTime} · Open All 7 Days
+                  {openTime} – {closeTime} · {openDays}
                 </p>
               </div>
             </div>
@@ -1083,7 +1085,7 @@ export default function PublicHomePage() {
                 <span>Book Your Slot</span>
               </Link>
               <a
-                href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+                href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
