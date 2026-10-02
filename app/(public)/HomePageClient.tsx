@@ -727,7 +727,10 @@ export default function PublicHomePage() {
         </motion.div>
       </section>
 
-      {/* ─── 7. REAL CLIENT TESTIMONIALS (Google Reviews Marquee) ──── */}
+      {/* ─── 7. 📸 LIVE INSTAGRAM FEED (@shreebeauty.studio) ──────── */}
+      <InstagramFeed />
+
+      {/* ─── 8. ⭐ GOOGLE REVIEWS CAROUSEL (4.9★ on Google Maps) ──── */}
       <section className="cust-section-alt" style={{ overflow: 'hidden' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
           <div className="cust-section-header">
@@ -839,9 +842,6 @@ export default function PublicHomePage() {
           </motion.a>
         </div>
       </section>
-
-      {/* ─── 8. INSTAGRAM LIVE FEED ───────────────────────────────── */}
-      <InstagramFeed />
 
       {/* ─── 9. PREMIUM CTA BAND ──────────────────────────────────── */}
       <section

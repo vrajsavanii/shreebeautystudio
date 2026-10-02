@@ -109,6 +109,46 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
         }}
       />
 
+      {/* 84×84px Frosted Glass Instagram Watermark Badge */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 84,
+          height: 84,
+          borderRadius: 24,
+          background: 'rgba(255, 255, 255, 0.22)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          border: '1.5px solid rgba(255, 255, 255, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
+          opacity: isHovered ? 0.95 : 0.75,
+          transition: 'all 0.35s ease',
+          pointerEvents: 'none',
+          zIndex: 2,
+        }}
+      >
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(220, 39, 67, 0.4)',
+          }}
+        >
+          <Instagram size={28} color="#FFFFFF" strokeWidth={2.2} />
+        </div>
+      </div>
+
       {/* Overlay with likes & comments */}
       <div
         style={{
@@ -283,8 +323,8 @@ export default function InstagramFeed() {
             cursor: grab;
           }
           .insta-photo-card {
-            width: 360px !important;
-            height: 360px !important;
+            width: 380px !important;
+            height: 380px !important;
           }
           .insta-mobile-nav {
             display: none !important;
