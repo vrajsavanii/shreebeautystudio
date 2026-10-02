@@ -74,7 +74,7 @@ export default function RootLayout({
             strategy="afterInteractive" → loads after page hydration,
             zero render-blocking impact on LCP / CLS / INP scores.         */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-SY02ZF4TB3"
+          src="https://www.googletagmanager.com/gtag/js?id=G-157MFZDCT3"
           strategy="afterInteractive"
         />
         <Script id="google-analytics" strategy="afterInteractive">
@@ -82,7 +82,7 @@ export default function RootLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-SY02ZF4TB3', {
+            gtag('config', 'G-157MFZDCT3', {
               page_path: window.location.pathname,
             });
           `}

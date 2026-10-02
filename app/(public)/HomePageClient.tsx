@@ -15,6 +15,7 @@ import {
 import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
 import { getServicePricingBasis } from '@/lib/utils';
 import StudioMap3D from '@/components/customer/StudioMap3D';
+import InstagramFeed from '@/components/customer/InstagramFeed';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -844,7 +845,10 @@ export default function PublicHomePage() {
         </div>
       </section>
 
-      {/* ─── 8. PREMIUM CTA BAND ──────────────────────────────────── */}
+      {/* ─── 8. INSTAGRAM LIVE FEED ───────────────────────────────── */}
+      <InstagramFeed />
+
+      {/* ─── 9. PREMIUM CTA BAND ──────────────────────────────────── */}
       <section
         style={{
           position: 'relative',

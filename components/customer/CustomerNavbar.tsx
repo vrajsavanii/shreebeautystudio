@@ -15,7 +15,7 @@ const NAV_LINKS = [
   { href: '/blog', label: 'Blog' },
   { href: '/about', label: 'About' },
   { href: '/faq', label: 'FAQ' },
-  { href: '/contact', label: 'Contact' },
+  { href: '/ContactUs', label: 'Contact Us' },
   { href: '/my-appointments', label: 'My Appointments' },
 ];
 

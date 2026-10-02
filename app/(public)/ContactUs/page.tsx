@@ -9,13 +9,13 @@ export const metadata: Metadata = {
   description:
     'Visit Shree Beauty Studio at 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat. Call or WhatsApp +91 98241 83769. Open all 7 days for ladies beauty & bridal services.',
   alternates: {
-    canonical: '/contact',
+    canonical: '/ContactUs',
   },
   openGraph: {
     title: 'Contact Shree Beauty Studio — Surat’s Premier Ladies Salon',
     description:
       'Contact our studio in Katargam, Surat for appointments, bridal makeover consultations, and beauty inquiries. Call +91 98241 83769.',
-    url: 'https://shreebeauty.studio/contact',
+    url: 'https://shreebeauty.studio/ContactUs',
     type: 'website',
     images: [
       {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   const breadcrumbJsonLd = getBreadcrumbSchema([
     { name: 'Home', url: '/' },
-    { name: 'Contact Us', url: '/contact' },
+    { name: 'Contact Us', url: '/ContactUs' },
   ]);
 
   const contactJsonLd = {

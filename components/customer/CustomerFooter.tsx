@@ -229,6 +229,24 @@ export default function CustomerFooter() {
             >
               Beauty &amp; Care Blog (50+ Guides)
             </Link>
+            <Link
+              href="/ContactUs"
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Contact Us
+            </Link>
+            <a
+              href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AI%20have%20an%20inquiry"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#cbd5e1', fontSize: 13, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Direct Inquiry
+            </a>
           </div>
         </div>
 
