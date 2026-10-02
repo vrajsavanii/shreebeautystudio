@@ -18,6 +18,7 @@ import {
   Award,
   Heart,
   Gem,
+  Crown,
 } from 'lucide-react';
 import { DEFAULT_BRIDAL_PACKAGES } from '@/lib/store';
 
@@ -555,77 +556,254 @@ export default function BridalClient() {
       </section>
 
       {/* 4. THE SURAT BRIDE TIMELINE */}
-      <section style={{ padding: 'clamp(50px, 8vw, 80px) 20px', maxWidth: 1000, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 44 }}>
-          <h2 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, margin: '0 0 12px' }}>
+      <section style={{ padding: 'clamp(60px, 9vw, 90px) 20px', maxWidth: 1040, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 50 }}>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '6px 16px',
+              borderRadius: 999,
+              background: 'rgba(234, 186, 56, 0.12)',
+              border: '1px solid rgba(234, 186, 56, 0.3)',
+              color: '#f5d87a',
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              marginBottom: 16,
+            }}
+          >
+            <Sparkles size={14} color="#EABA38" />
+            <span>Curated Milestone Guide</span>
+          </div>
+
+          <h2
+            style={{
+              fontSize: 'clamp(28px, 4.5vw, 42px)',
+              fontWeight: 800,
+              margin: '0 0 14px',
+              letterSpacing: '-0.02em',
+              background: 'linear-gradient(135deg, #ffffff 40%, #f5d87a 80%, #EABA38 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
             The Surat Bride Preparation Timeline
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: 15, maxWidth: 620, margin: '0 auto', lineHeight: 1.6 }}>
-            Follow our proven milestone guide to ensure a relaxed, glowing, and punctual wedding journey.
+          <p style={{ color: '#94a3b8', fontSize: 'clamp(14px, 2vw, 16px)', maxWidth: 640, margin: '0 auto', lineHeight: 1.6 }}>
+            Follow our proven milestone guide to ensure a relaxed, glowing, and punctual wedding journey from consultation to your auspicious muhurat.
           </p>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {/* Vertical Connecting Line on larger screens */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 24,
+              top: 30,
+              bottom: 30,
+              width: 2,
+              background: 'linear-gradient(180deg, #EABA38 0%, rgba(234, 186, 56, 0.35) 70%, rgba(5, 60, 67, 0.2) 100%)',
+              zIndex: 0,
+            }}
+          />
+
           {[
             {
+              num: '01',
+              phase: 'Phase 1 · Consultation & Vision',
               step: '3 to 4 Months Out',
+              icon: Calendar,
               title: 'Consultation & Date Reservation',
               detail:
-                'Visit Shree Beauty Studio in Katargam to discuss your wedding themes, lehenga colors, and jewelry. Confirm dates and lock auspicious muhurat slots.',
+                'Visit Shree Beauty Studio in Katargam to discuss your wedding themes, lehenga colors, and jewelry. Confirm dates and lock auspicious muhurat slots before peak season slots fill up.',
+              chips: ['Lock Auspicious Muhurat Slot', 'Outfit & Jewelry Theme Consultation', 'Skin & Hair Texture Analysis'],
             },
             {
+              num: '02',
+              phase: 'Phase 2 · Skincare & Hair Health',
               step: '1 to 2 Months Out',
+              icon: Sparkles,
               title: 'Pre-Bridal Skincare & Hair Treatments',
               detail:
-                'Begin monthly deep hydration facials and nourishing hair spa treatments. Finalize cosmetic lens shades and hair extension matching.',
+                'Begin customized monthly deep hydration facials and nourishing hair spa therapies. Finalize cosmetic lens shades and hair extension matching for zero wedding-day stress.',
+              chips: ['Hydrating Pre-Bridal Facials', 'Nourishing Hair Spa Therapies', 'Lenses & Extensions Matching'],
             },
             {
+              num: '03',
+              phase: 'Phase 3 · Body Grooming & Polish',
               step: '1 Week Out',
+              icon: Gem,
               title: 'Final Grooming & Body Rituals',
               detail:
-                'Schedule full body Rica waxing, eyebrow shaping, spa manicure, and pedicure 4 to 5 days prior to mehendi application.',
+                'Schedule full body Rica waxing, eyebrow shaping, spa manicure, and pedicure 4 to 5 days prior to mehendi application for silky, camera-ready perfection.',
+              chips: ['Full Body Rica Waxing', 'Spa Manicure & Pedicure', 'Eyebrow Shaping & Skin Polish'],
             },
             {
+              num: '04',
+              phase: 'Phase 4 · The Grand Muhurat',
               step: 'Wedding Day',
+              icon: Crown,
               title: 'Relaxed Studio Transformation',
               detail:
-                'Step into our dedicated bridal suite. Our artists coordinate your makeup, hair, jewelry placement, and draping with strict adherence to your muhurat timing.',
+                'Step into our dedicated, air-conditioned private bridal suite. Our artists coordinate your makeup, couture hairstyling, jewelry setting, and traditional draping with strict adherence to your muhurat timing.',
+              chips: ['Private AC Bridal Suite', 'Flawless HD/Airbrush Artistry', 'Traditional Gujarati Draping'],
             },
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                gap: 20,
-                alignItems: 'flex-start',
-                backgroundColor: 'rgba(5, 60, 67, 0.35)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: 16,
-                padding: '20px 24px',
-              }}
-            >
+          ].map((item, idx) => {
+            const IconComp = item.icon;
+            return (
               <div
+                key={idx}
                 style={{
-                  backgroundColor: '#EABA38',
-                  color: '#021e22',
-                  fontWeight: 800,
-                  fontSize: 12,
-                  padding: '6px 14px',
-                  borderRadius: 999,
-                  whiteSpace: 'nowrap',
-                  marginTop: 2,
+                  position: 'relative',
+                  zIndex: 1,
+                  display: 'flex',
+                  gap: 20,
+                  alignItems: 'flex-start',
                 }}
               >
-                {item.step}
-              </div>
-              <div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: '#ffffff', marginBottom: 4 }}>
-                  {item.title}
+                {/* Node Step Badge */}
+                <div
+                  style={{
+                    flexShrink: 0,
+                    width: 50,
+                    height: 50,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #05424A 0%, #03252a 100%)',
+                    border: '2px solid #EABA38',
+                    boxShadow: '0 0 16px rgba(234, 186, 56, 0.4), inset 0 2px 4px rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#f5d87a',
+                    fontWeight: 800,
+                    fontSize: 14,
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {item.num}
                 </div>
-                <div style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.6 }}>{item.detail}</div>
+
+                {/* Content Card */}
+                <div
+                  style={{
+                    flex: 1,
+                    backgroundColor: 'rgba(5, 60, 67, 0.4)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(234, 186, 56, 0.18)',
+                    borderRadius: 20,
+                    padding: '22px 26px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
+                    transition: 'all 0.25s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.transform = 'translateY(-3px)';
+                    el.style.borderColor = 'rgba(234, 186, 56, 0.5)';
+                    el.style.boxShadow = '0 14px 36px rgba(234, 186, 56, 0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.transform = 'translateY(0)';
+                    el.style.borderColor = 'rgba(234, 186, 56, 0.18)';
+                    el.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.25)';
+                  }}
+                >
+                  {/* Top Header Row */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 10,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#80EEEE',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                      }}
+                    >
+                      {item.phase}
+                    </span>
+
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        backgroundColor: 'rgba(234, 186, 56, 0.15)',
+                        border: '1px solid rgba(234, 186, 56, 0.35)',
+                        color: '#f5d87a',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        padding: '4px 12px',
+                        borderRadius: 999,
+                      }}
+                    >
+                      <IconComp size={13} color="#EABA38" />
+                      <span>{item.step}</span>
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <div
+                    style={{
+                      fontSize: 'clamp(17px, 2.2vw, 20px)',
+                      fontWeight: 800,
+                      color: '#ffffff',
+                      marginBottom: 8,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {item.title}
+                  </div>
+
+                  {/* Detail */}
+                  <p
+                    style={{
+                      fontSize: 14,
+                      color: '#cbd5e1',
+                      lineHeight: 1.65,
+                      margin: '0 0 16px',
+                    }}
+                  >
+                    {item.detail}
+                  </p>
+
+                  {/* Key Highlights Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {item.chips.map((chip, cIdx) => (
+                      <div
+                        key={cIdx}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          backgroundColor: 'rgba(2, 30, 34, 0.65)',
+                          border: '1px solid rgba(255, 255, 255, 0.09)',
+                          padding: '5px 11px',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          color: '#e2e8f0',
+                        }}
+                      >
+                        <CheckCircle2 size={13} color="#EABA38" style={{ flexShrink: 0 }} />
+                        <span>{chip}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
