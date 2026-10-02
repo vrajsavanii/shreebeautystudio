@@ -526,7 +526,7 @@ export default function BridalClient() {
               WebkitTextFillColor: 'transparent',
             }}
           >
-            The Surat Bride Preparation Timeline
+            The Bride Preparation Timeline
           </h2>
           <p style={{ color: '#94a3b8', fontSize: 'clamp(14px, 2vw, 16px)', maxWidth: 640, margin: '0 auto', lineHeight: 1.6 }}>
             Follow our proven milestone guide to ensure a relaxed, glowing, and punctual wedding journey from consultation to your auspicious muhurat.
