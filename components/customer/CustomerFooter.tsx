@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MapPin, Clock, Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram } from 'lucide-react';
+import { Phone, MessageCircle, Heart, Lock, ChevronUp, Instagram } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -20,16 +20,9 @@ export default function CustomerFooter() {
   }, []);
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
-  const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const whatsapp = settings?.whatsapp || '919824183769';
-  const phone2 = settings?.phone2 || '9824183769';
-  const openTime = settings?.open || '10:00';
-  const closeTime = settings?.close || '19:00';
   const instagramHandle = settings?.instagramHandle || '@shreebeauty.studio';
   const instagramUrl = settings?.instagramUrl || `https://www.instagram.com/${instagramHandle.replace('@', '')}/`;
-  const googleMapsUrl =
-    settings?.googleMapsUrl ||
-    'https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu&g_ep=EgoyMDI2MDkyMy4wIKXMDSoASAFQAw%3D%3D';
 
   return (
     <footer
@@ -52,8 +45,8 @@ export default function CustomerFooter() {
           maxWidth: 1200,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: 40,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: 48,
           marginBottom: 40,
         }}
       >
@@ -209,45 +202,6 @@ export default function CustomerFooter() {
             <Link href="/my-appointments" style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none' }}>
               Track My Appointments
             </Link>
-          </div>
-        </div>
-
-        {/* Column 3: Studio Location & Hours */}
-        <div>
-          <h4
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: '#EABA38',
-              marginBottom: 16,
-            }}
-          >
-            Studio Visit &amp; Hours
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <a
-              href={googleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#cbd5e1', textDecoration: 'none' }}
-              title="Open in Google Maps"
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-            >
-              <MapPin size={16} color="#EABA38" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div>
-                <span>{address}</span>
-                <span style={{ display: 'block', fontSize: 11.5, color: '#EABA38', fontWeight: 700, marginTop: 2 }}>
-                  📍 View on Google Maps ↗
-                </span>
-              </div>
-            </a>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
-              <Clock size={16} color="#EABA38" style={{ flexShrink: 0 }} />
-              <span>{openTime} – {closeTime} · {settings?.openDays || 'Open All 7 Days'}</span>
-            </div>
           </div>
         </div>
       </div>
