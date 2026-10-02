@@ -291,7 +291,7 @@ export default function PublicHomePage() {
                 }}
               >
                 <MessageCircle size={16} />
-                <span>WhatsApp</span>
+                <span>WhatsApp: +91 98241 83769</span>
               </a>
             </motion.div>
 
@@ -931,7 +931,7 @@ export default function PublicHomePage() {
                 className="cust-btn-secondary"
               >
                 <MessageCircle size={16} />
-                <span>Chat on WhatsApp</span>
+                <span>WhatsApp: +91 98241 83769</span>
               </a>
             </div>
 

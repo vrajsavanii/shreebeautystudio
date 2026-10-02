@@ -560,7 +560,7 @@ export default function AboutClient() {
                 }}
               >
                 <MessageCircle size={16} />
-                <span>WhatsApp Us</span>
+                <span>WhatsApp: +91 98241 83769</span>
               </a>
             </div>
           </div>

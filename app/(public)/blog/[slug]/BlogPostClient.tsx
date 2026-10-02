@@ -992,7 +992,7 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               }}
             >
               <MessageCircle size={16} />
-              <span>Chat on WhatsApp</span>
+              <span>WhatsApp: +91 98241 83769</span>
             </a>
           </div>
         </div>

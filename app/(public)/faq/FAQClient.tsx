@@ -435,7 +435,7 @@ export default function FAQClient() {
               }}
             >
               <MessageCircle size={17} />
-              <span>Chat on WhatsApp</span>
+              <span>WhatsApp: +91 98241 83769</span>
             </a>
             <Link
               href="/book"
