@@ -109,8 +109,6 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
         }}
       />
 
-
-
       {/* Overlay with likes & comments */}
       <div
         style={{
