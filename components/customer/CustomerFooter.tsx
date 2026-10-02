@@ -248,12 +248,6 @@ export default function CustomerFooter() {
               <Clock size={16} color="#EABA38" style={{ flexShrink: 0 }} />
               <span>{openTime} – {closeTime} · Open All 7 Days</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
-              <Phone size={16} color="#EABA38" style={{ flexShrink: 0 }} />
-              <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
-                +91 98241 83769
-              </a>
-            </div>
           </div>
         </div>
       </div>
