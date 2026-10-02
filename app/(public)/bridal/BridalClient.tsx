@@ -62,7 +62,7 @@ export default function BridalClient() {
       <section
         style={{
           position: 'relative',
-          padding: 'clamp(60px, 10vw, 120px) 20px clamp(40px, 6vw, 80px)',
+          padding: 'clamp(40px, 6vw, 68px) 20px clamp(28px, 4vw, 44px)',
           background: 'radial-gradient(ellipse at 50% 20%, rgba(5, 60, 67, 0.8) 0%, #021e22 75%)',
           borderBottom: '1px solid rgba(234, 186, 56, 0.2)',
           overflow: 'hidden',
@@ -75,7 +75,7 @@ export default function BridalClient() {
               fontSize: 'clamp(32px, 5.5vw, 56px)',
               fontWeight: 800,
               lineHeight: 1.15,
-              margin: '0 auto 20px',
+              margin: '0 auto 14px',
               maxWidth: 900,
               letterSpacing: '-0.02em',
               background: 'linear-gradient(135deg, #ffffff 30%, #f5d87a 70%, #EABA38 100%)',
@@ -93,7 +93,7 @@ export default function BridalClient() {
               color: '#cbd5e1',
               lineHeight: 1.6,
               maxWidth: 760,
-              margin: '0 auto 36px',
+              margin: '0 auto 20px',
             }}
           >
             Experience bespoke luxury bridal makeovers in Katargam, Surat. Flawless HD &amp; airbrush artistry, customized jewellery setting, and traditional Gujarati draping crafted for your most cherished moments.
@@ -107,7 +107,7 @@ export default function BridalClient() {
               alignItems: 'center',
               gap: 16,
               flexWrap: 'wrap',
-              marginBottom: 44,
+              marginBottom: 24,
             }}
           >
             <Link
@@ -221,12 +221,12 @@ export default function BridalClient() {
       <section
         id="packages"
         style={{
-          padding: 'clamp(50px, 8vw, 90px) 20px',
+          padding: 'clamp(32px, 5vw, 60px) 20px',
           maxWidth: 1140,
           margin: '0 auto',
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <h2
             style={{
               fontSize: 'clamp(26px, 4vw, 38px)',
@@ -237,7 +237,7 @@ export default function BridalClient() {
           >
             Transparent Bridal &amp; Siders Packages
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: 16, maxWidth: 640, margin: '0 auto 28px', lineHeight: 1.6 }}>
+          <p style={{ color: '#94a3b8', fontSize: 16, maxWidth: 640, margin: '0 auto 18px', lineHeight: 1.6 }}>
             Every bride is unique. Choose your desired luxury product line with crystal-clear pricing and complete service inclusions.
           </p>
 
@@ -295,7 +295,7 @@ export default function BridalClient() {
                 border: '1px solid rgba(234, 186, 56, 0.25)',
                 borderRadius: 16,
                 padding: '16px 20px',
-                marginBottom: 32,
+                marginBottom: 20,
                 textAlign: 'center',
                 color: '#f5d87a',
                 fontSize: 14,
@@ -533,7 +533,7 @@ export default function BridalClient() {
           </p>
         </div>
 
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Vertical Connecting Line on larger screens */}
           <div
             style={{
@@ -631,7 +631,7 @@ export default function BridalClient() {
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(234, 186, 56, 0.18)',
                     borderRadius: 20,
-                    padding: '22px 26px',
+                    padding: '16px 20px',
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
                     transition: 'all 0.25s ease',
                   }}
@@ -709,7 +709,7 @@ export default function BridalClient() {
                       fontSize: 14,
                       color: '#cbd5e1',
                       lineHeight: 1.65,
-                      margin: '0 0 16px',
+                      margin: '0 0 10px',
                     }}
                   >
                     {item.detail}
@@ -747,13 +747,13 @@ export default function BridalClient() {
       {/* 5. WHY BRIDES CHOOSE SHREE BEAUTY STUDIO */}
       <section
         style={{
-          padding: 'clamp(50px, 8vw, 80px) 20px',
+          padding: 'clamp(32px, 5vw, 56px) 20px',
           backgroundColor: '#03252a',
           borderTop: '1px solid rgba(234, 186, 56, 0.15)',
         }}
       >
         <div style={{ maxWidth: 1140, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <h2 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, margin: '0 0 12px' }}>
               Why Brides Choose Shree Beauty Studio
             </h2>
@@ -766,7 +766,7 @@ export default function BridalClient() {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: 24,
+              gap: 16,
             }}
           >
             {[
@@ -793,7 +793,7 @@ export default function BridalClient() {
                   backgroundColor: '#053C43',
                   border: '1px solid rgba(234, 186, 56, 0.15)',
                   borderRadius: 16,
-                  padding: '24px 20px',
+                  padding: '18px 16px',
                 }}
               >
                 <div style={{ fontSize: 17, fontWeight: 700, color: '#f5d87a', marginBottom: 8 }}>
@@ -807,8 +807,8 @@ export default function BridalClient() {
       </section>
 
       {/* 6. FAQ ACCORDION SECTION */}
-      <section style={{ padding: 'clamp(50px, 8vw, 80px) 20px', maxWidth: 900, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+      <section style={{ padding: 'clamp(32px, 5vw, 56px) 20px', maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <h2 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, margin: '0 0 12px' }}>
             Frequently Asked Questions
           </h2>
@@ -875,7 +875,7 @@ export default function BridalClient() {
       {/* 7. STUDIO LOCATION & CONTACT BANNER */}
       <section
         style={{
-          padding: 'clamp(50px, 8vw, 80px) 20px',
+          padding: 'clamp(36px, 5vw, 60px) 20px',
           background: 'linear-gradient(180deg, #03252a 0%, #011619 100%)',
           borderTop: '1px solid rgba(234, 186, 56, 0.2)',
           textAlign: 'center',
@@ -885,7 +885,7 @@ export default function BridalClient() {
           <h2 style={{ fontSize: 'clamp(28px, 4.5vw, 40px)', fontWeight: 800, margin: '0 0 16px', color: '#ffffff' }}>
             Ready to Begin Your Bridal Journey?
           </h2>
-          <p style={{ color: '#cbd5e1', fontSize: 16, lineHeight: 1.6, margin: '0 0 32px' }}>
+          <p style={{ color: '#cbd5e1', fontSize: 16, lineHeight: 1.6, margin: '0 0 20px' }}>
             Visit our boutique in Katargam, Surat or schedule a personal bridal consultation today.
           </p>
 
@@ -894,8 +894,8 @@ export default function BridalClient() {
               backgroundColor: 'rgba(5, 60, 67, 0.6)',
               border: '1px solid rgba(234, 186, 56, 0.3)',
               borderRadius: 20,
-              padding: '28px 24px',
-              marginBottom: 32,
+              padding: '20px 20px',
+              marginBottom: 20,
               textAlign: 'left',
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',

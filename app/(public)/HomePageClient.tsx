@@ -248,7 +248,7 @@ export default function PublicHomePage() {
                 lineHeight: 1.65,
                 color: 'rgba(255, 255, 255, 0.86)',
                 maxWidth: 620,
-                margin: '0 auto 32px',
+                margin: '0 auto 18px',
               }}
             >
               Step into Surat&apos;s premier salon sanctuary. Indulge in bespoke bridal couture makeovers,
@@ -258,7 +258,7 @@ export default function PublicHomePage() {
 
             <motion.div
               variants={fadeUp}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 36 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}
             >
               <Link href="/book" className="cust-btn-primary btn-glow">
                 <Calendar size={16} />
@@ -619,7 +619,7 @@ export default function PublicHomePage() {
           })}
         </motion.div>
 
-        <div style={{ textAlign: 'center', marginTop: 36 }}>
+        <div style={{ textAlign: 'center', marginTop: 20 }}>
           <Link href="/services" className="cust-btn-primary">
             <span>View Complete Price &amp; Service List</span>
             <ArrowRight size={16} />
@@ -644,7 +644,7 @@ export default function PublicHomePage() {
             display: 'flex',
             flexWrap: 'wrap',
             justifyContent: 'center',
-            gap: 24,
+            gap: 16,
             maxWidth: 1240,
             margin: '0 auto',
           }}
@@ -688,7 +688,7 @@ export default function PublicHomePage() {
               variants={fadeUp}
               whileHover={{ y: -6, boxShadow: '0 20px 48px rgba(5,66,74,0.10)' }}
               style={{
-                padding: 28,
+                padding: 20,
                 borderRadius: 20,
                 background: '#ffffff',
                 border: '1px solid #e2e8f0',
@@ -702,15 +702,15 @@ export default function PublicHomePage() {
             >
               <div
                 style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 16,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
                   background: item.bg,
                   color: item.color,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginBottom: 18,
+                  marginBottom: 14,
                   boxShadow: `0 4px 12px ${item.bg}`,
                 }}
               >
@@ -815,7 +815,7 @@ export default function PublicHomePage() {
         </div>
 
         {/* Google Map Verification Badge */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 36 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
           <motion.a
             href="https://www.google.com/maps/place/Shree+beauty+studio/@21.2369639,72.8160001,283m/data=!3m1!1e3!4m8!3m7!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!9m1!1b1!16s%2Fg%2F11kqdqq61p?entry=ttu"
             target="_blank"
@@ -848,7 +848,7 @@ export default function PublicHomePage() {
         style={{
           position: 'relative',
           background: 'linear-gradient(135deg, #021e22 0%, #05424A 40%, #07505a 70%, #032b30 100%)',
-          padding: 'clamp(56px, 8vw, 96px) 20px',
+          padding: 'clamp(36px, 5vw, 60px) 20px',
           overflow: 'hidden',
           textAlign: 'center',
         }}
@@ -875,7 +875,7 @@ export default function PublicHomePage() {
                 color: '#F7E7A6',
                 fontSize: 12.5,
                 fontWeight: 700,
-                marginBottom: 20,
+                marginBottom: 12,
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
               }}
@@ -890,7 +890,7 @@ export default function PublicHomePage() {
                 fontSize: 'clamp(30px, 5vw, 52px)',
                 fontWeight: 700,
                 color: '#ffffff',
-                margin: '0 0 16px',
+                margin: '0 0 10px',
                 lineHeight: 1.15,
                 fontStyle: 'italic',
               }}
@@ -905,7 +905,7 @@ export default function PublicHomePage() {
                 color: 'rgba(255,255,255,0.85)',
                 lineHeight: 1.65,
                 maxWidth: 620,
-                margin: '0 auto 36px',
+                margin: '0 auto 20px',
               }}
             >
               From everyday hair rejuvenation to once-in-a-lifetime bridal transformations — our team at
@@ -943,7 +943,7 @@ export default function PublicHomePage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 24,
-                marginTop: 32,
+                marginTop: 20,
                 flexWrap: 'wrap',
                 fontSize: 13,
                 color: 'rgba(255,255,255,0.7)',
@@ -988,7 +988,7 @@ export default function PublicHomePage() {
           }}
         >
           {/* Info Side */}
-          <div style={{ padding: 'clamp(28px, 5vw, 48px)', display: 'flex', flexDirection: 'column', gap: 24, justifyContent: 'center' }}>
+          <div style={{ padding: 'clamp(20px, 3.5vw, 32px)', display: 'flex', flexDirection: 'column', gap: 16, justifyContent: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
               <div
                 style={{
@@ -1107,7 +1107,7 @@ export default function PublicHomePage() {
           </div>
 
           {/* Realistic 3D Satellite Interactive Map */}
-          <StudioMap3D height={420} showCardOverlay={true} />
+          <StudioMap3D height={360} showCardOverlay={true} />
         </div>
       </section>
     </div>

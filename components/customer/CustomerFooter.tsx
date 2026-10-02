@@ -43,7 +43,7 @@ export default function CustomerFooter() {
         position: 'relative',
         background: 'radial-gradient(ellipse at 50% 0%, rgba(5, 66, 74, 0.45) 0%, #021e22 45%, #011215 100%)',
         color: '#ffffff',
-        padding: '70px 24px 32px',
+        padding: '44px 20px 24px',
         overflow: 'hidden',
       }}
     >
@@ -66,13 +66,13 @@ export default function CustomerFooter() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 'clamp(36px, 6vw, 64px)',
-            marginBottom: 50,
+            gap: 'clamp(24px, 4.5vw, 44px)',
+            marginBottom: 28,
           }}
         >
           {/* Col 1: Brand & Identity */}
           <div style={{ maxWidth: 440 }}>
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 12 }}>
               <img
                 src={settings?.logoUrl || SHREE_LOGO_BASE64}
                 alt={salonName}
@@ -102,12 +102,12 @@ export default function CustomerFooter() {
               {salonName}
             </h3>
 
-            <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.7, margin: '0 0 20px' }}>
+            <p style={{ fontSize: 14, color: '#94a3b8', lineHeight: 1.7, margin: '0 0 14px' }}>
               Katargam&apos;s premier boutique beauty parlour and couture bridal studio. Dedicated exclusively to ladies with over 25+ years of beauty mastery in Surat.
             </p>
 
             {/* Quick Trust Badges */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               <span
                 style={{
                   display: 'inline-flex',

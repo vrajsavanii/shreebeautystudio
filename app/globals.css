@@ -1895,7 +1895,7 @@ a, button, input, select, textarea {
 
 /* Sections */
 .cust-section {
-  padding: clamp(48px, 8vw, 84px) 20px;
+  padding: clamp(28px, 4.5vw, 48px) 20px;
   max-width: 1280px;
   margin: 0 auto;
   content-visibility: auto;
@@ -1904,7 +1904,7 @@ a, button, input, select, textarea {
 
 .cust-section-alt {
   background: #f1f5f9;
-  padding: clamp(48px, 8vw, 84px) 20px;
+  padding: clamp(28px, 4.5vw, 48px) 20px;
   content-visibility: auto;
   contain-intrinsic-size: 1px 700px;
 }
@@ -1912,7 +1912,7 @@ a, button, input, select, textarea {
 .cust-section-dark {
   background: linear-gradient(135deg, #032B30 0%, #05424A 100%);
   color: #ffffff;
-  padding: clamp(48px, 8vw, 84px) 20px;
+  padding: clamp(28px, 4.5vw, 48px) 20px;
   content-visibility: auto;
   contain-intrinsic-size: 1px 700px;
 }
@@ -1920,7 +1920,7 @@ a, button, input, select, textarea {
 .cust-section-header {
   text-align: center;
   max-width: 650px;
-  margin: 0 auto 48px;
+  margin: 0 auto 24px;
 }
 
 .cust-section-badge {
@@ -2471,7 +2471,7 @@ a, button, input, select, textarea {
 /* ─── Stats Strip ───────────────────────────────────────────────────────── */
 .cust-stats-strip {
   background: linear-gradient(90deg, #032b30 0%, #05424A 50%, #032b30 100%);
-  padding: 20px;
+  padding: 12px 20px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -2575,7 +2575,7 @@ a, button, input, select, textarea {
 
 .cust-bento-card-v2 .card-media-box {
   position: relative;
-  height: 210px;
+  height: 180px;
   overflow: hidden;
   background: #07383e;
 }
@@ -2632,7 +2632,7 @@ a, button, input, select, textarea {
 }
 
 .cust-bento-card-v2 .card-content-box {
-  padding: 22px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -2641,7 +2641,7 @@ a, button, input, select, textarea {
 }
 
 .cust-bento-card-v2 .card-header-meta {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .cust-bento-card-v2 .card-tagline {
@@ -2650,21 +2650,21 @@ a, button, input, select, textarea {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #c49821;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .cust-bento-card-v2 .card-title {
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 800;
   color: #07383e;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   letter-spacing: -0.01em;
 }
 
 .cust-bento-card-v2 .card-description {
-  font-size: 12.5px;
+  font-size: 12px;
   color: #64748b;
-  line-height: 1.45;
+  line-height: 1.4;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2675,12 +2675,12 @@ a, button, input, select, textarea {
 .cust-bento-card-v2 .card-service-items {
   background: #f8fafc;
   border-radius: 12px;
-  padding: 10px 14px;
-  margin-bottom: 18px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
   border: 1px solid #edf2f7;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .cust-bento-card-v2 .card-service-row {
@@ -2961,7 +2961,7 @@ a, button, input, select, textarea {
 /* ─── Ultra-Luxury Landing Page Redesign & Real Studio Ambiance ────────── */
 .cust-hero-v3 {
   position: relative;
-  min-height: 92vh;
+  min-height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2969,14 +2969,14 @@ a, button, input, select, textarea {
   background-size: cover;
   background-position: center;
   color: #ffffff;
-  padding: 100px 24px 60px;
+  padding: clamp(44px, 5.5vw, 68px) 20px clamp(28px, 3.5vw, 44px);
   overflow: hidden;
 }
 
 .cust-hero-split {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
-  gap: 48px;
+  gap: 32px;
   align-items: center;
   max-width: 1280px;
   width: 100%;
@@ -2988,7 +2988,7 @@ a, button, input, select, textarea {
 @media (max-width: 1024px) {
   .cust-hero-split {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: 28px;
     text-align: center;
   }
 }
@@ -2999,50 +2999,50 @@ a, button, input, select, textarea {
   gap: 8px;
   background: rgba(212, 175, 55, 0.14);
   border: 1px solid rgba(212, 175, 55, 0.45);
-  padding: 6px 18px;
+  padding: 5px 16px;
   border-radius: 99px;
   color: #F7E7A6;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   backdrop-filter: blur(10px);
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .cust-hero-preview-frame {
   position: relative;
-  border-radius: 24px;
-  padding: 10px;
+  border-radius: 20px;
+  padding: 8px;
   background: linear-gradient(145deg, rgba(212, 175, 55, 0.35) 0%, rgba(5, 66, 74, 0.6) 60%, rgba(3, 43, 48, 0.9) 100%);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(212, 175, 55, 0.25);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(212, 175, 55, 0.25);
   backdrop-filter: blur(16px);
   overflow: hidden;
   transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
 .cust-hero-preview-frame:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.55), 0 0 30px rgba(212, 175, 55, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 0 24px rgba(212, 175, 55, 0.3);
 }
 
 .cust-hero-preview-img {
   width: 100%;
-  height: 440px;
+  height: 380px;
   object-fit: cover;
-  border-radius: 18px;
+  border-radius: 16px;
   display: block;
 }
 
 @media (max-width: 640px) {
   .cust-hero-preview-img {
-    height: 320px;
+    height: 280px;
   }
 }
 
 /* Studio Ambiance Showcase */
 .cust-studio-section {
-  padding: clamp(60px, 8vw, 100px) 20px;
+  padding: clamp(32px, 4.5vw, 54px) 20px;
   background: linear-gradient(180deg, #FAF9F6 0%, #F5F2EB 100%);
   position: relative;
 }
@@ -3050,32 +3050,32 @@ a, button, input, select, textarea {
 .cust-studio-header {
   text-align: center;
   max-width: 780px;
-  margin: 0 auto 40px;
+  margin: 0 auto 22px;
 }
 
 .cust-studio-tabs-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 32px;
+  margin-bottom: 18px;
 }
 
 .cust-studio-tab-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: 7px;
+  padding: 8px 18px;
   border-radius: 99px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
   border: 1px solid #DCE3E8;
   background: #FFFFFF;
   color: #0F172A;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
 }
 
 .cust-studio-tab-btn:hover {
@@ -3094,7 +3094,7 @@ a, button, input, select, textarea {
 .cust-studio-display-grid {
   display: grid;
   grid-template-columns: 1.25fr 0.75fr;
-  gap: 28px;
+  gap: 24px;
   max-width: 1240px;
   margin: 0 auto;
   align-items: stretch;
@@ -3108,18 +3108,18 @@ a, button, input, select, textarea {
 
 .cust-studio-main-card {
   position: relative;
-  border-radius: 22px;
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 16px 40px rgba(5, 66, 74, 0.12);
   border: 1px solid rgba(212, 175, 55, 0.35);
   background: #032B30;
-  min-height: 480px;
+  min-height: 380px;
 }
 
 .cust-studio-main-img {
   width: 100%;
   height: 100%;
-  min-height: 480px;
+  min-height: 380px;
   object-fit: cover;
   display: block;
 }
@@ -3131,14 +3131,14 @@ a, button, input, select, textarea {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 32px;
+  padding: 22px;
   color: #ffffff;
 }
 
 .cust-studio-detail-card {
   background: #ffffff;
-  border-radius: 22px;
-  padding: 32px;
+  border-radius: 20px;
+  padding: 24px;
   border: 1px solid #E2E8F0;
   box-shadow: 0 10px 30px rgba(0,0,0,0.04);
   display: flex;
@@ -3149,7 +3149,7 @@ a, button, input, select, textarea {
 .cust-bridal-showcase-grid {
   display: grid;
   grid-template-columns: 0.9fr 1.1fr;
-  gap: 36px;
+  gap: 28px;
   align-items: center;
   max-width: 1240px;
   margin: 0 auto;

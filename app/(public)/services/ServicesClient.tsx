@@ -121,7 +121,7 @@ function ServicesView() {
           zIndex: 2,
           margin: '0 auto',
           maxWidth: 1320,
-          padding: '20px 20px 0',
+          padding: '12px 20px 0',
         }}
       >
         <motion.div
@@ -130,9 +130,9 @@ function ServicesView() {
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           style={{
             position: 'relative',
-            borderRadius: 28,
+            borderRadius: 24,
             overflow: 'hidden',
-            height: 'clamp(200px, 32vw, 340px)',
+            height: 'clamp(160px, 24vw, 240px)',
             boxShadow: '0 12px 48px rgba(5,66,74,0.2), 0 2px 8px rgba(0,0,0,0.08)',
           }}
         >
@@ -239,13 +239,13 @@ function ServicesView() {
         </motion.div>
       </div>
 
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '32px 20px 80px', position: 'relative', zIndex: 2 }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 20px 48px', position: 'relative', zIndex: 2 }}>
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-        style={{ textAlign: 'center', marginBottom: 40 }}
+        style={{ textAlign: 'center', marginBottom: 20 }}
       >
         <span className="cust-section-badge">
           <Sparkles size={13} style={{ display: 'inline' }} /> Complete Service Menu
@@ -254,7 +254,7 @@ function ServicesView() {
           <span style={{ display: 'block', fontSize: '0.55em', fontWeight: 800, color: '#05424A', letterSpacing: '0.02em', fontStyle: 'normal', fontFamily: 'Plus Jakarta Sans, sans-serif', textTransform: 'uppercase', marginBottom: 4 }}>Shree Beauty Studio</span>
           Salon Services &amp; Starting Rates
         </h1>
-        <p style={{ fontSize: 15, color: '#64748b', maxWidth: 640, margin: '0 auto 20px', lineHeight: 1.65 }}>
+        <p style={{ fontSize: 15, color: '#64748b', maxWidth: 640, margin: '0 auto 12px', lineHeight: 1.65 }}>
           Explore our complete collection of {services.length} signature salon therapies. All prices listed are starting rates — final quotation is customized according to your exact requirements.
         </p>
 
@@ -267,7 +267,7 @@ function ServicesView() {
             backdropFilter: 'blur(12px)',
             border: '1.5px solid rgba(234,186,56,0.35)',
             borderRadius: 16,
-            padding: '16px 20px',
+            padding: '14px 18px',
             textAlign: 'left',
             boxShadow: '0 4px 16px rgba(5,66,74,0.08)',
           }}
@@ -302,12 +302,12 @@ function ServicesView() {
           backdropFilter: 'blur(16px)',
           borderRadius: 20,
           border: '1px solid rgba(5,66,74,0.12)',
-          padding: '18px 20px',
-          marginBottom: 32,
+          padding: '12px 16px',
+          marginBottom: 20,
           boxShadow: '0 8px 32px rgba(5,66,74,0.08), 0 1px 4px rgba(0,0,0,0.04)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 16,
+          gap: 10,
         }}
       >
         {/* Search & Sort Controls */}

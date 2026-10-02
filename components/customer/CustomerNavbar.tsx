@@ -121,7 +121,7 @@ export default function CustomerNavbar() {
           style={{
             maxWidth: 1280,
             margin: '0 auto',
-            padding: '12px 20px',
+            padding: '8px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -142,7 +142,7 @@ export default function CustomerNavbar() {
               src={settings?.logoUrl || SHREE_LOGO_BASE64}
               alt={salonName}
               style={{
-                height: '54px',
+                height: '46px',
                 width: 'auto',
                 maxWidth: '220px',
                 objectFit: 'contain',
