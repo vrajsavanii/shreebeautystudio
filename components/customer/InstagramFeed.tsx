@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Instagram, Heart, MessageCircle, ExternalLink, Sparkles } from 'lucide-react';
+import { Instagram, Heart, MessageCircle, ExternalLink, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { studioPhotos } from '@/lib/customer-images';
 import { useSalonStore } from '@/lib/store';
 
@@ -66,7 +66,7 @@ interface PhotoPostItem {
   permalink: string;
 }
 
-// ─── Large High-Impact Photo Card (360×360px) ────────────────────────
+// ─── High-Impact Responsive Photo Card (Single on Mobile, Multi on Desktop) ──
 function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: string }) {
   const [isHovered, setIsHovered] = useState(false);
   const targetUrl = item.permalink || defaultUrl;
@@ -76,12 +76,11 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
       href={targetUrl}
       target="_blank"
       rel="noopener noreferrer"
+      className="insta-photo-card"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
         display: 'block',
-        width: 'clamp(300px, 24vw, 380px)',
-        height: 'clamp(300px, 24vw, 380px)',
         borderRadius: 22,
         overflow: 'hidden',
         position: 'relative',
@@ -91,7 +90,7 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
           ? '0 24px 48px rgba(0,0,0,0.3), 0 0 0 3px #EABA38'
           : '0 10px 28px rgba(0,0,0,0.12)',
         transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-        transform: isHovered ? 'scale(1.04) translateY(-6px)' : 'scale(1)',
+        transform: isHovered ? 'scale(1.03) translateY(-4px)' : 'scale(1)',
         textDecoration: 'none',
         background: '#0f172a',
       }}
@@ -126,19 +125,20 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
           alignItems: 'center',
           justifyContent: 'center',
           boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          zIndex: 2,
         }}
       >
         <Instagram size={17} color="#fff" />
       </div>
 
-      {/* Hover overlay with engagement */}
+      {/* Overlay with likes & comments */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           background: isHovered
-            ? 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%)'
-            : 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.6) 100%)',
+            ? 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.92) 100%)'
+            : 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.7) 100%)',
           transition: 'all 0.35s ease',
           display: 'flex',
           flexDirection: 'column',
@@ -157,17 +157,17 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
           </span>
         </div>
 
-        {isHovered && item.caption && (
+        {item.caption && (
           <p
             style={{
               color: '#f8fafc',
               fontSize: 13,
               lineHeight: 1.45,
-              margin: '10px 0 0',
+              margin: '8px 0 0',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
-              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
+              textShadow: '0 2px 4px rgba(0,0,0,0.6)',
             }}
           >
             {item.caption}
@@ -200,7 +200,6 @@ export default function InstagramFeed() {
         if (res.ok) {
           const json = await res.json();
           if (json.success && isMounted) {
-            // Use photos specifically, or all posts if no photos
             const photoList = (json.photos && json.photos.length > 0)
               ? json.photos
               : (json.posts || []);
@@ -222,17 +221,21 @@ export default function InstagramFeed() {
     };
   }, []);
 
-  // Tripled array for seamless infinite loop
+  // Tripled array for desktop infinite loop
   const allPhotos = [...livePhotos, ...livePhotos, ...livePhotos];
 
-  // Auto-scrolling animation
+  // Auto-scrolling animation (active on desktop)
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
 
+    // Check if on mobile (screen < 640px), let user swipe naturally
+    const isMobile = window.innerWidth < 640;
+    if (isMobile) return;
+
     let animId: number;
     let scrollPos = 0;
-    const speed = 0.55; // Smooth scroll speed
+    const speed = 0.55;
 
     const animate = () => {
       if (!isPaused && el) {
@@ -250,15 +253,67 @@ export default function InstagramFeed() {
     return () => cancelAnimationFrame(animId);
   }, [isPaused, livePhotos]);
 
+  const handleManualScroll = (direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const scrollAmount = window.innerWidth < 640 ? window.innerWidth * 0.88 : 380;
+    el.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+  };
+
   return (
     <section
       style={{
-        padding: 'clamp(56px, 8vw, 96px) 0',
+        padding: 'clamp(52px, 7vw, 90px) 0',
         background: 'linear-gradient(180deg, #f8fafc 0%, #edf2f7 50%, #f1f5f9 100%)',
         overflow: 'hidden',
         position: 'relative',
       }}
     >
+      {/* Scoped CSS for single post display on mobile */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (max-width: 640px) {
+          .insta-marquee-container {
+            display: flex !important;
+            overflow-x: auto !important;
+            scroll-snap-type: x mandatory !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding: 12px 20px 20px !important;
+            gap: 16px !important;
+            scrollbar-width: none !important;
+          }
+          .insta-marquee-container::-webkit-scrollbar {
+            display: none !important;
+          }
+          .insta-photo-card {
+            width: calc(100vw - 44px) !important;
+            max-width: 380px !important;
+            height: calc(100vw - 44px) !important;
+            max-height: 380px !important;
+            scroll-snap-align: center !important;
+            margin: 0 auto !important;
+          }
+          .insta-mobile-nav {
+            display: flex !important;
+          }
+        }
+        @media (min-width: 641px) {
+          .insta-marquee-container {
+            display: flex;
+            overflow: hidden;
+            padding: 14px 0 24px;
+            gap: 20px;
+            cursor: grab;
+          }
+          .insta-photo-card {
+            width: 360px !important;
+            height: 360px !important;
+          }
+          .insta-mobile-nav {
+            display: none !important;
+          }
+        }
+      `}} />
+
       {/* Background glow ambiance */}
       <div
         style={{
@@ -278,7 +333,7 @@ export default function InstagramFeed() {
             maxWidth: 720,
             margin: '0 auto',
             padding: '0 20px',
-            marginBottom: 'clamp(32px, 5vw, 48px)',
+            marginBottom: 'clamp(28px, 4vw, 44px)',
           }}
         >
           {/* Instagram Account Badge */}
@@ -346,18 +401,12 @@ export default function InstagramFeed() {
           </p>
         </div>
 
-        {/* ─── Seamless Infinite Marquee (Only Square Photo Posts) ──── */}
+        {/* ─── Responsive Gallery: Single Post on Mobile / Infinite Marquee on Desktop ──── */}
         <div
           ref={scrollRef}
+          className="insta-marquee-container"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
-          style={{
-            display: 'flex',
-            gap: 20,
-            overflow: 'hidden',
-            padding: '12px 0 24px',
-            cursor: 'grab',
-          }}
         >
           {allPhotos.map((photo, i) => (
             <PhotoCard
@@ -368,8 +417,63 @@ export default function InstagramFeed() {
           ))}
         </div>
 
+        {/* Mobile Swipe Navigation Controls */}
+        <div
+          className="insta-mobile-nav"
+          style={{
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 16,
+            marginTop: 12,
+          }}
+        >
+          <button
+            onClick={() => handleManualScroll('left')}
+            aria-label="Previous photo"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: '#ffffff',
+              border: '1px solid rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0f172a',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            }}
+          >
+            <ChevronLeft size={18} />
+          </button>
+
+          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+            Swipe to explore ({livePhotos.length} posts)
+          </span>
+
+          <button
+            onClick={() => handleManualScroll('right')}
+            aria-label="Next photo"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              background: '#ffffff',
+              border: '1px solid rgba(0,0,0,0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0f172a',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            }}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
         {/* Follow CTA Button */}
-        <div style={{ textAlign: 'center', marginTop: 'clamp(32px, 4vw, 48px)' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(28px, 4vw, 44px)' }}>
           <a
             href={instagramUrl}
             target="_blank"
