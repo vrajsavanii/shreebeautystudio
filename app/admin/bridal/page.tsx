@@ -184,6 +184,7 @@ export default function BridalPage() {
   };
 
 const OTHER_EVENT_OPTIONS = [
+  'Mandap Muhurat',
   'Haldi Ceremony',
   'Carnival / Pool Party',
   'Engagement / Ring Ceremony',

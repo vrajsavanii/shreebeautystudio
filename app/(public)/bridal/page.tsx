@@ -60,7 +60,7 @@ export default function BridalPage() {
         name: 'What is included in Shree Beauty Studio’s 3-session Bridal Packages?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Our complete 3-session Couture Bridal Package covers three wedding events (such as Wedding, Reception, and Sangeet or Engagement). Each session includes complete HD or Airbrush bridal makeup, customized couture hairstyling, fine jewellery setting, cosmetic eye lenses, premium hair extensions, 3D mink eyelashes, fresh/floral hair decor, and traditional draping (sari or chaniya choli).',
+          text: 'Our complete 3-session Couture Bridal Package covers three wedding events (such as Wedding, Mandap Muhurat, and Sangeet or Engagement). Each session includes complete HD or Airbrush bridal makeup, customized couture hairstyling, fine jewellery setting, cosmetic eye lenses, premium hair extensions, 3D mink eyelashes, fresh/floral hair decor, and traditional draping (sari or chaniya choli).',
         },
       },
       {

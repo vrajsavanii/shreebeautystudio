@@ -35,7 +35,7 @@ export default function BridalClient() {
     },
     {
       q: 'What is included in Shree Beauty Studio’s 3-session Bridal Packages?',
-      a: 'Our complete 3-session Couture Bridal Package covers three wedding events (such as Wedding, Reception, and Sangeet or Engagement). Each session includes complete HD or Airbrush bridal makeup, customized couture hairstyling, fine jewellery setting, cosmetic eye lenses, premium hair extensions, 3D mink eyelashes, fresh/floral hair decor, and traditional draping (sari or chaniya choli).',
+      a: 'Our complete 3-session Couture Bridal Package covers three wedding events (such as Wedding, Mandap Muhurat, and Sangeet or Engagement). Each session includes complete HD or Airbrush bridal makeup, customized couture hairstyling, fine jewellery setting, cosmetic eye lenses, premium hair extensions, 3D mink eyelashes, fresh/floral hair decor, and traditional draping (sari or chaniya choli).',
     },
     {
       q: 'Which cosmetics and skincare brands are used for brides?',
@@ -210,7 +210,7 @@ export default function BridalClient() {
             {[
               { icon: Award, title: '25+ Years Experience', desc: 'Trusted by generations of Surat brides' },
               { icon: ShieldCheck, title: '100% Genuine Brands', desc: 'Dior, NARS, Charlotte Tilbury, MAC' },
-              { icon: Gem, title: '3-Session Couture', desc: 'Wedding, Reception, and Sangeet complete' },
+              { icon: Gem, title: '3-Session Couture', desc: 'Wedding, Mandap Muhurat, and Sangeet complete' },
               { icon: MapPin, title: 'Katargam, Surat', desc: 'Dedicated air-conditioned bridal studio' },
             ].map((item, idx) => {
               const IconComp = item.icon;
@@ -380,7 +380,7 @@ export default function BridalClient() {
                       </div>
                       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {[
-                          '3 Full Wedding Sessions (Wedding, Reception, Sangeet)',
+                          '3 Full Wedding Sessions (Wedding, Mandap Muhurat, Sangeet)',
                           `Premium ${pkg.name} Product Formulations`,
                           'Couture Hairstyling & Extensions',
                           'Bridal Jewellery Setting & Lenses',

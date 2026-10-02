@@ -23,7 +23,7 @@ export const DEFAULT_BRIDAL_PACKAGES: BridalPackage[] = [
   { id: 'makeup-engagement-sangeet', type: 'Makeup Package', name: 'Engagement & Sangeet Makeup', price: 15000, sessions: 2, includes: '2 Sessions Makeup, Hairstyle, Jewellery Setting & Draping' },
   { id: 'makeup-airbrush-bridal', type: 'Makeup Package', name: 'Airbrush HD Bridal Makeup', price: 35000, sessions: 3, includes: '3 Sessions Airbrush HD Makeup, Hairstyling, Lenses & Draping' },
   { id: 'mtvjixej1844l', type: 'Makeup Package', name: 'Make-up (Engagement / Sangeet)', price: 15000, sessions: 2, includes: 'Makeup, hairstyle, draping, eyelashes and lenses' },
-  { id: 'mtvjji3ffcy49', type: 'Makeup Package', name: 'Make-up (Bridal & Reception)', price: 20000, sessions: 2, includes: 'Makeup, hairstyle, draping, eyelashes and lenses' },
+  { id: 'mtvjji3ffcy49', type: 'Makeup Package', name: 'Make-up (Bridal & Mandap Muhurat)', price: 20000, sessions: 2, includes: 'Makeup, hairstyle, draping, eyelashes and lenses' },
 ];
 
 export const DEFAULT_MEMBERSHIP_PLANS: MembershipPlan[] = [
