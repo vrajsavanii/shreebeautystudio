@@ -177,110 +177,79 @@ export default function CustomerFooter() {
           </div>
         </div>
 
-        {/* Right Columns: Explore Studio & Navigation */}
-        <div style={{ flex: '2 1 480px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'clamp(28px, 4vw, 56px)' }}>
-          {/* Sub-column 1: Studio Services */}
-          <div>
-            <h4
-              style={{
-                fontSize: 13.5,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: '#EABA38',
-                marginBottom: 16,
-              }}
+        {/* Single Navigation Column: Explore Studio */}
+        <div style={{ flex: '0 1 auto', minWidth: 220 }}>
+          <h4
+            style={{
+              fontSize: 13.5,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: '#EABA38',
+              marginBottom: 16,
+            }}
+          >
+            Explore Studio
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <Link
+              href="/"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
-              Explore Studio
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <Link
-                href="/"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                Home
-              </Link>
-              <Link
-                href="/services"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                Services &amp; Pricing Menu
-              </Link>
-              <Link
-                href="/bridal"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                Couture Bridal Packages
-              </Link>
-              <Link
-                href="/about"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                About Us &amp; Heritage
-              </Link>
-            </div>
-          </div>
-
-          {/* Sub-column 2: Inquiries & Guides */}
-          <div>
-            <h4
-              style={{
-                fontSize: 13.5,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: '#EABA38',
-                marginBottom: 16,
-              }}
+              Home
+            </Link>
+            <Link
+              href="/services"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
             >
-              Quick Contact
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <Link
-                href="/ContactUs"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                Contact Us
-              </Link>
-              <a
-                href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AI%20have%20an%20inquiry"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 5 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                Direct Inquiry ↗
-              </a>
-              <Link
-                href="/blog"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                Beauty &amp; Care Blog (50+ Guides)
-              </Link>
-              <a
-                href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 5 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
-              >
-                Katargam, Surat 📍
-              </a>
-            </div>
+              Services &amp; Pricing Menu
+            </Link>
+            <Link
+              href="/bridal"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Couture Bridal Packages
+            </Link>
+            <Link
+              href="/blog"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Beauty &amp; Care Blog
+            </Link>
+            <Link
+              href="/about"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              About Us &amp; Heritage
+            </Link>
+            <Link
+              href="/ContactUs"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Contact Us
+            </Link>
+            <a
+              href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#cbd5e1', fontSize: 13.5, textDecoration: 'none', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 5 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#cbd5e1'; }}
+            >
+              Katargam, Surat 📍
+            </a>
           </div>
         </div>
       </div>
