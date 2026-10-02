@@ -221,16 +221,21 @@ export default function PublicHomePage() {
         <div className="floating-orb floating-orb-gold" style={{ width: 550, height: 550, top: '-20%', left: '-10%', opacity: 0.35 }} />
         <div className="floating-orb floating-orb-teal" style={{ width: 600, height: 600, bottom: '-25%', right: '-10%', opacity: 0.4 }} />
 
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
-          {/* Centered Hero Content */}
-          <motion.div initial="hidden" animate="visible" variants={stagger} style={{ textAlign: 'center' }}>
+        <div className="cust-hero-split">
+          {/* Left Column: Editorial Headline & Actions */}
+          <motion.div initial="hidden" animate="visible" variants={stagger} className="cust-hero-text-col">
+            <motion.div variants={fadeUp} className="cust-hero-badge-pill">
+              <Sparkles size={13} color="#D4AF37" />
+              <span>Katargam, Surat&apos;s Premier Ladies Sanctuary</span>
+            </motion.div>
+
             <motion.h1
               className="display-font"
               variants={fadeUp}
               style={{
-                fontSize: 'clamp(36px, 5.2vw, 64px)',
+                fontSize: 'clamp(32px, 4.4vw, 56px)',
                 fontWeight: 700,
-                lineHeight: 1.12,
+                lineHeight: 1.14,
                 color: '#FFFFFF',
                 margin: '0 0 16px',
                 letterSpacing: '-0.02em',
@@ -244,11 +249,11 @@ export default function PublicHomePage() {
             <motion.p
               variants={fadeUp}
               style={{
-                fontSize: 'clamp(15px, 1.8vw, 17.5px)',
+                fontSize: 'clamp(14.5px, 1.5vw, 16.5px)',
                 lineHeight: 1.65,
-                color: 'rgba(255, 255, 255, 0.86)',
-                maxWidth: 620,
-                margin: '0 auto 18px',
+                color: 'rgba(255, 255, 255, 0.88)',
+                maxWidth: 560,
+                margin: '0 0 20px',
               }}
             >
               Step into Surat&apos;s premier salon sanctuary. Indulge in bespoke bridal couture makeovers,
@@ -258,7 +263,8 @@ export default function PublicHomePage() {
 
             <motion.div
               variants={fadeUp}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}
+              className="cust-hero-btn-row"
+              style={{ marginBottom: 20 }}
             >
               <Link href="/book" className="cust-btn-primary btn-glow">
                 <Calendar size={16} />
@@ -282,28 +288,24 @@ export default function PublicHomePage() {
                   color: '#053320',
                   fontWeight: 700,
                   fontSize: 14,
-                  padding: '12px 22px',
+                  padding: '11px 20px',
                   borderRadius: 99,
                   textDecoration: 'none',
                   boxShadow: '0 6px 20px rgba(37, 211, 102, 0.35)',
                 }}
               >
                 <MessageCircle size={16} />
-                <span>WhatsApp: +91 98241 83769</span>
+                <span>WhatsApp</span>
               </a>
             </motion.div>
 
             {/* Social Trust Metrics */}
             <motion.div
               variants={fadeUp}
+              className="cust-hero-trust-row"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 20,
-                flexWrap: 'wrap',
                 fontSize: 12.5,
-                color: 'rgba(255, 255, 255, 0.82)',
+                color: 'rgba(255, 255, 255, 0.85)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
@@ -321,12 +323,61 @@ export default function PublicHomePage() {
               </div>
             </motion.div>
           </motion.div>
-        </div>
 
-        {/* Scroll cue */}
-        <div className="cust-hero-scroll-cue">
-          <span>Explore Studio</span>
-          <ChevronRight size={16} style={{ transform: 'rotate(90deg)' }} />
+          {/* Right Column: Luxury Studio Showcase Frame */}
+          <motion.div
+            initial={{ opacity: 0, x: 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="cust-hero-preview-frame"
+          >
+            <img
+              src={studioPhotos.stylingFloor}
+              alt="Shree Beauty Studio Katargam Surat Hair & Aesthetics Floor"
+              className="cust-hero-preview-img"
+            />
+            {/* Elegant Floating Badge inside Frame */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 16,
+                left: 16,
+                right: 16,
+                background: 'rgba(3, 43, 48, 0.90)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                borderRadius: 14,
+                padding: '10px 16px',
+                border: '1px solid rgba(212, 175, 55, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                color: '#ffffff',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#f5d87a', letterSpacing: '0.02em' }}>
+                  Katargam Salon Sanctuary
+                </div>
+                <div style={{ fontSize: 11, color: '#cbd5e1' }}>
+                  Opp. Cancer Hospital · 25+ Years Legacy
+                </div>
+              </div>
+              <span
+                style={{
+                  background: 'rgba(212, 175, 55, 0.2)',
+                  color: '#EABA38',
+                  padding: '4px 10px',
+                  borderRadius: 99,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  border: '1px solid rgba(212, 175, 55, 0.4)',
+                }}
+              >
+                100% Ladies Only
+              </span>
+            </div>
+          </motion.div>
         </div>
       </section>
 

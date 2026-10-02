@@ -2444,28 +2444,9 @@ a, button, input, select, textarea {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Hero Scroll Cue ───────────────────────────────────────────────────── */
+/* ─── Hero Scroll Cue (Removed to eliminate overlapping content) ─── */
 .cust-hero-scroll-cue {
-  position: absolute;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  animation: fade-up-delay 1s ease 1.5s both;
-}
-.cust-hero-scroll-cue svg { animation: bounce-down 1.5s ease-in-out infinite; }
-@keyframes fade-up-delay {
-  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  display: none !important;
 }
 
 /* ─── Stats Strip ───────────────────────────────────────────────────────── */
@@ -2976,7 +2957,7 @@ a, button, input, select, textarea {
 .cust-hero-split {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
-  gap: 32px;
+  gap: 36px;
   align-items: center;
   max-width: 1280px;
   width: 100%;
@@ -2985,11 +2966,34 @@ a, button, input, select, textarea {
   z-index: 2;
 }
 
+.cust-hero-text-col {
+  text-align: left;
+}
+
+.cust-hero-btn-row,
+.cust-hero-trust-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 1024px) {
   .cust-hero-split {
     grid-template-columns: 1fr;
     gap: 28px;
     text-align: center;
+  }
+  .cust-hero-text-col {
+    text-align: center;
+  }
+  .cust-hero-text-col p {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  .cust-hero-btn-row,
+  .cust-hero-trust-row {
+    justify-content: center !important;
   }
 }
 
