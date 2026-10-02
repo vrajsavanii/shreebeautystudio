@@ -53,6 +53,8 @@ export default function PublicBookingPage() {
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
   const phone = data?.settings?.whatsapp || '98241 83769';
   const address = data?.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
+  const mapsUrl = data?.settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
+  const instaHandle = data?.settings?.instagramHandle || '@shreebeauty.studio';
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || [];
 
