@@ -196,7 +196,7 @@ export default function PublicHomePage() {
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-  const whatsapp = settings?.whatsapp || '919773240010';
+  const whatsapp = settings?.whatsapp || '919824183769';
   const openTime = settings?.open || '10:00';
   const closeTime = settings?.close || '19:00';
 
@@ -1070,8 +1070,8 @@ export default function PublicHomePage() {
                   Direct Inquiries &amp; WhatsApp
                 </strong>
                 <p style={{ margin: 0, fontSize: 14 }}>
-                  <a href="tel:+919773240010" style={{ color: '#05424A', fontWeight: 700, textDecoration: 'none' }}>
-                    +91 97732 40010
+                  <a href="tel:+919824183769" style={{ color: '#05424A', fontWeight: 700, textDecoration: 'none' }}>
+                    +91 98241 83769
                   </a>
                   <span style={{ color: '#94a3b8', margin: '0 6px' }}>·</span>
                   <a href="tel:+919824183769" style={{ color: '#05424A', fontWeight: 700, textDecoration: 'none' }}>

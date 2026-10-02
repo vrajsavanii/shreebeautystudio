@@ -88,7 +88,7 @@ function InvoiceViewerContent() {
             {error || 'The requested invoice reference could not be verified in our records.'}
           </p>
           <a
-            href="https://wa.me/919773240010"
+            href="https://wa.me/919824183769"
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -219,7 +219,7 @@ function InvoiceViewerContent() {
               Email: <b>shreebeauty.studio22@gmail.com</b>
             </div>
             <div style={{ fontSize: 12.5, color: '#000000', lineHeight: 1.4, fontWeight: 700, marginTop: 2 }}>
-              Phone / WhatsApp: +91 97732 40010, +91 98241 83769
+              Phone / WhatsApp: +91 98241 83769
             </div>
           </div>
 
@@ -345,7 +345,7 @@ function InvoiceViewerContent() {
         {/* WhatsApp & Contact Footer Bar */}
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <a
-            href="https://wa.me/919773240010"
+            href="https://wa.me/919824183769"
             target="_blank"
             rel="noopener noreferrer"
             style={{

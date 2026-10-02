@@ -843,7 +843,7 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               </Link>
 
               <a
-                href={`https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20am%20reading%20"${encodeURIComponent(
+                href={`https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20am%20reading%20"${encodeURIComponent(
                   post.title
                 )}"%20and%20want%20to%20consult%20about%20availability%20in%20Katargam,%20Surat.`}
                 target="_blank"
@@ -975,7 +975,7 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               <span>Book Appointment Online</span>
             </Link>
             <a
-              href="https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20read%20your%20blog%20post%20and%20would%20like%20to%20consult."
+              href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20read%20your%20blog%20post%20and%20would%20like%20to%20consult."
               target="_blank"
               rel="noopener noreferrer"
               style={{

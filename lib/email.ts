@@ -363,7 +363,7 @@ function baseLayout(content: string, previewText: string = ''): string {
           <a href="https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8" style="color: ${BRAND_COLORS.primary}; text-decoration: underline; font-weight: 700;">📍 Google Maps Location</a> &bull; 
           <a href="https://www.instagram.com/shreebeauty.studio/" style="color: ${BRAND_COLORS.primary}; text-decoration: underline; font-weight: 700;">📸 Instagram: @shreebeauty.studio</a>
         </p>
-        <p>For inquiries, Call / WhatsApp: <a href="https://wa.me/919773240010">+91 97732 40010</a> &bull; <a href="tel:+919824183769">+91 98241 83769</a></p>
+        <p>For inquiries, Call / WhatsApp: <a href="https://wa.me/919824183769">+91 98241 83769</a> &bull; <a href="tel:+919824183769">+91 98241 83769</a></p>
         <p style="margin-top: 12px; font-size: 11px; color: #94A3B8;">&copy; ${new Date().getFullYear()} Shree Beauty Studio. All rights reserved.</p>
       </div>
     </div>
@@ -429,7 +429,7 @@ export function renderAppointmentConfirmationHtml(props: AppointmentConfirmation
     </table>
 
     <div style="text-align: center; margin-top: 28px;">
-      <a href="https://wa.me/919773240010" class="btn">Chat on WhatsApp</a>
+      <a href="https://wa.me/919824183769" class="btn">Chat on WhatsApp</a>
     </div>
 
     <div style="background-color: #F8FAFC; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border-left: 3px solid ${BRAND_COLORS.primary};">
@@ -494,7 +494,7 @@ export function renderBookingPendingHtml(props: BookingPendingEmailProps): strin
     </div>
 
     <div style="text-align: center; margin-top: 20px;">
-      <a href="https://wa.me/919773240010" class="btn">Chat with Us on WhatsApp</a>
+      <a href="https://wa.me/919824183769" class="btn">Chat with Us on WhatsApp</a>
     </div>
 
     <p style="font-size: 12.5px; color: ${BRAND_COLORS.muted}; text-align: center; margin-top: 20px;">
@@ -563,7 +563,7 @@ export function renderAppointmentConfirmedHtml(props: AppointmentConfirmedEmailP
     </table>
 
     <div style="text-align: center; margin-top: 28px;">
-      <a href="https://wa.me/919773240010" class="btn">Chat on WhatsApp</a>
+      <a href="https://wa.me/919824183769" class="btn">Chat on WhatsApp</a>
     </div>
 
     <div style="background-color: #F8FAFC; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border-left: 3px solid ${BRAND_COLORS.primary};">
@@ -627,7 +627,7 @@ export function renderAppointmentReminderHtml(props: AppointmentReminderEmailPro
     </table>
 
     <div style="text-align: center; margin: 24px 0;">
-      <a href="https://wa.me/919773240010" class="btn">Confirm / Reschedule via WhatsApp</a>
+      <a href="https://wa.me/919824183769" class="btn">Confirm / Reschedule via WhatsApp</a>
     </div>
 
     <p style="font-size: 13px; color: ${BRAND_COLORS.muted}; text-align: center;">
@@ -693,7 +693,7 @@ export function renderMilestoneWishHtml(props: MilestoneWishEmailProps): string 
     </div>
 
     <div style="text-align: center;">
-      <a href="https://wa.me/919773240010" class="btn">Claim &amp; Book Pampering Session</a>
+      <a href="https://wa.me/919824183769" class="btn">Claim &amp; Book Pampering Session</a>
     </div>
 
     <p style="font-size: 13px; color: ${BRAND_COLORS.muted}; text-align: center; margin-top: 24px;">
@@ -767,7 +767,7 @@ export function renderInvoiceReceiptHtml(props: InvoiceReceiptEmailProps): strin
     </table>
 
     <div style="text-align: center; margin-top: 24px;">
-      <a href="https://wa.me/919773240010" class="btn">Book Your Next Session</a>
+      <a href="https://wa.me/919824183769" class="btn">Book Your Next Session</a>
     </div>
 
     <p style="font-size: 12px; color: ${BRAND_COLORS.muted}; text-align: center; margin-top: 16px;">
@@ -891,7 +891,7 @@ export function renderWelcomeCustomerHtml(props: WelcomeCustomerEmailProps): str
       <tr>
         <td class="label">📞 Studio Contacts</td>
         <td class="val" style="font-size: 13px;">
-          +91 97732 40010 &bull; +91 98241 83769
+          +91 98241 83769 &bull; +91 98241 83769
         </td>
       </tr>
     </table>
@@ -903,7 +903,7 @@ export function renderWelcomeCustomerHtml(props: WelcomeCustomerEmailProps): str
 
     <div style="background-color: #F8FAFC; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border-left: 3px solid ${BRAND_COLORS.primary};">
       <p style="margin: 0; font-size: 12.5px; color: ${BRAND_COLORS.muted}; line-height: 1.5;">
-        Need styling assistance or want to book a bridal consultation? You can also message us directly on WhatsApp at <strong>+91 97732 40010</strong> or <strong>+91 98241 83769</strong>.
+        Need styling assistance or want to book a bridal consultation? You can also message us directly on WhatsApp at <strong>+91 98241 83769</strong> or <strong>+91 98241 83769</strong>.
       </p>
     </div>
   `;

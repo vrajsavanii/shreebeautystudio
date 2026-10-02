@@ -1170,7 +1170,7 @@ function BillingContent() {
               Email: shreebeauty.studio22@gmail.com
             </div>
             <div style={{ fontSize: 11, color: '#4b5563', lineHeight: 1.4 }}>
-              Phone / WhatsApp: {data?.settings?.whatsapp ? `${data.settings.whatsapp}, ${data.settings?.phone2 || '9824183769'}` : '9773240010, 9824183769'}
+              Phone / WhatsApp: {data?.settings?.whatsapp ? `${data.settings.whatsapp}, ${data.settings?.phone2 || '9824183769'}` : '98241 83769'}
             </div>
           </div>
 
@@ -3756,7 +3756,7 @@ function BillingContent() {
         isOpen={qrModalOpen}
         onClose={() => setQrModalOpen(false)}
         studioName={data?.settings?.salon || 'Shree Beauty Studio'}
-        studioMobile={data?.settings?.whatsapp || '919773240010'}
+        studioMobile={data?.settings?.whatsapp || '919824183769'}
         customerMobile={mobile}
         customerName={customer}
       />

@@ -87,7 +87,7 @@ export default function InvoiceReceiptModal({
     '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const salonPhone = salonData?.settings?.whatsapp
     ? `${salonData.settings.whatsapp}, ${salonData.settings?.phone2 || '9824183769'}`
-    : '919773240010, 9824183769';
+    : '9198241 83769';
   const salonEmail = 'shreebeauty.studio22@gmail.com';
 
   const invNo = invoice.no.replace(/^INV-/, '');
@@ -140,7 +140,7 @@ ${linesList || '• Salon Service'}
 ────────────────────────────
 
 📍 ${salonAddress}
-📞 +91 97732 40010 / +91 98241 83769
+📞 +91 98241 83769
 Have a wonderful day! 🙏✨`;
   };
 

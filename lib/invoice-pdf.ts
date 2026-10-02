@@ -53,7 +53,7 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
   const salonEmail = 'shreebeauty.studio22@gmail.com';
   const salonPhone = salonData?.settings?.whatsapp
     ? `${salonData.settings.whatsapp}, ${salonData.settings?.phone2 || '9824183769'}`
-    : '919773240010, 9824183769';
+    : '9198241 83769';
 
   const invNo = inv.no.replace(/^INV-/, '');
   const invDate = formatIndianDate(inv.date);
@@ -519,7 +519,7 @@ Thank you for visiting ${salon}! 💖
 💰 *Total Amount:* ₹${totalAmt.toLocaleString('en-IN')}
 ${balanceDue > 0 ? `⚠️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN')}\n` : '✅ *Payment Status:* Paid in Full\n'}
 📍 *Studio:* ${salonAddress}
-📞 *Contact:* +91 97732 40010
+📞 *Contact:* +91 98241 83769
 Have a wonderful day! 🙏✨`;
 }
 
@@ -576,7 +576,7 @@ ${balanceDue > 0 ? `⚠️ *Balance Due:* ₹${balanceDue.toLocaleString('en-IN'
 👉 ${publicPdfUrl}
 
 📍 *Location:* ${salonAddress}
-📞 *Contact:* +91 97732 40010
+📞 *Contact:* +91 98241 83769
 Have a wonderful day! 🙏✨`;
 }
 

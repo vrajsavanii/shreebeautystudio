@@ -1278,7 +1278,7 @@ export default function ProfileClient() {
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <a
-                            href={`https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio%2C%20regarding%20my%20appointment%20on%20${encodeURIComponent(
+                            href={`https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio%2C%20regarding%20my%20appointment%20on%20${encodeURIComponent(
                               apt.date || ''
                             )}`}
                             target="_blank"

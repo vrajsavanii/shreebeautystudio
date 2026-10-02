@@ -21,7 +21,7 @@ export default function CustomerFooter() {
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-  const whatsapp = settings?.whatsapp || '919773240010';
+  const whatsapp = settings?.whatsapp || '919824183769';
   const phone2 = settings?.phone2 || '9824183769';
   const openTime = settings?.open || '10:00';
   const closeTime = settings?.close || '19:00';
@@ -115,7 +115,7 @@ export default function CustomerFooter() {
               WhatsApp Us
             </a>
             <a
-              href="tel:+919773240010"
+              href="tel:+919824183769"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -130,7 +130,7 @@ export default function CustomerFooter() {
               }}
             >
               <Phone size={13} />
-              +91 97732 40010
+              +91 98241 83769
             </a>
             <a
               href={`tel:+91${phone2.replace(/\D/g, '').slice(-10)}`}
@@ -267,8 +267,8 @@ export default function CustomerFooter() {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
               <Phone size={16} color="#EABA38" style={{ flexShrink: 0, marginTop: 2 }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <a href="tel:+919773240010" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
-                  +91 97732 40010
+                <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+                  +91 98241 83769
                 </a>
                 <a href={`tel:+91${phone2.replace(/\D/g, '').slice(-10)}`} style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
                   +91 98241 83769

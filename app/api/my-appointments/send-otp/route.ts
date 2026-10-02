@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const { otp, expiresAt } = generateAndStoreOtp(clean);
 
     // Formatted message in English
-    const message = `🌸 *Shree Beauty Studio | Security OTP*\n\nYour security verification code to access your appointment & booking history is:\n\n🔢 *${otp}*\n\n_(This code is valid for 5 minutes. Please do not share it with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 97732 40010\n🌐 https://shreebeauty.studio`;
+    const message = `🌸 *Shree Beauty Studio | Security OTP*\n\nYour security verification code to access your appointment & booking history is:\n\n🔢 *${otp}*\n\n_(This code is valid for 5 minutes. Please do not share it with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 98241 83769\n🌐 https://shreebeauty.studio`;
 
     // Attempt to send via WhatsApp Cloud API
     let sentViaWhatsApp = false;

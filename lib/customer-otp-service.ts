@@ -30,7 +30,7 @@ export async function dispatchCustomerOtp({
   if (type === 'mobile') {
     const cleanMobile = target.replace(/\D/g, '').slice(-10);
 
-    const message = `🌸 *Shree Beauty Studio | ${actionLabel}*\n\n${name ? `Hello ${name},\n` : ''}Your security verification code for *${actionLabel}* is:\n\n🔢 *${code}*\n\n_(This code is valid for 10 minutes. For security, please do not share this code with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 97732 40010\n🌐 https://shreebeauty.studio`;
+    const message = `🌸 *Shree Beauty Studio | ${actionLabel}*\n\n${name ? `Hello ${name},\n` : ''}Your security verification code for *${actionLabel}* is:\n\n🔢 *${code}*\n\n_(This code is valid for 10 minutes. For security, please do not share this code with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 98241 83769\n🌐 https://shreebeauty.studio`;
 
     let sentViaWhatsApp = false;
     const fallbackUrl = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(message)}`;
@@ -116,7 +116,7 @@ export async function dispatchCustomerOtp({
             <tr>
               <td style="background-color: #fafaf9; padding: 20px 24px; text-align: center; border-top: 1px solid #f1f5f9; font-size: 12px; color: #64748b;">
                 <p style="margin: 0;">Shree Beauty Studio · 2nd Floor, Raghuvir Complex, Katargam, Surat</p>
-                <p style="margin: 4px 0 0;">Helpline: +91 97732 40010 · <a href="https://shreebeauty.studio" style="color: #05424A; text-decoration: none; font-weight: 600;">shreebeauty.studio</a></p>
+                <p style="margin: 4px 0 0;">Helpline: +91 98241 83769 · <a href="https://shreebeauty.studio" style="color: #05424A; text-decoration: none; font-weight: 600;">shreebeauty.studio</a></p>
               </td>
             </tr>
           </table>

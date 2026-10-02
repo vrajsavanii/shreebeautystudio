@@ -80,8 +80,8 @@ export default function EmailCampaignModal({
             </a>
           </div>
           <div style="margin-top: 14px;">
-            <a href="https://wa.me/919773240010?text=Hi%20Shree%20Beauty%20Studio!%20I%20received%20your%20offer%20email." style="display: inline-block; color: #05424A; font-size: 12.5px; font-weight: 600; text-decoration: underline;">
-              Or chat with us on WhatsApp (+91 97732 40010)
+            <a href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20received%20your%20offer%20email." style="display: inline-block; color: #05424A; font-size: 12.5px; font-weight: 600; text-decoration: underline;">
+              Or chat with us on WhatsApp (+91 98241 83769)
             </a>
           </div>
         </div>

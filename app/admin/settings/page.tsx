@@ -26,7 +26,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const s = data?.settings || {
     salon: 'Shree Beauty Studio',
-    whatsapp: '919773240010',
+    whatsapp: '919824183769',
     open: '10:00',
     close: '19:00',
     address: '',
@@ -108,7 +108,7 @@ export default function SettingsPage() {
       if (json.connected) {
         setStatusResult({
           connected: true,
-          msg: `🟢 Live & Verified! Business: "${json.verifiedName || 'Shree Beauty Studio'}", Number: ${json.displayPhoneNumber || '+91 97732 40010'}, Quality: ${json.qualityRating || 'GREEN'}`
+          msg: `🟢 Live & Verified! Business: "${json.verifiedName || 'Shree Beauty Studio'}", Number: ${json.displayPhoneNumber || '+91 98241 83769'}, Quality: ${json.qualityRating || 'GREEN'}`
         });
         toast('🟢 Meta WhatsApp Cloud API is connected and verified!', 'success');
       } else {
@@ -469,7 +469,7 @@ export default function SettingsPage() {
                 <input
                   type="tel" className="input" value={s.whatsapp}
                   onChange={(e) => update('whatsapp', e.target.value)}
-                  placeholder="919773240010"
+                  placeholder="919824183769"
                 />
               </div>
               <div className="form-group">
@@ -974,7 +974,7 @@ export default function SettingsPage() {
                     <input
                       type="tel"
                       className="input"
-                      placeholder="Enter 10-digit mobile (e.g. 9773240010)"
+                      placeholder="Enter 10-digit mobile (e.g. 98241 83769)"
                       value={testWaMobile}
                       onChange={(e) => setTestWaMobile(e.target.value)}
                       style={{ maxWidth: 280 }}

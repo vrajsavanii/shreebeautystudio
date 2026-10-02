@@ -33,7 +33,7 @@ export default function ReceptionDeskQRModal({
   isOpen,
   onClose,
   studioName = 'Shree Beauty Studio',
-  studioMobile = '919773240010',
+  studioMobile = '919824183769',
   customerMobile,
   customerName,
   onActivated,
@@ -44,7 +44,7 @@ export default function ReceptionDeskQRModal({
 
   if (!isOpen) return null;
 
-  const cleanStudio = studioMobile.replace(/\D/g, '').slice(-10) || '9773240010';
+  const cleanStudio = studioMobile.replace(/\D/g, '').slice(-10) || '98241 83769';
   const waUrl = getReceptionWhatsAppUrl(cleanStudio, 'Hi');
   const qrUrl = getReceptionWhatsAppQrUrl(cleanStudio, 'Hi', 360);
 

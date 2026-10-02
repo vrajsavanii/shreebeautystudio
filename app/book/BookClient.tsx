@@ -51,7 +51,7 @@ export default function PublicBookingPage() {
   const { data, updateData } = useSalonStore();
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
-  const phone = data?.settings?.whatsapp || '9773240010';
+  const phone = data?.settings?.whatsapp || '98241 83769';
   const address = data?.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || [];
@@ -711,8 +711,8 @@ export default function PublicBookingPage() {
                   : '';
 
                 const fullPassText = confirmedBridal
-                  ? `👑 *BRIDAL BOOKING PASS — ${salon.toUpperCase()}* 👑\n────────────────────────────\nDear ${confirmedBridal.name},\nYour bridal booking request has been received! ✨\n\n💄 *Package:* ${confirmedBridal.packageName || 'Bridal Glam'}\n📅 *Wedding Date:* ${fmtDate(confirmedBridal.weddingDate || confirmedBridal.date)}\n📍 *Venue:* ${confirmedBridal.venue || address}\n💵 *Estimated Package:* ₹${confirmedBridal.package || confirmedBridal.totalAmount || 0}\n────────────────────────────\n📍 *Studio Address:*\n${address}\n📍 *Google Map:* https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\n📸 *Instagram:* @shreebeauty.studio\n📞 *WhatsApp Support:* +91 97732 40010 / +91 98241 83769\n\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 💖`
-                  : `💅 *APPOINTMENT BOOKING PASS — ${salon.toUpperCase()}* 💅\n────────────────────────────\nDear ${confirmedAppt?.customer},\nYour appointment booking request has been received! ✨\n\n💄 *Service:* ${confirmedAppt?.service}\n📅 *Date:* ${fmtDate(confirmedAppt?.date || todayISO())}\n⏰ *Time:* ${confirmedAppt?.time || 'Selected Slot'}\n${confirmedAppt?.price ? `💵 *Estimated Price:* ₹${confirmedAppt.price}\n` : ''}📍 *Studio Address:*\n${address}\n📍 *Google Map:* https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\n📸 *Instagram:* @shreebeauty.studio\n📞 *Studio Contact:* +91 97732 40010 / +91 98241 83769\n────────────────────────────\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 🙏✨`;
+                  ? `👑 *BRIDAL BOOKING PASS — ${salon.toUpperCase()}* 👑\n────────────────────────────\nDear ${confirmedBridal.name},\nYour bridal booking request has been received! ✨\n\n💄 *Package:* ${confirmedBridal.packageName || 'Bridal Glam'}\n📅 *Wedding Date:* ${fmtDate(confirmedBridal.weddingDate || confirmedBridal.date)}\n📍 *Venue:* ${confirmedBridal.venue || address}\n💵 *Estimated Package:* ₹${confirmedBridal.package || confirmedBridal.totalAmount || 0}\n────────────────────────────\n📍 *Studio Address:*\n${address}\n📍 *Google Map:* https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\n📸 *Instagram:* @shreebeauty.studio\n📞 *WhatsApp Support:* +91 98241 83769\n\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 💖`
+                  : `💅 *APPOINTMENT BOOKING PASS — ${salon.toUpperCase()}* 💅\n────────────────────────────\nDear ${confirmedAppt?.customer},\nYour appointment booking request has been received! ✨\n\n💄 *Service:* ${confirmedAppt?.service}\n📅 *Date:* ${fmtDate(confirmedAppt?.date || todayISO())}\n⏰ *Time:* ${confirmedAppt?.time || 'Selected Slot'}\n${confirmedAppt?.price ? `💵 *Estimated Price:* ₹${confirmedAppt.price}\n` : ''}📍 *Studio Address:*\n${address}\n📍 *Google Map:* https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8\n📸 *Instagram:* @shreebeauty.studio\n📞 *Studio Contact:* +91 98241 83769\n────────────────────────────\n${gcalUrl ? `📅 *Google Calendar Reminder:*\n${gcalUrl}\n\n` : ''}Thank you for choosing ${salon}! 🙏✨`;
 
                 const salonGreeting = `Hello ${salon}! I have submitted an online appointment request for ${
                   confirmedAppt?.service || confirmedBridal?.packageName

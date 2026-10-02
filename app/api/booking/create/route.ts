@@ -228,7 +228,7 @@ Thank you for booking with us! Your appointment is pending confirmation.
 📍 Location: ${data.settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat'}
 📍 Google Map: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8
 
-For queries, reply here or call +91 97732 40010.
+For queries, reply here or call +91 98241 83769.
 Thank you for choosing ${data.settings?.salon || 'Shree Beauty Studio'}! 💖`,
         }),
       }).catch(() => {});

@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         const linesText = (p?.lines || [])
           .map((l: any) => `• ${l.name} (${l.qty || 1}x) - ₹${l.price * (l.qty || 1)}`)
           .join('\n');
-        plainTextSummary = `🧾 INVOICE — ${p?.salonName || 'Shree Beauty Studio'}\nDear ${p?.customerName || 'Customer'},\n\nInvoice No: ${p?.invoiceNo || 'INV-001'}\nDate: ${p?.date || ''}\nPayment: ${p?.mode || 'GPay UPI'}\n\n${linesText || '• Salon Services'}\n\nTotal: ₹${p?.total || 0}\n\n📍 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat\n📞 +91 97732 40010\nThank you! ✨`;
+        plainTextSummary = `🧾 INVOICE — ${p?.salonName || 'Shree Beauty Studio'}\nDear ${p?.customerName || 'Customer'},\n\nInvoice No: ${p?.invoiceNo || 'INV-001'}\nDate: ${p?.date || ''}\nPayment: ${p?.mode || 'GPay UPI'}\n\n${linesText || '• Salon Services'}\n\nTotal: ₹${p?.total || 0}\n\n📍 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat\n📞 +91 98241 83769\nThank you! ✨`;
         break;
       }
 

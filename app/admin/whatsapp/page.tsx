@@ -117,7 +117,7 @@ export default function WhatsAppHubPage() {
   const [qrRefreshTimer, setQrRefreshTimer] = useState<number>(60);
   const [qrKey, setQrKey] = useState<number>(1);
   const [phoneLinkModal, setPhoneLinkModal] = useState<boolean>(false);
-  const [phoneInput, setPhoneInput] = useState<string>('9773240010');
+  const [phoneInput, setPhoneInput] = useState<string>('98241 83769');
   const [pairingCode, setPairingCode] = useState<string>('');
   const [tutorialModal, setTutorialModal] = useState<boolean>(false);
 
@@ -135,7 +135,7 @@ export default function WhatsAppHubPage() {
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
   const address = data?.settings?.address || 'Surat, Gujarat';
-  const salonPhone = data?.settings?.whatsapp || '919773240010';
+  const salonPhone = data?.settings?.whatsapp || '919824183769';
 
   const customers = data?.customers || [];
   const appointments = data?.appointments || [];
@@ -427,7 +427,7 @@ export default function WhatsAppHubPage() {
 
     if (selectedTemplate === 'payment') {
       const due = Number(templateContext.due.replace(/[^0-9]/g, '')) || 1200;
-      return paymentReminderMessage(clientName, due, salon, '9773240010@okaxis');
+      return paymentReminderMessage(clientName, due, salon, '98241 83769@okaxis');
     }
 
     if (selectedTemplate === 'loyalty') {
@@ -3033,7 +3033,7 @@ export default function WhatsAppHubPage() {
               <input
                 type="tel"
                 className="input"
-                placeholder="e.g. 9773240010"
+                placeholder="e.g. 98241 83769"
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}
               />

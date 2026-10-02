@@ -114,7 +114,7 @@ export default function BlogPostPage({ params }: Props) {
     publisher: {
       '@type': 'BeautySalon',
       name: 'Shree Beauty Studio',
-      telephone: ['+91-97732-40010', '+91-98241-83769'],
+      telephone: ['+91-98241-83769'],
       address: {
         '@type': 'PostalAddress',
         streetAddress: '22, Radhika Society, Opp. Cancer Hospital',
@@ -137,7 +137,7 @@ export default function BlogPostPage({ params }: Props) {
       '@type': 'BeautySalon',
       name: 'Shree Beauty Studio',
       description: 'Exclusive ladies-only luxury beauty salon and bridal makeup studio in Katargam, Surat, Gujarat.',
-      telephone: ['+91-97732-40010', '+91-98241-83769'],
+      telephone: ['+91-98241-83769'],
       address: {
         '@type': 'PostalAddress',
         streetAddress: '22, Radhika Society, Opp. Cancer Hospital',

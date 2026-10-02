@@ -1422,7 +1422,7 @@ export default function FinanceAccountingPage() {
       return;
     }
     const salonName = data.settings?.salon || 'Shree Beauty Studio';
-    const text = `✨ *${salonName.toUpperCase()} — Balance Reminder* ✨\n\nDear ${name},\nThis is a gentle reminder regarding your outstanding balance of *${money(balance)}* with ${salonName}.\n\nKindly clear the payment at your earliest convenience. Thank you! 🙏\n📞 ${data.settings?.whatsapp || '9773240010'}`;
+    const text = `✨ *${salonName.toUpperCase()} — Balance Reminder* ✨\n\nDear ${name},\nThis is a gentle reminder regarding your outstanding balance of *${money(balance)}* with ${salonName}.\n\nKindly clear the payment at your earliest convenience. Thank you! 🙏\n📞 ${data.settings?.whatsapp || '98241 83769'}`;
     window.open(`https://wa.me/91${cleanMobile}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -2707,7 +2707,7 @@ export default function FinanceAccountingPage() {
                                   onClick={() => {
                                     const cleanMobile = item.mobile.replace(/\D/g, '').slice(-10);
                                     const salon = data.settings?.salon || 'Shree Beauty Studio';
-                                    const text = `✨ *${salon.toUpperCase()} — Advance Booking Receipt* ✨\n\nNamaste *${item.customer}*,\nThank you for booking with us! We have received your advance payment of *${money(item.advance)}* for *${item.service}* (${fmtDate(item.date)}).\n\nTotal: ${money(item.totalPrice)}\nAdvance Paid: ${money(item.advance)}\nRemaining Balance: ${money(item.balance)}\n\nSee you soon! 🌸\n📞 ${data.settings?.whatsapp || '9773240010'}`;
+                                    const text = `✨ *${salon.toUpperCase()} — Advance Booking Receipt* ✨\n\nNamaste *${item.customer}*,\nThank you for booking with us! We have received your advance payment of *${money(item.advance)}* for *${item.service}* (${fmtDate(item.date)}).\n\nTotal: ${money(item.totalPrice)}\nAdvance Paid: ${money(item.advance)}\nRemaining Balance: ${money(item.balance)}\n\nSee you soon! 🌸\n📞 ${data.settings?.whatsapp || '98241 83769'}`;
                                     window.open(`https://wa.me/91${cleanMobile}?text=${encodeURIComponent(text)}`, '_blank');
                                   }}
                                   title="Send WhatsApp Advance Receipt"

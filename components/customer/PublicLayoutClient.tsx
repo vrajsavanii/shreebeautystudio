@@ -15,12 +15,12 @@ const WHATSAPP_SVG = () => (
 const BANNER_MESSAGES = [
   '✨ Book early — bridal & festive slots are filling fast this season!',
   '💛 Free hair consultation with every Keratin or Nanoplastia treatment.',
-  '🌟 Open 7 days · 10 AM – 7 PM · Katargam, Surat · Call +91 97732 40010 / +91 98241 83769',
+  '🌟 Open 7 days · 10 AM – 7 PM · Katargam, Surat · Call +91 98241 83769',
 ];
 
 export default function PublicLayoutClient({ children }: { children: React.ReactNode }) {
   const { data, updateData } = useSalonStore();
-  const whatsapp = data?.settings?.whatsapp || '919773240010';
+  const whatsapp = data?.settings?.whatsapp || '919824183769';
   const [bannerVisible, setBannerVisible] = useState(true);
   const [bannerIdx, setBannerIdx] = useState(0);
   const [waHover, setWaHover] = useState(false);

@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       address:
         salonData.settings?.address ||
         '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004',
-      whatsapp: salonData.settings?.whatsapp || '919773240010',
+      whatsapp: salonData.settings?.whatsapp || '919824183769',
       open: salonData.settings?.open || '10:00 AM',
       close: salonData.settings?.close || '08:00 PM',
       printer: salonData.settings?.printer || 'both',

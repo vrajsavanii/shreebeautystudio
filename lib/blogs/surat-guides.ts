@@ -115,7 +115,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
 ### Studio Highlights for Visiting Clients:
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Timings:** Monday to Sunday: 10:00 AM – 7:00 PM (Prior Appointment Recommended)
-- **Direct Phone / WhatsApp:** [+91 97732 40010](tel:+919773240010)
+- **Direct Phone / WhatsApp:** [+91 98241 83769](tel:+919824183769)
 - **Sanctuary Guarantee:** 100% Exclusive Ladies-Only Environment • Certified Female Technicians • Private Treatment Cabins
     `,
     faq: [
@@ -133,7 +133,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
           },
           {
                 "question": "How far in advance should I book an appointment at Shree Beauty Studio in Surat?",
-                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 97732 40010."
+                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 98241 83769."
           },
           {
                 "question": "Why is Shree Beauty Studio preferred by women across Katargam, Adajan, and Varachha?",
@@ -259,7 +259,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
 ### Studio Highlights for Visiting Clients:
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Timings:** Monday to Sunday: 10:00 AM – 7:00 PM (Prior Appointment Recommended)
-- **Direct Phone / WhatsApp:** [+91 97732 40010](tel:+919773240010)
+- **Direct Phone / WhatsApp:** [+91 98241 83769](tel:+919824183769)
 - **Sanctuary Guarantee:** 100% Exclusive Ladies-Only Environment • Certified Female Technicians • Private Treatment Cabins
     `,
     faq: [
@@ -277,7 +277,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
           },
           {
                 "question": "How far in advance should I book an appointment at Shree Beauty Studio in Surat?",
-                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 97732 40010."
+                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 98241 83769."
           },
           {
                 "question": "Why is Shree Beauty Studio preferred by women across Katargam, Adajan, and Varachha?",
@@ -328,7 +328,7 @@ Follow this battle-tested checklist created by the bridal coordinators at **Shre
 
 ### Stage 1: 3 to 6 Months Before (Date Reservation)
 - Finalize your wedding, reception, and haldi timings with your family and astrologer.
-- Contact **Shree Beauty Studio** via WhatsApp (+91 97732 40010) or our online portal to check slot availability.
+- Contact **Shree Beauty Studio** via WhatsApp (+91 98241 83769) or our online portal to check slot availability.
 - Pay your booking deposit to legally lock in your morning or evening date.
 
 ### Stage 2: 2 Months Before (The Style Consultation)
@@ -413,7 +413,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
 ### Studio Highlights for Visiting Clients:
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Timings:** Monday to Sunday: 10:00 AM – 7:00 PM (Prior Appointment Recommended)
-- **Direct Phone / WhatsApp:** [+91 97732 40010](tel:+919773240010)
+- **Direct Phone / WhatsApp:** [+91 98241 83769](tel:+919824183769)
 - **Sanctuary Guarantee:** 100% Exclusive Ladies-Only Environment • Certified Female Technicians • Private Treatment Cabins
     `,
     faq: [
@@ -431,7 +431,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
           },
           {
                 "question": "How far in advance should I book an appointment at Shree Beauty Studio in Surat?",
-                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 97732 40010."
+                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 98241 83769."
           },
           {
                 "question": "Why is Shree Beauty Studio preferred by women across Katargam, Adajan, and Varachha?",
@@ -561,7 +561,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
 ### Studio Highlights for Visiting Clients:
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Timings:** Monday to Sunday: 10:00 AM – 7:00 PM (Prior Appointment Recommended)
-- **Direct Phone / WhatsApp:** [+91 97732 40010](tel:+919773240010)
+- **Direct Phone / WhatsApp:** [+91 98241 83769](tel:+919824183769)
 - **Sanctuary Guarantee:** 100% Exclusive Ladies-Only Environment • Certified Female Technicians • Private Treatment Cabins
     `,
     faq: [
@@ -579,7 +579,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
           },
           {
                 "question": "How far in advance should I book an appointment at Shree Beauty Studio in Surat?",
-                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 97732 40010."
+                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 98241 83769."
           },
           {
                 "question": "Why is Shree Beauty Studio preferred by women across Katargam, Adajan, and Varachha?",
@@ -637,7 +637,7 @@ At **Shree Beauty Studio** in Katargam, Surat, we have welcomed thousands of cli
 ## Convenient Location & Contact
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Operating Hours:** Open 7 Days a Week from 10:00 AM to 7:00 PM
-- **Contact:** WhatsApp / Phone: +91 97732 40010
+- **Contact:** WhatsApp / Phone: +91 98241 83769
 
 ---
 
@@ -708,7 +708,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
 ### Studio Highlights for Visiting Clients:
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Timings:** Monday to Sunday: 10:00 AM – 7:00 PM (Prior Appointment Recommended)
-- **Direct Phone / WhatsApp:** [+91 97732 40010](tel:+919773240010)
+- **Direct Phone / WhatsApp:** [+91 98241 83769](tel:+919824183769)
 - **Sanctuary Guarantee:** 100% Exclusive Ladies-Only Environment • Certified Female Technicians • Private Treatment Cabins
     `,
     faq: [
@@ -726,7 +726,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
           },
           {
                 "question": "How far in advance should I book an appointment at Shree Beauty Studio in Surat?",
-                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 97732 40010."
+                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 98241 83769."
           },
           {
                 "question": "Why is Shree Beauty Studio preferred by women across Katargam, Adajan, and Varachha?",
@@ -859,7 +859,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
 ### Studio Highlights for Visiting Clients:
 - **Address:** 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004
 - **Timings:** Monday to Sunday: 10:00 AM – 7:00 PM (Prior Appointment Recommended)
-- **Direct Phone / WhatsApp:** [+91 97732 40010](tel:+919773240010)
+- **Direct Phone / WhatsApp:** [+91 98241 83769](tel:+919824183769)
 - **Sanctuary Guarantee:** 100% Exclusive Ladies-Only Environment • Certified Female Technicians • Private Treatment Cabins
     `,
     faq: [
@@ -877,7 +877,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
           },
           {
                 "question": "How far in advance should I book an appointment at Shree Beauty Studio in Surat?",
-                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 97732 40010."
+                "answer": "For routine salon services like facials, hair spa, or waxing, booking 24 to 48 hours in advance ensures your preferred time slot. For bridal packages, hair botox, or festive season appointments (Navratri and wedding muhurats), we recommend reserving 2 to 4 weeks early via WhatsApp at +91 98241 83769."
           },
           {
                 "question": "Why is Shree Beauty Studio preferred by women across Katargam, Adajan, and Varachha?",

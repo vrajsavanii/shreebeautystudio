@@ -188,7 +188,7 @@ export function getAppointmentGoogleCalendarUrl(
     `📍 Studio Address: ${address}`,
     `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
     `📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`,
-    `📞 Contact: +91 97732 40010`,
+    `📞 Contact: +91 98241 83769`,
   ].filter(Boolean).join('\n');
 
   const params = new URLSearchParams({
@@ -266,7 +266,7 @@ export function getBridalGoogleCalendarUrl(
     b.notes ? `📝 Special Notes: ${b.notes}` : '',
     `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
     `📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`,
-    `📞 Studio Contact: +91 97732 40010`,
+    `📞 Studio Contact: +91 98241 83769`,
   ].filter(Boolean).join('\n');
 
   const params = new URLSearchParams({
@@ -357,7 +357,7 @@ export function getBridalFunctionGoogleCalendarUrl(
     b.notes ? `📝 Special Notes: ${b.notes}` : '',
     `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
     `📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`,
-    `📞 Studio Contact: +91 97732 40010`,
+    `📞 Studio Contact: +91 98241 83769`,
   ].filter(Boolean).join('\n');
 
   const params = new URLSearchParams({
@@ -497,7 +497,7 @@ END:VEVENT`);
           `Venue: ${venueLoc}`,
           `Studio Address: ${address}`,
           `Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
-          `Contact: +91 97732 40010`,
+          `Contact: +91 98241 83769`,
         ].filter(Boolean).join('\\n');
 
         events.push(`BEGIN:VEVENT

@@ -79,15 +79,15 @@ export function isCustomerIn24HourWindow(
 /**
  * Get standard Reception Desk WhatsApp link that sends 'Hi' to activate the 24h window.
  */
-export function getReceptionWhatsAppUrl(studioMobile = '919773240010', text = 'Hi'): string {
+export function getReceptionWhatsAppUrl(studioMobile = '919824183769', text = 'Hi'): string {
   const clean = studioMobile.replace(/\D/g, '').slice(-10);
-  return `https://wa.me/91${clean || '9773240010'}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/91${clean || '98241 83769'}?text=${encodeURIComponent(text)}`;
 }
 
 /**
  * Get crisp QR Code image URL for the Reception Desk counter.
  */
-export function getReceptionWhatsAppQrUrl(studioMobile = '919773240010', text = 'Hi', size = 300): string {
+export function getReceptionWhatsAppQrUrl(studioMobile = '919824183769', text = 'Hi', size = 300): string {
   const waUrl = getReceptionWhatsAppUrl(studioMobile, text);
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(waUrl)}&margin=10`;
 }
@@ -98,7 +98,7 @@ export function getReceptionWhatsAppQrUrl(studioMobile = '919773240010', text = 
  */
 export function getWhatsAppUrl(mobile: string, message?: string): string {
   const num = (mobile || '').replace(/\D/g, '').slice(-10);
-  if (!num) return 'https://wa.me/919773240010';
+  if (!num) return 'https://wa.me/919824183769';
   const text = message ? encodeURIComponent(message) : '';
   return `https://wa.me/91${num}${text ? `?text=${text}` : ''}`;
 }
@@ -129,7 +129,7 @@ export async function sendDirectWhatsAppMessage(
   const clickToChatUrl = getWhatsAppUrl(num, message);
 
   // Avoid Meta API error 100 if testing with the studio's own registered phone number
-  if (num === '9773240010') {
+  if (num === '98241 83769') {
     return { success: true, method: 'self_skipped', message: 'Studio business number acknowledged.', clickToChatUrl };
   }
 

@@ -270,8 +270,8 @@ export async function POST(request: Request) {
       }
 
       // Also alert salon studio owner phone (if separate staff/owner number configured)
-      const salonPhone = (updatedData.settings?.whatsapp || '9773240010').replace(/\D/g, '').slice(-10);
-      if (salonPhone && salonPhone !== mobile && salonPhone !== '9773240010') {
+      const salonPhone = (updatedData.settings?.whatsapp || '98241 83769').replace(/\D/g, '').slice(-10);
+      if (salonPhone && salonPhone !== mobile && salonPhone !== '98241 83769') {
         const staffAlert = appointmentStaffMessage(newAppointment, salon);
         sendDirectWhatsAppMessage(salonPhone, staffAlert, updatedData.settings).catch(() => {});
       }

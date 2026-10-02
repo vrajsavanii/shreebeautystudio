@@ -54,7 +54,7 @@ export const DEFAULT_USERS: UserAccount[] = [
 export const DEFAULT_DATA: SalonData = {
   settings: {
     salon: 'Shree Beauty Studio',
-    whatsapp: '919773240010',
+    whatsapp: '919824183769',
     phone2: '9824183769',
     open: '10:00',
     close: '19:00',
@@ -216,7 +216,7 @@ export const DEFAULT_DATA: SalonData = {
     {
       id: 'staff_amita',
       name: 'Amita',
-      mobile: '9773240010',
+      mobile: '98241 83769',
       role: 'Owner & Beautician',
       services: 'Skin Care & Facials, Hair Care & Styling, Bridal & Makeup',
       serviceCommission: 0,
@@ -225,7 +225,7 @@ export const DEFAULT_DATA: SalonData = {
     {
       id: 'staff_bhavna',
       name: 'Bhavna',
-      mobile: '9773240010',
+      mobile: '98241 83769',
       role: 'Senior Beautician',
       services: 'Hair Care & Styling, Waxing & Threading, Hands, Feet & Nails',
       serviceCommission: 0,
@@ -247,7 +247,7 @@ export const DEFAULT_DATA: SalonData = {
     {
       id: 'mtr4b290502ji',
       name: 'Pooja Varma',
-      mobile: '9773240010',
+      mobile: '98241 83769',
       lastVisit: '2026-11-20',
       anniversary: '2026-11-20',
       totalVisits: 2,
