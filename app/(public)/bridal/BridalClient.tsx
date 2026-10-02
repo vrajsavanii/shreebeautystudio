@@ -492,69 +492,6 @@ export default function BridalClient() {
         )}
       </section>
 
-      {/* 3. PRE-BRIDAL SKINCARE & GLOW REGIMEN */}
-      <section
-        style={{
-          padding: 'clamp(50px, 8vw, 80px) 20px',
-          backgroundColor: '#03252a',
-          borderTop: '1px solid rgba(234, 186, 56, 0.15)',
-          borderBottom: '1px solid rgba(234, 186, 56, 0.15)',
-        }}
-      >
-        <div style={{ maxWidth: 1140, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, margin: '0 0 12px' }}>
-              The Pre-Bridal Glow Regimen
-            </h2>
-            <p style={{ color: '#94a3b8', fontSize: 16, maxWidth: 700, margin: '0 auto', lineHeight: 1.6 }}>
-              Flawless bridal makeup starts with nourished, radiant skin. Explore our specialized pre-bridal beauty rituals recommended 4 to 8 weeks before your big day.
-            </p>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: 24,
-            }}
-          >
-            {[
-              {
-                title: 'Gold & Diamond Facials',
-                desc: 'Deep cellular rejuvenation, gentle fruit-acid exfoliation, and targeted lymphatic facial massage for maximum bridal luminescence.',
-              },
-              {
-                title: 'Italian Rica Waxing',
-                desc: '100% colophony-free Rica peel-off wax for sensitive skin. Painless hair removal and instant tan clearing without post-wax redness.',
-              },
-              {
-                title: 'Hair Spa & Keratin Smoothing',
-                desc: 'Intense hydration masks to eliminate frizz, repair heat damage, and provide silkiness so bridal buns and curls hold securely.',
-              },
-              {
-                title: 'Spa Manicure & Pedicure',
-                desc: 'Exfoliating foot scrubs, paraffin hydration, and nail cuticle care to keep hands and feet soft for mehendi and toe rings.',
-              },
-            ].map((reg, idx) => (
-              <div
-                key={idx}
-                style={{
-                  backgroundColor: 'rgba(5, 60, 67, 0.5)',
-                  border: '1px solid rgba(234, 186, 56, 0.15)',
-                  borderRadius: 16,
-                  padding: '24px 20px',
-                }}
-              >
-                <div style={{ fontSize: 17, fontWeight: 700, color: '#f5d87a', marginBottom: 8 }}>
-                  {reg.title}
-                </div>
-                <div style={{ fontSize: 13.5, color: '#cbd5e1', lineHeight: 1.6 }}>{reg.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* 4. THE SURAT BRIDE TIMELINE */}
       <section style={{ padding: 'clamp(60px, 9vw, 90px) 20px', maxWidth: 1040, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 50 }}>
