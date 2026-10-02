@@ -991,6 +991,14 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     settings: {
       ...DEFAULT_DATA.settings,
       ...(incoming.settings || {}),
+      whatsapp:
+        incoming.settings?.whatsapp && !incoming.settings.whatsapp.includes('97732')
+          ? incoming.settings.whatsapp
+          : '919824183769',
+      phone2:
+        incoming.settings?.phone2 && !incoming.settings.phone2.includes('97732')
+          ? incoming.settings.phone2
+          : '9824183769',
       payments: incoming.settings?.payments?.length ? incoming.settings.payments : DEFAULT_DATA.settings.payments,
     },
     services: (() => {
