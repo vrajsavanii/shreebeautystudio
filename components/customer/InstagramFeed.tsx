@@ -66,7 +66,7 @@ interface PhotoPostItem {
   permalink: string;
 }
 
-// ─── Uniform Square Photo Card (270×270px) ───────────────────────────
+// ─── Large High-Impact Photo Card (360×360px) ────────────────────────
 function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: string }) {
   const [isHovered, setIsHovered] = useState(false);
   const targetUrl = item.permalink || defaultUrl;
@@ -80,18 +80,18 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
       onMouseLeave={() => setIsHovered(false)}
       style={{
         display: 'block',
-        width: 270,
-        height: 270,
-        borderRadius: 18,
+        width: 'clamp(300px, 24vw, 380px)',
+        height: 'clamp(300px, 24vw, 380px)',
+        borderRadius: 22,
         overflow: 'hidden',
         position: 'relative',
         flexShrink: 0,
         cursor: 'pointer',
         boxShadow: isHovered
-          ? '0 20px 35px rgba(0,0,0,0.25), 0 0 0 2px #EABA38'
-          : '0 8px 20px rgba(0,0,0,0.1)',
-        transition: 'all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-        transform: isHovered ? 'scale(1.04) translateY(-5px)' : 'scale(1)',
+          ? '0 24px 48px rgba(0,0,0,0.3), 0 0 0 3px #EABA38'
+          : '0 10px 28px rgba(0,0,0,0.12)',
+        transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        transform: isHovered ? 'scale(1.04) translateY(-6px)' : 'scale(1)',
         textDecoration: 'none',
         background: '#0f172a',
       }}
@@ -105,7 +105,7 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
           height: '100%',
           objectFit: 'cover',
           display: 'block',
-          transition: 'transform 0.5s ease',
+          transition: 'transform 0.55s ease',
           transform: isHovered ? 'scale(1.08)' : 'scale(1)',
         }}
       />
@@ -114,20 +114,21 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
       <div
         style={{
           position: 'absolute',
-          top: 12,
-          left: 12,
-          width: 30,
-          height: 30,
-          borderRadius: 8,
-          background: 'rgba(0,0,0,0.55)',
+          top: 14,
+          left: 14,
+          width: 34,
+          height: 34,
+          borderRadius: 10,
+          background: 'rgba(0,0,0,0.6)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         }}
       >
-        <Instagram size={15} color="#fff" />
+        <Instagram size={17} color="#fff" />
       </div>
 
       {/* Hover overlay with engagement */}
@@ -136,22 +137,22 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
           position: 'absolute',
           inset: 0,
           background: isHovered
-            ? 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.88) 100%)'
-            : 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.55) 100%)',
+            ? 'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.9) 100%)'
+            : 'linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.6) 100%)',
           transition: 'all 0.35s ease',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
-          padding: 16,
+          padding: '20px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#fff', fontSize: 13, fontWeight: 700 }}>
-            <Heart size={14} fill="#ff4757" color="#ff4757" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontSize: 14, fontWeight: 750 }}>
+            <Heart size={16} fill="#ff4757" color="#ff4757" />
             {item.likes}
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#fff', fontSize: 13, fontWeight: 700 }}>
-            <MessageCircle size={14} />
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#fff', fontSize: 14, fontWeight: 750 }}>
+            <MessageCircle size={16} />
             {item.comments}
           </span>
         </div>
@@ -159,13 +160,14 @@ function PhotoCard({ item, defaultUrl }: { item: PhotoPostItem; defaultUrl: stri
         {isHovered && item.caption && (
           <p
             style={{
-              color: '#f1f5f9',
-              fontSize: 12,
-              lineHeight: 1.4,
-              margin: '8px 0 0',
+              color: '#f8fafc',
+              fontSize: 13,
+              lineHeight: 1.45,
+              margin: '10px 0 0',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              textShadow: '0 2px 4px rgba(0,0,0,0.5)',
             }}
           >
             {item.caption}
@@ -351,9 +353,9 @@ export default function InstagramFeed() {
           onMouseLeave={() => setIsPaused(false)}
           style={{
             display: 'flex',
-            gap: 16,
+            gap: 20,
             overflow: 'hidden',
-            padding: '8px 0 16px',
+            padding: '12px 0 24px',
             cursor: 'grab',
           }}
         >
