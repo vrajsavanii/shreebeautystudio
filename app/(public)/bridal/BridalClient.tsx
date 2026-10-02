@@ -755,7 +755,7 @@ export default function BridalClient() {
         <div style={{ maxWidth: 1140, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <h2 style={{ fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 800, margin: '0 0 12px' }}>
-              Why Surat Brides Choose Shree Beauty Studio
+              Why Brides Choose Shree Beauty Studio
             </h2>
             <p style={{ color: '#94a3b8', fontSize: 16, maxWidth: 660, margin: '0 auto', lineHeight: 1.6 }}>
               A sanctuary exclusively dedicated to women, built on 25+ years of trust, artistry, and authentic formulations.
