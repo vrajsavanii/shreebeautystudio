@@ -94,7 +94,7 @@ export default function CustomerFooter() {
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
             <a
-              href={`https://wa.me/${whatsapp}?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20book%20an%20appointment.`}
+              href="https://wa.me/919824183769?text=Hi%20Shree%20Beauty%20Studio!%20I%20would%20like%20to%20book%20an%20appointment."
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -113,7 +113,7 @@ export default function CustomerFooter() {
               }}
             >
               <MessageCircle size={14} />
-              WhatsApp Us
+              WhatsApp: +91 98241 83769
             </a>
             <a
               href="tel:+919824183769"
@@ -132,7 +132,7 @@ export default function CustomerFooter() {
               }}
             >
               <Phone size={13} />
-              +91 98241 83769
+              Call Studio
             </a>
           </div>
           {/* Social Media */}
