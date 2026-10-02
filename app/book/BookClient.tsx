@@ -56,22 +56,24 @@ export default function PublicBookingPage() {
   const services = data?.services || [];
   const bridalPackages = data?.bridalPackages || [];
 
-  useState(() => {
-    if (typeof window !== 'undefined') {
-      fetch('/api/public-data')
-        .then((res) => res.json())
-        .then((json) => {
-          if (json.success && json.services) {
-            useSalonStore.getState().setData({
-              services: json.services,
-              bridalPackages: json.bridalPackages,
-              settings: json.settings,
-            });
-          }
-        })
-        .catch(() => {});
-    }
-  });
+  useEffect(() => {
+    fetch('/api/public-data')
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success && json.services?.length) {
+          updateData((prev) => ({
+            ...prev,
+            services: json.services,
+            bridalPackages: json.bridalPackages?.length ? json.bridalPackages : prev.bridalPackages,
+            settings: {
+              ...prev.settings,
+              ...(json.settings || {}),
+            },
+          }));
+        }
+      })
+      .catch(() => {});
+  }, [updateData]);
 
   // Booking Type: 'regular' | 'bridal'
   const [bookingMode, setBookingMode] = useState<'regular' | 'bridal'>('regular');
