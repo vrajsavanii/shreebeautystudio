@@ -889,9 +889,9 @@ export function renderWelcomeCustomerHtml(props: WelcomeCustomerEmailProps): str
         </td>
       </tr>
       <tr>
-        <td class="label">📞 Studio Contacts</td>
+        <td class="label">📞 Studio Contact</td>
         <td class="val" style="font-size: 13px;">
-          +91 98241 83769 &bull; +91 98241 83769
+          +91 98241 83769
         </td>
       </tr>
     </table>
@@ -903,7 +903,7 @@ export function renderWelcomeCustomerHtml(props: WelcomeCustomerEmailProps): str
 
     <div style="background-color: #F8FAFC; border-radius: 10px; padding: 14px 18px; margin-top: 24px; border-left: 3px solid ${BRAND_COLORS.primary};">
       <p style="margin: 0; font-size: 12.5px; color: ${BRAND_COLORS.muted}; line-height: 1.5;">
-        Need styling assistance or want to book a bridal consultation? You can also message us directly on WhatsApp at <strong>+91 98241 83769</strong> or <strong>+91 98241 83769</strong>.
+        Need styling assistance or want to book a bridal consultation? You can also message us directly on WhatsApp at <strong>+91 98241 83769</strong>.
       </p>
     </div>
   `;

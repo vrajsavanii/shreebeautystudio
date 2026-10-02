@@ -125,27 +125,10 @@ export default function CustomerFooter() {
                 color: '#ffffff',
                 fontWeight: 600,
                 fontSize: 12,
-                padding: '7px 12px',
+                padding: '8px 14px',
                 borderRadius: 99,
                 textDecoration: 'none',
-              }}
-            >
-              <Phone size={13} />
-              +91 98241 83769
-            </a>
-            <a
-              href={`tel:+91${phone2.replace(/\D/g, '').slice(-10)}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                background: 'rgba(255, 255, 255, 0.1)',
-                color: '#ffffff',
-                fontWeight: 600,
-                fontSize: 12,
-                padding: '7px 12px',
-                borderRadius: 99,
-                textDecoration: 'none',
+                border: '1px solid rgba(255,255,255,0.15)',
               }}
             >
               <Phone size={13} />
@@ -265,16 +248,11 @@ export default function CustomerFooter() {
               <Clock size={16} color="#EABA38" style={{ flexShrink: 0 }} />
               <span>{openTime} – {closeTime} · Open All 7 Days</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
-              <Phone size={16} color="#EABA38" style={{ flexShrink: 0, marginTop: 2 }} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
-                  +91 98241 83769
-                </a>
-                <a href={`tel:+91${phone2.replace(/\D/g, '').slice(-10)}`} style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
-                  +91 98241 83769
-                </a>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#cbd5e1' }}>
+              <Phone size={16} color="#EABA38" style={{ flexShrink: 0 }} />
+              <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
+                +91 98241 83769
+              </a>
             </div>
           </div>
         </div>

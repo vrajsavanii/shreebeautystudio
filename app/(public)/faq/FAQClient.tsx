@@ -461,8 +461,6 @@ export default function FAQClient() {
           <div style={{ marginTop: 22, fontSize: 13.5, color: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span>📞 Call Studio:</span>
             <a href="tel:+919824183769" style={{ color: '#EABA38', fontWeight: 700, textDecoration: 'none' }}>+91 98241 83769</a>
-            <span style={{ color: 'rgba(255,255,255,0.4)' }}>·</span>
-            <a href="tel:+919824183769" style={{ color: '#EABA38', fontWeight: 700, textDecoration: 'none' }}>+91 98241 83769</a>
           </div>
         </div>
       </div>

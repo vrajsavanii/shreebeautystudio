@@ -677,10 +677,6 @@ export default function CustomerNavbar() {
               <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
                 +91 98241 83769
               </a>
-              <span style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
-              <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none', fontWeight: 600 }}>
-                +91 98241 83769
-              </a>
             </div>
           </div>
         )}
