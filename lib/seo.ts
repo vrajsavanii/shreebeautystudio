@@ -12,7 +12,7 @@ export const BUSINESS = {
   name: 'Shree Beauty Studio',
   legalName: 'Shree Beauty Studio',
   url: BASE_URL,
-  telephone: ['+91-98241-83769', '+91-97732-40010'],
+  telephone: ['+91-98241-83769'],
   whatsapp: '919824183769',
   address: {
     streetAddress: '22, Radhika Society, Opp. Cancer Hospital',

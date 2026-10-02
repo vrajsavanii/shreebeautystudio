@@ -989,9 +989,7 @@ export default function BridalClient() {
                 <span>Call &amp; Inquiries</span>
               </div>
               <div style={{ fontSize: 14, color: '#cbd5e1', lineHeight: 1.6 }}>
-                Primary: <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none' }}>+91 98241 83769</a>
-                <br />
-                Front Desk: <a href="tel:+919773240010" style={{ color: '#ffffff', textDecoration: 'none' }}>+91 97732 40010</a>
+                <a href="tel:+919824183769" style={{ color: '#ffffff', textDecoration: 'none' }}>+91 98241 83769</a>
               </div>
               <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>
                 Monday to Sunday: 10:00 AM – 07:00 PM

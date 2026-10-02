@@ -45,7 +45,7 @@ export default function ContactPage() {
       '@type': ['LocalBusiness', 'BeautySalon'],
       '@id': `${BASE_URL}/#business`,
       name: 'Shree Beauty Studio',
-      telephone: ['+91-98241-83769', '+91-97732-40010'],
+      telephone: ['+91-98241-83769'],
       address: {
         '@type': 'PostalAddress',
         streetAddress: '22, Radhika Society, Opp. Cancer Hospital',
