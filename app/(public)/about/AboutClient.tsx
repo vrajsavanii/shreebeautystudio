@@ -57,7 +57,7 @@ export default function AboutClient() {
   const milestones = [
     { number: '25+', label: 'Years of Experience' },
     { number: '5,000+', label: 'Happy Clients Served' },
-    { number: '500+', label: 'Brides Styled' },
+    { number: '1,000+', label: 'Brides Styled' },
     { number: '4.9 ★', label: 'Average Google Rating' },
   ];
 
