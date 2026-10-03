@@ -114,7 +114,7 @@ function ServicesView() {
             position: 'relative',
             borderRadius: 24,
             overflow: 'hidden',
-            height: 'clamp(160px, 24vw, 240px)',
+            height: 'clamp(280px, 32vw, 380px)',
             boxShadow: '0 12px 48px rgba(5,66,74,0.2), 0 2px 8px rgba(0,0,0,0.08)',
           }}
         >
