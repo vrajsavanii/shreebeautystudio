@@ -64,8 +64,9 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
         body: JSON.stringify(credentials),
       });
       const json = await res.json();
-      if (json.success && json.profile) {
-        setCustomer(json.profile);
+      const customerData = json.profile || json.customer;
+      if (json.success && customerData) {
+        setCustomer(customerData);
         // Non-blocking background fetch for past appointments/invoices
         fetchProfile().catch(() => {});
         return { success: true };

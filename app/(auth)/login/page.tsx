@@ -18,7 +18,12 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
+  KeyRound,
+  RotateCcw,
+  Send,
+  MessageCircle,
+  Edit2,
+  Check,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useSalonStore, DEFAULT_USERS } from '@/lib/store';
@@ -33,7 +38,7 @@ function LoginFormContent() {
   const redirectTarget = searchParams.get('redirect');
 
   // Customer Auth Context
-  const { login: customerLogin, customer, refreshProfile } = useCustomerAuth();
+  const { login: customerLogin, customer } = useCustomerAuth();
 
   // If redirect starts with /admin, or staff query param is set, default to staff mode
   const initialIsStaff =
@@ -47,12 +52,25 @@ function LoginFormContent() {
     }
   }, [customer, isStaffMode, redirectTarget, router]);
 
-  // ─── Customer Login State ───
+  // ─── Customer Login Top Mode: 'otp' (Native Instant OTP) or 'password' ───
+  const [authMode, setAuthMode] = useState<'otp' | 'password'>('otp');
+
+  // Native Mobile OTP States
+  const [otpMobile, setOtpMobile] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [maskedMobile, setMaskedMobile] = useState('');
+  const [fallbackWaUrl, setFallbackWaUrl] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+
+  // Password Login States
   const [custMethod, setCustMethod] = useState<'mobile' | 'email'>('mobile');
   const [custMobile, setCustMobile] = useState('');
   const [custEmail, setCustEmail] = useState('');
   const [custPassword, setCustPassword] = useState('');
   const [custShowPass, setCustShowPass] = useState(false);
+
+  // General Customer Loading & Error States
   const [custLoading, setCustLoading] = useState(false);
   const [custError, setCustError] = useState('');
 
@@ -66,8 +84,100 @@ function LoginFormContent() {
   const [staffError, setStaffError] = useState('');
   const [selectedRole, setSelectedRole] = useState<'Admin' | 'Salesperson'>('Admin');
 
-  // Customer Login Submit (Password-only, fast direct authentication)
-  const handleCustomerSubmit = async (e: React.FormEvent) => {
+  // 1. Resend OTP countdown timer
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+    const timer = setInterval(() => {
+      setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendTimer]);
+
+  // 2. Send Mobile OTP for Customer Login
+  const handleSendLoginOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const clean = otpMobile.replace(/\D/g, '').slice(-10);
+
+    if (clean.length !== 10) {
+      setCustError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    setCustLoading(true);
+    setCustError('');
+
+    try {
+      const res = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: clean,
+          type: 'mobile',
+          purpose: 'login',
+        }),
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        setCustError(json.error || 'Failed to dispatch security code. Please check your mobile number.');
+        return;
+      }
+
+      setOtpSent(true);
+      setMaskedMobile(json.maskedTarget || `+91 ${clean.slice(0, 5)} ***${clean.slice(-2)}`);
+      setFallbackWaUrl(json.fallbackUrl || '');
+      setResendTimer(30);
+      setOtpCode('');
+    } catch {
+      setCustError('Network error while requesting verification code. Please try again.');
+    } finally {
+      setCustLoading(false);
+    }
+  };
+
+  // 3. Verify OTP & Log In Customer
+  const handleVerifyLoginOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = otpMobile.replace(/\D/g, '').slice(-10);
+    const cleanOtp = otpCode.trim();
+
+    if (clean.length !== 10) {
+      setCustError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    if (!cleanOtp || cleanOtp.length < 4) {
+      setCustError('Please enter the verification code sent to your phone.');
+      return;
+    }
+
+    setCustLoading(true);
+    setCustError('');
+
+    try {
+      const res: any = await customerLogin({
+        method: 'mobile',
+        mobile: clean,
+        otp: cleanOtp,
+      });
+
+      if (res.success) {
+        const dest = redirectTarget && !redirectTarget.startsWith('/admin') ? redirectTarget : '/profile';
+        router.replace(dest);
+        return;
+      }
+
+      setCustError(res.error || 'Invalid or expired verification code. Please try again.');
+    } catch (err: any) {
+      setCustError(err?.message || 'Login failed. Please try again.');
+    } finally {
+      setCustLoading(false);
+    }
+  };
+
+  // 4. Customer Password Login Submit
+  const handleCustomerPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCustError('');
     setCustLoading(true);
@@ -93,7 +203,7 @@ function LoginFormContent() {
 
       if (res.needsPasswordSetup) {
         setCustError(
-          'Your account was created via booking without a password. Please use "Forgot Password" below to set your password.'
+          'Your account was created via booking without a password. Please switch to Instant Mobile OTP above to log in instantly.'
         );
       } else {
         setCustError(res.error || 'Invalid credentials. Please verify your details.');
@@ -105,7 +215,7 @@ function LoginFormContent() {
     }
   };
 
-  // Staff Route Determination
+  // 5. Staff Route Determination
   const getStaffTargetRoute = (role: 'Admin' | 'Salesperson') => {
     if (redirectTarget && redirectTarget.startsWith('/admin')) {
       if (role === 'Salesperson') {
@@ -126,7 +236,7 @@ function LoginFormContent() {
     return role === 'Salesperson' ? '/admin/billing' : '/admin';
   };
 
-  // Staff Submit
+  // 6. Staff Submit
   const handleStaffSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStaffError('');
@@ -269,7 +379,7 @@ function LoginFormContent() {
             Shree Beauty Studio
           </h1>
           <p style={{ fontSize: 13, color: '#64748b', fontWeight: 600, margin: 0 }}>
-            {isStaffMode ? 'Management Console · Staff Sign In' : 'Customer Account · Sign In'}
+            {isStaffMode ? 'Management Console · Staff Sign In' : 'Client Portal · Secure Account Sign In'}
           </p>
         </div>
 
@@ -278,31 +388,31 @@ function LoginFormContent() {
             ══════════════════════════════════════════════════════ */}
         {!isStaffMode ? (
           <div>
-            {/* Login Method Selector: Mobile or Email */}
+            {/* Top Method Tabs: Mobile OTP vs Password */}
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: 8,
-                marginBottom: 18,
+                marginBottom: 20,
                 background: '#f1f5f9',
                 padding: 4,
-                borderRadius: 12,
+                borderRadius: 14,
               }}
             >
               <button
                 type="button"
                 onClick={() => {
-                  setCustMethod('mobile');
+                  setAuthMode('otp');
                   setCustError('');
                 }}
                 style={{
-                  padding: '9px 12px',
-                  borderRadius: 10,
+                  padding: '10px 12px',
+                  borderRadius: 11,
                   border: 'none',
-                  background: custMethod === 'mobile' ? 'linear-gradient(135deg, #05424A 0%, #032B30 100%)' : 'transparent',
-                  color: custMethod === 'mobile' ? '#ffffff' : '#64748b',
-                  fontWeight: custMethod === 'mobile' ? 700 : 600,
+                  background: authMode === 'otp' ? 'linear-gradient(135deg, #05424A 0%, #032B30 100%)' : 'transparent',
+                  color: authMode === 'otp' ? '#ffffff' : '#64748b',
+                  fontWeight: authMode === 'otp' ? 700 : 600,
                   fontSize: 13,
                   cursor: 'pointer',
                   display: 'flex',
@@ -310,25 +420,26 @@ function LoginFormContent() {
                   justifyContent: 'center',
                   gap: 6,
                   transition: 'all 0.15s ease',
+                  boxShadow: authMode === 'otp' ? '0 3px 10px rgba(5,66,74,0.2)' : 'none',
                 }}
               >
-                <Phone size={14} color={custMethod === 'mobile' ? '#EABA38' : 'currentColor'} />
-                <span>Mobile Number</span>
+                <Sparkles size={14} color={authMode === 'otp' ? '#EABA38' : 'currentColor'} />
+                <span>Mobile OTP</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setCustMethod('email');
+                  setAuthMode('password');
                   setCustError('');
                 }}
                 style={{
-                  padding: '9px 12px',
-                  borderRadius: 10,
+                  padding: '10px 12px',
+                  borderRadius: 11,
                   border: 'none',
-                  background: custMethod === 'email' ? 'linear-gradient(135deg, #05424A 0%, #032B30 100%)' : 'transparent',
-                  color: custMethod === 'email' ? '#ffffff' : '#64748b',
-                  fontWeight: custMethod === 'email' ? 700 : 600,
+                  background: authMode === 'password' ? 'linear-gradient(135deg, #05424A 0%, #032B30 100%)' : 'transparent',
+                  color: authMode === 'password' ? '#ffffff' : '#64748b',
+                  fontWeight: authMode === 'password' ? 700 : 600,
                   fontSize: 13,
                   cursor: 'pointer',
                   display: 'flex',
@@ -336,10 +447,11 @@ function LoginFormContent() {
                   justifyContent: 'center',
                   gap: 6,
                   transition: 'all 0.15s ease',
+                  boxShadow: authMode === 'password' ? '0 3px 10px rgba(5,66,74,0.2)' : 'none',
                 }}
               >
-                <Mail size={14} color={custMethod === 'email' ? '#EABA38' : 'currentColor'} />
-                <span>Email Address</span>
+                <KeyRound size={14} color={authMode === 'password' ? '#EABA38' : 'currentColor'} />
+                <span>Password</span>
               </button>
             </div>
 
@@ -364,73 +476,430 @@ function LoginFormContent() {
                     gap: 8,
                   }}
                 >
-                  <AlertCircle size={16} />
+                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
                   <span>{custError}</span>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <form onSubmit={handleCustomerSubmit}>
-              {/* Method A: Mobile Number Field */}
-              {custMethod === 'mobile' ? (
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
-                    Mobile Number *
-                  </label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <span
-                      style={{
-                        padding: '11px 14px',
-                        background: '#f8fafc',
-                        border: '1.5px solid #cbd5e1',
-                        borderRadius: 12,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: '#475569',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      🇮🇳 +91
-                    </span>
-                    <input
-                      type="tel"
-                      value={custMobile}
-                      onChange={(e) => setCustMobile(e.target.value)}
-                      placeholder="98765 43210"
-                      maxLength={10}
-                      required
-                      autoFocus
-                      style={{
-                        flex: 1,
-                        padding: '11px 14px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 14,
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                /* Method B: Email Address Field */
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
-                    Email Address *
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-                    <input
-                      type="email"
-                      value={custEmail}
-                      onChange={(e) => setCustEmail(e.target.value)}
-                      placeholder="name@example.com"
-                      required
-                      autoFocus
+            {/* ─── OPTION A: NATIVE MOBILE OTP LOGIN (100% IN-HOUSE, NO THIRD-PARTY LOGOS) ─── */}
+            {authMode === 'otp' && (
+              <div>
+                {!otpSent ? (
+                  /* Step 1: Enter Mobile Number */
+                  <form onSubmit={handleSendLoginOtp}>
+                    <div style={{ marginBottom: 18 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
+                        Registered Mobile Number (મોબાઈલ નંબર)
+                      </label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <span
+                          style={{
+                            padding: '11px 14px',
+                            background: '#f8fafc',
+                            border: '1.5px solid #cbd5e1',
+                            borderRadius: 12,
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: '#475569',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          <span>🇮🇳</span>
+                          <span>+91</span>
+                        </span>
+                        <input
+                          type="tel"
+                          value={otpMobile}
+                          onChange={(e) => setOtpMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          placeholder="98765 43210"
+                          maxLength={10}
+                          required
+                          autoFocus
+                          style={{
+                            flex: 1,
+                            padding: '11px 14px',
+                            borderRadius: 12,
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: 15,
+                            fontWeight: 600,
+                            boxSizing: 'border-box',
+                            outline: 'none',
+                          }}
+                          onFocus={(e) => (e.target.style.borderColor = '#05424A')}
+                          onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
+                        />
+                      </div>
+                      <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
+                        Instant verification code will be sent to your WhatsApp / SMS.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={custLoading || otpMobile.replace(/\D/g, '').length < 10}
                       style={{
                         width: '100%',
-                        padding: '11px 14px 11px 40px',
+                        padding: '13px 22px',
+                        borderRadius: 14,
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: 14.5,
+                        cursor: custLoading || otpMobile.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
+                        opacity: custLoading || otpMobile.replace(/\D/g, '').length < 10 ? 0.7 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        boxShadow: '0 8px 24px rgba(5,66,74,0.3)',
+                        marginBottom: 16,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {custLoading ? (
+                        <>
+                          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                          <span>Sending verification code…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send size={15} color="#EABA38" />
+                          <span>Send Login OTP</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  /* Step 2: Enter Verification Code */
+                  <form onSubmit={handleVerifyLoginOtp}>
+                    {/* Sent Confirmation Badge */}
+                    <div
+                      style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: 12,
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 18,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#166534' }}>
+                          Code sent to {maskedMobile || `+91 ${otpMobile}`}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpSent(false);
+                          setOtpCode('');
+                          setCustError('');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#05424A',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          textDecoration: 'underline',
+                        }}
+                      >
+                        <Edit2 size={11} />
+                        <span>Edit</span>
+                      </button>
+                    </div>
+
+                    {/* Numeric Code Input */}
+                    <div style={{ marginBottom: 18 }}>
+                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6, textAlign: 'center' }}>
+                        Enter Verification Code (વેરિફિકેશન કોડ)
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="••••••"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        maxLength={6}
+                        required
+                        autoFocus
+                        style={{
+                          width: '100%',
+                          maxWidth: 240,
+                          margin: '0 auto',
+                          display: 'block',
+                          padding: '11px 14px',
+                          borderRadius: 14,
+                          border: '2px solid #05424A',
+                          fontSize: 24,
+                          fontWeight: 800,
+                          letterSpacing: '0.4em',
+                          textAlign: 'center',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                          fontFamily: 'monospace',
+                          background: '#fafaf9',
+                          color: '#05424A',
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={custLoading || otpCode.length < 4}
+                      style={{
+                        width: '100%',
+                        padding: '13px 22px',
+                        borderRadius: 14,
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        fontSize: 14.5,
+                        cursor: custLoading || otpCode.length < 4 ? 'not-allowed' : 'pointer',
+                        opacity: custLoading || otpCode.length < 4 ? 0.7 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        boxShadow: '0 8px 24px rgba(5,66,74,0.3)',
+                        marginBottom: 16,
+                      }}
+                    >
+                      {custLoading ? (
+                        <>
+                          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                          <span>Signing in…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check size={16} color="#EABA38" />
+                          <span>Verify &amp; Sign In</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Resend & WhatsApp Links */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontSize: 12,
+                        marginBottom: 8,
+                      }}
+                    >
+                      {resendTimer > 0 ? (
+                        <span style={{ color: '#64748b', fontWeight: 600 }}>
+                          Resend code in <strong style={{ color: '#05424A' }}>{resendTimer}s</strong>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSendLoginOtp()}
+                          disabled={custLoading}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#05424A',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          <RotateCcw size={12} />
+                          <span>Resend Login OTP</span>
+                        </button>
+                      )}
+
+                      {fallbackWaUrl && (
+                        <a
+                          href={fallbackWaUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            color: '#15803d',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            background: '#f0fdf4',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: 99,
+                            padding: '3px 10px',
+                            fontSize: 11,
+                          }}
+                        >
+                          <MessageCircle size={12} />
+                          <span>Open code on WhatsApp</span>
+                        </a>
+                      )}
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* ─── OPTION B: PASSWORD LOGIN ─── */}
+            {authMode === 'password' && (
+              <form onSubmit={handleCustomerPasswordSubmit}>
+                {/* Identifier Method Toggle: Mobile or Email */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustMethod('mobile');
+                      setCustError('');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '7px 10px',
+                      borderRadius: 9,
+                      border: '1px solid #cbd5e1',
+                      background: custMethod === 'mobile' ? '#05424A' : '#ffffff',
+                      color: custMethod === 'mobile' ? '#ffffff' : '#475569',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <Phone size={12} color={custMethod === 'mobile' ? '#EABA38' : 'currentColor'} />
+                    <span>Mobile Number</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustMethod('email');
+                      setCustError('');
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '7px 10px',
+                      borderRadius: 9,
+                      border: '1px solid #cbd5e1',
+                      background: custMethod === 'email' ? '#05424A' : '#ffffff',
+                      color: custMethod === 'email' ? '#ffffff' : '#475569',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 5,
+                    }}
+                  >
+                    <Mail size={12} color={custMethod === 'email' ? '#EABA38' : 'currentColor'} />
+                    <span>Email Address</span>
+                  </button>
+                </div>
+
+                {custMethod === 'mobile' ? (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                      Mobile Number *
+                    </label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <span
+                        style={{
+                          padding: '11px 14px',
+                          background: '#f8fafc',
+                          border: '1.5px solid #cbd5e1',
+                          borderRadius: 12,
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: '#475569',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        🇮🇳 +91
+                      </span>
+                      <input
+                        type="tel"
+                        value={custMobile}
+                        onChange={(e) => setCustMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="98765 43210"
+                        maxLength={10}
+                        required
+                        autoFocus
+                        style={{
+                          flex: 1,
+                          padding: '11px 14px',
+                          borderRadius: 12,
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: 14,
+                          boxSizing: 'border-box',
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                      Email Address *
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Mail size={16} color="#94a3b8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="email"
+                        value={custEmail}
+                        onChange={(e) => setCustEmail(e.target.value)}
+                        placeholder="name@example.com"
+                        required
+                        autoFocus
+                        style={{
+                          width: '100%',
+                          padding: '11px 14px 11px 40px',
+                          borderRadius: 12,
+                          border: '1.5px solid #cbd5e1',
+                          fontSize: 14,
+                          boxSizing: 'border-box',
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Password Field */}
+                <div style={{ marginBottom: 18 }}>
+                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
+                    Password *
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type={custShowPass ? 'text' : 'password'}
+                      value={custPassword}
+                      onChange={(e) => setCustPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '11px 40px 11px 40px',
                         borderRadius: 12,
                         border: '1.5px solid #cbd5e1',
                         fontSize: 14,
@@ -438,100 +907,74 @@ function LoginFormContent() {
                         outline: 'none',
                       }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setCustShowPass(!custShowPass)}
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: '#94a3b8',
+                        cursor: 'pointer',
+                        padding: 0,
+                      }}
+                    >
+                      {custShowPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <div style={{ textAlign: 'right', marginTop: 6 }}>
+                    <Link
+                      href="/forgot-password"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#64748b',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Forgot Password?
+                    </Link>
                   </div>
                 </div>
-              )}
 
-              {/* Password Field */}
-              <div style={{ marginBottom: 18 }}>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
-                  Password *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Lock size={16} color="#94a3b8" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-                  <input
-                    type={custShowPass ? 'text' : 'password'}
-                    value={custPassword}
-                    onChange={(e) => setCustPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '11px 40px 11px 40px',
-                      borderRadius: 12,
-                      border: '1.5px solid #cbd5e1',
-                      fontSize: 14,
-                      boxSizing: 'border-box',
-                      outline: 'none',
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCustShowPass(!custShowPass)}
-                    style={{
-                      position: 'absolute',
-                      right: 12,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: '#94a3b8',
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                  >
-                    {custShowPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                <div style={{ textAlign: 'right', marginTop: 6 }}>
-                  <Link
-                    href="/forgot-password"
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: '#64748b',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Forgot Password?
-                  </Link>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={custLoading}
-                style={{
-                  width: '100%',
-                  padding: '13px 22px',
-                  borderRadius: 14,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                  color: '#ffffff',
-                  fontWeight: 800,
-                  fontSize: 14.5,
-                  cursor: custLoading ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  boxShadow: '0 8px 24px rgba(5,66,74,0.35)',
-                  marginBottom: 16,
-                }}
-              >
-                {custLoading ? (
-                  <>
-                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                    Signing in…
-                  </>
-                ) : (
-                  <>
-                    <LogIn size={16} />
-                    Sign In to Account
-                  </>
-                )}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={custLoading}
+                  style={{
+                    width: '100%',
+                    padding: '13px 22px',
+                    borderRadius: 14,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: 14.5,
+                    cursor: custLoading ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    boxShadow: '0 8px 24px rgba(5,66,74,0.3)',
+                    marginBottom: 16,
+                  }}
+                >
+                  {custLoading ? (
+                    <>
+                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      <span>Signing in…</span>
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={16} />
+                      <span>Sign In with Password</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
 
             {/* Create Account Link */}
             <div
@@ -570,7 +1013,7 @@ function LoginFormContent() {
                 }}
               >
                 <ShieldCheck size={13} color="#EABA38" />
-                <span>Salon Staff & Owner Console Login</span>
+                <span>Salon Staff &amp; Owner Console Login</span>
               </button>
             </div>
           </div>
@@ -762,12 +1205,12 @@ function LoginFormContent() {
                 {staffLoading ? (
                   <>
                     <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                    Authenticating…
+                    <span>Authenticating…</span>
                   </>
                 ) : (
                   <>
                     <LogIn size={16} />
-                    Sign In as {selectedRole}
+                    <span>Sign In as {selectedRole}</span>
                   </>
                 )}
               </button>

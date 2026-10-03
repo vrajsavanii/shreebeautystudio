@@ -9,6 +9,7 @@ import {
   upsertCustomerAccount,
   toSafeCustomerProfile,
 } from '@/lib/customer-auth';
+import { verifyOtp } from '@/lib/otp-auth';
 import { setCustomerSessionCookie } from '@/lib/customer-session-server';
 
 export const dynamic = 'force-dynamic';
@@ -40,13 +41,72 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Find customer account
+    // 1. Authenticate: Password vs OTP
+    if (otp) {
+      // Mobile OTP Login - check verifyAuthOtp first, fallback to verifyOtp
+      const cleanOtp = String(otp).trim();
+      let isValid = false;
+      let errorMsg = 'Invalid or expired OTP code.';
+
+      const otpRes = verifyAuthOtp(targetIdentifier, 'mobile', 'login', cleanOtp);
+      if (otpRes.valid) {
+        isValid = true;
+      } else {
+        const fallbackRes = verifyOtp(targetIdentifier, cleanOtp);
+        if (fallbackRes.valid) {
+          isValid = true;
+        } else {
+          errorMsg = otpRes.error || fallbackRes.error || 'Invalid or expired OTP code.';
+        }
+      }
+
+      if (!isValid) {
+        return NextResponse.json(
+          { success: false, error: errorMsg },
+          { status: 400 }
+        );
+      }
+
+      // Lookup or auto-create account for verified mobile
+      let { customer } = await findCustomerByIdentifier(targetIdentifier);
+      if (!customer) {
+        customer = await upsertCustomerAccount({
+          name: 'Valued Client',
+          mobile: targetIdentifier,
+          phoneVerified: true,
+        });
+      } else if (!customer.phoneVerified) {
+        customer = await upsertCustomerAccount({
+          ...customer,
+          phoneVerified: true,
+        });
+      }
+
+      if (customer.status === 'suspended') {
+        return NextResponse.json(
+          { success: false, error: 'This account has been suspended. Please contact studio support.' },
+          { status: 403 }
+        );
+      }
+
+      const safeProfile = toSafeCustomerProfile(customer);
+      const res = NextResponse.json({
+        success: true,
+        message: 'Login successful via OTP.',
+        customer: safeProfile,
+        profile: safeProfile,
+      });
+      setCustomerSessionCookie(res, customer);
+      return res;
+    }
+
+    // 2. Password Login - Requires existing account
     const { customer } = await findCustomerByIdentifier(targetIdentifier);
     if (!customer) {
       return NextResponse.json(
         {
           success: false,
-          error: 'No account found with this information. Please create a new account.',
+          error: 'No account found with this information. Please create a new account or sign in with OTP.',
           notFound: true,
         },
         { status: 404 }
@@ -60,43 +120,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Authenticate: Password vs OTP
-    if (otp) {
-      // Mobile OTP Login
-      const otpRes = verifyAuthOtp(targetIdentifier, 'mobile', 'login', otp);
-      if (!otpRes.valid) {
-        return NextResponse.json(
-          { success: false, error: otpRes.error || 'Invalid or expired OTP code.' },
-          { status: 400 }
-        );
-      }
-    } else {
-      // Password Login
-      if (!password) {
-        return NextResponse.json(
-          { success: false, error: 'Please enter your account password.' },
-          { status: 400 }
-        );
-      }
+    // Password Login verification
+    if (!password) {
+      return NextResponse.json(
+        { success: false, error: 'Please enter your account password.' },
+        { status: 400 }
+      );
+    }
 
-      if (!customer.passwordHash) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'You do not have a password set yet. Please log in with OTP or click "Forgot Password" to set one.',
-            needsPasswordSetup: true,
-          },
-          { status: 400 }
-        );
-      }
+    if (!customer.passwordHash) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'You do not have a password set yet. Please log in with OTP or click "Forgot Password" to set one.',
+          needsPasswordSetup: true,
+        },
+        { status: 400 }
+      );
+    }
 
-      const isMatch = await verifyPassword(password, customer.passwordHash);
-      if (!isMatch) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid password. Please check your credentials and try again.' },
-          { status: 401 }
-        );
-      }
+    const isMatch = await verifyPassword(password, customer.passwordHash);
+    if (!isMatch) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid password. Please check your credentials and try again.' },
+        { status: 401 }
+      );
     }
 
     // 3. Prepare updated customer profile with lastLoginAt
