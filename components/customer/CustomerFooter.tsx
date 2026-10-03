@@ -6,7 +6,6 @@ import {
   Phone,
   MessageCircle,
   Heart,
-  Lock,
   ChevronUp,
   Instagram,
   Sparkles,
@@ -342,36 +341,16 @@ export default function CustomerFooter() {
             paddingTop: 26,
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
             alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 16,
+            textAlign: 'center',
             fontSize: 13,
             color: '#64748b',
           }}
         >
           <p style={{ margin: 0 }}>
-            &copy; {currentYear} {salonName}. All rights reserved. Made with <Heart size={12} color="#ef4444" fill="#ef4444" style={{ display: 'inline', verticalAlign: 'middle' }} /> in Surat.
+            &copy; {currentYear} {salonName}. All rights reserved. Dedicated to Ladies Beauty Mastery in Surat.
           </p>
-
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <Link
-              href="/admin"
-              style={{
-                color: '#475569',
-                textDecoration: 'none',
-                fontSize: 12,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                transition: 'color 0.15s ease',
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#EABA38'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#475569'; }}
-            >
-              <Lock size={12} /> Staff &amp; Admin Portal &rarr;
-            </Link>
-          </div>
         </div>
       </div>
 
