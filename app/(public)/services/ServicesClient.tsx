@@ -32,7 +32,13 @@ function ServicesView() {
   const [showStickyBar, setShowStickyBar] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setShowStickyBar(window.scrollY > 320);
+    const onScroll = () => {
+      const scrollY = window.scrollY;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = window.innerHeight;
+      const nearFooter = scrollY + clientHeight >= scrollHeight - 380;
+      setShowStickyBar(scrollY > 320 && !nearFooter);
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -83,36 +89,13 @@ function ServicesView() {
   }, [salonBgImages.length]);
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
-      {/* Full-page salon background */}
-      {salonBgImages.map((src, i) => (
-        <div
-          key={src}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 0,
-            backgroundImage: `url(${src})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: bgIndex === i ? 1 : 0,
-            transition: 'opacity 2s ease-in-out',
-            willChange: 'opacity',
-          }}
-        />
-      ))}
-      {/* Overlay for readability */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 1,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(245,248,250,0.92) 30%, rgba(240,245,247,0.95) 70%, rgba(255,255,255,0.97) 100%)',
-          backdropFilter: 'blur(2px)',
-          pointerEvents: 'none',
-        }}
-      />
-
+    <div
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef3f2 100%)',
+      }}
+    >
       {/* ─── Hero Banner with Salon Interior ─── */}
       <div
         style={{
@@ -120,7 +103,7 @@ function ServicesView() {
           zIndex: 2,
           margin: '0 auto',
           maxWidth: 1320,
-          padding: '12px 20px 0',
+          padding: '16px 20px 0',
         }}
       >
         <motion.div
@@ -238,7 +221,7 @@ function ServicesView() {
         </motion.div>
       </div>
 
-    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 20px 48px', position: 'relative', zIndex: 2 }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 20px 80px', position: 'relative', zIndex: 2 }}>
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -429,10 +412,9 @@ function ServicesView() {
       ) : (
         <div
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: 20,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 24,
             maxWidth: 1240,
             margin: '0 auto',
           }}
@@ -450,21 +432,17 @@ function ServicesView() {
                 whileHover={{ y: -6, boxShadow: '0 20px 48px rgba(5,66,74,0.18)' }}
                 transition={{ duration: 0.25 }}
                 style={{
-                  background: 'rgba(255,255,255,0.92)',
-                  backdropFilter: 'blur(12px)',
+                  background: '#ffffff',
                   borderRadius: 22,
                   border: '1px solid rgba(234, 186, 56, 0.25)',
                   overflow: 'hidden',
-                  boxShadow: '0 4px 24px rgba(5,66,74,0.08)',
+                  boxShadow: '0 4px 20px rgba(5,66,74,0.06)',
                   display: 'flex',
                   flexDirection: 'column',
                   position: 'relative',
-                  flex: '0 1 360px',
-                  maxWidth: 380,
-                  minWidth: 290,
                   width: '100%',
                   contentVisibility: 'auto',
-                  containIntrinsicSize: '360px 460px',
+                  containIntrinsicSize: '320px 460px',
                 }}
               >
                 {/* 1. Full-Width Prominent Service Image Banner */}
@@ -669,6 +647,77 @@ function ServicesView() {
           })}
         </div>
       )}
+
+      {/* ─── Studio Consultation Callout Banner ─── */}
+      <div
+        style={{
+          marginTop: 48,
+          background: 'linear-gradient(135deg, rgba(5,66,74,0.05) 0%, rgba(234,186,56,0.12) 100%)',
+          border: '1.5px solid rgba(234,186,56,0.35)',
+          borderRadius: 20,
+          padding: '28px 24px',
+          textAlign: 'center',
+          maxWidth: 960,
+          margin: '48px auto 0',
+          boxShadow: '0 8px 28px rgba(5,66,74,0.06)',
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'rgba(234,186,56,0.2)',
+            color: '#b45309',
+            fontSize: 11,
+            fontWeight: 800,
+            padding: '4px 12px',
+            borderRadius: 99,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: 10,
+          }}
+        >
+          <Sparkles size={12} /> Personalized Hair &amp; Skin Care
+        </span>
+        <h3 style={{ margin: '0 0 8px', fontSize: 'clamp(18px, 3vw, 22px)', fontWeight: 800, color: '#05424A' }}>
+          Need Tailored Recommendations or Custom Packages?
+        </h3>
+        <p style={{ margin: '0 auto 18px', fontSize: 14, color: '#64748b', maxWidth: 620, lineHeight: 1.6 }}>
+          Our master cosmetologists in Katargam provide one-on-one consultations for bridal packages, hair transformations, and skincare regimens tailored to your exact beauty goals.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link
+            href="/bridal"
+            className="cust-btn-primary"
+            style={{ fontSize: 13, padding: '10px 22px', display: 'inline-flex', alignItems: 'center', gap: 7 }}
+          >
+            <Sparkles size={14} />
+            <span>Explore Bridal Packages</span>
+          </Link>
+          <a
+            href="https://wa.me/919824183769?text=Hi%20Shree%20!%0AI%20need%20a%20consultation%20for%20salon%20services"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-glow"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: '#25D366',
+              color: '#ffffff',
+              fontWeight: 700,
+              fontSize: 13,
+              padding: '10px 20px',
+              borderRadius: 99,
+              textDecoration: 'none',
+              boxShadow: '0 4px 14px rgba(37,211,102,0.3)',
+            }}
+          >
+            <span>WhatsApp Consultation</span>
+          </a>
+        </div>
+      </div>
 
       {/* ─── Sticky Bottom Book Bar ─── */}
       {showStickyBar && (

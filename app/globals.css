@@ -2899,6 +2899,10 @@ a, button, input, select, textarea {
 }
 .sticky-book-bar p { color: rgba(255,255,255,0.8); font-size: 14px; font-weight: 500; margin: 0; }
 .sticky-book-bar strong { color: #EABA38; }
+@media (max-width: 640px) {
+  .sticky-book-bar { padding: 10px 16px; }
+  .sticky-book-bar p { font-size: 12px; }
+}
 
 /* ─── Auth Card Spring Entrance ─────────────────────────────────────────── */
 .auth-card {

@@ -41,10 +41,14 @@ export default function CustomerFooter() {
       className="cust-footer"
       style={{
         position: 'relative',
-        background: 'radial-gradient(ellipse at 50% 0%, rgba(5, 66, 74, 0.45) 0%, #021e22 45%, #011215 100%)',
+        zIndex: 10,
+        isolation: 'isolate',
+        backgroundColor: '#011215',
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(5, 66, 74, 0.6) 0%, #021a1d 45%, #011215 100%)',
         color: '#ffffff',
-        padding: '44px 20px 24px',
+        padding: '48px 20px 24px',
         overflow: 'hidden',
+        boxShadow: '0 -16px 40px rgba(0, 0, 0, 0.25)',
       }}
     >
       {/* Top Gold Glowing Trim */}
