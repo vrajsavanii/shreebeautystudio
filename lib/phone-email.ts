@@ -19,10 +19,12 @@ export interface VerifiedPhoneUser {
   error?: string;
 }
 
+export const DEFAULT_PHONE_EMAIL_CLIENT_ID = '14193176295000530175';
+
 export const PHONE_EMAIL_CLIENT_ID =
   process.env.NEXT_PUBLIC_PHONE_EMAIL_CLIENT_ID ||
   process.env.PHONE_EMAIL_CLIENT_ID ||
-  '';
+  DEFAULT_PHONE_EMAIL_CLIENT_ID;
 
 /**
  * Server-side verification of access_token from Phone.Email

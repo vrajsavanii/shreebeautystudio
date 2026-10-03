@@ -29,7 +29,8 @@ export default function PhoneEmailButton({
   const [loading, setLoading] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
 
-  const clientId = process.env.NEXT_PUBLIC_PHONE_EMAIL_CLIENT_ID || '';
+  const clientId =
+    process.env.NEXT_PUBLIC_PHONE_EMAIL_CLIENT_ID || '14193176295000530175';
 
   // Listen for postMessage from the popup window callback
   useEffect(() => {
