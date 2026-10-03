@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone,
@@ -22,16 +22,18 @@ import {
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 import { useCustomerAuth } from '@/lib/customer-context';
 
-export default function SignupPage() {
+function SignupPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTarget = searchParams.get('redirect');
   const { signup, customer } = useCustomerAuth();
 
-  // If already logged in, redirect to profile
+  // If already logged in, redirect to target or profile
   useEffect(() => {
     if (customer) {
-      router.replace('/profile');
+      router.replace(redirectTarget || '/profile');
     }
-  }, [customer, router]);
+  }, [customer, redirectTarget, router]);
 
   const [method, setMethod] = useState<'mobile' | 'email'>('mobile');
 
@@ -98,7 +100,7 @@ export default function SignupPage() {
       });
 
       if (result.success) {
-        router.replace('/profile');
+        router.replace(redirectTarget || '/profile');
       } else {
         setError(result.error || 'Registration failed. Please check your information and try again.');
       }
@@ -603,7 +605,10 @@ export default function SignupPage() {
           }}
         >
           Already have an account?{' '}
-          <Link href="/login" style={{ color: '#05424A', fontWeight: 800, textDecoration: 'none' }}>
+          <Link
+            href={redirectTarget ? `/login?redirect=${encodeURIComponent(redirectTarget)}` : '/login'}
+            style={{ color: '#05424A', fontWeight: 800, textDecoration: 'none' }}
+          >
             Sign In here
           </Link>
         </div>
@@ -611,5 +616,31 @@ export default function SignupPage() {
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            minHeight: '100vh',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#011619',
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: 700,
+          }}
+        >
+          Loading Sign Up…
+        </div>
+      }
+    >
+      <SignupPageContent />
+    </Suspense>
   );
 }

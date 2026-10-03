@@ -24,6 +24,14 @@ import {
   X,
   Plus,
   Edit3,
+  Lock,
+  LogIn,
+  UserPlus,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -142,7 +150,19 @@ function PublicBookingPageContent() {
     }
   }, [searchParams, bridalPackages, hasAutoScrolled]);
 
-  const { customer } = useCustomerAuth();
+  const loginCardRef = useRef<HTMLDivElement>(null);
+  const { customer, login: customerLogin, signup: customerSignup, logout: customerLogout } = useCustomerAuth();
+
+  // In-Page Customer Login / Signup State
+  const [authTab, setAuthTab] = useState<'login' | 'signup'>('login');
+  const [authMobile, setAuthMobile] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [authSuccessMsg, setAuthSuccessMsg] = useState('');
+  const [showAuthPass, setShowAuthPass] = useState(false);
 
   // Customer Contact Info
   const [customerName, setCustomerName] = useState('');
@@ -150,22 +170,106 @@ function PublicBookingPageContent() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [notes, setNotes] = useState('');
 
-  // Pre-fill logged-in customer's details by default (customer can freely edit them if desired)
+  // Automatically sync logged-in customer's details
   useEffect(() => {
     if (customer) {
-      if (customer.name && !customerName) {
+      if (customer.name) {
         setCustomerName(customer.name);
       }
       const rawPhone = customer.phone || customer.mobile || '';
       const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
-      if (cleanPhone && !customerMobile) {
+      if (cleanPhone) {
         setCustomerMobile(cleanPhone);
       }
-      if (customer.email && !customerEmail) {
+      if (customer.email) {
         setCustomerEmail(customer.email);
       }
+      setAuthError('');
     }
   }, [customer]);
+
+  // Fast In-Page Customer Login
+  const handleInPageLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+    setAuthSuccessMsg('');
+    const clean = authMobile.replace(/\D/g, '').slice(-10);
+    if (!clean || clean.length !== 10) {
+      setAuthError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (!authPassword) {
+      setAuthError('Please enter your account password.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const res = await customerLogin({
+        method: 'mobile',
+        phone: clean,
+        password: authPassword,
+      });
+
+      if (res.success) {
+        setAuthSuccessMsg('✓ Logged in successfully! Identity verified.');
+        setAuthPassword('');
+      } else if (res.notFound) {
+        setAuthError('No account found with this mobile number. Please switch to "Register" tab to create your account.');
+      } else if (res.needsPasswordSetup) {
+        setAuthError('Your account needs password setup. Please use "Forgot Password" or full login.');
+      } else {
+        setAuthError(res.error || 'Invalid credentials. Please verify your mobile and password.');
+      }
+    } catch (err: any) {
+      setAuthError(err?.message || 'Login failed. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Fast In-Page Customer Signup
+  const handleInPageSignup = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+    setAuthSuccessMsg('');
+    if (!authName.trim() || authName.trim().length < 2) {
+      setAuthError('Please enter your full name (minimum 2 characters).');
+      return;
+    }
+    const cleanPhone = authMobile.replace(/\D/g, '').slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      setAuthError('Please enter a valid 10-digit WhatsApp mobile number.');
+      return;
+    }
+    if (authPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      const res = await customerSignup({
+        name: authName.trim(),
+        mobile: cleanPhone,
+        phone: cleanPhone,
+        email: authEmail.trim() || undefined,
+        password: authPassword,
+        method: 'mobile',
+      });
+
+      if (res.success) {
+        setAuthSuccessMsg('✓ Account registered & logged in! Identity verified.');
+        setAuthPassword('');
+      } else {
+        setAuthError(res.error || 'Registration failed. Please check your details.');
+      }
+    } catch (err: any) {
+      setAuthError(err?.message || 'Registration failed. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -263,6 +367,14 @@ function PublicBookingPageContent() {
         alert('Cannot book bridal appointments for past dates.');
         return;
       }
+    }
+
+    if (!customer) {
+      if (loginCardRef.current) {
+        loginCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      setAuthError('🔒 Customer Login is mandatory before scheduling your appointment. Please sign in or create an account below.');
+      return;
     }
 
     if (!customerName.trim()) {
@@ -1480,138 +1592,528 @@ function PublicBookingPageContent() {
                     </div>
                   </div>
 
-              {/* Step 3: Customer Details */}
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <User size={18} color="#05424a" /> 3. Your Contact Information *
-                  </h3>
-                  {customer && (
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#05424a', background: '#e0f2fe', border: '1px solid #bae6fd', padding: '3px 9px', borderRadius: 99 }}>
-                      ✓ Pre-filled for {customer.name?.split(' ')[0]} (Editable)
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ display: 'grid', gap: 12 }}>
+              {/* Step 3: Customer Authentication & Details */}
+              <div ref={loginCardRef} id="customer-auth-section" style={{ marginBottom: 24, scrollMarginTop: 80 }}>
+                {!customer ? (
+                  /* ─── CASE A: User is NOT Logged In (Authentication Required) ─── */
                   <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
-                      Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Priya Patel"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 14,
-                        outline: 'none',
-                        minHeight: 46,
-                        touchAction: 'manipulation',
-                      }}
-                      className="text-base sm:text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
-                      WhatsApp Mobile Number (10 digits) *
-                    </label>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <span style={{ padding: '11px 12px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 12, fontSize: 14, fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', minHeight: 46 }}>
-                        +91
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
+                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Lock size={18} color="#05424a" /> 3. Customer Login Required (લૉગિન જરૂરી છે) *
+                      </h3>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: '#b45309', background: '#fef3c7', border: '1.5px solid #fde68a', padding: '3px 10px', borderRadius: 99 }}>
+                        🔒 Login Mandatory Before Booking
                       </span>
+                    </div>
+
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                        border: '2px solid #05424a',
+                        borderRadius: 20,
+                        padding: '20px',
+                        boxShadow: '0 8px 24px rgba(5,66,74,0.08)',
+                      }}
+                    >
+                      {/* Notice Header */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+                        <div
+                          style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: 12,
+                            background: 'linear-gradient(135deg, #05424a 0%, #0d626e 100%)',
+                            color: '#eaba38',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <ShieldCheck size={24} />
+                        </div>
+                        <div>
+                          <h4 style={{ margin: '0 0 3px', fontSize: 15, fontWeight: 800, color: '#0f172a' }}>
+                            Sign In / Register to Confirm Your Slot
+                          </h4>
+                          <p style={{ margin: 0, fontSize: 12.5, color: '#475569', lineHeight: 1.45 }}>
+                            બુકિંગ કન્ફર્મ કરવા અને WhatsApp પાસ મેળવવા માટે પહેલાં લૉગિન જરૂરી છે. Sign in with your mobile number to protect your slot.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Tab Switcher */}
+                      <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: 12, padding: 4, marginBottom: 16 }}>
+                        <button
+                          type="button"
+                          onClick={() => { setAuthTab('login'); setAuthError(''); setAuthSuccessMsg(''); }}
+                          style={{
+                            flex: 1,
+                            padding: '9px 12px',
+                            borderRadius: 9,
+                            border: 'none',
+                            fontSize: 13,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            background: authTab === 'login' ? '#ffffff' : 'transparent',
+                            color: authTab === 'login' ? '#05424a' : '#64748b',
+                            boxShadow: authTab === 'login' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <LogIn size={15} />
+                          <span>Sign In (લૉગિન)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAuthTab('signup'); setAuthError(''); setAuthSuccessMsg(''); }}
+                          style={{
+                            flex: 1,
+                            padding: '9px 12px',
+                            borderRadius: 9,
+                            border: 'none',
+                            fontSize: 13,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            background: authTab === 'signup' ? '#ffffff' : 'transparent',
+                            color: authTab === 'signup' ? '#05424a' : '#64748b',
+                            boxShadow: authTab === 'signup' ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <UserPlus size={15} />
+                          <span>New? Register (નવું ખાતું)</span>
+                        </button>
+                      </div>
+
+                      {/* Error & Success Alerts */}
+                      {authError && (
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '10px 14px', fontSize: 12.5, fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <AlertCircle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
+                          <span>{authError}</span>
+                        </div>
+                      )}
+                      {authSuccessMsg && (
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', borderRadius: 10, padding: '10px 14px', fontSize: 12.5, fontWeight: 700, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
+                          <span>{authSuccessMsg}</span>
+                        </div>
+                      )}
+
+                      {/* Form inputs */}
+                      {authTab === 'login' ? (
+                        <div style={{ display: 'grid', gap: 12 }}>
+                          <div>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                              Registered Mobile Number (10 Digits) *:
+                            </label>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <span style={{ padding: '10px 12px', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 10, fontSize: 13.5, fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center' }}>
+                                +91
+                              </span>
+                              <input
+                                type="tel"
+                                maxLength={10}
+                                placeholder="e.g. 9898012345"
+                                value={authMobile}
+                                onChange={(e) => setAuthMobile(e.target.value.replace(/\D/g, ''))}
+                                style={{
+                                  flex: 1,
+                                  padding: '10px 14px',
+                                  borderRadius: 10,
+                                  border: '1.5px solid #cbd5e1',
+                                  fontSize: 14,
+                                  outline: 'none',
+                                  background: '#ffffff',
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                              <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', margin: 0 }}>
+                                Password *:
+                              </label>
+                              <Link
+                                href="/forgot-password"
+                                target="_blank"
+                                style={{ fontSize: 11.5, color: '#05424a', fontWeight: 700, textDecoration: 'none' }}
+                              >
+                                Forgot Password?
+                              </Link>
+                            </div>
+                            <div style={{ position: 'relative' }}>
+                              <input
+                                type={showAuthPass ? 'text' : 'password'}
+                                placeholder="Enter your password"
+                                value={authPassword}
+                                onChange={(e) => setAuthPassword(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleInPageLogin(); } }}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 38px 10px 14px',
+                                  borderRadius: 10,
+                                  border: '1.5px solid #cbd5e1',
+                                  fontSize: 14,
+                                  outline: 'none',
+                                  background: '#ffffff',
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowAuthPass(!showAuthPass)}
+                                style={{
+                                  position: 'absolute',
+                                  right: 10,
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  color: '#64748b',
+                                  padding: 4,
+                                }}
+                              >
+                                {showAuthPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={authLoading || !authMobile || !authPassword}
+                            onClick={() => handleInPageLogin()}
+                            style={{
+                              padding: '12px 18px',
+                              borderRadius: 11,
+                              background: 'linear-gradient(135deg, #05424a 0%, #032b30 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              fontSize: 13.5,
+                              fontWeight: 800,
+                              cursor: authLoading || !authMobile || !authPassword ? 'not-allowed' : 'pointer',
+                              opacity: authLoading || !authMobile || !authPassword ? 0.6 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 8,
+                              boxShadow: '0 4px 14px rgba(5,66,74,0.25)',
+                              marginTop: 4,
+                            }}
+                          >
+                            {authLoading ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />}
+                            <span>{authLoading ? 'Signing In…' : 'Sign In & Unlock Booking ➔'}</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gap: 12 }}>
+                          <div>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                              Full Name (પૂરું નામ) *:
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Priya Patel"
+                              value={authName}
+                              onChange={(e) => setAuthName(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: 10,
+                                border: '1.5px solid #cbd5e1',
+                                fontSize: 14,
+                                outline: 'none',
+                                background: '#ffffff',
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                              WhatsApp Mobile Number (10 Digits) *:
+                            </label>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <span style={{ padding: '10px 12px', background: '#ffffff', border: '1.5px solid #cbd5e1', borderRadius: 10, fontSize: 13.5, fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center' }}>
+                                +91
+                              </span>
+                              <input
+                                type="tel"
+                                maxLength={10}
+                                placeholder="e.g. 9898012345"
+                                value={authMobile}
+                                onChange={(e) => setAuthMobile(e.target.value.replace(/\D/g, ''))}
+                                style={{
+                                  flex: 1,
+                                  padding: '10px 14px',
+                                  borderRadius: 10,
+                                  border: '1.5px solid #cbd5e1',
+                                  fontSize: 14,
+                                  outline: 'none',
+                                  background: '#ffffff',
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                              Email Address (Optional):
+                            </label>
+                            <input
+                              type="email"
+                              placeholder="e.g. priya.patel@gmail.com"
+                              value={authEmail}
+                              onChange={(e) => setAuthEmail(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '10px 14px',
+                                borderRadius: 10,
+                                border: '1.5px solid #cbd5e1',
+                                fontSize: 14,
+                                outline: 'none',
+                                background: '#ffffff',
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>
+                              Set Password (ઓછામાં ઓછા 6 અક્ષર) *:
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                              <input
+                                type={showAuthPass ? 'text' : 'password'}
+                                placeholder="Create a password (min 6 characters)"
+                                value={authPassword}
+                                onChange={(e) => setAuthPassword(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleInPageSignup(); } }}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 38px 10px 14px',
+                                  borderRadius: 10,
+                                  border: '1.5px solid #cbd5e1',
+                                  fontSize: 14,
+                                  outline: 'none',
+                                  background: '#ffffff',
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowAuthPass(!showAuthPass)}
+                                style={{
+                                  position: 'absolute',
+                                  right: 10,
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  color: '#64748b',
+                                  padding: 4,
+                                }}
+                              >
+                                {showAuthPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            disabled={authLoading || !authName || !authMobile || authPassword.length < 6}
+                            onClick={() => handleInPageSignup()}
+                            style={{
+                              padding: '12px 18px',
+                              borderRadius: 11,
+                              background: 'linear-gradient(135deg, #05424a 0%, #032b30 100%)',
+                              color: '#ffffff',
+                              border: 'none',
+                              fontSize: 13.5,
+                              fontWeight: 800,
+                              cursor: authLoading || !authName || !authMobile || authPassword.length < 6 ? 'not-allowed' : 'pointer',
+                              opacity: authLoading || !authName || !authMobile || authPassword.length < 6 ? 0.6 : 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 8,
+                              boxShadow: '0 4px 14px rgba(5,66,74,0.25)',
+                              marginTop: 4,
+                            }}
+                          >
+                            {authLoading ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+                            <span>{authLoading ? 'Registering…' : 'Register Account & Continue ➔'}</span>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Full Login Link */}
+                      <div style={{ textAlign: 'center', marginTop: 14, paddingTop: 12, borderTop: '1px solid #e2e8f0', fontSize: 12, color: '#64748b' }}>
+                        Prefer dedicated login page?{' '}
+                        <Link
+                          href={`/login?redirect=${encodeURIComponent('/book')}`}
+                          style={{ color: '#05424a', fontWeight: 800, textDecoration: 'none' }}
+                        >
+                          Go to Customer Login Screen ➔
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* ─── CASE B: User IS Logged In (Verified Identity Display) ─── */
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 6 }}>
+                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <User size={18} color="#05424a" /> 3. Verified Client Identity (વેરિફાઈડ એકાઉન્ટ) *
+                      </h3>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: '#16a34a', background: '#dcfce7', border: '1px solid #86efac', padding: '3px 10px', borderRadius: 99, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <CheckCircle2 size={13} color="#16a34a" /> Logged In &amp; Verified
+                      </span>
+                    </div>
+
+                    {/* Verified Customer Profile Card */}
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+                        border: '1.5px solid #86efac',
+                        borderRadius: 16,
+                        padding: '16px 18px',
+                        marginBottom: 16,
+                        boxShadow: '0 4px 14px rgba(22,163,74,0.06)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: '50%',
+                              background: '#05424a',
+                              color: '#eaba38',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 18,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {customer.name?.charAt(0).toUpperCase() || 'C'}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 15, fontWeight: 900, color: '#065f46' }}>
+                              {customer.name}
+                            </div>
+                            <div style={{ fontSize: 12.5, color: '#047857', display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
+                              <span>📞 +91 {(customer.phone || customer.mobile || customerMobile || '').replace(/\D/g, '').slice(-10)}</span>
+                              {customer.email && <span>• ✉️ {customer.email}</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => customerLogout()}
+                          style={{
+                            background: '#ffffff',
+                            border: '1px solid #cbd5e1',
+                            color: '#64748b',
+                            padding: '6px 12px',
+                            borderRadius: 8,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Switch Account / Logout
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Notes / Special Request */}
+                    <div>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
+                        Special Request / Notes (Optional):
+                      </label>
                       <input
-                        type="tel"
-                        required
-                        maxLength={10}
-                        placeholder="e.g. 9898012345"
-                        value={customerMobile}
-                        onChange={(e) => setCustomerMobile(e.target.value)}
+                        type="text"
+                        placeholder="e.g. Preferred hair styling, allergies, or special event timing"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
                         style={{
-                          flex: 1,
+                          width: '100%',
                           padding: '11px 14px',
                           borderRadius: 12,
                           border: '1.5px solid #cbd5e1',
                           fontSize: 14,
                           outline: 'none',
                           minHeight: 46,
-                          touchAction: 'manipulation',
                         }}
                         className="text-base sm:text-sm"
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
-                      Email Address (Optional — for luxury receipt & calendar invite):
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="e.g. priya.patel@gmail.com"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 14,
-                        outline: 'none',
-                        minHeight: 46,
-                        touchAction: 'manipulation',
-                      }}
-                      className="text-base sm:text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
-                      Special Request / Notes (Optional):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Preferred makeup style, skin allergy, or number of siders"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '11px 14px',
-                        borderRadius: 12,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 14,
-                        outline: 'none',
-                        minHeight: 46,
-                        touchAction: 'manipulation',
-                      }}
-                      className="text-base sm:text-sm"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Submit Button */}
+              {/* Submit / Schedule Button */}
               {(() => {
                 const activeHolidayCheck = bookingMode === 'bridal' ? bridalHolidayCheck : regularHolidayCheck;
                 const isTimePast = bookingMode === 'regular' && isPastTimeForDate(bookingDate, selectedTime);
                 const isPastSlotBlocked = bookingMode === 'regular' && (areAllSlotsPast || isTimePast);
-                const isBlocked = activeHolidayCheck.isBlocked || isPastSlotBlocked;
+                const isHolidayBlocked = activeHolidayCheck.isBlocked;
+                const isNoService = (bookingMode === 'regular' && selectedServices.length === 0) || (bookingMode === 'bridal' && selectedBridalPkgIds.length === 0);
+                const isNotLoggedIn = !customer;
+
+                const isBlocked = isHolidayBlocked || isPastSlotBlocked || isNoService;
+
+                // When user is NOT logged in: Prominently prompt login on the submit button
+                if (isNotLoggedIn) {
+                  return (
+                    <motion.button
+                      type="button"
+                      onClick={() => {
+                        if (loginCardRef.current) {
+                          loginCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        setAuthError('🔒 Please sign in or create an account in Step 3 above before scheduling.');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '15px 20px',
+                        borderRadius: 14,
+                        background: 'linear-gradient(135deg, #b45309 0%, #78350f 100%)',
+                        color: '#ffffff',
+                        fontWeight: 900,
+                        fontSize: 15,
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        minHeight: 52,
+                        boxShadow: '0 8px 24px rgba(180,83,9,0.35)',
+                      }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Lock size={18} color="#fde68a" />
+                      <span>🔒 Login Required to Confirm Booking (Step 3) ➔</span>
+                    </motion.button>
+                  );
+                }
 
                 return (
                   <motion.button
                     type="submit"
-                    disabled={
-                      isSubmitting ||
-                      isBlocked ||
-                      (bookingMode === 'regular' && selectedServices.length === 0) ||
-                      (bookingMode === 'bridal' && selectedBridalPkgIds.length === 0)
-                    }
+                    disabled={isSubmitting || isBlocked}
                     style={{
                       width: '100%',
                       padding: '15px 20px',
@@ -1655,6 +2157,8 @@ function PublicBookingPageContent() {
                       ? `${activeHolidayCheck.badgeText} - Booking Unavailable`
                       : isPastSlotBlocked
                       ? '⏰ Past Time Slot - Choose Live/Future Time'
+                      : isNoService
+                      ? 'Please Select a Service Above'
                       : bookingMode === 'bridal'
                       ? `👑 Submit Bridal Booking Request (${money(bridalTotal)})`
                       : `💄 Submit Booking Request (${money(regularTotal)})`}
