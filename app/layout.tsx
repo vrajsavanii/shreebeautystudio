@@ -6,12 +6,15 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://shreebeauty.studio'),
   title: {
-    default: 'Shree Beauty Studio — Luxury Ladies Salon & Bridal Makeup, Katargam Surat',
+    default: 'Shree Beauty Parlour & Studio Surat — Best Ladies Salon & Bridal Studio',
     template: '%s | Shree Beauty Studio, Surat',
   },
   description:
     'Surat’s premier ladies-only beauty salon and bridal makeover studio in Katargam. 25+ years excellence in HD bridal makeup, hair Botox, nanoplastia, and luxury facials.',
   keywords: [
+    'shree beauty parlour',
+    'shree beauty parlour surat',
+    'shree beauty studio',
     'beauty salon Surat',
     'ladies salon Katargam Surat',
     'bridal makeup artist Surat',
@@ -19,7 +22,6 @@ export const metadata: Metadata = {
     'hair Botox Surat',
     'keratin treatment Surat',
     'hydra facial Surat',
-    'Shree Beauty Studio',
   ],
   verification: {
     google: '2EZxH2Nusun00VMqlKGAB6OJv238XGDL5dqSgtrh_hs',
@@ -28,8 +30,7 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.png', type: 'image/png', sizes: '192x192' },
-      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
-      { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
+      { url: '/apple-touch-icon.png', type: 'image/png', sizes: '180x180' },
     ],
     shortcut: '/favicon.ico',
     apple: [
@@ -70,12 +71,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Shree Beauty" />
         <meta name="application-name" content="Shree Beauty" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Google Search & Browser Favicons */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.json" />
         <script
           dangerouslySetInnerHTML={{

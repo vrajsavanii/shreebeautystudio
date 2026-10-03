@@ -4,11 +4,16 @@ import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Best Beauty Studio & Salon in Surat | Shree Beauty Studio (Ladies Only)',
+    absolute: 'Shree Beauty Parlour & Studio Surat — Best Ladies Salon & Bridal Studio',
   },
   description:
-    'Ranked #1 best beauty studio, ladies salon & bridal parlour in Surat, Gujarat. 25+ years expertise in Katargam known for bridal makeovers, hair treatments, and skin care. 100% ladies-only sanctuary.',
+    'Shree Beauty Parlour & Studio is Surat’s premier 100% ladies-only beauty salon in Katargam. 25+ years of verified excellence for bridal makeovers, hair treatments, and skin care.',
   keywords: [
+    'shree beauty parlour',
+    'shree beauty parlour surat',
+    'shree beauty parlour katargam',
+    'shree beauty studio',
+    'shree beauty studio surat',
     'best beauty studio in surat',
     'best beauty salon in Surat',
     'best beauty parlour in Surat',
@@ -24,17 +29,16 @@ export const metadata: Metadata = {
     'nanoplastia treatment Surat',
     'hydra facial Surat',
     'ladies beauty parlour Surat',
-    'Shree Beauty Studio',
   ],
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Best Beauty Studio & Salon in Surat | Shree Beauty Studio (Ladies Only)',
+    title: 'Shree Beauty Parlour & Studio Surat — Best Ladies Salon & Bridal Studio',
     description:
-      'Ranked #1 best beauty studio & ladies salon in Surat, Gujarat. 25+ years of excellence in Katargam known for bridal makeovers, hair treatments, and skin care.',
+      'Shree Beauty Parlour & Studio is Surat’s premier 100% ladies-only beauty salon in Katargam. 25+ years of excellence for bridal makeovers, hair treatments, and skin care.',
     url: 'https://shreebeauty.studio',
-    siteName: 'Shree Beauty Studio',
+    siteName: 'Shree Beauty Studio & Parlour',
     locale: 'en_IN',
     type: 'website',
     images: [
@@ -42,15 +46,15 @@ export const metadata: Metadata = {
         url: '/logo-with-name.png',
         width: 800,
         height: 600,
-        alt: 'Best Beauty Studio & Salon in Surat — Shree Beauty Studio Katargam',
+        alt: 'Shree Beauty Parlour & Studio Surat — Best Ladies Salon',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Best Beauty Studio & Salon in Surat | Shree Beauty Studio',
+    title: 'Shree Beauty Parlour & Studio Surat — Best Ladies Salon',
     description:
-      'Ranked #1 best beauty studio & ladies salon in Surat, Gujarat. 25+ years experience in Katargam.',
+      'Shree Beauty Parlour & Studio is Surat’s premier 100% ladies-only beauty salon in Katargam. 25+ years of excellence.',
     images: ['/logo-with-name.png'],
   },
 };

@@ -11,6 +11,13 @@ export const BASE_URL = 'https://shreebeauty.studio';
 export const BUSINESS = {
   name: 'Shree Beauty Studio',
   legalName: 'Shree Beauty Studio',
+  alternateName: [
+    'Shree Beauty Parlour',
+    'Shree Beauty Parlour Surat',
+    'Shree Beauty Parlour Katargam',
+    'Shree Studio',
+    'Shree Studio Surat',
+  ],
   url: BASE_URL,
   telephone: ['+91-98241-83769'],
   whatsapp: '919824183769',
@@ -78,6 +85,7 @@ export function getLocalBusinessSchema() {
     '@id': `${BASE_URL}/#business`,
     name: BUSINESS.name,
     legalName: BUSINESS.legalName,
+    alternateName: BUSINESS.alternateName,
     description: BUSINESS.description,
     slogan: BUSINESS.slogan,
     award: BUSINESS.award,
@@ -178,6 +186,7 @@ export function getWebSiteSchema() {
     '@id': `${BASE_URL}/#website`,
     url: BASE_URL,
     name: BUSINESS.name,
+    alternateName: BUSINESS.alternateName,
     description: BUSINESS.description,
     publisher: {
       '@id': `${BASE_URL}/#business`,
