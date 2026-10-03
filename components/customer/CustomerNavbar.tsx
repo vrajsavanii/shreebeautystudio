@@ -13,10 +13,9 @@ const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/services', label: 'Services' },
   { href: '/bridal', label: 'Bridal' },
+  { href: '/about', label: 'About & Contact' },
   { href: '/blog', label: 'Blog' },
-  { href: '/about', label: 'About' },
   { href: '/faq', label: 'FAQ' },
-  { href: '/contact', label: 'Contact Us' },
   { href: '/my-appointments', label: 'My Appointments' },
 ];
 
@@ -162,7 +161,9 @@ export default function CustomerNavbar() {
             }}
           >
             {NAV_LINKS.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = link.href === '/about'
+                ? pathname === '/about' || pathname === '/contact' || pathname === '/ContactUs'
+                : pathname === link.href;
               return (
                 <Link
                   key={link.href}
@@ -610,7 +611,9 @@ export default function CustomerNavbar() {
             )}
 
             {NAV_LINKS.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = link.href === '/about'
+                ? pathname === '/about' || pathname === '/contact' || pathname === '/ContactUs'
+                : pathname === link.href;
               return (
                 <Link
                   key={link.href}

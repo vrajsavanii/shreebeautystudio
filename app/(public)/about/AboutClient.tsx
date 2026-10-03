@@ -458,7 +458,7 @@ export default function AboutClient() {
       </section>
 
       {/* ─── LOCATION & CONTACT BLOCK ───────────────────────────── */}
-      <section style={{ maxWidth: 1120, margin: '100px auto 0', padding: '0 20px' }}>
+      <section id="contact" style={{ maxWidth: 1120, margin: '100px auto 0', padding: '0 20px', scrollMarginTop: 90 }}>
         <div
           style={{
             position: 'relative',

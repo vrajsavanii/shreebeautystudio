@@ -166,10 +166,10 @@ export default function CustomerFooter() {
                 { href: '/', label: 'Home' },
                 { href: '/services', label: 'Services & Pricing Menu' },
                 { href: '/bridal', label: 'Couture Bridal Packages' },
-                { href: '/about', label: 'About Us & Heritage' },
-                { href: '/locations', label: 'Locations & Destination Artistry' },
-                { href: '/contact', label: 'Contact & Location' },
+                { href: '/about', label: 'About Us & Contact' },
+                { href: '/faq', label: 'Frequently Asked Questions' },
                 { href: '/blog', label: 'Beauty & Care Blog (50+ Guides)' },
+                { href: '/locations', label: 'Locations & Destination Artistry' },
               ].map((link, idx) => (
                 <Link
                   key={idx}
