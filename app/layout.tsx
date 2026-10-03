@@ -66,6 +66,7 @@ export default function RootLayout({
         />
         <meta name="theme-color" content="#05424A" />
         <meta name="google-site-verification" content="2EZxH2Nusun00VMqlKGAB6OJv238XGDL5dqSgtrh_hs" />
+        <meta name="google-site-verification" content="google5e5e89663815b69a" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
