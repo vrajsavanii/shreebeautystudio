@@ -283,6 +283,7 @@ export default function CustomerFooter() {
                 { href: '/services', label: 'Services & Pricing Menu' },
                 { href: '/bridal', label: 'Couture Bridal Packages' },
                 { href: '/about', label: 'About Us & Heritage' },
+                { href: '/locations', label: 'Locations & Destination Artistry' },
                 { href: '/contact', label: 'Contact & Location' },
                 { href: '/blog', label: 'Beauty & Care Blog (50+ Guides)' },
               ].map((link, idx) => (

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { ALL_BLOG_POSTS } from '@/lib/blog-data';
+import { ALL_LOCATION_SLUGS } from '@/lib/locations-data';
 
 const BASE_URL = 'https://shreebeauty.studio';
 
@@ -70,5 +71,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.75,
   }));
 
-  return [...staticPages, ...blogPages];
+  const locationPages: MetadataRoute.Sitemap = [
+    {
+      url: `${BASE_URL}/locations`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    ...ALL_LOCATION_SLUGS.map((slug) => ({
+      url: `${BASE_URL}/locations/${slug}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: slug === 'surat' ? 0.95 : 0.9,
+    })),
+  ];
+
+  return [...staticPages, ...locationPages, ...blogPages];
 }
