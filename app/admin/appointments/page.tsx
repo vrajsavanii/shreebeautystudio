@@ -72,7 +72,6 @@ export default function AppointmentsPage() {
     setSoundMuted(isAudioNotificationMuted());
   }, []);
 
-
   const [holidayForm, setHolidayForm] = useState<{
     date: string;
     endDate: string;
