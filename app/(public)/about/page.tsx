@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import AboutClient from './AboutClient';
-import { getBreadcrumbSchema } from '@/lib/seo';
+import { getBreadcrumbSchema, getLocalBusinessSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   },
   description:
     'Over 25 years of bridal makeovers, luxury hair care, and skincare in Katargam, Surat. 100% ladies-only sanctuary using sealed international brands.',
+  keywords: [
+    'about Shree Beauty Studio',
+    'ladies salon heritage Surat',
+    'beauty parlour Katargam history',
+    'best bridal artist Surat story',
+    'hygienic beauty salon Surat',
+  ],
   alternates: {
     canonical: '/about',
   },
@@ -26,9 +33,17 @@ export const metadata: Metadata = {
       },
     ],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About Us — 25+ Years of Excellence | Shree Beauty Studio Surat',
+    description:
+      'Over 25 years of bridal makeovers, luxury hair care, and skincare in Katargam, Surat.',
+    images: ['/logo-with-name.png'],
+  },
 };
 
 export default function AboutPage() {
+  const localBusinessJsonLd = getLocalBusinessSchema();
   const breadcrumbJsonLd = getBreadcrumbSchema([
     { name: 'Home', url: '/' },
     { name: 'About Us', url: '/about' },
@@ -52,13 +67,17 @@ export default function AboutPage() {
         postalCode: '395004',
         addressCountry: 'IN',
       },
-      foundingDate: '2014',
+      foundingDate: '2000',
       priceRange: '₹₹',
     },
   };
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}

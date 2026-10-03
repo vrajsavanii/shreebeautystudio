@@ -1,12 +1,19 @@
 import type { Metadata } from 'next';
 import BookClient from './BookClient';
-import { getBreadcrumbSchema } from '@/lib/seo';
+import { getBreadcrumbSchema, getLocalBusinessSchema } from '@/lib/seo';
 import { CustomerAuthProvider } from '@/lib/customer-context';
 
 export const metadata: Metadata = {
   title: 'Book Appointment Online — Shree Beauty Studio, Katargam Surat',
   description:
     'Book your haircut, facial, hair spa, bridal makeover, or party styling appointment online with instant confirmation at Shree Beauty Studio in Katargam, Surat.',
+  keywords: [
+    'book salon appointment Surat',
+    'beauty parlour Katargam booking',
+    'bridal makeup appointment Surat',
+    'ladies salon booking Katargam',
+    'Shree Beauty Studio appointment',
+  ],
   alternates: {
     canonical: '/book',
   },
@@ -35,6 +42,7 @@ export const metadata: Metadata = {
 };
 
 export default function BookPage() {
+  const localBusinessJsonLd = getLocalBusinessSchema();
   const breadcrumbJsonLd = getBreadcrumbSchema([
     { name: 'Home', url: '/' },
     { name: 'Book Appointment', url: '/book' },
@@ -42,6 +50,10 @@ export default function BookPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}

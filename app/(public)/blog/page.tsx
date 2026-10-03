@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import BlogListClient from './BlogListClient';
 import { ALL_BLOG_POSTS, getAllBlogCategories } from '@/lib/blog-data';
-import { getBreadcrumbSchema } from '@/lib/seo';
+import { getBreadcrumbSchema, getLocalBusinessSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
@@ -9,6 +9,14 @@ export const metadata: Metadata = {
   },
   description:
     'Explore 150+ guides on bridal makeup, hair Botox, Nanoplastia, Hydra facials, and beauty tips in Katargam, Surat. Expert advice for Gujarat women.',
+  keywords: [
+    'beauty blog Surat',
+    'bridal makeup guide Gujarat',
+    'hair botox advice Surat',
+    'hydra facial benefits Katargam',
+    'skincare tips Indian brides',
+    'Shree Beauty Studio articles',
+  ],
   alternates: {
     canonical: '/blog',
   },
@@ -27,10 +35,18 @@ export const metadata: Metadata = {
       },
     ],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Beauty & Bridal Journal: 150+ Guides | Shree Beauty Studio Surat',
+    description:
+      '150+ professional beauty articles, skincare routines, and bridal guides from Katargam, Surat.',
+    images: ['/logo-with-name.png'],
+  },
 };
 
 export default function BlogPage() {
   const categories = getAllBlogCategories();
+  const localBusinessJsonLd = getLocalBusinessSchema();
   const breadcrumbJsonLd = getBreadcrumbSchema([
     { name: 'Home', url: '/' },
     { name: 'Blog', url: '/blog' },
@@ -38,6 +54,10 @@ export default function BlogPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
