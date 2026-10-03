@@ -13,9 +13,9 @@ const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/services', label: 'Services' },
   { href: '/bridal', label: 'Bridal' },
-  { href: '/about', label: 'About & Contact' },
-  { href: '/faq', label: 'FAQ' },
   { href: '/blog', label: 'Blog' },
+  { href: '/faq', label: 'FAQ' },
+  { href: '/about', label: 'About & Contact' },
   { href: '/my-appointments', label: 'My Appointments' },
 ];
 
