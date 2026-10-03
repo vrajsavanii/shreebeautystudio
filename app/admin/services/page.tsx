@@ -27,6 +27,7 @@ import {
   Upload,
   CheckSquare,
   Square,
+  Crown,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -120,14 +121,85 @@ const SALON_PRESET_PACKAGES = [
     ],
   },
   {
-    title: '👰 Makeup & Bridal Pack',
+    title: '👰 Makeup & Bridal Pack (Luxury Catalog)',
     category: 'Makeup & Bridal',
     services: [
-      { name: 'HD Party Makeup', price: 2500, duration: 60, description: 'Glam party makeup with lashes' },
-      { name: 'Airbrush Engagement Makeup', price: 6500, duration: 120, description: 'Flawless airbrush finish' },
-      { name: 'Royal Bridal HD Makeup Package', price: 12500, duration: 180, description: 'Complete bridal look with hair & saree' },
-      { name: 'Saree / Dupatta Draping', price: 350, duration: 20, description: 'Professional saree pleating & draping' },
+      { name: 'HD Party & Occasion Makeup', price: 2500, duration: 60, description: 'Glamorous HD party makeup with lashes, hair styling & dupatta draping' },
+      { name: 'Engagement & Sangeet Makeup', price: 6500, duration: 90, description: 'Airbrush & HD fusion look with premium eyelashes, lenses & jewelry setting' },
+      { name: 'Royal Bridal HD Makeover', price: 15000, duration: 180, description: 'Signature bridal couture makeover, hair styling, jewelry setting, extensions, lenses & draping' },
+      { name: 'Airbrush Couture Bridal Package', price: 25000, duration: 180, description: 'Ultra-HD water-resistant airbrush bridal makeup, 3D lashes, real flower hair styling & dupatta styling' },
+      { name: 'Siders & Bridesmaids Makeup', price: 3500, duration: 60, description: 'Elegant party makeover, designer hairstyle & traditional draping for relatives & bridesmaids' },
+      { name: 'Saree & Lehenga Dupatta Draping', price: 500, duration: 25, description: 'Flawless pleating, Gujarati/Can-Can style draping & jewelry placement' },
+      { name: 'Pre-Bridal Luxury Skin & Hair Ritual', price: 4500, duration: 120, description: 'Full body polishing, gold radiance facial, L\'Oreal hair spa, waxing & manicure/pedicure glow' },
+      { name: 'Bridal Designer Hairstyle & Flowers', price: 1800, duration: 45, description: 'Traditional Gujarati bridal bun, romantic messy curls, real flower setting & accessories pinning' },
     ],
+  },
+];
+
+const OFFICIAL_BRIDAL_CATALOG_SERVICES = [
+  {
+    name: 'HD Party & Occasion Makeup',
+    price: 2500,
+    category: 'Makeup & Bridal',
+    duration: 60,
+    pricingType: 'starting' as ServicePricingType,
+    description: 'Glamorous HD party makeup with lashes, hair styling & dupatta draping (Starts from)',
+  },
+  {
+    name: 'Engagement & Sangeet Makeup',
+    price: 6500,
+    category: 'Makeup & Bridal',
+    duration: 90,
+    pricingType: 'starting' as ServicePricingType,
+    description: 'Airbrush & HD fusion look with premium eyelashes, lenses & jewelry setting',
+  },
+  {
+    name: 'Royal Bridal HD Makeover',
+    price: 15000,
+    category: 'Makeup & Bridal',
+    duration: 180,
+    pricingType: 'fixed' as ServicePricingType,
+    description: 'Signature bridal couture makeover, hair styling, jewelry setting, extensions, lenses & draping',
+  },
+  {
+    name: 'Airbrush Couture Bridal Package',
+    price: 25000,
+    category: 'Makeup & Bridal',
+    duration: 180,
+    pricingType: 'fixed' as ServicePricingType,
+    description: 'Ultra-HD water-resistant airbrush bridal makeup, 3D lashes, real flower hair styling & dupatta styling',
+  },
+  {
+    name: 'Siders & Bridesmaids Makeup',
+    price: 3500,
+    category: 'Makeup & Bridal',
+    duration: 60,
+    pricingType: 'starting' as ServicePricingType,
+    description: 'Elegant party makeover, designer hairstyle & traditional draping for relatives & bridesmaids',
+  },
+  {
+    name: 'Saree & Lehenga Dupatta Draping',
+    price: 500,
+    category: 'Makeup & Bridal',
+    duration: 25,
+    pricingType: 'fixed' as ServicePricingType,
+    description: 'Flawless pleating, Gujarati/Can-Can style draping & jewelry placement',
+  },
+  {
+    name: 'Pre-Bridal Luxury Skin & Hair Ritual',
+    price: 4500,
+    category: 'Makeup & Bridal',
+    duration: 120,
+    pricingType: 'fixed' as ServicePricingType,
+    description: 'Full body polishing, gold radiance facial, L\'Oreal hair spa, waxing & manicure/pedicure glow',
+  },
+  {
+    name: 'Bridal Designer Hairstyle & Flowers',
+    price: 1800,
+    category: 'Makeup & Bridal',
+    duration: 45,
+    pricingType: 'starting' as ServicePricingType,
+    description: 'Traditional Gujarati bridal bun, romantic messy curls, real flower setting & accessories pinning',
   },
 ];
 
@@ -305,6 +377,34 @@ export default function ServicesPage() {
     toast(`🎉 Successfully parsed & added ${parsed.length} services from CSV!`);
     setBulkModalOpen(false);
     setCsvInput('');
+  };
+
+  const handleAddBridalCatalog = () => {
+    const existingNames = new Set((data?.services || []).map((s) => s.name.toLowerCase()));
+    const toAdd = OFFICIAL_BRIDAL_CATALOG_SERVICES.filter((b) => !existingNames.has(b.name.toLowerCase())).map((b) => ({
+      id: uid(),
+      name: b.name,
+      category: b.category,
+      price: b.price,
+      duration: b.duration,
+      pricingType: b.pricingType,
+      description: b.description,
+    }));
+
+    if (toAdd.length === 0) {
+      toast('All official bridal & makeup services are already present in your catalog!', 'info');
+      setActiveCategory('Makeup & Bridal');
+      return;
+    }
+
+    updateData((d) => ({
+      ...d,
+      services: [...(d.services || []), ...toAdd],
+    }));
+
+    scheduleSave();
+    toast(`🎉 Successfully added ${toAdd.length} Luxury Bridal & Makeup services to catalog!`);
+    setActiveCategory('Makeup & Bridal');
   };
 
   // KPI Metrics
@@ -636,6 +736,31 @@ export default function ServicesPage() {
             <Layers size={14} /> Bulk Add Services
           </motion.button>
 
+          {/* 1-Click Add Bridal Catalog Button */}
+          <motion.button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleAddBridalCatalog}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              fontSize: 12.5,
+              padding: '7.5px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)',
+              color: '#be185d',
+              border: '1px solid #fbcfe8',
+              fontWeight: 700,
+              borderRadius: 8,
+              cursor: 'pointer',
+            }}
+            title="1-Click add complete Luxury Bridal & Makeup services to catalog"
+          >
+            <Crown size={14} color="#be185d" />
+            <span>+ Add Bridal Catalog</span>
+          </motion.button>
+
           {/* Add Service Button */}
           <motion.button
             className="btn btn-primary"
@@ -733,12 +858,41 @@ export default function ServicesPage() {
         <div className="card">
           <div className="empty-state">
             <Sparkles size={44} />
-            <h3>{search ? 'No matching services found' : 'No services in this category'}</h3>
-            <p>Add treatment services to your salon price menu with customizable duration and rates.</p>
-            {!search && (
-              <motion.button className="btn btn-primary btn-sm" onClick={openNew} whileTap={{ scale: 0.97 }} style={{ marginTop: 8 }}>
-                <Plus size={14} /> Add First Service
+            <h3>{search ? 'No matching services found' : activeCategory === 'Makeup & Bridal' ? 'No Bridal Services in Catalog Yet' : 'No services in this category'}</h3>
+            <p>
+              {activeCategory === 'Makeup & Bridal'
+                ? 'Quickly import the complete luxury Bridal, HD Party, Airbrush & Siders makeup catalog.'
+                : 'Add treatment services to your salon price menu with customizable duration and rates.'}
+            </p>
+            {activeCategory === 'Makeup & Bridal' ? (
+              <motion.button
+                className="btn btn-primary"
+                onClick={handleAddBridalCatalog}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  marginTop: 10,
+                  background: 'linear-gradient(135deg, #be185d 0%, #9d174d 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 18px',
+                  fontWeight: 800,
+                  fontSize: 13,
+                  borderRadius: 9,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  boxShadow: '0 4px 14px rgba(190,24,93,0.3)',
+                }}
+              >
+                <Crown size={15} />
+                <span>Import Official Bridal Catalog (8 Luxury Services)</span>
               </motion.button>
+            ) : (
+              !search && (
+                <motion.button className="btn btn-primary btn-sm" onClick={openNew} whileTap={{ scale: 0.97 }} style={{ marginTop: 8 }}>
+                  <Plus size={14} /> Add First Service
+                </motion.button>
+              )
             )}
           </div>
         </div>
