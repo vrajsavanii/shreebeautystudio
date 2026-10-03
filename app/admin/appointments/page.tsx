@@ -72,16 +72,7 @@ export default function AppointmentsPage() {
     setSoundMuted(isAudioNotificationMuted());
   }, []);
 
-  // Play notification chime whenever a new online appointment is received
-  useEffect(() => {
-    if (counts.pending > 0) {
-      if (prevPendingCountRef.current !== null && counts.pending > prevPendingCountRef.current) {
-        playNewBookingChime();
-        toast(`🔔 ${counts.pending} New Pending Online Booking Request!`);
-      }
-    }
-    prevPendingCountRef.current = counts.pending;
-  }, [counts.pending, toast]);
+
   const [holidayForm, setHolidayForm] = useState<{
     date: string;
     endDate: string;
@@ -247,6 +238,17 @@ export default function AppointmentsPage() {
       cancelled: cancelledCount,
     };
   }, [appointments, today]);
+
+  // Play notification chime whenever a new online appointment is received
+  useEffect(() => {
+    if (counts.pending > 0) {
+      if (prevPendingCountRef.current !== null && counts.pending > prevPendingCountRef.current) {
+        playNewBookingChime();
+        toast(`🔔 ${counts.pending} New Pending Online Booking Request!`);
+      }
+    }
+    prevPendingCountRef.current = counts.pending;
+  }, [counts.pending, toast]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();

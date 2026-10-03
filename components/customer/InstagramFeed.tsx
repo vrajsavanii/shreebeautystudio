@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Instagram, Heart, MessageCircle, ExternalLink, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Instagram, Heart, MessageCircle, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react';
 import { studioPhotos } from '@/lib/customer-images';
 import { useSalonStore } from '@/lib/store';
 
@@ -164,7 +164,6 @@ export default function InstagramFeed() {
   const instagramUrl = settings?.instagramUrl || 'https://www.instagram.com/shreebeauty.studio/';
 
   const [livePhotos, setLivePhotos] = useState<PhotoPostItem[]>(DEFAULT_PHOTOS);
-  const [isLiveConnected, setIsLiveConnected] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -184,7 +183,6 @@ export default function InstagramFeed() {
 
             if (photoList.length > 0) {
               setLivePhotos(photoList);
-              setIsLiveConnected(true);
             }
           }
         }
@@ -326,41 +324,7 @@ export default function InstagramFeed() {
             marginBottom: 'clamp(28px, 4vw, 44px)',
           }}
         >
-          {/* Instagram Account Badge */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
-              color: '#fff',
-              fontSize: 12.5,
-              fontWeight: 700,
-              padding: '7px 20px',
-              borderRadius: 99,
-              marginBottom: 18,
-              letterSpacing: '0.03em',
-              boxShadow: '0 6px 20px rgba(220, 39, 67, 0.35)',
-            }}
-          >
-            <Instagram size={15} />
-            {instagramHandle}
-            {isLiveConnected && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  background: 'rgba(255,255,255,0.25)',
-                  padding: '2px 9px',
-                  borderRadius: 12,
-                  fontSize: 10.5,
-                }}
-              >
-                <Sparkles size={10} /> Live Synced
-              </span>
-            )}
-          </div>
+
 
           <h2
             style={{
