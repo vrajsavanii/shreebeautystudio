@@ -2959,11 +2959,11 @@ a, button, input, select, textarea {
 }
 
 .cust-hero-split {
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 36px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  max-width: 1280px;
+  text-align: center;
+  max-width: 860px;
   width: 100%;
   margin: 0 auto;
   position: relative;
@@ -2971,34 +2971,19 @@ a, button, input, select, textarea {
 }
 
 .cust-hero-text-col {
-  text-align: left;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .cust-hero-btn-row,
 .cust-hero-trust-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
-}
-
-@media (max-width: 1024px) {
-  .cust-hero-split {
-    grid-template-columns: 1fr;
-    gap: 28px;
-    text-align: center;
-  }
-  .cust-hero-text-col {
-    text-align: center;
-  }
-  .cust-hero-text-col p {
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
-  .cust-hero-btn-row,
-  .cust-hero-trust-row {
-    justify-content: center !important;
-  }
 }
 
 .cust-hero-badge-pill {

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Calendar, Clock, MapPin, Phone, Star, ChevronRight, Award,
+  Calendar, Clock, MapPin, Phone, Star, ChevronRight, ChevronLeft, Award,
   ShieldCheck, Sparkles, MessageCircle, Gem, ArrowRight,
   CheckCircle2, Camera, Eye, Crown, Users
 } from 'lucide-react';
@@ -192,8 +192,38 @@ export default function PublicHomePage() {
   const settings = data?.settings;
   const services = (data?.services && data.services.length > 0) ? data.services : DEFAULT_DATA.services;
 
-  // Real Studio Ambiance Showcase State
+  // Real Studio Ambiance Showcase State & Automatic Slideshow
   const [activeAmbianceId, setActiveAmbianceId] = useState<string>('reception');
+  const [isAmbiancePaused, setIsAmbiancePaused] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isAmbiancePaused) return;
+    const interval = setInterval(() => {
+      setActiveAmbianceId((currentId) => {
+        const currentIndex = STUDIO_GALLERY.findIndex((item) => item.id === currentId);
+        const nextIndex = (currentIndex + 1) % STUDIO_GALLERY.length;
+        return STUDIO_GALLERY[nextIndex].id;
+      });
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isAmbiancePaused]);
+
+  const handlePrevAmbiance = () => {
+    setActiveAmbianceId((currentId) => {
+      const currentIndex = STUDIO_GALLERY.findIndex((item) => item.id === currentId);
+      const prevIndex = (currentIndex - 1 + STUDIO_GALLERY.length) % STUDIO_GALLERY.length;
+      return STUDIO_GALLERY[prevIndex].id;
+    });
+  };
+
+  const handleNextAmbiance = () => {
+    setActiveAmbianceId((currentId) => {
+      const currentIndex = STUDIO_GALLERY.findIndex((item) => item.id === currentId);
+      const nextIndex = (currentIndex + 1) % STUDIO_GALLERY.length;
+      return STUDIO_GALLERY[nextIndex].id;
+    });
+  };
 
   const salonName = settings?.salon || 'Shree Beauty Studio';
   const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
@@ -323,61 +353,6 @@ export default function PublicHomePage() {
               </div>
             </motion.div>
           </motion.div>
-
-          {/* Right Column: Luxury Studio Showcase Frame */}
-          <motion.div
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="cust-hero-preview-frame"
-          >
-            <img
-              src={studioPhotos.stylingFloor}
-              alt="Shree Beauty Studio Katargam Surat Hair & Aesthetics Floor"
-              className="cust-hero-preview-img"
-            />
-            {/* Elegant Floating Badge inside Frame */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 16,
-                left: 16,
-                right: 16,
-                background: 'rgba(3, 43, 48, 0.90)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                borderRadius: 14,
-                padding: '10px 16px',
-                border: '1px solid rgba(212, 175, 55, 0.35)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                color: '#ffffff',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#f5d87a', letterSpacing: '0.02em' }}>
-                  Katargam Salon Sanctuary
-                </div>
-                <div style={{ fontSize: 11, color: '#cbd5e1' }}>
-                  Opp. Cancer Hospital · 25+ Years Legacy
-                </div>
-              </div>
-              <span
-                style={{
-                  background: 'rgba(212, 175, 55, 0.2)',
-                  color: '#EABA38',
-                  padding: '4px 10px',
-                  borderRadius: 99,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  border: '1px solid rgba(212, 175, 55, 0.4)',
-                }}
-              >
-                100% Ladies Only
-              </span>
-            </div>
-          </motion.div>
         </div>
       </section>
 
@@ -410,7 +385,12 @@ export default function PublicHomePage() {
       </div>
 
       {/* ─── 3. NEW: VIRTUAL STUDIO AMBIANCE TOUR (Actual Place Photos) ── */}
-      <section className="cust-studio-section" id="studio-tour">
+      <section
+        className="cust-studio-section"
+        id="studio-tour"
+        onMouseEnter={() => setIsAmbiancePaused(true)}
+        onMouseLeave={() => setIsAmbiancePaused(false)}
+      >
         <div className="cust-studio-header">
           <span
             style={{
@@ -480,12 +460,138 @@ export default function PublicHomePage() {
                     objectFit: 'cover',
                     opacity: isActive ? 1 : 0,
                     transform: isActive ? 'scale(1)' : 'scale(1.04)',
-                    transition: 'opacity 0.5s ease-in-out, transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    transition: 'opacity 0.6s ease-in-out, transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                     pointerEvents: 'none',
                   }}
                 />
               );
             })}
+
+            {/* Slide Index Indicators */}
+            <div
+              style={{
+                position: 'absolute',
+                top: 14,
+                right: 14,
+                zIndex: 4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'rgba(3, 43, 48, 0.8)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                padding: '4px 10px',
+                borderRadius: 99,
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              {STUDIO_GALLERY.map((item) => {
+                const isCurrent = item.id === activeAmbianceId;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveAmbianceId(item.id)}
+                    style={{
+                      width: isCurrent ? 20 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: isCurrent ? '#D4AF37' : 'rgba(255, 255, 255, 0.4)',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer',
+                    }}
+                    title={item.tag}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Navigation Arrows */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrevAmbiance();
+              }}
+              aria-label="Previous space"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: 14,
+                transform: 'translateY(-50%)',
+                zIndex: 4,
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                background: 'rgba(3, 43, 48, 0.75)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget;
+                el.style.background = 'rgba(212, 175, 55, 0.95)';
+                el.style.color = '#032B30';
+                el.style.transform = 'translateY(-50%) scale(1.08)';
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget;
+                el.style.background = 'rgba(3, 43, 48, 0.75)';
+                el.style.color = '#FFFFFF';
+                el.style.transform = 'translateY(-50%) scale(1)';
+              }}
+            >
+              <ChevronLeft size={20} />
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNextAmbiance();
+              }}
+              aria-label="Next space"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                right: 14,
+                transform: 'translateY(-50%)',
+                zIndex: 4,
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                background: 'rgba(3, 43, 48, 0.75)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget;
+                el.style.background = 'rgba(212, 175, 55, 0.95)';
+                el.style.color = '#032B30';
+                el.style.transform = 'translateY(-50%) scale(1.08)';
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget;
+                el.style.background = 'rgba(3, 43, 48, 0.75)';
+                el.style.color = '#FFFFFF';
+                el.style.transform = 'translateY(-50%) scale(1)';
+              }}
+            >
+              <ChevronRight size={20} />
+            </button>
+
             <div className="cust-studio-overlay" style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
               <span
                 style={{
@@ -530,18 +636,16 @@ export default function PublicHomePage() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #E2E8F0', paddingTop: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#05424A" />
-                  <span>Sanitized after every single client appointment</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#05424A" />
-                  <span>Private temperature-controlled treatment rooms</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#05424A" />
-                  <span>Dedicated parking opposite Cancer Hospital</span>
-                </div>
+                {(activeAmbiance.highlights || [
+                  '100% Ladies-only sanctuary with private, welcoming hospitality',
+                  'Hospital-grade sanitization between every client visit',
+                  'Dedicated parking opposite Cancer Hospital, Katargam',
+                ]).map((highlight, hIdx) => (
+                  <div key={hIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: '#334155', lineHeight: 1.45 }}>
+                    <CheckCircle2 size={16} color="#05424A" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <span>{highlight}</span>
+                  </div>
+                ))}
               </div>
             </div>
 

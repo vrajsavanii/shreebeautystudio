@@ -24,6 +24,7 @@ export interface StudioGalleryItem {
   tag: string;
   image: string;
   description: string;
+  highlights: string[];
 }
 
 export const STUDIO_GALLERY: StudioGalleryItem[] = [
@@ -34,6 +35,11 @@ export const STUDIO_GALLERY: StudioGalleryItem[] = [
     tag: 'Welcome & Reception',
     image: studioPhotos.reception,
     description: 'Bespoke fluted teal welcome desk featuring the illuminated golden Shree Beauty Studio emblem.',
+    highlights: [
+      '100% Ladies-only sanctuary with private, welcoming hospitality',
+      'Personalized pre-service consultation & shade matching',
+      'Hospital-grade sanitization between every client visit',
+    ],
   },
   {
     id: 'styling-floor',
@@ -42,6 +48,11 @@ export const STUDIO_GALLERY: StudioGalleryItem[] = [
     tag: 'Hair & Styling Floor',
     image: studioPhotos.stylingFloor,
     description: 'Curated arched backlit mirrors, plush hydraulic teal styling chairs, and herringbone Italian porcelain tiling.',
+    highlights: [
+      'Custom arched LED vanity mirrors for flawless color accuracy',
+      'Hydraulic plush styling chairs for maximum appointment comfort',
+      'Dedicated station sanitization & single-use sterilized styling tools',
+    ],
   },
   {
     id: 'bridal-suite',
@@ -50,6 +61,11 @@ export const STUDIO_GALLERY: StudioGalleryItem[] = [
     tag: 'Private Bridal Lounge',
     image: studioPhotos.bridalSuite,
     description: 'Dedicated private bridal suite with floor-to-ceiling oval mirror, makeup vanity, and private lighting for wedding trousseau prep.',
+    highlights: [
+      'Exclusive private dressing suite with 360° bridal trial lighting',
+      'Dedicated space for lehenga trousseau, jewellery & dupatta draping',
+      'One-on-one senior bridal makeup artist attention without distractions',
+    ],
   },
   {
     id: 'consultation-lounge',
@@ -58,6 +74,11 @@ export const STUDIO_GALLERY: StudioGalleryItem[] = [
     tag: 'Consultation & Awards',
     image: studioPhotos.lounge,
     description: 'Plush velvet lounge, 25+ years industry achievement showcase, and warm welcome ambiance.',
+    highlights: [
+      '25+ years of verified artistry diplomas & industry awards display',
+      'In-depth skin tone & hair health diagnostic assessment',
+      'Comfortable velvet waiting lounge with peaceful ambiance',
+    ],
   },
   {
     id: 'hair-spa-backwash',
@@ -66,6 +87,11 @@ export const STUDIO_GALLERY: StudioGalleryItem[] = [
     tag: 'Hair Spa & Backwash',
     image: studioPhotos.hairWash,
     description: 'Quilted ergonomic backwash chairs with deep ceramic basins designed for relaxing scalp massage & hair therapies.',
+    highlights: [
+      'Reclining Italian ceramic wash basins with cushioned neck support',
+      'Scalp pressure-point massage during every wash & deep therapy',
+      'Purified, temperature-balanced water for maximum hair cuticle shine',
+    ],
   },
   {
     id: 'luxury-products',
@@ -74,6 +100,11 @@ export const STUDIO_GALLERY: StudioGalleryItem[] = [
     tag: 'Authentic Luxury Brands',
     image: studioPhotos.products,
     description: 'Exclusively authentic salon-grade formulations from L\'Oréal Serie Expert, Absolut Repair Molecular, and Selective Professional.',
+    highlights: [
+      '100% sealed & authentic international salon brands (L\'Oréal, Selective)',
+      'Zero counterfeit formulas, zero diluted salon chemicals',
+      'Certified formulation expiry & freshness verification before application',
+    ],
   },
 ];
 
