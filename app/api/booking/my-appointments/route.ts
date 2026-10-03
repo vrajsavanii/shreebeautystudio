@@ -1,6 +1,8 @@
 // app/api/booking/my-appointments/route.ts
-// Lookup appointments by customer mobile — no auth, just mobile verification
+// Secured: Lookup appointments by customer mobile — requires password or authenticated session
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedCustomer } from '@/lib/customer-session-server';
+import { findCustomerByIdentifier, verifyPassword, normalizeMobile } from '@/lib/customer-auth';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -9,10 +11,44 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawMobile = body.mobile || '';
-    const mobile = rawMobile.replace(/\D/g, '').slice(-10);
+    const password = body.password || '';
+    const clean = normalizeMobile(rawMobile).clean;
 
-    if (mobile.length !== 10) {
-      return NextResponse.json({ error: 'Please enter a valid 10-digit mobile number' }, { status: 400 });
+    if (clean.length !== 10) {
+      return NextResponse.json(
+        { error: 'Please enter a valid 10-digit mobile number' },
+        { status: 400 }
+      );
+    }
+
+    // 1. Check if authenticated via session
+    const auth = await getAuthenticatedCustomer(req);
+    const isSessionValid = auth && normalizeMobile(auth.customer.mobile).clean === clean;
+
+    // 2. If not session valid, verify password
+    if (!isSessionValid) {
+      if (!password) {
+        return NextResponse.json(
+          { error: 'Password is required to view appointment records.' },
+          { status: 401 }
+        );
+      }
+
+      const { customer } = await findCustomerByIdentifier(clean);
+      if (!customer || !customer.passwordHash) {
+        return NextResponse.json(
+          { error: 'No account or password found for this number.' },
+          { status: 401 }
+        );
+      }
+
+      const isMatch = await verifyPassword(password, customer.passwordHash);
+      if (!isMatch) {
+        return NextResponse.json(
+          { error: 'Incorrect password. Access denied.' },
+          { status: 401 }
+        );
+      }
     }
 
     const res = await fetch(`${SUPABASE_URL}/rest/v1/salon_state?select=data&limit=1`, {
@@ -37,7 +73,7 @@ export async function POST(req: NextRequest) {
 
     // Filter by mobile and return only customer-safe fields
     const customerAppointments = allAppointments
-      .filter((a: any) => a.mobile === mobile)
+      .filter((a: any) => normalizeMobile(a.mobile || '').clean === clean)
       .map((a: any) => ({
         id: a.id,
         date: a.date,
@@ -50,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       appointments: customerAppointments,
-      customerName: allAppointments.find((a: any) => a.mobile === mobile)?.customer || '',
+      customerName: allAppointments.find((a: any) => normalizeMobile(a.mobile || '').clean === clean)?.customer || '',
     });
   } catch (err: any) {
     console.error('[My Appointments API]', err?.message);

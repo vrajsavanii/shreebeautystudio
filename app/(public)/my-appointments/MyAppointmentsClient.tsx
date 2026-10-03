@@ -11,12 +11,17 @@ import {
   Sparkles,
   AlertCircle,
   CheckCircle2,
-  Search,
+  Lock,
+  Eye,
+  EyeOff,
   ArrowRight,
   RotateCcw,
   Loader2,
   CalendarCheck,
-  MapPin,
+  ShieldCheck,
+  KeyRound,
+  LogOut,
+  UserCheck,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
@@ -30,35 +35,124 @@ const fadeUp = {
 function MyAppointmentsView() {
   const searchParams = useSearchParams();
   const { data } = useSalonStore();
-  const { customer, authenticated } = useCustomerAuth();
+  const { customer, authenticated, logout } = useCustomerAuth();
 
   const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [needsPasswordSetup, setNeedsPasswordSetup] = useState(false);
   const [searched, setSearched] = useState(false);
   const [matches, setMatches] = useState<any[]>([]);
   const [customerName, setCustomerName] = useState('');
 
-  // Fetch appointments for a mobile number (direct lookup, no OTP)
-  const fetchAppointments = useCallback(async (targetMobile: string) => {
-    const clean = targetMobile.replace(/\D/g, '').slice(-10);
+  // 1. Fetch appointments for authenticated user via GET /api/my-appointments
+  const fetchAuthenticatedAppointments = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/my-appointments', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const json = await res.json();
+
+      if (json.success && json.authenticated) {
+        const appts = json.appointments || [];
+        const bridal = (json.bridal || []).map((b: any) => ({
+          id: b.id,
+          date: b.weddingDate || b.date,
+          time: '08:00 AM',
+          customer: b.name,
+          mobile: b.mobile,
+          service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
+          advance: b.advance || 0,
+          price: b.totalAmount || b.package || b.price || 0,
+          status: b.status || 'Confirmed',
+          notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
+        }));
+
+        const all = [...appts, ...bridal].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        setMatches(all);
+        setSearched(true);
+        if (json.customer?.name) {
+          setCustomerName(json.customer.name);
+        }
+        if (json.customer?.mobile) {
+          setMobile(json.customer.mobile);
+        }
+      }
+    } catch {
+      // Session fetch error
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 2. Auto-load appointments if user is already authenticated
+  useEffect(() => {
+    if (authenticated && customer) {
+      setMobile(customer.phone || customer.mobile || '');
+      fetchAuthenticatedAppointments();
+    }
+  }, [authenticated, customer, fetchAuthenticatedAppointments]);
+
+  // 3. Pre-fill mobile from URL parameter or session storage if available
+  useEffect(() => {
+    if (!authenticated) {
+      const paramMobile = searchParams.get('mobile');
+      const savedMobile = typeof window !== 'undefined' ? sessionStorage.getItem('shree_appt_mobile') : null;
+      const initialMobile = paramMobile || savedMobile || '';
+      const clean = initialMobile.replace(/\D/g, '').slice(-10);
+      if (clean.length === 10) {
+        setMobile(clean);
+      }
+    }
+  }, [searchParams, authenticated]);
+
+  // 4. Secure Login & Appointment Unlock Form Submit
+  const handleSecureLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = mobile.replace(/\D/g, '').slice(-10);
+
     if (clean.length !== 10) {
       setError('Please enter a valid 10-digit mobile number.');
       return;
     }
 
+    if (!password) {
+      setError('Password is required to securely access your appointments.');
+      return;
+    }
+
     setLoading(true);
     setError('');
+    setNeedsPasswordSetup(false);
 
     try {
-      const res = await fetch(`/api/my-appointments?mobile=${clean}`);
+      const res = await fetch('/api/my-appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          mobile: clean,
+          password: password.trim(),
+        }),
+      });
+
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        setError(json.error || 'Failed to load appointments. Please try again.');
+        if (json.needsPasswordSetup) {
+          setNeedsPasswordSetup(true);
+        }
+        setError(json.error || 'Authentication failed. Please verify your mobile and password.');
         return;
       }
 
+      // Successful verification
       const appts = json.appointments || [];
       const bridal = (json.bridal || []).map((b: any) => ({
         id: b.id,
@@ -81,43 +175,28 @@ function MyAppointmentsView() {
         setCustomerName(json.customer.name);
       } else if (all.length > 0 && all[0].customer) {
         setCustomerName(all[0].customer);
-      } else {
-        setCustomerName('');
       }
 
       sessionStorage.setItem('shree_appt_mobile', clean);
     } catch {
-      setError('Network error while fetching appointments.');
+      setError('Network error while authenticating. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  // Pre-fill and auto-search if logged in or URL param or sessionStorage
-  useEffect(() => {
-    const paramMobile = searchParams.get('mobile');
-    const savedMobile = typeof window !== 'undefined' ? sessionStorage.getItem('shree_appt_mobile') : null;
-    const authMobile = customer?.phone;
-
-    const initialMobile = paramMobile || authMobile || savedMobile || '';
-    const clean = initialMobile.replace(/\D/g, '').slice(-10);
-
-    if (clean.length === 10) {
-      setMobile(clean);
-      fetchAppointments(clean);
-    }
-  }, [searchParams, customer, fetchAppointments]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchAppointments(mobile);
   };
 
-  const handleResetSearch = () => {
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      await logout();
+    } catch {}
     setSearched(false);
     setMatches([]);
+    setPassword('');
     setError('');
+    setCustomerName('');
     sessionStorage.removeItem('shree_appt_mobile');
+    setLoading(false);
   };
 
   return (
@@ -136,16 +215,16 @@ function MyAppointmentsView() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            background: 'rgba(234, 186, 56, 0.12)',
+            background: 'rgba(5, 66, 74, 0.08)',
             color: '#05424A',
-            border: '1px solid rgba(234, 186, 56, 0.3)',
+            border: '1px solid rgba(5, 66, 74, 0.25)',
             padding: '6px 16px',
             borderRadius: 99,
             fontSize: 12.5,
             fontWeight: 700,
           }}
         >
-          <CalendarCheck size={14} color="#05424A" /> Direct Client Appointment Tracker
+          <ShieldCheck size={14} color="#05424A" /> Confidential Client Portal · 100% Private
         </span>
         <h1
           style={{
@@ -156,18 +235,18 @@ function MyAppointmentsView() {
             letterSpacing: '-0.02em',
           }}
         >
-          My Salon Appointments &amp; Bridal Bookings
+          My Appointments &amp; Bridal Bookings
         </h1>
         <p style={{ fontSize: 14.5, color: '#64748b', margin: 0, maxWidth: 580, marginInline: 'auto' }}>
-          Enter your 10-digit mobile number to instantly view your upcoming salon appointments, bridal bookings &amp; service passes.
+          For your confidentiality and security, please enter your registered mobile number and password to access your booking records.
         </p>
       </div>
 
       <AnimatePresence mode="wait">
-        {/* ─── Search Form (When not searched or user wants to search another) ─── */}
+        {/* ─── Search / Unlock Form (When not authenticated or searched) ─── */}
         {!searched ? (
           <motion.div
-            key="search-box"
+            key="secure-auth-box"
             variants={fadeUp}
             initial="hidden"
             animate="visible"
@@ -176,41 +255,44 @@ function MyAppointmentsView() {
               background: '#ffffff',
               borderRadius: 22,
               border: '1px solid #e2e8f0',
-              padding: '32px 28px',
-              boxShadow: '0 8px 30px rgba(5,66,74,0.06)',
-              maxWidth: 540,
+              padding: 'clamp(24px, 4vw, 36px)',
+              boxShadow: '0 8px 32px rgba(5, 66, 74, 0.06)',
+              maxWidth: 520,
               margin: '0 auto',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
               <div
                 style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: 'rgba(5,66,74,0.08)',
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#05424A',
+                  color: '#EABA38',
+                  boxShadow: '0 4px 12px rgba(5,66,74,0.2)',
+                  flexShrink: 0,
                 }}
               >
-                <Phone size={22} />
+                <Lock size={22} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#0f172a' }}>
-                  Look Up Your Bookings
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#0f172a' }}>
+                  Secure Client Verification
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#64748b' }}>
-                  No OTP required — instant appointment lookup
+                <p style={{ margin: '3px 0 0', fontSize: 13, color: '#64748b' }}>
+                  Mobile Number + Password required for privacy
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSecureLogin}>
+              {/* Mobile Input */}
               <div style={{ marginBottom: 18 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
-                  Mobile Number (મોબાઈલ નંબર)
+                  Registered Mobile Number (મોબાઈલ નંબર)
                 </label>
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                   <div
@@ -237,7 +319,6 @@ function MyAppointmentsView() {
                     onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     required
                     maxLength={10}
-                    autoFocus
                     style={{
                       width: '100%',
                       padding: '13px 14px 13px 88px',
@@ -247,7 +328,6 @@ function MyAppointmentsView() {
                       fontWeight: 600,
                       letterSpacing: '0.04em',
                       outline: 'none',
-                      transition: 'border-color 0.2s ease',
                       boxSizing: 'border-box',
                     }}
                     onFocus={(e) => (e.target.style.borderColor = '#05424A')}
@@ -256,29 +336,105 @@ function MyAppointmentsView() {
                 </div>
               </div>
 
+              {/* Password Input */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>
+                    Account Password (પાસવર્ડ)
+                  </label>
+                  <Link
+                    href={`/forgot-password?identifier=${mobile || ''}`}
+                    style={{ fontSize: 12.5, fontWeight: 600, color: '#05424A', textDecoration: 'none' }}
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ position: 'absolute', left: 14, color: '#64748b' }}>
+                    <KeyRound size={17} />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '13px 44px 13px 42px',
+                      borderRadius: 14,
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = '#05424A')}
+                    onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: 14,
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Callout */}
               {error && (
                 <div
                   style={{
                     background: '#fef2f2',
                     border: '1px solid #fecaca',
-                    borderRadius: 10,
-                    padding: '10px 14px',
+                    borderRadius: 12,
+                    padding: '12px 16px',
                     color: '#b91c1c',
                     fontSize: 13,
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginBottom: 16,
+                    flexDirection: 'column',
+                    gap: 6,
+                    marginBottom: 18,
                   }}
                 >
-                  <AlertCircle size={16} style={{ flexShrink: 0 }} />
-                  <span>{error}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>{error}</span>
+                  </div>
+                  {needsPasswordSetup && (
+                    <Link
+                      href={`/forgot-password?identifier=${mobile}`}
+                      style={{
+                        color: '#05424A',
+                        fontWeight: 700,
+                        textDecoration: 'underline',
+                        marginTop: 4,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <span>Click here to set your password via OTP</span>
+                      <ArrowRight size={13} />
+                    </Link>
+                  )}
                 </div>
               )}
 
+              {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || mobile.replace(/\D/g, '').length < 10}
+                disabled={loading || mobile.replace(/\D/g, '').length < 10 || !password}
                 style={{
                   width: '100%',
                   padding: '14px 20px',
@@ -288,55 +444,83 @@ function MyAppointmentsView() {
                   fontWeight: 700,
                   fontSize: 15,
                   border: 'none',
-                  cursor: loading || mobile.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
-                  opacity: loading || mobile.replace(/\D/g, '').length < 10 ? 0.7 : 1,
+                  cursor: loading || mobile.replace(/\D/g, '').length < 10 || !password ? 'not-allowed' : 'pointer',
+                  opacity: loading || mobile.replace(/\D/g, '').length < 10 || !password ? 0.7 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  boxShadow: '0 4px 14px rgba(5,66,74,0.25)',
+                  boxShadow: '0 4px 16px rgba(5,66,74,0.25)',
                   transition: 'all 0.2s ease',
                 }}
               >
                 {loading ? (
                   <>
                     <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span>Searching appointments…</span>
+                    <span>Verifying credentials…</span>
                   </>
                 ) : (
                   <>
-                    <Search size={16} color="#EABA38" />
-                    <span>View My Appointments</span>
+                    <Lock size={16} color="#EABA38" />
+                    <span>Unlock My Appointments</span>
                   </>
                 )}
               </button>
             </form>
 
+            {/* Quick Links Footer */}
             <div
               style={{
-                marginTop: 22,
+                marginTop: 24,
                 paddingTop: 18,
                 borderTop: '1px solid #f1f5f9',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-around',
-                fontSize: 12,
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 10,
+                fontSize: 12.5,
                 color: '#64748b',
               }}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={13} color="#16a34a" /> Instant 1-Click Search
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={13} color="#16a34a" /> Google Calendar Sync
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <CheckCircle2 size={13} color="#16a34a" /> Free Appointment Passes
-              </span>
+              <span>First time visiting?</span>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Link
+                  href={`/signup?phone=${mobile || ''}`}
+                  style={{ color: '#05424A', fontWeight: 700, textDecoration: 'none' }}
+                >
+                  Create Account
+                </Link>
+                <span>·</span>
+                <Link
+                  href={`/forgot-password?identifier=${mobile || ''}`}
+                  style={{ color: '#05424A', fontWeight: 700, textDecoration: 'none' }}
+                >
+                  Set Password
+                </Link>
+              </div>
+            </div>
+
+            {/* Privacy Badges */}
+            <div
+              style={{
+                marginTop: 18,
+                backgroundColor: '#FAF8F5',
+                borderRadius: 12,
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                fontSize: 12,
+                color: '#475569',
+              }}
+            >
+              <ShieldCheck size={16} color="#16a34a" style={{ flexShrink: 0 }} />
+              <span>Strict Ladies Privacy: Your booking records are encrypted and inaccessible to anyone without your personal password.</span>
             </div>
           </motion.div>
         ) : (
-          /* ─── Appointments Results Dashboard ─── */
+          /* ─── Authenticated Appointments Dashboard ─── */
           <motion.div
             key="results-dashboard"
             variants={fadeUp}
@@ -350,21 +534,21 @@ function MyAppointmentsView() {
                 background: '#ffffff',
                 borderRadius: 18,
                 border: '1px solid #e2e8f0',
-                padding: '16px 22px',
+                padding: '18px 24px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: 12,
+                gap: 14,
                 marginBottom: 24,
-                boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
+                    width: 48,
+                    height: 48,
                     borderRadius: '50%',
                     background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
                     color: '#EABA38',
@@ -372,30 +556,33 @@ function MyAppointmentsView() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontWeight: 800,
-                    fontSize: 17,
+                    fontSize: 18,
                   }}
                 >
                   {customerName ? customerName.charAt(0).toUpperCase() : 'S'}
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
-                    {customerName ? customerName : 'Shree Beauty Client'} ✨
+                  <div style={{ fontSize: 17, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>{customerName ? customerName : 'Shree Beauty Client'}</span>
+                    <span style={{ fontSize: 11, background: '#dcfce7', color: '#166534', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>
+                      Verified Client
+                    </span>
                   </div>
-                  <div style={{ fontSize: 12.5, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                  <div style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, marginTop: 2 }}>
                     <Phone size={13} color="#05424A" />
                     <span>Mobile: +91 {mobile}</span>
-                    <span style={{ color: '#cbd5e1', margin: '0 4px' }}>·</span>
+                    <span style={{ color: '#cbd5e1' }}>·</span>
                     <span style={{ color: '#05424A', fontWeight: 700 }}>
-                      {matches.length} {matches.length === 1 ? 'Booking' : 'Bookings'} Found
+                      {matches.length} {matches.length === 1 ? 'Booking' : 'Bookings'}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <button
                   type="button"
-                  onClick={handleResetSearch}
+                  onClick={handleSignOut}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -403,15 +590,16 @@ function MyAppointmentsView() {
                     background: '#f8fafc',
                     color: '#475569',
                     border: '1px solid #cbd5e1',
-                    padding: '8px 14px',
-                    borderRadius: 10,
+                    padding: '9px 16px',
+                    borderRadius: 12,
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: 'pointer',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  <RotateCcw size={13} />
-                  <span>Check Another Number</span>
+                  <LogOut size={14} />
+                  <span>Lock &amp; Sign Out</span>
                 </button>
 
                 <Link
@@ -422,15 +610,15 @@ function MyAppointmentsView() {
                     gap: 6,
                     background: '#05424A',
                     color: '#ffffff',
-                    padding: '8px 16px',
-                    borderRadius: 10,
+                    padding: '9px 18px',
+                    borderRadius: 12,
                     fontSize: 13,
                     fontWeight: 700,
                     textDecoration: 'none',
                     boxShadow: '0 4px 12px rgba(5,66,74,0.2)',
                   }}
                 >
-                  <Sparkles size={13} color="#EABA38" />
+                  <Sparkles size={14} color="#EABA38" />
                   <span>Book New Service</span>
                 </Link>
               </div>
@@ -449,10 +637,10 @@ function MyAppointmentsView() {
               >
                 <Calendar size={40} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
                 <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: '#334155' }}>
-                  No Bookings Found (કોઈ બુકિંગ મળ્યું નથી)
+                  No Active Appointments Found
                 </h3>
                 <p style={{ margin: '0 0 20px', fontSize: 14, color: '#64748b' }}>
-                  No appointments were found for mobile +91 {mobile}. Would you like to schedule one now?
+                  No upcoming or past salon appointments were found for mobile +91 {mobile}. Would you like to schedule one now?
                 </p>
                 <Link
                   href="/book"
