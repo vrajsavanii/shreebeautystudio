@@ -77,7 +77,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 4. Smart redirect from /login if already authenticated
+  // 4. Smart redirect from /login for Staff if authenticated
   if (pathname === '/login') {
     const redirectParam = request.nextUrl.searchParams.get('redirect');
     const isStaffQuery = request.nextUrl.searchParams.get('staff') === 'true';
@@ -85,12 +85,6 @@ export function middleware(request: NextRequest) {
     if (adminToken && (isStaffQuery || redirectParam?.startsWith('/admin'))) {
       const targetUrl = request.nextUrl.clone();
       targetUrl.pathname = adminRole === 'Salesperson' ? '/admin/billing' : '/admin';
-      return NextResponse.redirect(targetUrl);
-    }
-
-    if (customerToken && !isStaffQuery && !redirectParam?.startsWith('/admin')) {
-      const targetUrl = request.nextUrl.clone();
-      targetUrl.pathname = redirectParam || '/profile';
       return NextResponse.redirect(targetUrl);
     }
   }

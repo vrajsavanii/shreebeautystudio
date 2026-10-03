@@ -379,8 +379,12 @@ export default function ProfileClient() {
         <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
           Please log in to your Shree Beauty Studio account to view and manage your profile, appointments, and billing history.
         </p>
-        <Link
-          href="/login?redirect=/profile"
+        <a
+          href="/login"
+          onClick={(e) => {
+            e.preventDefault();
+            window.location.href = '/login';
+          }}
           className="cust-btn-gold"
           style={{
             display: 'inline-flex',
@@ -388,16 +392,19 @@ export default function ProfileClient() {
             gap: 8,
             background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
             color: '#ffffff',
-            padding: '12px 28px',
+            padding: '13px 32px',
             borderRadius: 99,
             fontWeight: 700,
-            fontSize: 14,
+            fontSize: 14.5,
             textDecoration: 'none',
+            cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(5,66,74,0.25)',
+            transition: 'all 0.15s ease',
           }}
         >
           <User size={16} color="#EABA38" />
           <span>Sign In to Account</span>
-        </Link>
+        </a>
       </div>
     );
   }

@@ -21,7 +21,15 @@ interface CustomerAuthContextType {
 const CustomerAuthContext = createContext<CustomerAuthContextType | undefined>(undefined);
 
 export function CustomerAuthProvider({ children }: { children: React.ReactNode }) {
-  const [customer, setCustomer] = useState<SafeCustomerProfile | null>(null);
+  const [customer, setCustomer] = useState<SafeCustomerProfile | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('shree_cached_customer');
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return null;
+  });
   const [appointments, setAppointments] = useState<any[]>([]);
   const [bridal, setBridal] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -37,6 +45,9 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
           setAppointments(json.appointments || []);
           setBridal(json.bridal || []);
           setInvoices(json.invoices || []);
+          try {
+            localStorage.setItem('shree_cached_customer', JSON.stringify(json.profile));
+          } catch {}
           return;
         }
       }
@@ -44,8 +55,11 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       setAppointments([]);
       setBridal([]);
       setInvoices([]);
+      try {
+        localStorage.removeItem('shree_cached_customer');
+      } catch {}
     } catch (err) {
-      setCustomer(null);
+      // Keep cached on transient network error
     } finally {
       setLoading(false);
     }
@@ -67,6 +81,9 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const customerData = json.profile || json.customer;
       if (json.success && customerData) {
         setCustomer(customerData);
+        try {
+          localStorage.setItem('shree_cached_customer', JSON.stringify(customerData));
+        } catch {}
         // Non-blocking background fetch for past appointments/invoices
         fetchProfile().catch(() => {});
         return { success: true };
@@ -93,6 +110,9 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
       const json = await res.json();
       if (json.success && json.profile) {
         setCustomer(json.profile);
+        try {
+          localStorage.setItem('shree_cached_customer', JSON.stringify(json.profile));
+        } catch {}
         // Non-blocking background fetch
         fetchProfile().catch(() => {});
         return { success: true };
@@ -107,6 +127,9 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch {}
+    try {
+      localStorage.removeItem('shree_cached_customer');
+    } catch {}
     setCustomer(null);
     setAppointments([]);
     setBridal([]);
@@ -116,6 +139,9 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
 
   const updateProfileState = (updated: SafeCustomerProfile) => {
     setCustomer(updated);
+    try {
+      localStorage.setItem('shree_cached_customer', JSON.stringify(updated));
+    } catch {}
   };
 
   return (

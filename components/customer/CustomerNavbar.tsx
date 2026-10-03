@@ -201,7 +201,7 @@ export default function CustomerNavbar() {
 
           {/* Actions: Customer Profile / Login & Book Button & Mobile Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-            {authenticated && customer ? (
+            {customer ? (
               /* Logged In Customer Profile Dropdown */
               <div ref={dropdownRef} style={{ position: 'relative' }}>
                 <button
@@ -530,7 +530,7 @@ export default function CustomerNavbar() {
             }}
           >
             {/* Authenticated user banner in mobile menu */}
-            {authenticated && customer ? (
+            {customer ? (
               <div
                 style={{
                   background: 'rgba(255, 255, 255, 0.06)',
@@ -633,7 +633,7 @@ export default function CustomerNavbar() {
               );
             })}
 
-            {authenticated && (
+            {Boolean(customer) && (
               <button
                 type="button"
                 onClick={() => {

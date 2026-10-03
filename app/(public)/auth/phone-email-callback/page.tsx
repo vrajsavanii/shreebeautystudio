@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, ShieldCheck, Sparkles } from 'lucide-react';
 
 function CallbackContent() {
   const searchParams = useSearchParams();
@@ -16,7 +16,7 @@ function CallbackContent() {
   useEffect(() => {
     if (!accessToken) {
       setStatus('error');
-      setErrorMsg('No access token received from Phone.Email. Please try verifying again.');
+      setErrorMsg('No verification token received. Please try verifying again.');
       return;
     }
 
@@ -33,36 +33,35 @@ function CallbackContent() {
           setStatus('success');
           setPhone(data.verifiedPhone || '');
 
-          // Check if this window was opened as a pop-up
-          if (window.opener && !window.opener.closed) {
-            window.opener.postMessage(
-              {
-                type: 'PHONE_EMAIL_VERIFIED',
-                verifiedPhone: data.verifiedPhone,
-                customer: data.customer,
-                appointments: data.appointments,
-                bridal: data.bridal,
-              },
-              window.location.origin
-            );
+          const payload = {
+            type: 'PHONE_EMAIL_VERIFIED',
+            verifiedPhone: data.verifiedPhone,
+            customer: data.customer,
+            appointments: data.appointments,
+            bridal: data.bridal,
+          };
 
-            // Close popup after brief animation
+          // Notify opener popup or parent window
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage(payload, window.location.origin);
             setTimeout(() => {
               window.close();
-            }, 1200);
+            }, 1000);
+          } else if (window.parent && window.parent !== window) {
+            window.parent.postMessage(payload, window.location.origin);
           } else {
-            // Standalone window (e.g. mobile browser redirection)
+            // Standalone redirection fallback
             setTimeout(() => {
-              let returnUrl = '/account';
+              let returnUrl = '/my-appointments';
               try {
-                returnUrl = localStorage.getItem('pe_return_url') || '/account';
+                returnUrl = localStorage.getItem('pe_return_url') || '/my-appointments';
               } catch {}
               router.replace(returnUrl);
-            }, 1500);
+            }, 1200);
           }
         } else {
           setStatus('error');
-          setErrorMsg(data.error || 'Failed to verify phone number with Phone.Email.');
+          setErrorMsg(data.error || 'Failed to verify phone number. Please try again.');
         }
       } catch (err: any) {
         setStatus('error');
@@ -74,59 +73,110 @@ function CallbackContent() {
   }, [accessToken, router]);
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center p-4 bg-stone-50 dark:bg-[#031d20]">
-      <div className="max-w-md w-full bg-white dark:bg-[#072428] rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 p-8 text-center space-y-6">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-[#02BD7E] border border-emerald-500/20">
-            <ShieldCheck className="w-9 h-9" />
-          </div>
+    <div
+      style={{
+        minHeight: '80vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        background: 'radial-gradient(ellipse at center, #064d57 0%, #03252a 70%, #011619 100%)',
+        fontFamily: 'var(--font-sans, system-ui, -apple-system, sans-serif)',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 440,
+          width: '100%',
+          background: '#ffffff',
+          borderRadius: 24,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.4)',
+          border: '1px solid rgba(234, 186, 56, 0.4)',
+          padding: '36px 28px',
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 18,
+            background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 18px',
+            color: '#EABA38',
+            boxShadow: '0 6px 18px rgba(5,66,74,0.3)',
+          }}
+        >
+          {status === 'verifying' ? (
+            <Loader2 size={30} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : status === 'success' ? (
+            <CheckCircle2 size={32} color="#16a34a" />
+          ) : (
+            <AlertCircle size={32} color="#dc2626" />
+          )}
         </div>
 
         {status === 'verifying' && (
-          <div className="space-y-3">
-            <Loader2 className="w-10 h-10 text-[#02BD7E] animate-spin mx-auto" />
-            <h2 className="text-xl font-serif font-bold text-stone-900 dark:text-stone-100">
-              Verifying SMS OTP...
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#05424A', margin: '0 0 8px' }}>
+              Verifying Security Code…
             </h2>
-            <p className="text-sm text-stone-500 dark:text-stone-400">
-              Confirming your free phone verification token with Phone.Email.
+            <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+              Establishing secure Shree Beauty Studio client session…
             </p>
           </div>
         )}
 
         {status === 'success' && (
-          <div className="space-y-3 animate-fade-in">
-            <CheckCircle2 className="w-12 h-12 text-[#02BD7E] mx-auto" />
-            <h2 className="text-xl font-serif font-bold text-stone-900 dark:text-stone-100">
-              Phone Number Verified!
+          <div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dcfce7', color: '#166534', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
+              <Sparkles size={12} color="#EABA38" />
+              <span>Identity Verified</span>
+            </div>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+              Welcome, Valued Client!
             </h2>
-            <p className="text-sm text-stone-600 dark:text-stone-300">
-              Successfully authenticated with <strong>+91 {phone}</strong>.
+            <p style={{ fontSize: 13.5, color: '#475569', margin: '0 0 14px' }}>
+              Authenticated with <strong>+91 {phone}</strong>.
             </p>
-            <p className="text-xs text-stone-400">
-              Closing window and returning to your session...
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+              Unlocking your appointments now…
             </p>
           </div>
         )}
 
         {status === 'error' && (
-          <div className="space-y-4 animate-fade-in">
-            <AlertCircle className="w-12 h-12 text-rose-500 mx-auto" />
-            <h2 className="text-xl font-serif font-bold text-stone-900 dark:text-stone-100">
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#dc2626', margin: '0 0 8px' }}>
               Verification Failed
             </h2>
-            <p className="text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 p-3 rounded-xl border border-rose-200 dark:border-rose-900">
+            <p style={{ fontSize: 13, color: '#b91c1c', background: '#fef2f2', padding: 12, borderRadius: 12, border: '1px solid #fecaca', margin: '0 0 16px' }}>
               {errorMsg}
             </p>
             <button
-              onClick={() => (window.opener ? window.close() : router.replace('/login'))}
-              className="w-full py-3 bg-stone-900 dark:bg-stone-700 text-white rounded-xl text-sm font-semibold hover:bg-stone-800 transition-all"
+              onClick={() => (window.opener ? window.close() : router.replace('/my-appointments'))}
+              style={{
+                width: '100%',
+                padding: '12px 20px',
+                background: '#05424A',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: 13.5,
+                borderRadius: 12,
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
-              {window.opener ? 'Close Window' : 'Back to Login'}
+              {window.opener ? 'Close Window & Try Again' : 'Return to Appointments'}
             </button>
           </div>
         )}
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
@@ -135,8 +185,8 @@ export default function PhoneEmailCallbackPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[70vh] flex items-center justify-center">
-          <Loader2 className="w-10 h-10 text-[#02BD7E] animate-spin" />
+        <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Loader2 size={36} style={{ animation: 'spin 1s linear infinite', color: '#05424A' }} />
         </div>
       }
     >

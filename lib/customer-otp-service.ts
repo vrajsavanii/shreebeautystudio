@@ -33,7 +33,7 @@ export async function dispatchCustomerOtp({
     const message = `🌸 *Shree Beauty Studio | ${actionLabel}*\n\n${name ? `Hello ${name},\n` : ''}Your security verification code for *${actionLabel}* is:\n\n🔢 *${code}*\n\n_(This code is valid for 10 minutes. For security, please do not share this code with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 98241 83769\n🌐 https://shreebeauty.studio`;
 
     let sentViaWhatsApp = false;
-    const fallbackUrl = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(message)}`;
+    const fallbackUrl = `https://wa.me/919824183769?text=${encodeURIComponent(`Hi Shree Beauty Studio, please send my security verification code for mobile +91 ${cleanMobile} (${actionLabel})`)}`;
 
     if (reqOrigin) {
       try {

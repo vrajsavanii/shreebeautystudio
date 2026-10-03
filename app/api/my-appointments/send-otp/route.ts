@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     // Attempt to send via WhatsApp Cloud API
     let sentViaWhatsApp = false;
-    let fallbackWaUrl = `https://wa.me/91${clean}?text=${encodeURIComponent(message)}`;
+    let fallbackWaUrl = `https://wa.me/919824183769?text=${encodeURIComponent(`Hi Shree Beauty Studio, please send my security verification code for mobile +91 ${clean} to view my appointments`)}`;
 
     try {
       const origin = req.nextUrl.origin;

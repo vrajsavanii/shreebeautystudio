@@ -28,6 +28,7 @@ import {
 import { useSalonStore } from '@/lib/store';
 import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
 import { useCustomerAuth } from '@/lib/customer-context';
+import PhoneEmailButton from '@/components/auth/PhoneEmailButton';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 15 },
@@ -37,7 +38,7 @@ const fadeUp = {
 function MyAppointmentsView() {
   const searchParams = useSearchParams();
   const { data } = useSalonStore();
-  const { customer, authenticated, logout } = useCustomerAuth();
+  const { customer, authenticated, appointments, bridal, logout } = useCustomerAuth();
 
   // Tab State: 'otp' (Default native OTP) or 'password'
   const [activeTab, setActiveTab] = useState<'otp' | 'password'>('otp');
@@ -115,13 +116,35 @@ function MyAppointmentsView() {
     }
   }, []);
 
-  // 3. Auto-load appointments if user is already authenticated
+  // 3. Auto-load appointments immediately if user is already authenticated (no password needed)
   useEffect(() => {
-    if (authenticated && customer) {
-      setMobile(customer.phone || customer.mobile || '');
-      fetchAuthenticatedAppointments();
+    if (customer) {
+      const clean = (customer.phone || customer.mobile || '').replace(/\D/g, '').slice(-10);
+      if (clean) setMobile(clean);
+      if (customer.name) setCustomerName(customer.name);
+
+      if ((appointments && appointments.length > 0) || (bridal && bridal.length > 0)) {
+        const appts = appointments || [];
+        const bList = (bridal || []).map((b: any) => ({
+          id: b.id,
+          date: b.weddingDate || b.date,
+          time: '08:00 AM',
+          customer: b.name,
+          mobile: b.mobile,
+          service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
+          advance: b.advance || 0,
+          price: b.totalAmount || b.package || b.price || 0,
+          status: b.status || 'Confirmed',
+          notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
+        }));
+        const all = [...appts, ...bList].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        setMatches(all);
+        setSearched(true);
+      } else {
+        fetchAuthenticatedAppointments();
+      }
     }
-  }, [authenticated, customer, fetchAuthenticatedAppointments]);
+  }, [customer, appointments, bridal, fetchAuthenticatedAppointments]);
 
   // 4. Pre-fill mobile from URL parameter or session storage if available
   useEffect(() => {
@@ -551,93 +574,167 @@ function MyAppointmentsView() {
             {activeTab === 'otp' && (
               <div>
                 {!otpSent ? (
-                  /* Step 1: Enter Mobile Number */
-                  <form onSubmit={handleSendOtp}>
+                  <div>
+                    {/* Primary Instant Telecom SMS OTP Verification (Guaranteed Delivery) */}
                     <div style={{ marginBottom: 18 }}>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
-                        Registered Mobile Number (મોબાઈલ નંબર)
-                      </label>
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <div
-                          style={{
-                            position: 'absolute',
-                            left: 14,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: '#475569',
-                            borderRight: '1px solid #cbd5e1',
-                            paddingRight: 10,
-                          }}
-                        >
-                          <span>🇮🇳</span>
-                          <span>+91</span>
-                        </div>
-                        <input
-                          type="tel"
-                          placeholder="98765 43210"
-                          value={mobile}
-                          onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                          required
-                          maxLength={10}
-                          autoFocus
-                          style={{
-                            width: '100%',
-                            padding: '13px 14px 13px 88px',
-                            borderRadius: 14,
-                            border: '1.5px solid #cbd5e1',
-                            fontSize: 16,
-                            fontWeight: 600,
-                            letterSpacing: '0.04em',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                          onFocus={(e) => (e.target.style.borderColor = '#05424A')}
-                          onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
-                        />
-                      </div>
-                      <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
-                        We will send a 4-digit security code instantly via WhatsApp / SMS.
-                      </p>
+                      <PhoneEmailButton
+                        purpose="my-appointments"
+                        label="📱 Verify via Instant Mobile SMS OTP"
+                        sublabel="Fast cellular SMS delivered across all Indian networks"
+                        onSuccess={(data) => {
+                          if (data.customer?.name) {
+                            setCustomerName(data.customer.name);
+                          }
+                          if (data.appointments || data.bridal) {
+                            const appts = data.appointments || [];
+                            const bridal = (data.bridal || []).map((b: any) => ({
+                              id: b.id,
+                              date: b.weddingDate || b.date,
+                              time: '08:00 AM',
+                              customer: b.name,
+                              mobile: b.mobile,
+                              service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
+                              advance: b.advance || 0,
+                              price: b.totalAmount || b.package || b.price || 0,
+                              status: b.status || 'Confirmed',
+                              notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
+                            }));
+                            const all = [...appts, ...bridal].sort((a, b) =>
+                              (b.date || '').localeCompare(a.date || '')
+                            );
+                            setMatches(all);
+                            setSearched(true);
+                            if (data.verifiedPhone) {
+                              sessionStorage.setItem('shree_appt_mobile', data.verifiedPhone);
+                              setMobile(data.verifiedPhone);
+                            }
+                          } else {
+                            fetchAuthenticatedAppointments();
+                          }
+                        }}
+                      />
                     </div>
 
-                    <button
-                      type="submit"
-                      disabled={loading || mobile.replace(/\D/g, '').length < 10}
-                      style={{
-                        width: '100%',
-                        padding: '14px 20px',
-                        borderRadius: 14,
-                        background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                        color: '#ffffff',
-                        fontWeight: 700,
-                        fontSize: 15,
-                        border: 'none',
-                        cursor: loading || mobile.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
-                        opacity: loading || mobile.replace(/\D/g, '').length < 10 ? 0.7 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        boxShadow: '0 4px 16px rgba(5,66,74,0.25)',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                          <span>Sending security code…</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send size={15} color="#EABA38" />
-                          <span>Send Security OTP</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 16px' }}>
+                      <div style={{ flex: 1, height: 1, backgroundColor: '#e2e8f0' }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Or Enter Number Manually / WhatsApp
+                      </span>
+                      <div style={{ flex: 1, height: 1, backgroundColor: '#e2e8f0' }} />
+                    </div>
+
+                    {/* Step 1: Enter Mobile Number */}
+                    <form onSubmit={handleSendOtp}>
+                      <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
+                          Registered Mobile Number (મોબાઈલ નંબર)
+                        </label>
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: 14,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: '#475569',
+                              borderRight: '1px solid #cbd5e1',
+                              paddingRight: 10,
+                            }}
+                          >
+                            <span>🇮🇳</span>
+                            <span>+91</span>
+                          </div>
+                          <input
+                            type="tel"
+                            placeholder="98765 43210"
+                            value={mobile}
+                            onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            maxLength={10}
+                            style={{
+                              width: '100%',
+                              padding: '13px 14px 13px 88px',
+                              borderRadius: 14,
+                              border: '1.5px solid #cbd5e1',
+                              fontSize: 16,
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              outline: 'none',
+                              boxSizing: 'border-box',
+                            }}
+                            onFocus={(e) => (e.target.style.borderColor = '#05424A')}
+                            onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                        <button
+                          type="submit"
+                          disabled={loading || mobile.replace(/\D/g, '').length < 10}
+                          style={{
+                            width: '100%',
+                            padding: '13px 20px',
+                            borderRadius: 14,
+                            background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+                            color: '#ffffff',
+                            fontWeight: 700,
+                            fontSize: 14.5,
+                            border: 'none',
+                            cursor: loading || mobile.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
+                            opacity: loading || mobile.replace(/\D/g, '').length < 10 ? 0.7 : 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 4px 14px rgba(5,66,74,0.2)',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          {loading ? (
+                            <>
+                              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                              <span>Sending security code…</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send size={15} color="#EABA38" />
+                              <span>Send In-Page Security OTP</span>
+                            </>
+                          )}
+                        </button>
+
+                        <a
+                          href={`https://wa.me/919824183769?text=${encodeURIComponent(
+                            `Hi Shree Beauty Studio, please send my security verification code for mobile +91 ${mobile || 'my number'} to view my appointments`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            width: '100%',
+                            padding: '12px 18px',
+                            borderRadius: 14,
+                            border: '1.5px solid #22c55e',
+                            background: '#f0fdf4',
+                            color: '#15803d',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <MessageCircle size={16} color="#16a34a" />
+                          <span>Get Code via WhatsApp Helpline (+91 98241 83769)</span>
+                        </a>
+                      </div>
+                    </form>
+                  </div>
                 ) : (
                   /* Step 2: Enter 4-Digit Security OTP */
                   <form onSubmit={handleVerifyOtp}>

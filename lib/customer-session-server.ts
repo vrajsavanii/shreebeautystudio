@@ -6,6 +6,7 @@ import {
   CUSTOMER_COOKIE_NAME,
   verifyCustomerToken,
   findCustomerById,
+  findCustomerByIdentifier,
   toSafeCustomerProfile,
   SafeCustomerProfile,
   signCustomerToken,
@@ -17,7 +18,7 @@ export async function getAuthenticatedCustomer(
 ): Promise<{ customer: Customer; profile: SafeCustomerProfile } | null> {
   let token: string | undefined;
 
-  // 1. Check HTTP-only cookie
+  // 1. Check HTTP-only cookie via cookies()
   try {
     const cookieStore = cookies();
     token = cookieStore.get(CUSTOMER_COOKIE_NAME)?.value;
@@ -25,7 +26,14 @@ export async function getAuthenticatedCustomer(
     // cookies() might not be available in standard Request contexts
   }
 
-  // 2. Check Authorization header
+  // 2. Check req cookies if NextRequest
+  if (!token && req && 'cookies' in req) {
+    try {
+      token = (req as any).cookies?.get?.(CUSTOMER_COOKIE_NAME)?.value;
+    } catch {}
+  }
+
+  // 3. Check Authorization header
   if (!token && req) {
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -38,7 +46,11 @@ export async function getAuthenticatedCustomer(
   const payload = verifyCustomerToken(token);
   if (!payload || !payload.customerId) return null;
 
-  const { customer } = await findCustomerById(payload.customerId);
+  let { customer } = await findCustomerById(payload.customerId);
+  if (!customer && payload.mobile) {
+    const byMobile = await findCustomerByIdentifier(payload.mobile);
+    customer = byMobile.customer;
+  }
   if (!customer) return null;
 
   // Ensure customer is not disabled or suspended
