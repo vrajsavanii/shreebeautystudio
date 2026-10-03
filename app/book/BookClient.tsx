@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCustomerAuth } from '@/lib/customer-context';
 import {
@@ -21,6 +22,8 @@ import {
   Crown,
   Check,
   X,
+  Plus,
+  Edit3,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -47,7 +50,12 @@ const TIME_SLOTS = [
   '07:00 PM',
 ];
 
-export default function PublicBookingPage() {
+function PublicBookingPageContent() {
+  const searchParams = useSearchParams();
+  const dateTimeSectionRef = useRef<HTMLDivElement>(null);
+  const [isServicePickerExpanded, setIsServicePickerExpanded] = useState(false);
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
+
   const { data, updateData } = useSalonStore();
 
   const salon = data?.settings?.salon || 'Shree Beauty Studio';
@@ -91,6 +99,48 @@ export default function PublicBookingPage() {
   const [sagaiDate, setSagaiDate] = useState('');
   const [venue, setVenue] = useState('');
   const [eventTitle, setEventTitle] = useState('Bridal & Siders Makeup');
+
+  // Pre-select service, bridal package or mode from URL searchParams
+  useEffect(() => {
+    if (!searchParams) return;
+    const paramService = searchParams.get('service');
+    const paramMode = searchParams.get('mode');
+    const paramPackage = searchParams.get('package') || searchParams.get('bridalPackage') || searchParams.get('pkg');
+    const paramCategory = searchParams.get('category');
+
+    if (paramMode === 'bridal' || paramPackage) {
+      setBookingMode('bridal');
+      if (paramPackage && bridalPackages.length > 0) {
+        const match = bridalPackages.find(
+          (p) =>
+            p.id.toLowerCase() === paramPackage.toLowerCase() ||
+            p.name.toLowerCase() === paramPackage.toLowerCase()
+        );
+        if (match) setSelectedBridalPkgIds([match.id]);
+      }
+    } else if (paramService) {
+      const decoded = decodeURIComponent(paramService).trim();
+      if (decoded) {
+        setSelectedServices([decoded]);
+        setIsServicePickerExpanded(false);
+        if (!hasAutoScrolled) {
+          setTimeout(() => {
+            if (dateTimeSectionRef.current) {
+              dateTimeSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              setHasAutoScrolled(true);
+            }
+          }, 250);
+        }
+      }
+    } else {
+      // No service pre-selected, expand service picker by default
+      setIsServicePickerExpanded(true);
+    }
+
+    if (paramCategory) {
+      setSelectedCategory(decodeURIComponent(paramCategory));
+    }
+  }, [searchParams, bridalPackages, hasAutoScrolled]);
 
   const { customer } = useCustomerAuth();
 
@@ -893,17 +943,120 @@ export default function PublicBookingPage() {
             >
               {/* REGULAR SALON SERVICES */}
               <div style={{ marginBottom: 24 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Scissors size={18} color="#05424a" /> 1. Select Service(s) *
-                      </h3>
-                      {selectedServices.length > 0 && (
-                        <span style={{ fontSize: 12, fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '3px 10px', borderRadius: 99 }}>
-                          {selectedServices.length} Selected ({money(regularTotal)})
+                {/* Step 1 Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Scissors size={18} color="#05424a" /> 1. Selected Service(s) *
+                  </h3>
+                  {selectedServices.length > 0 && (
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '3px 10px', borderRadius: 99 }}>
+                      {selectedServices.length} Selected ({money(regularTotal)})
+                    </span>
+                  )}
+                </div>
+
+                {/* When services are selected and picker is collapsed: Show clean selected services summary banner */}
+                {selectedServices.length > 0 && !isServicePickerExpanded ? (
+                  <div
+                    style={{
+                      background: 'linear-gradient(135deg, #f0fdf9 0%, #ecfdf5 100%)',
+                      border: '1.5px solid #a7f3d0',
+                      borderRadius: 16,
+                      padding: '16px 18px',
+                      marginBottom: 16,
+                      boxShadow: '0 4px 14px rgba(5,66,74,0.06)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ background: '#05424a', color: '#eaba38', padding: '4px 8px', borderRadius: 8, fontSize: 11, fontWeight: 800 }}>
+                          ✓ STEP 1 READY
                         </span>
-                      )}
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#065f46' }}>
+                          {selectedServices.length} {selectedServices.length === 1 ? 'Service' : 'Services'} Selected
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsServicePickerExpanded(true)}
+                        style={{
+                          background: '#ffffff',
+                          border: '1.5px solid #05424a',
+                          color: '#05424a',
+                          padding: '6px 12px',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <Edit3 size={13} />
+                        <span>Change / Add Services</span>
+                      </button>
                     </div>
 
+                    {/* Selected Services Cards */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {selectedServices.map((name) => {
+                        const sObj = services.find((x) => x.name.toLowerCase() === name.toLowerCase() || x.name === name) || {
+                          name,
+                          price: 0,
+                          duration: 30,
+                          category: 'Hair',
+                        };
+                        const sImg = getServiceImage(sObj.name, sObj.category);
+                        const pricingBasis = getServicePricingBasis(sObj.category, sObj.name, (sObj as any).pricingType);
+                        return (
+                          <div
+                            key={name}
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #d1fae5',
+                              borderRadius: 12,
+                              padding: '10px 14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 12,
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                              <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0' }}>
+                                <img src={sImg} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: 800, fontSize: 14, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {name}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                  <span>⏱ {sObj.duration || 30} mins</span>
+                                  <span>•</span>
+                                  <span>{pricingBasis.isFixed ? 'Fixed Rate' : 'Starts from'}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontWeight: 900, fontSize: 15, color: '#05424a' }}>
+                                {sObj.price ? money(sObj.price) : 'Standard Rates'}{pricingBasis.isFixed ? '' : '+'}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div style={{ marginTop: 12, fontSize: 12.5, color: '#047857', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>👇</span>
+                      <span>Now pick your preferred appointment <b>Date &amp; Time Slot</b> below:</span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Expanded Service Picker */
+                  <div>
                     {/* Starting Price & Customization Note */}
                     <div
                       style={{
@@ -1143,13 +1296,48 @@ export default function PublicBookingPage() {
                         })
                       )}
                     </div>
-                  </div>
 
-                  {/* Step 2: Date & Time Selection */}
-                  <div style={{ marginBottom: 24 }}>
-                    <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Calendar size={18} color="#05424a" /> 2. Select Date &amp; Time Slot *
-                    </h3>
+                    {/* Button when services are selected to collapse and move to Step 2 */}
+                    {selectedServices.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsServicePickerExpanded(false);
+                          if (dateTimeSectionRef.current) {
+                            dateTimeSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          marginTop: 12,
+                          padding: '11px 16px',
+                          borderRadius: 12,
+                          background: 'linear-gradient(135deg, #05424a 0%, #032b30 100%)',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontWeight: 800,
+                          fontSize: 13.5,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          boxShadow: '0 4px 12px rgba(5,66,74,0.25)',
+                        }}
+                      >
+                        <CheckCircle2 size={16} color="#4ade80" />
+                        <span>Done Choosing Services ({selectedServices.length}) — Select Date &amp; Time ➔</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Step 2: Date & Time Selection */}
+              <div ref={dateTimeSectionRef} id="datetime-section" style={{ marginBottom: 24, scrollMarginTop: 80 }}>
+                <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 900, color: '#05424a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Calendar size={18} color="#05424a" /> 2. Select Date &amp; Time Slot *
+                </h3>
 
                     <div style={{ marginBottom: 14 }}>
                       <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
@@ -1478,5 +1666,30 @@ export default function PublicBookingPage() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export default function PublicBookingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(135deg, #05424a 0%, #0d626e 50%, #053320 100%)',
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 16,
+            fontWeight: 700,
+          }}
+        >
+          Loading Booking System…
+        </div>
+      }
+    >
+      <PublicBookingPageContent />
+    </Suspense>
   );
 }
