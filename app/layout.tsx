@@ -5,10 +5,22 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://shreebeauty.studio'),
-  title: 'Shree Beauty Studio — Management System',
+  title: {
+    default: 'Shree Beauty Studio — Luxury Ladies Salon & Bridal Makeup, Katargam Surat',
+    template: '%s | Shree Beauty Studio, Surat',
+  },
   description:
-    'Cloud-first salon management platform for Shree Beauty Studio, Surat. Book appointments, manage billing, inventory, bridal bookings and more.',
-  keywords: ['salon', 'beauty studio', 'parlour management', 'Shree Beauty Studio', 'Surat'],
+    'Surat’s premier ladies-only beauty salon and bridal makeover studio in Katargam. 25+ years excellence in HD bridal makeup, hair Botox, nanoplastia, and luxury facials.',
+  keywords: [
+    'beauty salon Surat',
+    'ladies salon Katargam Surat',
+    'bridal makeup artist Surat',
+    'best beauty parlour Surat',
+    'hair Botox Surat',
+    'keratin treatment Surat',
+    'hydra facial Surat',
+    'Shree Beauty Studio',
+  ],
   verification: {
     google: '2EZxH2Nusun00VMqlKGAB6OJv238XGDL5dqSgtrh_hs',
   },

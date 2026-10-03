@@ -7,6 +7,7 @@ import {
   Clock,
   User,
   ArrowLeft,
+  ArrowRight,
   Share2,
   MessageCircle,
   Sparkles,
@@ -51,18 +52,54 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
     let inTable = false;
 
     const formatInline = (str: string): React.ReactNode => {
-      // Split by bold **text**
-      const parts = str.split(/(\*\*.*?\*\*)/g);
-      return parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return (
-            <strong key={i} style={{ color: '#0f172a', fontWeight: 700 }}>
-              {part.slice(2, -2)}
-            </strong>
-          );
+      // Parse markdown links [text](url) and bold **text**
+      const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+      const parts: React.ReactNode[] = [];
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+
+      const processBold = (sub: string, keyPrefix: string): React.ReactNode[] => {
+        const bParts = sub.split(/(\*\*.*?\*\*)/g);
+        return bParts.map((bPart, bi) => {
+          if (bPart.startsWith('**') && bPart.endsWith('**')) {
+            return (
+              <strong key={`${keyPrefix}-${bi}`} style={{ color: '#0f172a', fontWeight: 700 }}>
+                {bPart.slice(2, -2)}
+              </strong>
+            );
+          }
+          return bPart;
+        });
+      };
+
+      while ((match = linkRegex.exec(str)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push(...processBold(str.slice(lastIndex, match.index), `txt-${lastIndex}`));
         }
-        return part;
-      });
+        const linkText = match[1];
+        const linkUrl = match[2];
+        parts.push(
+          <Link
+            key={`lnk-${match.index}`}
+            href={linkUrl}
+            style={{
+              color: '#05424A',
+              fontWeight: 700,
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+              textDecorationColor: '#EABA38',
+              transition: 'color 0.15s ease',
+            }}
+          >
+            {linkText}
+          </Link>
+        );
+        lastIndex = match.index + match[0].length;
+      }
+      if (lastIndex < str.length) {
+        parts.push(...processBold(str.slice(lastIndex), `txt-${lastIndex}`));
+      }
+      return parts.length > 0 ? parts : str;
     };
 
     const flushList = () => {
@@ -569,6 +606,66 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               #{tag}
             </span>
           ))}
+        </div>
+
+        {/* ─── CONTEXTUAL INTERNAL LINK BRIDGE FOR HIGH-POWER SEO & USER NAVIGATION ─── */}
+        <div
+          style={{
+            marginTop: 40,
+            background: 'linear-gradient(135deg, rgba(5,66,74,0.04) 0%, rgba(234,186,56,0.1) 100%)',
+            border: '1.5px solid rgba(234,186,56,0.3)',
+            borderRadius: 18,
+            padding: '24px 22px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#05424A', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+            <Sparkles size={14} color="#d97706" />
+            <span>Recommended Related Services at Our Katargam Studio</span>
+          </div>
+          <p style={{ margin: '0 0 16px', fontSize: 14, color: '#475569', lineHeight: 1.6 }}>
+            {post.category === 'Bridal & Makeup'
+              ? 'Planning your wedding or engagement look in Surat? Explore our signature 3-session couture bridal packages featuring MAC, Huda Beauty, Dior, and Bobbi Brown with transparent pricing.'
+              : 'Interested in the professional treatments described in this guide? Discover our full salon service menu with transparent pricing, certified authentic formulations, and personalized consultations in Katargam.'}
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Link
+              href={post.category === 'Bridal & Makeup' ? '/bridal' : '/services'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#05424A',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '9px 18px',
+                borderRadius: 99,
+                textDecoration: 'none',
+              }}
+            >
+              <span>{post.category === 'Bridal & Makeup' ? 'Explore Bridal Packages & Pricing' : 'View Complete Services Menu'}</span>
+              <ArrowRight size={13} />
+            </Link>
+            <Link
+              href="/book"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#ffffff',
+                color: '#05424A',
+                border: '1.5px solid #05424A',
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '9px 16px',
+                borderRadius: 99,
+                textDecoration: 'none',
+              }}
+            >
+              <Calendar size={13} />
+              <span>Book Appointment</span>
+            </Link>
+          </div>
         </div>
 
         {/* ─── SURAT & SOUTH GUJARAT LOCAL STUDIO EXPERIENCE ─────────── */}

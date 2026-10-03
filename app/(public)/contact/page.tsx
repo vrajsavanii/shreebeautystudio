@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   },
   description:
     'Visit Shree Beauty Studio at 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat. Call or WhatsApp +91 98241 83769. Open all 7 days for ladies beauty & bridal services.',
+  keywords: [
+    'contact Shree Beauty Studio',
+    'salon address Katargam Surat',
+    'ladies salon phone number Surat',
+    'beauty parlour near Cancer Hospital Surat',
+    'Shree Beauty Studio appointment phone',
+  ],
   alternates: {
     canonical: '/contact',
   },
@@ -25,6 +32,13 @@ export const metadata: Metadata = {
         alt: 'Contact Shree Beauty Studio Surat',
       },
     ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Contact Us & Studio Location | Shree Beauty Studio Surat',
+    description:
+      'Visit Shree Beauty Studio at 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat. Call +91 98241 83769.',
+    images: ['/logo-with-name.png'],
   },
 };
 

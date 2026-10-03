@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import ServicesClient from './ServicesClient';
-import { getBreadcrumbSchema } from '@/lib/seo';
+import { getBreadcrumbSchema, getLocalBusinessSchema, getServicesCatalogSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
@@ -8,6 +8,15 @@ export const metadata: Metadata = {
   },
   description:
     'Explore 50+ luxury salon services in Katargam, Surat: hair Botox, smoothing, bridal makeup, Hydra facials, and Rica waxing. Transparent pricing, book online.',
+  keywords: [
+    'salon services Katargam Surat',
+    'beauty parlour rate list Surat',
+    'hair Botox price Surat',
+    'hydra facial cost Surat',
+    'keratin treatment Katargam',
+    'bridal makeup Katargam Surat',
+    'Shree Beauty Studio services',
+  ],
   alternates: {
     canonical: '/services',
   },
@@ -26,6 +35,13 @@ export const metadata: Metadata = {
       },
     ],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Beauty Services & Pricing | Shree Beauty Studio Surat',
+    description:
+      'Explore 50+ luxury salon services in Katargam, Surat: hair Botox, Hydra facials, and Rica waxing.',
+    images: ['/logo-with-name.png'],
+  },
 };
 
 export default function ServicesPage() {
@@ -33,9 +49,19 @@ export default function ServicesPage() {
     { name: 'Home', url: '/' },
     { name: 'Services', url: '/services' },
   ]);
+  const localBusinessJsonLd = getLocalBusinessSchema();
+  const servicesCatalogJsonLd = getServicesCatalogSchema();
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(servicesCatalogJsonLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}

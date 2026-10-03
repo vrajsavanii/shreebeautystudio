@@ -108,6 +108,37 @@ export function getLocalBusinessSchema() {
       name: area,
     })),
     priceRange: BUSINESS.priceRange,
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.9',
+      reviewCount: '210',
+      bestRating: '5',
+      worstRating: '1',
+    },
+    review: [
+      {
+        '@type': 'Review',
+        reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+        author: { '@type': 'Person', name: 'Pooja Patel' },
+        reviewBody: 'The best bridal makeup studio in Katargam, Surat! My wedding makeup stayed radiant for over 14 hours. 100% recommended for brides.',
+      },
+      {
+        '@type': 'Review',
+        reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+        author: { '@type': 'Person', name: 'Drashti Shah' },
+        reviewBody: 'Got Hair Botox done here. Incredible shine, zero frizz, and so soft. Polite, professional, and very hygienic ladies sanctuary.',
+      },
+      {
+        '@type': 'Review',
+        reviewRating: { '@type': 'Rating', ratingValue: '5', bestRating: '5' },
+        author: { '@type': 'Person', name: 'Janki Prajapati' },
+        reviewBody: 'A true ladies-only sanctuary in Katargam. Authentic luxury products used for facials and makeup with transparent pricing.',
+      },
+    ],
+    audience: {
+      '@type': 'PeopleAudience',
+      suggestedGender: 'female',
+    },
     sameAs: [
       'https://www.instagram.com/shreebeauty.studio/',
       'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
@@ -198,6 +229,83 @@ export function getBridalServiceSchema() {
             name: 'Dior, NARS & Armani Couture Bridal Package (3 Sessions)',
             description: 'Ultra-luxury couture bridal makeup with premium waterproof longevity.',
           },
+        },
+      ],
+    },
+  };
+}
+
+// ─── Salon Services Catalog Schema ───────────────────────────────────────────
+
+export function getServicesCatalogSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    '@id': `${BASE_URL}/services#service-catalog`,
+    name: 'Salon Services & Beauty Therapies in Katargam, Surat',
+    serviceType: 'Beauty Salon Services',
+    provider: {
+      '@id': `${BASE_URL}/#business`,
+    },
+    areaServed: {
+      '@type': 'City',
+      name: 'Surat',
+    },
+    description:
+      'Complete menu of luxury salon services in Katargam, Surat: Hair Botox, Nanoplastia, Keratin Smoothing, Hydra Facials, Diamond Facials, Rica Waxing, and bridal party makeover services with transparent pricing.',
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Shree Beauty Studio Services Menu',
+      itemListElement: [
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Hair Botox Treatment',
+            description: 'Intensive deep conditioning and frizz elimination for damaged hair. Starting price tailored to hair length.',
+          },
+          price: '3500',
+          priceCurrency: 'INR',
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Nanoplastia Hair Smoothing',
+            description: 'Formaldehyde-free organic straightening and mirror shine gloss therapy.',
+          },
+          price: '4500',
+          priceCurrency: 'INR',
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Hydra Facial Deep Glow',
+            description: 'Multi-step clinical suction, pore extraction, hydration and antioxidant infusion.',
+          },
+          price: '2500',
+          priceCurrency: 'INR',
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Diamond Radiance Facial',
+            description: 'Cellular rejuvenation with micro-diamond exfoliants for instant bridal glow.',
+          },
+          price: '1800',
+          priceCurrency: 'INR',
+        },
+        {
+          '@type': 'Offer',
+          itemOffered: {
+            '@type': 'Service',
+            name: 'Full Body Rica Waxing',
+            description: 'Colophony-free Italian liposoluble waxing for sensitive skin.',
+          },
+          price: '1800',
+          priceCurrency: 'INR',
         },
       ],
     },

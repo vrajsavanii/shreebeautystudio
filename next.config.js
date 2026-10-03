@@ -55,6 +55,15 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/ContactUs',
+        destination: '/contact',
+        permanent: true,
+      },
+    ];
+  },
   // Compress output
   compress: true,
   poweredByHeader: false,

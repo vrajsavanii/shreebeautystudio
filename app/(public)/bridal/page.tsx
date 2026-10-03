@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import BridalClient from './BridalClient';
-import { getBreadcrumbSchema, getBridalServiceSchema } from '@/lib/seo';
+import { getBreadcrumbSchema, getBridalServiceSchema, getLocalBusinessSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
@@ -36,6 +36,7 @@ export const metadata: Metadata = {
 };
 
 export default function BridalPage() {
+  const localBusinessJsonLd = getLocalBusinessSchema();
   const breadcrumbJsonLd = getBreadcrumbSchema([
     { name: 'Home', url: '/' },
     { name: 'Bridal Makeup Surat', url: '/bridal' },
@@ -100,6 +101,10 @@ export default function BridalPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
