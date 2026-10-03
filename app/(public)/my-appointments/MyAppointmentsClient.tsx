@@ -26,6 +26,7 @@ import {
 import { useSalonStore } from '@/lib/store';
 import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
 import { useCustomerAuth } from '@/lib/customer-context';
+import PhoneEmailButton from '@/components/auth/PhoneEmailButton';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 15 },
@@ -467,6 +468,51 @@ function MyAppointmentsView() {
                 )}
               </button>
             </form>
+
+            {/* ─── Alternative: Free Phone.Email SMS OTP Verification ─── */}
+            <div style={{ marginTop: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: '#e2e8f0' }} />
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Or Instant Free SMS Verification
+                </span>
+                <div style={{ flex: 1, height: 1, backgroundColor: '#e2e8f0' }} />
+              </div>
+
+              <PhoneEmailButton
+                purpose="my-appointments"
+                returnUrl="/my-appointments"
+                label="Unlock with Free SMS OTP (Phone.Email)"
+                onSuccess={(data) => {
+                  if (data.customer?.name) {
+                    setCustomerName(data.customer.name);
+                  }
+                  if (data.appointments || data.bridal) {
+                    const appts = data.appointments || [];
+                    const bridal = data.bridal || [];
+                    const all = [...appts, ...bridal].sort((a, b) =>
+                      (b.date || '').localeCompare(a.date || '')
+                    );
+                    setMatches(all);
+                    setSearched(true);
+                    if (data.verifiedPhone) {
+                      sessionStorage.setItem('shree_appt_mobile', data.verifiedPhone);
+                      setMobile(data.verifiedPhone);
+                    }
+                  } else {
+                    fetchAuthenticatedAppointments();
+                  }
+                }}
+              />
+            </div>
 
             {/* Quick Links Footer */}
             <div

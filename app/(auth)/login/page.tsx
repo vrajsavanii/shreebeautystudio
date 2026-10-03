@@ -26,6 +26,7 @@ import { UserAccount } from '@/types/salon';
 import { setAdminSession } from '@/lib/admin-auth';
 import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 import { useCustomerAuth } from '@/lib/customer-context';
+import PhoneEmailButton from '@/components/auth/PhoneEmailButton';
 
 function LoginFormContent() {
   const router = useRouter();
@@ -33,7 +34,7 @@ function LoginFormContent() {
   const redirectTarget = searchParams.get('redirect');
 
   // Customer Auth Context
-  const { login: customerLogin, customer } = useCustomerAuth();
+  const { login: customerLogin, customer, refreshProfile } = useCustomerAuth();
 
   // If redirect starts with /admin, or staff query param is set, default to staff mode
   const initialIsStaff =
@@ -532,6 +533,29 @@ function LoginFormContent() {
                 )}
               </button>
             </form>
+
+            {/* ─── Alternative: Free SMS Login via Phone.Email ─── */}
+            <div style={{ margin: '16px 0 18px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: '#f1f5f9' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Or 1-Click Free SMS Login
+                </span>
+                <div style={{ flex: 1, height: 1, backgroundColor: '#f1f5f9' }} />
+              </div>
+
+              <PhoneEmailButton
+                purpose="login"
+                returnUrl={redirectTarget || '/profile'}
+                label="Sign In with Free SMS OTP (Phone.Email)"
+                onSuccess={async () => {
+                  try {
+                    await refreshProfile();
+                  } catch {}
+                  router.replace(redirectTarget || '/profile');
+                }}
+              />
+            </div>
 
             {/* Create Account Link */}
             <div
