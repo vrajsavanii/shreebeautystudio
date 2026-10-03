@@ -168,7 +168,6 @@ export default function CustomerFooter() {
                 { href: '/about', label: 'About Us & Contact' },
                 { href: '/faq', label: 'Frequently Asked Questions' },
                 { href: '/blog', label: 'Beauty & Care Blog (50+ Guides)' },
-                { href: '/locations', label: 'Locations & Destination Artistry' },
               ].map((link, idx) => (
                 <Link
                   key={idx}
