@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useState, useMemo, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw, Mail, Zap } from 'lucide-react';
+import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw, Mail, Zap, Volume2, VolumeX, Bell } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM, FIFTEEN_MIN_TIME_SLOTS, getServicePricingBasis } from '@/lib/utils';
@@ -18,6 +18,7 @@ import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { getAppointmentGoogleCalendarUrl, downloadBulkAppointmentsICS } from '@/lib/calendar';
 import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
+import { playNewBookingChime, isAudioNotificationMuted, setAudioNotificationMuted } from '@/lib/notification-sound';
 
 type ApptTab = 'all' | 'pending' | 'today' | 'upcoming' | 'inservice' | 'completed' | 'not-attempted' | 'cancelled';
 const STATUS_OPTIONS: AppointmentStatus[] = ['Confirmed', 'Pending', 'Cancelled', 'Completed', 'Not Attempted'];
@@ -64,6 +65,23 @@ export default function AppointmentsPage() {
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [calendarSyncModalOpen, setCalendarSyncModalOpen] = useState(false);
   const [bulkSyncing, setBulkSyncing] = useState(false);
+  const prevPendingCountRef = useRef<number | null>(null);
+  const [soundMuted, setSoundMuted] = useState(false);
+
+  useEffect(() => {
+    setSoundMuted(isAudioNotificationMuted());
+  }, []);
+
+  // Play notification chime whenever a new online appointment is received
+  useEffect(() => {
+    if (counts.pending > 0) {
+      if (prevPendingCountRef.current !== null && counts.pending > prevPendingCountRef.current) {
+        playNewBookingChime();
+        toast(`🔔 ${counts.pending} New Pending Online Booking Request!`);
+      }
+    }
+    prevPendingCountRef.current = counts.pending;
+  }, [counts.pending, toast]);
   const [holidayForm, setHolidayForm] = useState<{
     date: string;
     endDate: string;
@@ -886,43 +904,114 @@ export default function AppointmentsPage() {
         );
       })()}
 
-      {/* Pending Booking Requests Alert Banner */}
+      {/* Pending Booking Requests Alert Banner with New Notification Chime Controls */}
       {counts.pending > 0 && (
         <div
           style={{
             background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
             border: '1.5px solid #f59e0b',
             color: '#92400e',
-            borderRadius: 12,
-            padding: '12px 18px',
+            borderRadius: 14,
+            padding: '14px 18px',
             marginBottom: 16,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 12,
             flexWrap: 'wrap',
-            boxShadow: '0 2px 10px rgba(245, 158, 11, 0.12)',
+            boxShadow: '0 4px 14px rgba(245, 158, 11, 0.15)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 24 }}>⏳</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: '#fef08a',
+                border: '1.5px solid #eab308',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 22,
+                flexShrink: 0,
+                boxShadow: '0 2px 8px rgba(234,179,8,0.25)',
+              }}
+            >
+              🔔
+            </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 13.5 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: '#78350f' }}>
                 {counts.pending} New Pending Booking Request{counts.pending > 1 ? 's' : ''} (નવી બુકિંગ વિનંતી)!
               </div>
-              <div style={{ fontSize: 12, opacity: 0.9 }}>
+              <div style={{ fontSize: 12, opacity: 0.9, marginTop: 2 }}>
                 Customer has requested an appointment online. Click <b>Confirm &amp; Notify</b> to confirm and auto-send WhatsApp notification.
               </div>
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-sm btn-gold"
-            onClick={() => setActiveTab('pending')}
-            style={{ fontWeight: 800, padding: '6px 14px' }}
-          >
-            Review Pending Requests ({counts.pending}) &rarr;
-          </button>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Play Sound Button */}
+            <button
+              type="button"
+              onClick={() => playNewBookingChime(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: '#ffffff',
+                border: '1.5px solid #d97706',
+                color: '#92400e',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title="Test new booking notification sound chime"
+            >
+              <span>🔊</span>
+              <span>Test Chime</span>
+            </button>
+
+            {/* Sound Mute / Unmute Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextMuted = !soundMuted;
+                setSoundMuted(nextMuted);
+                setAudioNotificationMuted(nextMuted);
+                if (!nextMuted) playNewBookingChime(true);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '6px 12px',
+                borderRadius: 8,
+                background: soundMuted ? '#f1f5f9' : '#ffffff',
+                border: `1.5px solid ${soundMuted ? '#94a3b8' : '#d97706'}`,
+                color: soundMuted ? '#64748b' : '#92400e',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title={soundMuted ? 'Sound is muted. Click to turn sound on' : 'Sound is active'}
+            >
+              <span>{soundMuted ? '🔇 Muted' : '🔔 Sound On'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-sm btn-gold"
+              onClick={() => setActiveTab('pending')}
+              style={{ fontWeight: 800, padding: '7px 16px', fontSize: 12.5 }}
+            >
+              Review Pending Requests ({counts.pending}) &rarr;
+            </button>
+          </div>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -16,12 +16,14 @@ import {
   UserCheck,
   LogOut,
   ExternalLink,
+  Bell,
 } from 'lucide-react';
 import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { format } from 'date-fns';
 import { useSalonStore } from '@/lib/store';
 import { todayISO } from '@/lib/utils';
 import { clearAdminSession } from '@/lib/admin-auth';
+import { playNewBookingChime } from '@/lib/notification-sound';
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/admin':             { title: 'Dashboard Overview', subtitle: 'Real-time studio KPIs & analytics' },
@@ -71,7 +73,20 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   // Quick stats
   const todayAppts = (data?.appointments || []).filter((a) => a.date === today && a.status !== 'Cancelled').length;
+  const pendingApptsCount = (data?.appointments || []).filter((a) => a.status === 'Pending').length;
   const lowStockCount = (data?.inventory || []).filter((i) => i.stock <= i.low).length;
+
+  const prevPendingRef = useRef<number | null>(null);
+
+  // Play notification chime when new pending booking requests are detected
+  useEffect(() => {
+    if (pendingApptsCount > 0) {
+      if (prevPendingRef.current !== null && pendingApptsCount > prevPendingRef.current) {
+        playNewBookingChime();
+      }
+    }
+    prevPendingRef.current = pendingApptsCount;
+  }, [pendingApptsCount]);
 
   const handleLogout = () => {
     clearAdminSession();
@@ -155,6 +170,35 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             </>
           )}
         </div>
+
+        {/* Pending Bookings Notification Badge */}
+        {pendingApptsCount > 0 && (
+          <Link
+            href="/admin/appointments?tab=pending"
+            className="topbar-badge"
+            style={{
+              textDecoration: 'none',
+              height: 28,
+              padding: '0 8px',
+              fontSize: 11,
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              flexShrink: 0,
+              borderRadius: 99,
+              background: '#fffbeb',
+              color: '#b45309',
+              border: '1px solid #fde68a',
+              boxShadow: '0 0 10px rgba(245, 158, 11, 0.25)',
+            }}
+            title={`${pendingApptsCount} pending booking request(s) awaiting approval`}
+          >
+            <span>🔔</span>
+            <span className="topbar-badge-label">{pendingApptsCount} Pending</span>
+            <span className="topbar-badge-short">{pendingApptsCount}</span>
+          </Link>
+        )}
 
         {/* Today's Bookings Indicator */}
         {todayAppts > 0 && (
