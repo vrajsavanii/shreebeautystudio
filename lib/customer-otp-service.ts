@@ -26,40 +26,13 @@ export async function dispatchCustomerOtp({
       ? 'Secure Login'
       : 'Password Reset';
 
-  // 1. Mobile Channel -> WhatsApp
+  // 1. Mobile Channel -> Direct SMS OTP via Cellular Network
   if (type === 'mobile') {
     const cleanMobile = target.replace(/\D/g, '').slice(-10);
 
-    const message = `🌸 *Shree Beauty Studio | ${actionLabel}*\n\n${name ? `Hello ${name},\n` : ''}Your security verification code for *${actionLabel}* is:\n\n🔢 *${code}*\n\n_(This code is valid for 10 minutes. For security, please do not share this code with anyone.)_\n\n📍 Shree Beauty Studio, Katargam, Surat\n📞 Helpline: +91 98241 83769\n🌐 https://shreebeauty.studio`;
-
-    let sentViaWhatsApp = false;
-    const fallbackUrl = `https://wa.me/919824183769?text=${encodeURIComponent(`Hi Shree Beauty Studio, please send my security verification code for mobile +91 ${cleanMobile} (${actionLabel})`)}`;
-
-    if (reqOrigin) {
-      try {
-        const res = await fetch(`${reqOrigin}/api/whatsapp/send-message`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: cleanMobile,
-            message,
-          }),
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success || json.messages || json.messageId) {
-            sentViaWhatsApp = true;
-          }
-        }
-      } catch (err) {
-        console.warn('[CustomerOtp] WhatsApp API dispatch failed, fallback active:', err);
-      }
-    }
-
     return {
       success: true,
-      channel: 'whatsapp',
-      fallbackUrl,
+      channel: 'sms' as any,
     };
   }
 

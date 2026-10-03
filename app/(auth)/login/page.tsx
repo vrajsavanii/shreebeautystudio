@@ -10,6 +10,7 @@ import {
   Loader2,
   LogIn,
   ShieldCheck,
+  Smartphone,
   UserCheck,
   ArrowLeft,
   Phone,
@@ -485,325 +486,65 @@ function LoginFormContent() {
 
             {/* ─── OPTION A: NATIVE MOBILE OTP LOGIN (100% IN-HOUSE, NO THIRD-PARTY LOGOS) ─── */}
             {authMode === 'otp' && (
-              <div>
-                {!otpSent ? (
-                  <div>
-                    {/* Primary Option: Instant SMS OTP via Telecom Network (100% Reliable Delivery) */}
-                    <div style={{ marginBottom: 18 }}>
-                      <PhoneEmailButton
-                        purpose="login"
-                        label="📱 Sign In with Instant SMS OTP"
-                        sublabel="Fast cellular SMS delivered across all Indian networks"
-                        returnUrl={redirectTarget || '/profile'}
-                        onSuccess={async () => {
-                          try {
-                            await refreshProfile();
-                          } catch {}
-                          router.replace(redirectTarget || '/profile');
-                        }}
-                      />
-                    </div>
+              <div
+                style={{
+                  background: 'linear-gradient(180deg, #FAF8F5 0%, #ffffff 100%)',
+                  borderRadius: 20,
+                  border: '1.5px solid rgba(234, 186, 56, 0.35)',
+                  padding: '28px 22px',
+                  boxShadow: '0 8px 30px rgba(5,66,74,0.06)',
+                  textAlign: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    background: 'rgba(234, 186, 56, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 12px',
+                    color: '#05424A',
+                  }}
+                >
+                  <Smartphone size={24} color="#05424A" />
+                </div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#05424A', marginBottom: 6 }}>
+                  Sign In with Mobile SMS OTP
+                </h3>
+                <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, maxWidth: 360, margin: '0 auto 20px' }}>
+                  Verify your mobile number to receive a genuine cellular SMS OTP delivered instantly across all Indian telecom networks (Jio, Airtel, Vi, BSNL).
+                </p>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 16px' }}>
-                      <div style={{ flex: 1, height: 1, backgroundColor: '#f1f5f9' }} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Or Enter Number Manually / WhatsApp
-                      </span>
-                      <div style={{ flex: 1, height: 1, backgroundColor: '#f1f5f9' }} />
-                    </div>
+                <PhoneEmailButton
+                  purpose="login"
+                  label="📱 Verify Mobile Number via SMS OTP"
+                  sublabel="Direct cellular SMS OTP. 100% confidential & secure"
+                  returnUrl={redirectTarget || '/profile'}
+                  onSuccess={async () => {
+                    try {
+                      await refreshProfile();
+                    } catch {}
+                    window.location.href = redirectTarget || '/profile';
+                  }}
+                />
 
-                    {/* Step 1: Enter Mobile Number */}
-                    <form onSubmit={handleSendLoginOtp}>
-                      <div style={{ marginBottom: 18 }}>
-                        <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                          Registered Mobile Number (મોબાઈલ નંબર)
-                        </label>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <span
-                            style={{
-                              padding: '11px 14px',
-                              background: '#f8fafc',
-                              border: '1.5px solid #cbd5e1',
-                              borderRadius: 12,
-                              fontSize: 14,
-                              fontWeight: 700,
-                              color: '#475569',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                            }}
-                          >
-                            <span>🇮🇳</span>
-                            <span>+91</span>
-                          </span>
-                          <input
-                            type="tel"
-                            value={otpMobile}
-                            onChange={(e) => setOtpMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                            placeholder="98765 43210"
-                            maxLength={10}
-                            style={{
-                              flex: 1,
-                              padding: '11px 14px',
-                              borderRadius: 12,
-                              border: '1.5px solid #cbd5e1',
-                              fontSize: 15,
-                              fontWeight: 600,
-                              boxSizing: 'border-box',
-                              outline: 'none',
-                            }}
-                            onFocus={(e) => (e.target.style.borderColor = '#05424A')}
-                            onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginBottom: 16 }}>
-                        <button
-                          type="submit"
-                          disabled={custLoading || otpMobile.replace(/\D/g, '').length < 10}
-                          style={{
-                            width: '100%',
-                            padding: '13px 22px',
-                            borderRadius: 14,
-                            border: 'none',
-                            background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                            color: '#ffffff',
-                            fontWeight: 800,
-                            fontSize: 14.5,
-                            cursor: custLoading || otpMobile.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
-                            opacity: custLoading || otpMobile.replace(/\D/g, '').length < 10 ? 0.7 : 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 8,
-                            boxShadow: '0 8px 24px rgba(5,66,74,0.3)',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          {custLoading ? (
-                            <>
-                              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                              <span>Sending verification code…</span>
-                            </>
-                          ) : (
-                            <>
-                              <Send size={15} color="#EABA38" />
-                              <span>Send In-Page Login OTP</span>
-                            </>
-                          )}
-                        </button>
-
-                        <a
-                          href={`https://wa.me/919824183769?text=${encodeURIComponent(
-                            `Hi Shree Beauty Studio, please send my login verification code for mobile +91 ${otpMobile || 'my number'}`
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            width: '100%',
-                            padding: '12px 18px',
-                            borderRadius: 14,
-                            border: '1.5px solid #22c55e',
-                            background: '#f0fdf4',
-                            color: '#15803d',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 8,
-                            fontSize: 13.5,
-                            fontWeight: 700,
-                            textDecoration: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          <MessageCircle size={16} color="#16a34a" />
-                          <span>Get Code via WhatsApp Helpline (+91 98241 83769)</span>
-                        </a>
-                      </div>
-                    </form>
-                  </div>
-                ) : (
-                  /* Step 2: Enter Verification Code */
-                  <form onSubmit={handleVerifyLoginOtp}>
-                    {/* Sent Confirmation Badge */}
-                    <div
-                      style={{
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: 12,
-                        padding: '10px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 18,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0 }} />
-                        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#166534' }}>
-                          Code sent to {maskedMobile || `+91 ${otpMobile}`}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpSent(false);
-                          setOtpCode('');
-                          setCustError('');
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#05424A',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          textDecoration: 'underline',
-                        }}
-                      >
-                        <Edit2 size={11} />
-                        <span>Edit</span>
-                      </button>
-                    </div>
-
-                    {/* Numeric Code Input */}
-                    <div style={{ marginBottom: 18 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6, textAlign: 'center' }}>
-                        Enter Verification Code (વેરિફિકેશન કોડ)
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        placeholder="••••••"
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        maxLength={6}
-                        required
-                        autoFocus
-                        style={{
-                          width: '100%',
-                          maxWidth: 240,
-                          margin: '0 auto',
-                          display: 'block',
-                          padding: '11px 14px',
-                          borderRadius: 14,
-                          border: '2px solid #05424A',
-                          fontSize: 24,
-                          fontWeight: 800,
-                          letterSpacing: '0.4em',
-                          textAlign: 'center',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                          fontFamily: 'monospace',
-                          background: '#fafaf9',
-                          color: '#05424A',
-                        }}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={custLoading || otpCode.length < 4}
-                      style={{
-                        width: '100%',
-                        padding: '13px 22px',
-                        borderRadius: 14,
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                        color: '#ffffff',
-                        fontWeight: 800,
-                        fontSize: 14.5,
-                        cursor: custLoading || otpCode.length < 4 ? 'not-allowed' : 'pointer',
-                        opacity: custLoading || otpCode.length < 4 ? 0.7 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        boxShadow: '0 8px 24px rgba(5,66,74,0.3)',
-                        marginBottom: 16,
-                      }}
-                    >
-                      {custLoading ? (
-                        <>
-                          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                          <span>Signing in…</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check size={16} color="#EABA38" />
-                          <span>Verify &amp; Sign In</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* Resend & WhatsApp Links */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontSize: 12,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {resendTimer > 0 ? (
-                        <span style={{ color: '#64748b', fontWeight: 600 }}>
-                          Resend code in <strong style={{ color: '#05424A' }}>{resendTimer}s</strong>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSendLoginOtp()}
-                          disabled={custLoading}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#05424A',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            textDecoration: 'underline',
-                          }}
-                        >
-                          <RotateCcw size={12} />
-                          <span>Resend Login OTP</span>
-                        </button>
-                      )}
-
-                      {fallbackWaUrl && (
-                        <a
-                          href={fallbackWaUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            color: '#15803d',
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                            background: '#f0fdf4',
-                            border: '1px solid #bbf7d0',
-                            borderRadius: 99,
-                            padding: '3px 10px',
-                            fontSize: 11,
-                          }}
-                        >
-                          <MessageCircle size={12} />
-                          <span>Open code on WhatsApp</span>
-                        </a>
-                      )}
-                    </div>
-                  </form>
-                )}
+                <div
+                  style={{
+                    marginTop: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    fontSize: 12,
+                    color: '#64748b',
+                  }}
+                >
+                  <ShieldCheck size={14} color="#16a34a" />
+                  <span>Confidential Ladies Privacy: SMS sent directly to your mobile operator.</span>
+                </div>
               </div>
             )}
 

@@ -445,7 +445,7 @@ function SignupPageContent() {
                   type="tel"
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="98765 43210 (For WhatsApp alerts)"
+                  placeholder="98765 43210 (For SMS & appointment alerts)"
                   maxLength={10}
                   style={{
                     flex: 1,

@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Loader2,
   ShieldCheck,
+  Smartphone,
   KeyRound,
   LogOut,
   Send,
@@ -572,356 +573,89 @@ function MyAppointmentsView() {
                 TAB 1: INSTANT MOBILE OTP (100% NATIVE, NO EXTERNAL POPUPS)
                 ══════════════════════════════════════════════════════ */}
             {activeTab === 'otp' && (
-              <div>
-                {!otpSent ? (
-                  <div>
-                    {/* Primary Instant Telecom SMS OTP Verification (Guaranteed Delivery) */}
-                    <div style={{ marginBottom: 18 }}>
-                      <PhoneEmailButton
-                        purpose="my-appointments"
-                        label="📱 Verify via Instant Mobile SMS OTP"
-                        sublabel="Fast cellular SMS delivered across all Indian networks"
-                        onSuccess={(data) => {
-                          if (data.customer?.name) {
-                            setCustomerName(data.customer.name);
-                          }
-                          if (data.appointments || data.bridal) {
-                            const appts = data.appointments || [];
-                            const bridal = (data.bridal || []).map((b: any) => ({
-                              id: b.id,
-                              date: b.weddingDate || b.date,
-                              time: '08:00 AM',
-                              customer: b.name,
-                              mobile: b.mobile,
-                              service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
-                              advance: b.advance || 0,
-                              price: b.totalAmount || b.package || b.price || 0,
-                              status: b.status || 'Confirmed',
-                              notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
-                            }));
-                            const all = [...appts, ...bridal].sort((a, b) =>
-                              (b.date || '').localeCompare(a.date || '')
-                            );
-                            setMatches(all);
-                            setSearched(true);
-                            if (data.verifiedPhone) {
-                              sessionStorage.setItem('shree_appt_mobile', data.verifiedPhone);
-                              setMobile(data.verifiedPhone);
-                            }
-                          } else {
-                            fetchAuthenticatedAppointments();
-                          }
-                        }}
-                      />
-                    </div>
+              <div
+                style={{
+                  background: 'linear-gradient(180deg, #FAF8F5 0%, #ffffff 100%)',
+                  borderRadius: 20,
+                  border: '1.5px solid rgba(234, 186, 56, 0.35)',
+                  padding: '28px 22px',
+                  boxShadow: '0 8px 30px rgba(5,66,74,0.06)',
+                  textAlign: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    background: 'rgba(234, 186, 56, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 14px',
+                    color: '#05424A',
+                  }}
+                >
+                  <Smartphone size={26} color="#05424A" />
+                </div>
+                <h3 style={{ fontSize: 19, fontWeight: 800, color: '#05424A', marginBottom: 6 }}>
+                  Verify Mobile via Instant SMS OTP
+                </h3>
+                <p style={{ fontSize: 13.5, color: '#64748b', lineHeight: 1.5, maxWidth: 400, margin: '0 auto 22px' }}>
+                  Verify your mobile number to view and manage your confirmed salon visits, advance deposits, and bridal package records.
+                </p>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0 16px' }}>
-                      <div style={{ flex: 1, height: 1, backgroundColor: '#e2e8f0' }} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Or Enter Number Manually / WhatsApp
-                      </span>
-                      <div style={{ flex: 1, height: 1, backgroundColor: '#e2e8f0' }} />
-                    </div>
+                <PhoneEmailButton
+                  purpose="my-appointments"
+                  label="📱 Verify Mobile Number via SMS OTP"
+                  sublabel="Fast cellular SMS delivered across all Indian networks"
+                  onSuccess={(data) => {
+                    if (data.customer?.name) {
+                      setCustomerName(data.customer.name);
+                    }
+                    if (data.appointments || data.bridal) {
+                      const appts = data.appointments || [];
+                      const bridal = (data.bridal || []).map((b: any) => ({
+                        id: b.id,
+                        date: b.weddingDate || b.date,
+                        time: '08:00 AM',
+                        customer: b.name,
+                        mobile: b.mobile,
+                        service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
+                        advance: b.advance || 0,
+                        price: b.totalAmount || b.package || b.price || 0,
+                        status: b.status || 'Confirmed',
+                        notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
+                      }));
+                      const all = [...appts, ...bridal].sort((a, b) =>
+                        (b.date || '').localeCompare(a.date || '')
+                      );
+                      setMatches(all);
+                      setSearched(true);
+                      if (data.verifiedPhone) {
+                        sessionStorage.setItem('shree_appt_mobile', data.verifiedPhone);
+                        setMobile(data.verifiedPhone);
+                      }
+                    } else {
+                      fetchAuthenticatedAppointments();
+                    }
+                  }}
+                />
 
-                    {/* Step 1: Enter Mobile Number */}
-                    <form onSubmit={handleSendOtp}>
-                      <div style={{ marginBottom: 16 }}>
-                        <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
-                          Registered Mobile Number (મોબાઈલ નંબર)
-                        </label>
-                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                          <div
-                            style={{
-                              position: 'absolute',
-                              left: 14,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              fontSize: 14,
-                              fontWeight: 700,
-                              color: '#475569',
-                              borderRight: '1px solid #cbd5e1',
-                              paddingRight: 10,
-                            }}
-                          >
-                            <span>🇮🇳</span>
-                            <span>+91</span>
-                          </div>
-                          <input
-                            type="tel"
-                            placeholder="98765 43210"
-                            value={mobile}
-                            onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                            maxLength={10}
-                            style={{
-                              width: '100%',
-                              padding: '13px 14px 13px 88px',
-                              borderRadius: 14,
-                              border: '1.5px solid #cbd5e1',
-                              fontSize: 16,
-                              fontWeight: 600,
-                              letterSpacing: '0.04em',
-                              outline: 'none',
-                              boxSizing: 'border-box',
-                            }}
-                            onFocus={(e) => (e.target.style.borderColor = '#05424A')}
-                            onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-                        <button
-                          type="submit"
-                          disabled={loading || mobile.replace(/\D/g, '').length < 10}
-                          style={{
-                            width: '100%',
-                            padding: '13px 20px',
-                            borderRadius: 14,
-                            background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                            color: '#ffffff',
-                            fontWeight: 700,
-                            fontSize: 14.5,
-                            border: 'none',
-                            cursor: loading || mobile.replace(/\D/g, '').length < 10 ? 'not-allowed' : 'pointer',
-                            opacity: loading || mobile.replace(/\D/g, '').length < 10 ? 0.7 : 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 8,
-                            boxShadow: '0 4px 14px rgba(5,66,74,0.2)',
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                              <span>Sending security code…</span>
-                            </>
-                          ) : (
-                            <>
-                              <Send size={15} color="#EABA38" />
-                              <span>Send In-Page Security OTP</span>
-                            </>
-                          )}
-                        </button>
-
-                        <a
-                          href={`https://wa.me/919824183769?text=${encodeURIComponent(
-                            `Hi Shree Beauty Studio, please send my security verification code for mobile +91 ${mobile || 'my number'} to view my appointments`
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            width: '100%',
-                            padding: '12px 18px',
-                            borderRadius: 14,
-                            border: '1.5px solid #22c55e',
-                            background: '#f0fdf4',
-                            color: '#15803d',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 8,
-                            fontSize: 13.5,
-                            fontWeight: 700,
-                            textDecoration: 'none',
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          <MessageCircle size={16} color="#16a34a" />
-                          <span>Get Code via WhatsApp Helpline (+91 98241 83769)</span>
-                        </a>
-                      </div>
-                    </form>
-                  </div>
-                ) : (
-                  /* Step 2: Enter 4-Digit Security OTP */
-                  <form onSubmit={handleVerifyOtp}>
-                    {/* Sent Confirmation Badge */}
-                    <div
-                      style={{
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: 14,
-                        padding: '12px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 20,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <CheckCircle2 size={18} color="#16a34a" style={{ flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#166534' }}>
-                            Security code sent!
-                          </div>
-                          <div style={{ fontSize: 12, color: '#475569' }}>
-                            To {maskedMobile || `+91 ${mobile}`}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOtpSent(false);
-                          setOtpCode('');
-                          setError('');
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#05424A',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          textDecoration: 'underline',
-                        }}
-                      >
-                        <Edit2 size={12} />
-                        <span>Edit</span>
-                      </button>
-                    </div>
-
-                    {/* 4-Digit OTP Code Input */}
-                    <div style={{ marginBottom: 20 }}>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8, textAlign: 'center' }}>
-                        Enter 4-Digit Verification Code (કોડ દાખલ કરો)
-                      </label>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        placeholder="••••"
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                        maxLength={4}
-                        required
-                        autoFocus
-                        style={{
-                          width: '100%',
-                          maxWidth: 240,
-                          margin: '0 auto',
-                          display: 'block',
-                          padding: '12px 16px',
-                          borderRadius: 14,
-                          border: '2px solid #05424A',
-                          fontSize: 26,
-                          fontWeight: 800,
-                          letterSpacing: '0.45em',
-                          textAlign: 'center',
-                          outline: 'none',
-                          boxSizing: 'border-box',
-                          fontFamily: 'monospace',
-                          background: '#fafaf9',
-                          color: '#05424A',
-                        }}
-                      />
-                    </div>
-
-                    {/* Submit Verification Button */}
-                    <button
-                      type="submit"
-                      disabled={loading || otpCode.length < 4}
-                      style={{
-                        width: '100%',
-                        padding: '14px 20px',
-                        borderRadius: 14,
-                        background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                        color: '#ffffff',
-                        fontWeight: 700,
-                        fontSize: 15,
-                        border: 'none',
-                        cursor: loading || otpCode.length < 4 ? 'not-allowed' : 'pointer',
-                        opacity: loading || otpCode.length < 4 ? 0.7 : 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        boxShadow: '0 4px 16px rgba(5,66,74,0.25)',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                          <span>Verifying code…</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check size={16} color="#EABA38" />
-                          <span>Verify &amp; Unlock Appointments</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* Resend & WhatsApp Direct Links */}
-                    <div
-                      style={{
-                        marginTop: 18,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 10,
-                        fontSize: 12.5,
-                      }}
-                    >
-                      {resendTimer > 0 ? (
-                        <span style={{ color: '#64748b', fontWeight: 600 }}>
-                          Resend code in <strong style={{ color: '#05424A' }}>{resendTimer}s</strong>
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleSendOtp()}
-                          disabled={loading}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#05424A',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            textDecoration: 'underline',
-                          }}
-                        >
-                          <RotateCcw size={13} />
-                          <span>Resend Security OTP</span>
-                        </button>
-                      )}
-
-                      {fallbackWaUrl && (
-                        <a
-                          href={fallbackWaUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            color: '#15803d',
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                            background: '#f0fdf4',
-                            border: '1px solid #bbf7d0',
-                            borderRadius: 99,
-                            padding: '4px 12px',
-                            fontSize: 11.5,
-                          }}
-                        >
-                          <MessageCircle size={13} />
-                          <span>Didn&apos;t receive? Open code on WhatsApp</span>
-                        </a>
-                      )}
-                    </div>
-                  </form>
-                )}
+                <div
+                  style={{
+                    marginTop: 22,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    fontSize: 12,
+                    color: '#64748b',
+                  }}
+                >
+                  <ShieldCheck size={14} color="#16a34a" />
+                  <span>Confidential &amp; secure: Zero WhatsApp required. Real cellular SMS verification.</span>
+                </div>
               </div>
             )}
 

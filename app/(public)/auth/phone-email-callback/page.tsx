@@ -41,23 +41,40 @@ function CallbackContent() {
             bridal: data.bridal,
           };
 
+          if (data.customer) {
+            try {
+              localStorage.setItem('shree_cached_customer', JSON.stringify(data.customer));
+            } catch {}
+          }
+
           // Notify opener popup or parent window
           if (window.opener && !window.opener.closed) {
-            window.opener.postMessage(payload, window.location.origin);
-            setTimeout(() => {
-              window.close();
-            }, 1000);
+            try {
+              window.opener.postMessage(payload, window.location.origin);
+              setTimeout(() => {
+                window.close();
+              }, 800);
+            } catch {
+              // Cross-origin opener error fallback to direct redirect
+              let returnUrl = '/my-appointments';
+              try {
+                returnUrl = localStorage.getItem('pe_return_url') || '/my-appointments';
+              } catch {}
+              window.location.href = returnUrl;
+            }
           } else if (window.parent && window.parent !== window) {
-            window.parent.postMessage(payload, window.location.origin);
+            try {
+              window.parent.postMessage(payload, window.location.origin);
+            } catch {}
           } else {
-            // Standalone redirection fallback
+            // Standalone direct navigation (mobile & full-screen)
             setTimeout(() => {
               let returnUrl = '/my-appointments';
               try {
                 returnUrl = localStorage.getItem('pe_return_url') || '/my-appointments';
               } catch {}
-              router.replace(returnUrl);
-            }, 1200);
+              window.location.href = returnUrl;
+            }, 600);
           }
         } else {
           setStatus('error');

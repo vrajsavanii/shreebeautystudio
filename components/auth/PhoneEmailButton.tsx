@@ -60,18 +60,41 @@ export default function PhoneEmailButton({
       localStorage.setItem('pe_purpose', purpose);
     } catch {}
 
-    const width = 480;
-    const height = 580;
-    const top = (window.screen.height - height) / 2;
-    const left = (window.screen.width - width) / 2;
+    const isMobile =
+      typeof window !== 'undefined' &&
+      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+        window.innerWidth < 768);
 
     const redirectUrl = `${window.location.origin}/auth/phone-email-callback`;
     const authUrl = `https://www.phone.email/auth/log-in?client_id=${clientId}&redirect_url=${encodeURIComponent(
       redirectUrl
     )}`;
+
+    // On mobile devices, always navigate directly so popup blockers don't suppress the SMS verification screen
+    if (isMobile) {
+      window.location.href = authUrl;
+      return;
+    }
+
+    // On desktop, try centered popup with automatic direct fallback if popup is blocked
+    const width = 480;
+    const height = 580;
+    const top = (window.screen.height - height) / 2;
+    const left = (window.screen.width - width) / 2;
     const windowFeatures = `toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=${width},height=${height},top=${top},left=${left}`;
 
-    const authWindow = window.open(authUrl, 'shreeAuthWindow', windowFeatures);
+    let authWindow: Window | null = null;
+    try {
+      authWindow = window.open(authUrl, 'shreeAuthWindow', windowFeatures);
+    } catch {
+      authWindow = null;
+    }
+
+    if (!authWindow || authWindow.closed || typeof authWindow.closed === 'undefined') {
+      // Browser popup blocker prevented window from opening; navigate directly
+      window.location.href = authUrl;
+      return;
+    }
 
     // Watch if user closes popup manually
     const timer = setInterval(() => {
