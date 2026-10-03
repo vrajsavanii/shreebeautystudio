@@ -160,7 +160,7 @@ function MyAppointmentsView() {
     }
   }, [searchParams, authenticated]);
 
-  // 5. Send Native Security OTP via WhatsApp / SMS
+  // 5. Send Native Security OTP via Cellular SMS
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const clean = mobile.replace(/\D/g, '').slice(-10);
@@ -654,7 +654,7 @@ function MyAppointmentsView() {
                   }}
                 >
                   <ShieldCheck size={14} color="#16a34a" />
-                  <span>Confidential &amp; secure: Zero WhatsApp required. Real cellular SMS verification.</span>
+                  <span>Confidential &amp; secure: 100% genuine cellular SMS OTP verification delivered directly to your mobile.</span>
                 </div>
               </div>
             )}
