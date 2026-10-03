@@ -35,11 +35,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: post.metaDescription,
     keywords: [
       ...post.tags,
+      'best beauty parlour in Surat',
+      'best beauty salon in Surat',
+      'best ladies salon in Surat',
       'Shree Beauty Studio Surat',
       'Katargam beauty parlour',
-      'best salon in Surat for women',
       'bridal makeup Surat Gujarat',
       'ladies beauty parlour Katargam',
+      'hair botox salon Surat',
+      'hydra facial Katargam Surat',
     ],
     alternates: {
       canonical: `/blog/${post.slug}`,
@@ -70,9 +74,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     other: {
       'geo.region': 'IN-GJ',
-      'geo.placename': 'Surat, Gujarat, India',
-      'geo.position': '21.2156;72.8258',
-      'ICBM': '21.2156, 72.8258',
+      'geo.placename': 'Katargam, Surat, Gujarat, India',
+      'geo.position': '21.2369033;72.8158985',
+      'ICBM': '21.2369033, 72.8158985',
       'article:section': post.category,
       'article:tag': post.tags.join(', '),
     },
@@ -125,33 +129,48 @@ export default function BlogPostPage({ params }: Props) {
       },
       geo: {
         '@type': 'GeoCoordinates',
-        latitude: 21.2156,
-        longitude: 72.8258,
+        latitude: 21.2369033,
+        longitude: 72.8158985,
       },
       logo: {
         '@type': 'ImageObject',
         url: 'https://shreebeauty.studio/shree-logo.png',
       },
     },
-    about: {
-      '@type': 'BeautySalon',
-      name: 'Shree Beauty Studio',
-      description: 'Exclusive ladies-only luxury beauty salon and bridal makeup studio in Katargam, Surat, Gujarat.',
-      telephone: ['+91-98241-83769'],
-      address: {
-        '@type': 'PostalAddress',
-        streetAddress: '22, Radhika Society, Opp. Cancer Hospital',
-        addressLocality: 'Katargam',
-        addressRegion: 'Surat',
-        postalCode: '395004',
-        addressCountry: 'IN',
+    about: [
+      {
+        '@type': 'BeautySalon',
+        name: 'Shree Beauty Studio',
+        description: 'Best beauty parlour and luxury ladies salon in Surat, Gujarat. 100% ladies-only sanctuary.',
+        telephone: ['+91-98241-83769'],
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: '22, Radhika Society, Opp. Cancer Hospital',
+          addressLocality: 'Katargam',
+          addressRegion: 'Surat',
+          postalCode: '395004',
+          addressCountry: 'IN',
+        },
       },
-    },
+      {
+        '@type': 'City',
+        name: 'Surat',
+        containedInPlace: {
+          '@type': 'AdministrativeArea',
+          name: 'Gujarat',
+        },
+      },
+    ],
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': `https://shreebeauty.studio/blog/${post.slug}`,
     },
-    keywords: post.tags.join(', '),
+    keywords: [
+      ...post.tags,
+      'best beauty parlour in Surat',
+      'best beauty salon in Surat',
+      'ladies parlour Katargam',
+    ].join(', '),
   };
 
   const faqJsonLd = post.faq && post.faq.length > 0 ? getFAQSchema(post.faq) : null;

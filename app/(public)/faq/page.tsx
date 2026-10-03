@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description:
     'Questions about salon timings, bridal packages, hair Botox, facials, or booking policies in Katargam, Surat? Read our comprehensive client FAQ guide.',
   keywords: [
+    'best beauty parlour in Surat',
+    'best beauty salon in Surat',
     'Shree Beauty Studio FAQ',
     'salon timings Katargam Surat',
     'bridal makeup queries Surat',

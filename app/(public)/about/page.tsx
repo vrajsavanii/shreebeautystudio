@@ -9,11 +9,14 @@ export const metadata: Metadata = {
   description:
     'Over 25 years of bridal makeovers, luxury hair care, and skincare in Katargam, Surat. 100% ladies-only sanctuary using sealed international brands.',
   keywords: [
+    'best beauty parlour in Surat',
+    'best beauty salon in Surat',
     'about Shree Beauty Studio',
     'ladies salon heritage Surat',
     'beauty parlour Katargam history',
     'best bridal artist Surat story',
     'hygienic beauty salon Surat',
+    'top ladies parlour in Gujarat',
   ],
   alternates: {
     canonical: '/about',

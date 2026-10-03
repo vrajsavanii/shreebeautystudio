@@ -4,15 +4,26 @@ import { getBreadcrumbSchema, getBridalServiceSchema, getLocalBusinessSchema } f
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Bridal Makeup Artist in Surat | Shree Beauty Studio Katargam',
+    absolute: 'Best Bridal Makeup Artist & Studio in Surat | Shree Beauty Studio',
   },
   description:
-    'Looking for the best bridal makeup artist in Surat? Shree Beauty Studio offers couture bridal packages, HD & airbrush finishes, hair styling, jewellery setting & Gujarati draping in Katargam, Surat. Book your consultation.',
+    'Ranked best bridal makeup artist & beauty parlour in Surat. Couture bridal packages, HD & airbrush finishes, hair styling, jewellery setting & Gujarati draping in Katargam, Surat. 25+ years experience.',
+  keywords: [
+    'best bridal makeup artist in Surat',
+    'best beauty parlour in Surat for bridal',
+    'bridal makeup Surat',
+    'Gujarati bridal makeover Katargam',
+    'HD bridal makeup Surat',
+    'Airbrush bridal makeup Katargam',
+    'pre bridal packages Surat',
+    'wedding makeup artist Gujarat',
+    'Shree Beauty Studio bridal',
+  ],
   alternates: {
     canonical: '/bridal',
   },
   openGraph: {
-    title: 'Bridal Makeup Artist in Surat | Shree Beauty Studio',
+    title: 'Best Bridal Makeup Artist & Studio in Surat | Shree Beauty Studio',
     description:
       'Couture 3-session bridal makeover packages from ₹25,300 with MAC, Huda Beauty, Dior, NARS & Charlotte Tilbury in Katargam, Surat. 25+ years experience.',
     url: 'https://shreebeauty.studio/bridal',
@@ -22,13 +33,13 @@ export const metadata: Metadata = {
         url: '/services/royal_bridal_makeup.webp',
         width: 1200,
         height: 630,
-        alt: 'Bridal Makeup Artist in Surat - Shree Beauty Studio Katargam',
+        alt: 'Best Bridal Makeup Artist in Surat - Shree Beauty Studio Katargam',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Bridal Makeup Artist in Surat | Shree Beauty Studio',
+    title: 'Best Bridal Makeup Artist & Studio in Surat | Shree Beauty Studio',
     description:
       'Luxury bridal makeovers, jewellery setting & draping in Katargam, Surat. Real products, transparent packages.',
     images: ['/services/royal_bridal_makeup.webp'],

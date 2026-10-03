@@ -4,24 +4,28 @@ import { getBreadcrumbSchema, getLocalBusinessSchema, getServicesCatalogSchema }
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Beauty Services & Pricing | Shree Beauty Studio, Katargam Surat',
+    absolute: 'Best Beauty Salon Services & Rate List in Surat | Shree Beauty Studio',
   },
   description:
-    'Explore 50+ luxury salon services in Katargam, Surat: hair Botox, smoothing, bridal makeup, Hydra facials, and Rica waxing. Transparent pricing, book online.',
+    'Explore 50+ luxury salon services with transparent rate list at the best ladies beauty parlour in Surat: hair Botox, Nanoplastia, bridal makeup, Hydra facials, and Rica waxing in Katargam, Surat.',
   keywords: [
-    'salon services Katargam Surat',
+    'best beauty salon in Surat',
+    'best beauty parlour in Surat',
     'beauty parlour rate list Surat',
+    'salon services Katargam Surat',
     'hair Botox price Surat',
+    'nanoplastia cost Surat',
     'hydra facial cost Surat',
     'keratin treatment Katargam',
     'bridal makeup Katargam Surat',
+    'ladies beauty parlour Surat',
     'Shree Beauty Studio services',
   ],
   alternates: {
     canonical: '/services',
   },
   openGraph: {
-    title: 'Beauty Services & Prices | Shree Beauty Studio Surat',
+    title: 'Best Beauty Salon Services & Rate List in Surat | Shree Beauty Studio',
     description:
       'Complete menu of luxury salon services with transparent pricing in Katargam, Surat. Hair treatments, bridal makeup, skincare facials & body care.',
     url: 'https://shreebeauty.studio/services',
@@ -31,13 +35,13 @@ export const metadata: Metadata = {
         url: '/logo-with-name.png',
         width: 800,
         height: 600,
-        alt: 'Shree Beauty Studio Services Menu Surat',
+        alt: 'Best Beauty Salon Services Menu Surat — Shree Beauty Studio',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Beauty Services & Pricing | Shree Beauty Studio Surat',
+    title: 'Best Beauty Salon Services & Rate List in Surat | Shree Beauty Studio',
     description:
       'Explore 50+ luxury salon services in Katargam, Surat: hair Botox, Hydra facials, and Rica waxing.',
     images: ['/logo-with-name.png'],

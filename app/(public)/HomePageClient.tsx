@@ -226,7 +226,7 @@ export default function PublicHomePage() {
           <motion.div initial="hidden" animate="visible" variants={stagger} className="cust-hero-text-col">
             <motion.div variants={fadeUp} className="cust-hero-badge-pill">
               <Sparkles size={13} color="#D4AF37" />
-              <span>Katargam, Surat&apos;s Premier Ladies Sanctuary</span>
+              <span>Best Beauty Parlour &amp; Salon in Surat • 100% Ladies Only</span>
             </motion.div>
 
             <motion.h1
