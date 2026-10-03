@@ -114,8 +114,8 @@ function ServicesView() {
             position: 'relative',
             borderRadius: 24,
             overflow: 'hidden',
-            height: 'clamp(280px, 32vw, 380px)',
-            boxShadow: '0 12px 48px rgba(5,66,74,0.2), 0 2px 8px rgba(0,0,0,0.08)',
+            height: 'clamp(380px, 45vw, 520px)',
+            boxShadow: '0 16px 56px rgba(5,66,74,0.25), 0 2px 8px rgba(0,0,0,0.08)',
           }}
         >
           {/* Carousel of salon backgrounds */}
@@ -127,7 +127,7 @@ function ServicesView() {
                 inset: 0,
                 backgroundImage: `url(${src})`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center 40%',
+                backgroundPosition: 'center center',
                 opacity: bgIndex === i ? 1 : 0,
                 transition: 'opacity 2s ease-in-out',
               }}
@@ -138,7 +138,7 @@ function ServicesView() {
             style={{
               position: 'absolute',
               inset: 0,
-              background: 'linear-gradient(135deg, rgba(3,43,48,0.78) 0%, rgba(5,66,74,0.55) 50%, rgba(3,43,48,0.72) 100%)',
+              background: 'linear-gradient(135deg, rgba(3,43,48,0.75) 0%, rgba(5,66,74,0.48) 50%, rgba(3,43,48,0.72) 100%)',
             }}
           />
           {/* Hero Content */}
@@ -150,7 +150,7 @@ function ServicesView() {
               alignItems: 'center',
               justifyContent: 'center',
               flexDirection: 'column',
-              padding: '24px 32px',
+              padding: '36px 32px',
               textAlign: 'center',
               zIndex: 1,
             }}
@@ -163,13 +163,13 @@ function ServicesView() {
                 background: 'rgba(234,186,56,0.2)',
                 border: '1px solid rgba(234,186,56,0.5)',
                 borderRadius: 99,
-                padding: '5px 16px',
-                fontSize: 12,
+                padding: '6px 18px',
+                fontSize: 12.5,
                 fontWeight: 700,
                 color: '#EABA38',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
-                marginBottom: 14,
+                marginBottom: 16,
               }}
             >
               <Sparkles size={13} /> Our Salon Interior
@@ -177,36 +177,38 @@ function ServicesView() {
             <h2
               className="display-font"
               style={{
-                fontSize: 'clamp(22px, 4.5vw, 38px)',
+                fontSize: 'clamp(28px, 5vw, 48px)',
                 fontWeight: 800,
                 color: '#ffffff',
-                margin: '0 0 8px',
-                textShadow: '0 2px 12px rgba(0,0,0,0.3)',
+                margin: '0 0 12px',
+                textShadow: '0 2px 14px rgba(0,0,0,0.35)',
+                lineHeight: 1.15,
               }}
             >
               Welcome to Shree Beauty Studio
             </h2>
             <p
               style={{
-                fontSize: 'clamp(13px, 2vw, 15px)',
-                color: 'rgba(255,255,255,0.85)',
-                maxWidth: 520,
-                margin: 0,
-                lineHeight: 1.6,
+                fontSize: 'clamp(14px, 2vw, 17px)',
+                color: 'rgba(255,255,255,0.92)',
+                maxWidth: 580,
+                margin: '0 0 22px',
+                lineHeight: 1.65,
+                textShadow: '0 1px 6px rgba(0,0,0,0.25)',
               }}
             >
-              Experience luxury treatments in our beautifully designed salon — crafted for your comfort
+              Experience luxury treatments in our beautifully designed salon — crafted for your comfort and ultimate relaxation
             </p>
             {/* Navigation dots */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
               {salonBgImages.map((_, i) => (
                 <button
                   key={`dot-${i}`}
                   type="button"
                   onClick={() => setBgIndex(i)}
                   style={{
-                    width: bgIndex === i ? 24 : 8,
-                    height: 8,
+                    width: bgIndex === i ? 28 : 10,
+                    height: 10,
                     borderRadius: 99,
                     border: 'none',
                     background: bgIndex === i ? '#EABA38' : 'rgba(255,255,255,0.5)',
@@ -214,6 +216,7 @@ function ServicesView() {
                     transition: 'all 0.3s ease',
                     padding: 0,
                   }}
+                  aria-label={`Go to slide ${i + 1}`}
                 />
               ))}
             </div>
