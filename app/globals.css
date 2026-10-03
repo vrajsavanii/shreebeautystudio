@@ -93,9 +93,9 @@ body {
   font-size: 13.5px;
   line-height: 1.5;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   max-width: 100vw;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* ─── Custom Scrollbar ───────────────────────────────────────────── */

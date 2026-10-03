@@ -123,7 +123,8 @@ export default function CustomerFooter() {
               >
                 <Sparkles size={12} color="#EABA38" /> 25+ Years Heritage
               </span>
-              <span
+              <Link
+                href="/admin"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -135,10 +136,13 @@ export default function CustomerFooter() {
                   color: '#cbd5e1',
                   fontSize: 12,
                   fontWeight: 600,
+                  textDecoration: 'none',
+                  cursor: 'default',
+                  transition: 'border-color 0.2s ease',
                 }}
               >
                 <ShieldCheck size={12} color="#80EEEE" /> Ladies Exclusive
-              </span>
+              </Link>
             </div>
           </div>
 

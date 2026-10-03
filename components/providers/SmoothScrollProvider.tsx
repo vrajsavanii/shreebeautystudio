@@ -13,10 +13,24 @@ export default function SmoothScrollProvider({ children }: SmoothScrollProviderP
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
+    // Disable custom smooth scroll engine on mobile/touch devices (iPhone, iPad, Android).
+    // iOS Safari has native 120Hz ProMotion momentum scrolling. Running a JS RAF loop on touch
+    // devices causes a conflict with iOS address bar collapse/expand, making the page bounce
+    // up and down in an endless oscillation loop.
+    const isTouchDevice =
+      'ontouchstart' in window ||
+      (typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || (navigator as any).msMaxTouchPoints > 0)) ||
+      window.matchMedia('(pointer: coarse)').matches ||
+      /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isTouchDevice) {
+      return;
+    }
+
     let lenisInstance: any = null;
     let rafId: number;
 
-    // Dynamically load Lenis exclusively on the client
+    // Dynamically load Lenis exclusively on desktop pointer devices
     import('lenis')
       .then(({ default: Lenis }) => {
         const lenis = new Lenis({
@@ -26,7 +40,7 @@ export default function SmoothScrollProvider({ children }: SmoothScrollProviderP
           gestureOrientation: 'vertical',
           smoothWheel: true,
           wheelMultiplier: 0.95,
-          touchMultiplier: 1.5,
+          touchMultiplier: 0,
           syncTouch: false,
           infinite: false,
         });
