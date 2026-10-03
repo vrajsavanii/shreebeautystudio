@@ -6,8 +6,8 @@ import './globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://shreebeauty.studio'),
   title: {
-    default: 'Shree Beauty Parlour & Studio Surat — Best Ladies Salon & Bridal Studio',
-    template: '%s | Shree Beauty Studio, Surat',
+    default: 'Shree Beauty Parlour & Studio — Official Website | Best Ladies Salon & Bridal Studio',
+    template: '%s | Shree Beauty Studio',
   },
   description:
     'Surat’s premier ladies-only beauty salon and bridal makeover studio in Katargam. 25+ years excellence in HD bridal makeup, hair Botox, nanoplastia, and luxury facials.',

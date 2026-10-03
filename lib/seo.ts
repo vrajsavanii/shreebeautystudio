@@ -85,11 +85,18 @@ export const BUSINESS = {
 export function getLocalBusinessSchema() {
   return {
     '@context': 'https://schema.org',
-    '@type': ['LocalBusiness', 'BeautySalon', 'DaySpa'],
+    '@type': ['Organization', 'Brand', 'LocalBusiness', 'BeautySalon', 'DaySpa'],
     '@id': `${BASE_URL}/#business`,
     name: BUSINESS.name,
     legalName: BUSINESS.legalName,
     alternateName: BUSINESS.alternateName,
+    brand: {
+      '@type': 'Brand',
+      name: 'Shree Beauty Parlour',
+      alternateName: 'Shree Beauty Studio',
+      url: BASE_URL,
+      logo: BUSINESS.logo,
+    },
     description: BUSINESS.description,
     slogan: BUSINESS.slogan,
     award: BUSINESS.award,
