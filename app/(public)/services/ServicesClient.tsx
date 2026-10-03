@@ -95,7 +95,6 @@ function ServicesView() {
             backgroundImage: `url(${src})`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            backgroundAttachment: 'fixed',
             opacity: bgIndex === i ? 1 : 0,
             transition: 'opacity 2s ease-in-out',
             willChange: 'opacity',
@@ -438,9 +437,10 @@ function ServicesView() {
             margin: '0 auto',
           }}
         >
-          {filtered.map((s: Service) => {
+          {filtered.map((s: Service, idx: number) => {
             const img = serviceImageMap.get(s.id) || getServiceImage(s.name, s.category);
             const pricingBasis = getServicePricingBasis(s.category, s.name, s.pricingType);
+            const isPriority = idx < 6;
             return (
               <motion.div
                 key={s.id}
@@ -463,6 +463,8 @@ function ServicesView() {
                   maxWidth: 380,
                   minWidth: 290,
                   width: '100%',
+                  contentVisibility: 'auto',
+                  containIntrinsicSize: '360px 460px',
                 }}
               >
                 {/* 1. Full-Width Prominent Service Image Banner */}
@@ -470,7 +472,11 @@ function ServicesView() {
                   <img
                     src={img}
                     alt={s.name}
-                    loading="lazy"
+                    loading={isPriority ? 'eager' : 'lazy'}
+                    decoding="async"
+                    fetchPriority={isPriority ? 'high' : 'low'}
+                    width={600}
+                    height={340}
                     style={{
                       width: '100%',
                       height: '100%',

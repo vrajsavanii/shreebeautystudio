@@ -598,7 +598,7 @@ export default function PublicHomePage() {
               >
                 {/* 1. Media Area */}
                 <div className="card-media-box">
-                  <img src={img} alt={cat} loading="lazy" />
+                  <img src={img} alt={cat} loading="lazy" decoding="async" width={380} height={180} />
                   <div className="card-media-overlay" />
                   <div className="card-cat-badge">
                     <span>{icon}</span>
@@ -625,7 +625,7 @@ export default function PublicHomePage() {
                       return (
                         <div key={s.id || s.name} className="card-service-row" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 36, height: 36, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: '1px solid rgba(5,66,74,0.12)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                            <img src={sImg} alt={s.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                            <img src={sImg} alt={s.name} width={36} height={36} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async" />
                           </div>
                           <div className="service-name" style={{ flex: 1, minWidth: 0 }}>
                             <span title={s.name} style={{ fontWeight: 600, fontSize: 13.5, color: '#1e293b' }}>{s.name}</span>
