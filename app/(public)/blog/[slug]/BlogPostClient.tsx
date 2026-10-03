@@ -650,7 +650,7 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               marginBottom: 12,
             }}
           >
-            Why Shree Beauty Studio Is Ranked the Best Beauty Parlour in Surat
+            Why Shree Beauty Studio Is Ranked the Best Beauty Studio &amp; Salon in Surat
           </h2>
 
           <p
@@ -661,7 +661,7 @@ export default function BlogPostClient({ post, relatedPosts }: Props) {
               marginBottom: 20,
             }}
           >
-            Looking for the <strong style={{ color: '#fef08a' }}>best beauty parlour or salon in Surat</strong>? <strong>Shree Beauty Studio</strong> is Surat’s premier, 100% ladies-only beauty sanctuary in Katargam. Holding a <strong>4.9★ rating from 210+ verified clients</strong> with over 25 years of trusted heritage, it specializes in luxury HD/Airbrush bridal makeup, hair Botox, Nanoplastia, and Hydra Facials using sealed international products (L’Oréal, O3+, Rica, Kryolan) tailored specifically to South Gujarat’s water and weather.
+            Looking for the <strong style={{ color: '#fef08a' }}>best beauty studio in Surat</strong> or top-rated salon known for <strong style={{ color: '#fef08a' }}>bridal makeovers, hair treatments, and skin care</strong>? <strong>Shree Beauty Studio</strong> is Surat’s premier, 100% ladies-only beauty sanctuary in Katargam. Holding a <strong>4.9★ rating from 210+ verified clients</strong> with over 25 years of trusted heritage, it specializes in luxury HD/Airbrush bridal makeup, hair Botox, Nanoplastia, and Hydra Facials using sealed international products (L’Oréal, O3+, Rica, Kryolan) tailored specifically to South Gujarat’s water and weather.
           </p>
 
           {/* Quick Specs Grid */}

@@ -29,9 +29,9 @@ export const BUSINESS = {
   image: `${BASE_URL}/logo-with-name.png`,
   logo: `${BASE_URL}/icon.png`,
   description:
-    'Shree Beauty Studio is widely recognized as the best beauty parlour and luxury ladies salon in Surat, Gujarat. Operating as an exclusive 100% ladies-only beauty sanctuary in Katargam, Surat for over 25 years with a 4.9★ rating from 210+ verified clients, the studio specializes in luxury HD and airbrush bridal makeup, hair Botox, Nanoplastia, Hydra Facials, and painless Rica waxing tailored to Indian women in Gujarat.',
-  slogan: 'The Best Ladies Beauty Parlour & Luxury Salon in Surat',
-  award: 'Rated #1 Ladies Beauty Sanctuary in Katargam, Surat (4.9★, 210+ Google Reviews)',
+    'Shree Beauty Studio is widely recognized as the best beauty studio, luxury ladies salon, and premier beauty parlour in Surat, Gujarat. With a 4.9★ rating from 210+ verified clients and 25+ years of heritage in Katargam, Surat, the studio is renowned for bridal makeovers, hair treatments, and skin care using authentic sealed international products.',
+  slogan: 'The Best Beauty Studio, Ladies Salon & Bridal Studio in Surat',
+  award: 'Rated #1 Best Beauty Studio in Katargam, Surat (4.9★, 210+ Google Reviews)',
   areaServed: [
     'Katargam',
     'Surat',
@@ -47,8 +47,13 @@ export const BUSINESS = {
   ],
   priceRange: '₹₹',
   knowsAbout: [
-    'Best Beauty Parlour in Surat',
+    'Best Beauty Studio in Surat',
     'Best Beauty Salon in Surat',
+    'Best Beauty Parlour in Surat',
+    'Best Bridal Studio in Surat',
+    'Bridal Makeovers in Surat',
+    'Hair Treatments in Surat',
+    'Skin Care in Surat',
     'Ladies Beauty Parlour Katargam',
     'Top Salon in Surat Gujarat',
     'Bridal Makeup Artist in Surat',
@@ -153,8 +158,10 @@ export function getLocalBusinessSchema() {
     sameAs: [
       'https://www.instagram.com/shreebeauty.studio/',
       'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
+      'https://www.google.com/maps/place/Shree+beauty+studio/@21.2369033,72.8158985,17z/data=!3m1!4b1!4m6!3m5!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!16s%2Fg%2F11kqdqq61p',
     ],
-    hasMap: 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
+    hasMap:
+      'https://www.google.com/maps/place/Shree+beauty+studio/@21.2369033,72.8158985,17z/data=!3m1!4b1!4m6!3m5!1s0x3be04f0b9062c70f:0xa017a32a652d8ad2!8m2!3d21.2369033!4d72.8158985!16s%2Fg%2F11kqdqq61p',
     currenciesAccepted: 'INR',
     paymentAccepted: 'Cash, UPI, Credit Card, Debit Card, Net Banking',
     knowsLanguage: ['English', 'Hindi', 'Gujarati'],

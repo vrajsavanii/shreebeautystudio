@@ -35,6 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: post.metaDescription,
     keywords: [
       ...post.tags,
+      'best beauty studio in surat',
       'best beauty parlour in Surat',
       'best beauty salon in Surat',
       'best ladies salon in Surat',

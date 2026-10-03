@@ -226,7 +226,7 @@ export default function PublicHomePage() {
           <motion.div initial="hidden" animate="visible" variants={stagger} className="cust-hero-text-col">
             <motion.div variants={fadeUp} className="cust-hero-badge-pill">
               <Sparkles size={13} color="#D4AF37" />
-              <span>Best Beauty Parlour &amp; Salon in Surat • 100% Ladies Only</span>
+              <span>Best Beauty Studio &amp; Salon in Surat • 100% Ladies Only</span>
             </motion.div>
 
             <motion.h1
@@ -256,9 +256,9 @@ export default function PublicHomePage() {
                 margin: '0 0 20px',
               }}
             >
-              Step into Surat&apos;s premier salon sanctuary. Indulge in bespoke bridal couture makeovers,
-              restorative hair spas, and glowing dermal therapies crafted exclusively with 100% genuine
-              international luxury formulations.
+              Step into Surat&apos;s premier beauty studio and ladies salon sanctuary. Renowned across Katargam
+              for bespoke bridal makeovers, restorative hair treatments, and clinical skin care therapies crafted
+              exclusively with 100% genuine sealed international luxury formulations.
             </motion.p>
 
             <motion.div
