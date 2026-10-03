@@ -92,15 +92,7 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
-      <body>
-        <SmoothScrollProvider>
-          {children}
-        </SmoothScrollProvider>
-
-        {/* ── Google Analytics 4 — G-SY02ZF4TB3 ──────────────────────────────
-            strategy="afterInteractive" → loads after page hydration,
-            zero render-blocking impact on LCP / CLS / INP scores.         */}
+        {/* ── Google Analytics 4 — G-157MFZDCT3 ────────────────────────────── */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-157MFZDCT3"
           strategy="afterInteractive"
@@ -115,6 +107,11 @@ export default function RootLayout({
             });
           `}
         </Script>
+      </head>
+      <body>
+        <SmoothScrollProvider>
+          {children}
+        </SmoothScrollProvider>
       </body>
     </html>
   );
