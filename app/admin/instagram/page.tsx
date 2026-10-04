@@ -423,8 +423,6 @@ export default function InstagramHubPage() {
       hooks: { hinglish: string[]; gujarati: string[]; english: string[] };
       bodies: { hinglish: string[]; gujarati: string[]; english: string[] };
       viralTriggers: { hinglish: string[]; gujarati: string[]; english: string[] };
-      viralMentions: string;
-      seoKeywords: string;
       hashtags: string[];
     }> = {
       bridal: {
@@ -475,8 +473,6 @@ export default function InstagramHubPage() {
             `📌 SAVE this look for your bridal moodboard!\n👭 TAG a future bride who needs this timeless glow!\n💬 Rate this transformation from 1-10 in the comments below! 👇✨`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Best Bridal Makeup Artist in Surat | Katargam Bridal Studio | Gujarati Bride Look | HD Airbrush Makeover Surat | Wedding Makeup Artist Gujarat | Shree Beauty Studio`,
         hashtags: [
           '#SuratBridalMakeup', '#SuratMakeupArtist', '#KatargamSalon', '#GujaratiBride', '#BridalMakeoverSurat',
           '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#DesiBride', '#BridalGlow',
@@ -536,8 +532,6 @@ export default function InstagramHubPage() {
             `📌 SAVE this look for your engagement inspo!\n👭 TAG a bride-to-be who would rock this look! 💍\n💬 Drop your favorite emoji in the comments! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @weddingz.in @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Engagement Makeup Surat | Sagai Makeover Katargam | Ring Ceremony Look Surat | Soft Glam Makeup Artist Surat | Shree Beauty Studio`,
         hashtags: [
           '#SagaiMakeupSurat', '#EngagementMakeupSurat', '#SuratEngagementBride', '#SagaiLook', '#RingCeremonyMakeup',
           '#SuratBridalStudio', '#SuratSalon', '#EngagementGlam', '#KatargamSalon', '#SuratMakeupArtist',
@@ -595,8 +589,6 @@ export default function InstagramHubPage() {
             `📌 SAVE this reception inspo for your moodboard!\n👭 TAG a bride who loves statement glam! 💎\n💬 Drop a ❤️ in the comments if you love this look! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Reception Makeup Surat | Cocktail Bride Look Katargam | Glam Bridal Makeover Surat | Evening Wedding Makeup Surat | Shree Beauty Studio`,
         hashtags: [
           '#ReceptionMakeupSurat', '#ReceptionBride', '#CocktailMakeupSurat', '#SuratBridalStudio', '#GlamBrideSurat',
           '#SuratMakeupArtist', '#KatargamSalon', '#EveningWeddingGlam', '#RedCarpetBride', '#SuratWeddings',
@@ -654,8 +646,6 @@ export default function InstagramHubPage() {
             `📌 SAVE this look for your Haldi & Mehendi moodboard!\n👭 TAG a bride-to-be who would love this fresh vibe! 💛\n💬 Drop a 🌻 in the comments! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Haldi Makeup Surat | Mehendi Bride Look Katargam | Floral Bridal Makeover Surat | Sweatproof Wedding Makeup | Shree Beauty Studio`,
         hashtags: [
           '#HaldiMakeupSurat', '#MehendiMakeupSurat', '#HaldiBride', '#MehendiLookSurat', '#FloralJewelryBride',
           '#SuratBridalStudio', '#KatargamSalon', '#SuratMakeupArtist', '#SweatproofMakeupSurat', '#BohoBride',
@@ -713,8 +703,6 @@ export default function InstagramHubPage() {
             `📌 SAVE this for your pre-wedding beauty checklist!\n👭 TAG a future bride who needs glowing skin! 👰\n💬 Comment 'PREBRIDAL' for consultation & booking! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Pre Bridal Skin Care Surat | Bridal HydraFacial Katargam | Bridal Glass Skin Treatment | Pre Wedding Glow Package Surat | Shree Beauty Studio`,
         hashtags: [
           '#PreBridalSurat', '#BridalSkinCareSurat', '#BridalGlowSurat', '#HydraFacialSurat', '#GlassSkinBride',
           '#SuratBridalStudio', '#KatargamSalon', '#PreWeddingSkinCare', '#BridalHairBotox', '#BridalMakeoverSurat',
@@ -772,8 +760,6 @@ export default function InstagramHubPage() {
             `📌 SAVE & Book early to lock your wedding dates!\n👭 SHARE with future brides in Surat! 👰\n💬 Drop a ❤️ to show some love! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Best Bridal Studio Reviews Surat | Trusted Wedding Artist Katargam | 5 Star Bride Review Surat | Shree Beauty Studio Reviews`,
         hashtags: [
           '#RealBrideReview', '#5StarsSurat', '#SuratBridalReviews', '#TrustedBridalArtist', '#KatargamSalon',
           '#SuratBridalStudio', '#HappyBrideSurat', '#SuratSalon', '#BridalReview', '#BestBridalSurat',
@@ -813,7 +799,7 @@ export default function InstagramHubPage() {
     ];
     const chosenCta = pickRandom(ctas);
 
-    return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n────────────────\n${catData.viralMentions}\n\n${catData.seoKeywords}\n\n${chosenHashtags}`;
+    return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n${chosenHashtags}`;
   }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes, settings, lastHookUsed]);
 
   // Master Generation
@@ -2254,14 +2240,14 @@ export default function InstagramHubPage() {
                       }}
                     />
 
-                    {/* Instagram SEO & Viral Algorithm Indicator */}
+                    {/* Viral Algorithm & Hashtags Indicator */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 11 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', padding: '3px 8px', borderRadius: 6, fontWeight: 700, fontSize: 10.5 }}>
-                          <CheckCircle size={11} /> 🔍 Instagram Search SEO
-                        </span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(225, 48, 108, 0.1)', color: '#E1306C', padding: '3px 8px', borderRadius: 6, fontWeight: 700, fontSize: 10.5 }}>
                           <Flame size={11} /> 🔥 Viral Saves & Shares Hook
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(147, 51, 234, 0.1)', color: '#9333ea', padding: '3px 8px', borderRadius: 6, fontWeight: 700, fontSize: 10.5 }}>
+                          <Tag size={11} /> #️⃣ 50 Viral Hashtags
                         </span>
                       </div>
                       <button
@@ -2279,18 +2265,6 @@ export default function InstagramHubPage() {
                       <span style={{ fontSize: 10.5, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 3, fontWeight: 700 }}>
                         ✍️ Quick Inserts:
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const mentions = `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`;
-                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n${mentions}` : mentions));
-                          toast('Added 15 Viral @Mentions!', 'success');
-                        }}
-                        className="btn btn-ghost btn-xs"
-                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6, fontWeight: 700, color: '#3b82f6' }}
-                      >
-                        + 🏷️ 15 Viral @Tags
-                      </button>
                       <button
                         type="button"
                         onClick={() => {
