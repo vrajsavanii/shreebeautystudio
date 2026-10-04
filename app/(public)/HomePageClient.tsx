@@ -887,12 +887,9 @@ export default function PublicHomePage() {
       <InstagramFeed />
 
       {/* ─── 8. ⭐ GOOGLE REVIEWS CAROUSEL (4.9★ on Google Maps) ──── */}
-      <section className="cust-section-alt" style={{ overflow: 'hidden', paddingTop: 0, paddingBottom: 'clamp(20px, 3vw, 32px)' }}>
+      <section className="cust-section-alt" style={{ overflow: 'hidden', paddingTop: 'clamp(12px, 2vw, 24px)', paddingBottom: 'clamp(20px, 3vw, 32px)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div className="cust-section-header" style={{ marginBottom: 14, marginTop: 0 }}>
-            <span className="cust-section-badge" style={{ marginBottom: 6 }}>
-              <Star size={12} fill="#D4AF37" color="#D4AF37" style={{ display: 'inline' }} /> Google Reviews
-            </span>
+          <div className="cust-section-header" style={{ marginBottom: 16 }}>
             <h2 style={{ color: '#032B30', margin: '0 0 6px' }}>Loved by Hundreds of Surat Brides &amp; Clients</h2>
             <p style={{ color: '#64748B' }}>
               Real reviews from our clients on Google Maps. {googleRating.toFixed(1)}★ average from {googleReviewCount}+ happy clients in Katargam, Surat.
