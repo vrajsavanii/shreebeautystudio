@@ -328,30 +328,6 @@ export default function PublicHomePage() {
                 <span>WhatsApp</span>
               </a>
             </motion.div>
-
-            {/* Social Trust Metrics */}
-            <motion.div
-              variants={fadeUp}
-              className="cust-hero-trust-row"
-              style={{
-                fontSize: 12.5,
-                color: 'rgba(255, 255, 255, 0.85)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
-                <div style={{ display: 'flex', color: '#D4AF37' }}>
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={12} fill="#D4AF37" />
-                  ))}
-                </div>
-                <span style={{ fontWeight: 700, color: '#FFFFFF' }}>4.9★ Google Rating</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(255,255,255,0.12)' }}>
-                <ShieldCheck size={13} color="#D4AF37" />
-                <span>100% Genuine Formulations</span>
-              </div>
-            </motion.div>
           </motion.div>
         </div>
       </section>
