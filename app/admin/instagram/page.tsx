@@ -136,6 +136,7 @@ export default function InstagramHubPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [clientName, setClientName] = useState('');
   const [specialOffer, setSpecialOffer] = useState('');
+  const [customNotes, setCustomNotes] = useState('');
   const [postLocation, setPostLocation] = useState('Katargam, Surat');
   const [collaborator, setCollaborator] = useState('');
   const [showFullCaption, setShowFullCaption] = useState(true);
@@ -416,6 +417,7 @@ export default function InstagramHubPage() {
     const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
     const nameStr = clientName.trim() ? clientName.trim() : 'our gorgeous bride';
     const offerStr = specialOffer.trim() ? `\n\n🎉 Special Limited Offer: ${specialOffer.trim()}` : '';
+    const customStr = customNotes.trim() ? `\n\n📝 Note: ${customNotes.trim()}` : '';
 
     const DATA: Record<string, {
       hooks: { hinglish: string[]; gujarati: string[]; english: string[] };
@@ -804,8 +806,8 @@ export default function InstagramHubPage() {
     ];
     const chosenCta = pickRandom(ctas);
 
-    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n────────────────\n${catData.seoKeywords}\n\n${chosenHashtags}`;
-  }, [captionCategory, captionLanguage, clientName, specialOffer, settings, lastHookUsed]);
+    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n────────────────\n${catData.seoKeywords}\n\n${chosenHashtags}`;
+  }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes, settings, lastHookUsed]);
 
   // Master Generation
   const handleGenerateFresh = async () => {
@@ -822,7 +824,7 @@ export default function InstagramHubPage() {
   useEffect(() => {
     const initial = generateInfiniteCaption();
     setGeneratedCaption(initial);
-  }, [captionCategory, captionLanguage, clientName, specialOffer]);
+  }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes]);
 
   // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM (WITH EXACT HIGH-RES CROP & MULTI-PHOTO CAROUSEL) ──
   const handlePublishToInstagram = async () => {
@@ -1754,6 +1756,23 @@ export default function InstagramHubPage() {
                   </div>
                 </div>
 
+                {/* Custom Post Details / Custom Writing Field */}
+                <div>
+                  <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      ✍️ Custom Post Details / Notes (પોતાનું ખાસ લખાણ લખવું હોય તો):
+                    </span>
+                    <span style={{ fontSize: 9.5, color: '#E1306C', fontWeight: 600 }}>Optional</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Traditional Gujarati Panetar drape with royal jewelry or special reception party look..."
+                    value={customNotes}
+                    onChange={(e) => setCustomNotes(e.target.value)}
+                    className="input input-xs"
+                  />
+                </div>
+
                 {/* ── 📍 ADD LOCATION SECTION ── */}
                 <div style={{ background: 'var(--bg-secondary, rgba(0,0,0,0.02))', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -2246,6 +2265,60 @@ export default function InstagramHubPage() {
                         style={{ fontSize: 10.5, fontWeight: 700, color: '#E1306C', padding: '2px 6px' }}
                       >
                         🎲 Shuffle Viral Hook
+                      </button>
+                    </div>
+
+                    {/* Quick Inserts for Custom Writing */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 5, marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--border)' }}>
+                      <span style={{ fontSize: 10.5, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 3, fontWeight: 700 }}>
+                        ✍️ Quick Inserts:
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
+                          const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat';
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n🏠 Studio: ${address}\n📞 Helpline: ${phone}\n🔗 Book: https://shreebeautystudio.in/book` : `🏠 Studio: ${address}\n📞 Helpline: ${phone}\n🔗 Book: https://shreebeautystudio.in/book`));
+                          toast('Added Studio contact info!', 'success');
+                        }}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6 }}
+                      >
+                        + 📞 Contact & Booking
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n📌 SAVE this reel for your wedding / reception moodboard!\n👭 TAG a bride-to-be bestie! 👰💖\n💬 Rate this look 1 to 10 in the comments below! 👇` : `📌 SAVE this reel for your wedding / reception moodboard!\n👭 TAG a bride-to-be bestie! 👰💖\n💬 Rate this look 1 to 10 in the comments below! 👇`));
+                          toast('Added Viral Save & Share Hook!', 'success');
+                        }}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6 }}
+                      >
+                        + 📌 Viral Save Hook
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n#SuratBridalMakeup #SuratMakeupArtist #KatargamSalon #GujaratiBride #BridalMakeoverSurat #RoyalBride #ExplorePage #ViralReels #ShreeBeautyStudio` : `#SuratBridalMakeup #SuratMakeupArtist #KatargamSalon #GujaratiBride #BridalMakeoverSurat #RoyalBride #ExplorePage #ViralReels #ShreeBeautyStudio`));
+                          toast('Added Viral Hashtags!', 'success');
+                        }}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6 }}
+                      >
+                        + #️⃣ Viral Hashtags
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGeneratedCaption('');
+                          toast('Cleared caption box! You can now write freely.', 'info');
+                        }}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10, padding: '2px 7px', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 6, fontWeight: 700 }}
+                        title="Clear caption box to write custom text from scratch"
+                      >
+                        🗑️ Clear & Write Custom
                       </button>
                     </div>
                   </div>
