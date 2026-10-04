@@ -454,23 +454,32 @@ export default function InstagramHubPage() {
   };
 
   // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM ──
+  const [publishingStep, setPublishingStep] = useState('');
+
   const handlePublishToInstagram = async () => {
-    if (!generatedCaption.trim() && !selectedFile) {
-      toast('Please select a photo/reel or generate a caption to publish!', 'error');
+    if (!selectedFile) {
+      toast('⚠️ કૃપા કરીને પહેલા તમારા ફોન/લેપટોપમાંથી રીલ વીડિયો કે ફોટો સિલેક્ટ કરો (Please select a video reel or photo to post)!', 'error');
+      fileInputRef.current?.click();
+      return;
+    }
+
+    if (!generatedCaption.trim()) {
+      toast('⚠️ Please generate or type a caption before publishing!', 'error');
       return;
     }
 
     setIsPublishing(true);
     setPublishSuccess(null);
     setPublishMessage('');
+    setPublishingStep('1/3: Uploading media to high-speed cloud storage...');
 
     try {
       const formData = new FormData();
       formData.append('caption', generatedCaption);
       formData.append('mediaType', uploadMediaType);
-      if (selectedFile) {
-        formData.append('file', selectedFile);
-      }
+      formData.append('file', selectedFile);
+
+      setPublishingStep(uploadMediaType === 'reel' ? '2/3: Instagram Meta API encoding Reel video...' : '2/3: Creating Instagram media container...');
 
       const res = await fetch('/api/instagram/publish', {
         method: 'POST',
@@ -479,21 +488,16 @@ export default function InstagramHubPage() {
 
       const json = await res.json();
 
-      if (json.success) {
+      if (json.success && json.published) {
         setPublishSuccess(true);
-        setPublishMessage(json.message || '🎉 Ready to Publish!');
-        toast(json.message || 'Post prepared successfully!', 'success');
+        setPublishMessage(json.message || `🎉 100% Published Live to Instagram @shreebeauty.studio! (Post ID: ${json.postId || ''})`);
+        toast(`🎉 Successfully published live to Instagram @shreebeauty.studio!`, 'success');
 
-        // Copy caption to clipboard automatically
+        // Copy caption to clipboard
         navigator.clipboard.writeText(generatedCaption);
 
-        // If direct publishing was completed
-        if (json.published) {
-          fetchFeed();
-        } else {
-          // Open Meta Business Suite Composer
-          window.open(json.creatorStudioUrl || 'https://business.facebook.com/latest/composer', '_blank');
-        }
+        // Refresh feed list
+        fetchFeed();
       } else {
         setPublishSuccess(false);
         setPublishMessage(json.error || 'Publishing error');
@@ -501,10 +505,11 @@ export default function InstagramHubPage() {
       }
     } catch (err: any) {
       setPublishSuccess(false);
-      setPublishMessage('Network error during Instagram upload');
-      toast('Network error during upload', 'error');
+      setPublishMessage(`Network error: ${err.message}`);
+      toast('Network error during Instagram upload', 'error');
     } finally {
       setIsPublishing(false);
+      setPublishingStep('');
     }
   };
 
@@ -1019,25 +1024,84 @@ export default function InstagramHubPage() {
                 </div>
               </div>
 
-              {/* Status or Alert message if published */}
-              {publishMessage && (
+              {/* Live Step Progress Indicator */}
+              {isPublishing && publishingStep && (
                 <div
                   style={{
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    fontSize: 12.5,
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    marginBottom: 14,
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    color: '#2563eb',
+                    border: '1px solid rgba(59, 130, 246, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <RefreshCw size={16} className="animate-spin" />
+                  <span>{publishingStep}</span>
+                </div>
+              )}
+
+              {/* Status or Alert message if published */}
+              {publishMessage && !isPublishing && (
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 12,
+                    fontSize: 13,
                     fontWeight: 700,
                     marginBottom: 14,
                     background: publishSuccess ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
                     color: publishSuccess ? '#16a34a' : '#dc2626',
                     border: `1px solid ${publishSuccess ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
                     display: 'flex',
-                    alignItems: 'center',
+                    flexDirection: 'column',
                     gap: 8,
                   }}
                 >
-                  <Sparkles size={16} />
-                  {publishMessage}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Sparkles size={16} />
+                    <span>{publishMessage}</span>
+                  </div>
+                  {publishSuccess && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                      <a
+                        href="https://www.instagram.com/shreebeauty.studio/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm"
+                        style={{
+                          background: '#16a34a',
+                          color: '#fff',
+                          fontWeight: 700,
+                          border: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          fontSize: 12,
+                        }}
+                      >
+                        <ExternalLink size={13} /> View Live on Instagram ↗
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleRemoveMedia();
+                          setPublishMessage('');
+                          setPublishSuccess(null);
+                          handleGenerateFresh();
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: 12, fontWeight: 700 }}
+                      >
+                        ➕ Post Another Reel
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
