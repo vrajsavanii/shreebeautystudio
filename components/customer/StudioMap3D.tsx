@@ -200,8 +200,8 @@ export default function StudioMap3D({
           style={{
             border: 0,
             width: '100%',
-            height: 'calc(100% + 78px)',
-            marginTop: '-72px',
+            height: 'calc(100% + 145px)',
+            marginTop: '-135px',
             display: 'block',
             filter: viewMode === 'satellite' ? 'contrast(1.04) saturate(1.04)' : 'none',
             pointerEvents: isMapInteractive ? 'auto' : 'none',
