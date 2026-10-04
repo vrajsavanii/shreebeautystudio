@@ -40,3 +40,14 @@ new web design/
 Studio Photos/
 scratch/
 .env*
+
+# Android build outputs & caches
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/*.iml
+android/app/*.iml
+android/captures/
+android/.externalNativeBuild/
+android/.cxx/
