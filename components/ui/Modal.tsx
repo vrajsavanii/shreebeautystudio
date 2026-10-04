@@ -43,6 +43,7 @@ export default function Modal({ isOpen, onClose, title, children, footer, wide }
       {isOpen && (
         <motion.div
           className="modal-backdrop no-print"
+          data-lenis-prevent
           variants={fadeIn}
           initial="hidden"
           animate="visible"
@@ -51,6 +52,7 @@ export default function Modal({ isOpen, onClose, title, children, footer, wide }
         >
           <motion.div
             className={`modal-panel ${wide ? 'wide' : ''}`}
+            data-lenis-prevent
             variants={scaleIn}
             initial="hidden"
             animate="visible"
@@ -62,7 +64,17 @@ export default function Modal({ isOpen, onClose, title, children, footer, wide }
                 <X size={16} />
               </button>
             </div>
-            <div className="modal-body">{children}</div>
+            <div
+              className="modal-body"
+              data-lenis-prevent
+              onWheel={(e) => {
+                // Ensure wheel events inside modal body are handled natively by the modal body
+                // and never swallowed or intercepted by window/document listeners
+                e.stopPropagation();
+              }}
+            >
+              {children}
+            </div>
             {footer && <div className="modal-footer">{footer}</div>}
           </motion.div>
         </motion.div>

@@ -1,15 +1,28 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface SmoothScrollProviderProps {
   children: React.ReactNode;
 }
 
 export default function SmoothScrollProvider({ children }: SmoothScrollProviderProps) {
+  const pathname = usePathname();
+
   useEffect(() => {
-    // Respect user's motion preferences
     if (typeof window === 'undefined') return;
+
+    // Never run Lenis in Admin Console (dashboard, modals, tables, billing need native scrolling)
+    if (pathname && pathname.startsWith('/admin')) {
+      if ((window as any).__lenis) {
+        (window as any).__lenis.destroy();
+        delete (window as any).__lenis;
+      }
+      return;
+    }
+
+    // Respect user's motion preferences
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
@@ -33,6 +46,11 @@ export default function SmoothScrollProvider({ children }: SmoothScrollProviderP
     // Dynamically load Lenis exclusively on desktop pointer devices
     import('lenis')
       .then(({ default: Lenis }) => {
+        // Double check pathname in case of fast navigation
+        if (window.location.pathname.startsWith('/admin')) {
+          return;
+        }
+
         const lenis = new Lenis({
           duration: 1.15,
           easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -65,7 +83,7 @@ export default function SmoothScrollProvider({ children }: SmoothScrollProviderP
         delete (window as any).__lenis;
       }
     };
-  }, []);
+  }, [pathname]);
 
   return <>{children}</>;
 }
