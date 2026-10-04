@@ -83,6 +83,9 @@ interface MediaItem {
   panY: number;
   rotation: number;
   aspectRatio: AspectRatio;
+  fitMode?: 'cover' | 'contain';
+  naturalWidth?: number;
+  naturalHeight?: number;
 }
 
 function pickRandom<T>(arr: T[]): T {
@@ -109,7 +112,7 @@ export default function InstagramHubPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
-  const [globalAspectRatio, setGlobalAspectRatio] = useState<AspectRatio>('1:1');
+  const [globalAspectRatio, setGlobalAspectRatio] = useState<AspectRatio>('original');
   const [showGrid, setShowGrid] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -173,9 +176,10 @@ export default function InstagramHubPage() {
         const file = files[i];
         const isVid = file.type.startsWith('video/');
         const previewUrl = URL.createObjectURL(file);
+        const id = `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`;
 
-        newItems.push({
-          id: `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+        const item: MediaItem = {
+          id,
           file,
           previewUrl,
           type: isVid ? 'video' : 'photo',
@@ -184,7 +188,22 @@ export default function InstagramHubPage() {
           panY: 0,
           rotation: 0,
           aspectRatio: globalAspectRatio,
-        });
+          fitMode: 'cover',
+        };
+
+        if (!isVid) {
+          const img = new Image();
+          img.onload = () => {
+            setMediaItems((prev) =>
+              prev.map((m) =>
+                m.id === id ? { ...m, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight } : m
+              )
+            );
+          };
+          img.src = previewUrl;
+        }
+
+        newItems.push(item);
       }
 
       setMediaItems((prev) => {
@@ -213,7 +232,7 @@ export default function InstagramHubPage() {
     });
   };
 
-  // Update properties of active item (Zoom / Pan / Rotation)
+  // Update properties of active item (Zoom / Pan / Rotation / Fit)
   const updateCurrentItem = (updates: Partial<MediaItem>) => {
     if (!currentItem) return;
     setMediaItems((prev) => {
@@ -226,16 +245,28 @@ export default function InstagramHubPage() {
     setGlobalAspectRatio(ratio);
     if (applyToAll) {
       setMediaItems((prev) => prev.map((item) => ({ ...item, aspectRatio: ratio })));
-      toast(`📐 Set Crop Aspect Ratio to ${ratio} (All Photos)`, 'success');
+      toast(`📐 Set Crop Aspect Ratio to ${ratio === 'original' ? 'Original (Full)' : ratio} (All Photos)`, 'success');
     } else {
       updateCurrentItem({ aspectRatio: ratio });
-      toast(`📐 Set Photo #${activeMediaIndex + 1} Crop to ${ratio}`, 'success');
+      toast(`📐 Set Photo #${activeMediaIndex + 1} Crop to ${ratio === 'original' ? 'Original (Full)' : ratio}`, 'success');
     }
   };
 
   // ── CLIENT-SIDE HIGH-RES CANVAS CROPPER & EXPORTER ──
   const processPhotoCrop = async (item: MediaItem): Promise<File> => {
     if (item.type === 'video') return item.file;
+
+    // If original ratio with standard framing, return raw file
+    if (
+      item.aspectRatio === 'original' &&
+      (!item.zoom || item.zoom === 1) &&
+      !item.panX &&
+      !item.panY &&
+      !item.rotation &&
+      item.fitMode !== 'contain'
+    ) {
+      return item.file;
+    }
 
     return new Promise((resolve) => {
       const img = new Image();
@@ -245,6 +276,10 @@ export default function InstagramHubPage() {
         let targetH = 1080;
 
         switch (item.aspectRatio) {
+          case 'original':
+            targetW = img.naturalWidth || 1080;
+            targetH = img.naturalHeight || 1080;
+            break;
           case '4:5':
             targetW = 1080;
             targetH = 1350;
@@ -284,18 +319,29 @@ export default function InstagramHubPage() {
           ctx.rotate((item.rotation * Math.PI) / 180);
         }
 
-        // Calculate cover scaling
         const imgRatio = img.naturalWidth / img.naturalHeight;
         const targetRatio = targetW / targetH;
         let baseW = targetW;
         let baseH = targetH;
 
-        if (imgRatio > targetRatio) {
-          baseH = targetH;
-          baseW = targetH * imgRatio;
+        if (item.fitMode === 'contain') {
+          // Fit whole image inside container
+          if (imgRatio > targetRatio) {
+            baseW = targetW;
+            baseH = targetW / imgRatio;
+          } else {
+            baseH = targetH;
+            baseW = targetH * imgRatio;
+          }
         } else {
-          baseW = targetW;
-          baseH = targetW / imgRatio;
+          // Cover container
+          if (imgRatio > targetRatio) {
+            baseH = targetH;
+            baseW = targetH * imgRatio;
+          } else {
+            baseW = targetW;
+            baseH = targetW / imgRatio;
+          }
         }
 
         const scale = Math.max(1, item.zoom || 1);
@@ -337,7 +383,7 @@ export default function InstagramHubPage() {
       const url = URL.createObjectURL(croppedFile);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `shree_${currentItem.aspectRatio || '1-1'}_${Date.now()}.jpg`;
+      a.download = `shree_${currentItem.aspectRatio || 'original'}_${Date.now()}.jpg`;
       a.click();
       URL.revokeObjectURL(url);
       toast('💾 Cropped photo saved to your device!', 'success');
@@ -666,8 +712,13 @@ export default function InstagramHubPage() {
   };
 
   // Aspect ratio css map
-  const getAspectRatioStyle = (ratio: AspectRatio): React.CSSProperties => {
+  const getAspectRatioStyle = (ratio: AspectRatio, naturalWidth?: number, naturalHeight?: number): React.CSSProperties => {
     switch (ratio) {
+      case 'original':
+        if (naturalWidth && naturalHeight) {
+          return { aspectRatio: `${naturalWidth} / ${naturalHeight}` };
+        }
+        return { aspectRatio: 'auto', minHeight: 320 };
       case '1:1':
         return { aspectRatio: '1 / 1' };
       case '4:5':
@@ -677,7 +728,7 @@ export default function InstagramHubPage() {
       case '16:9':
         return { aspectRatio: '16 / 9' };
       default:
-        return { minHeight: 280 };
+        return { aspectRatio: '1 / 1' };
     }
   };
 
@@ -1041,12 +1092,24 @@ export default function InstagramHubPage() {
                         </span>
                       </h3>
                       <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>
-                        Adjust Instagram crop aspect ratio, zoom level & drag to reposition
+                        Choose Original Full Photo, 1:1, 4:5, 9:16, or 16:9 + Zoom & Pan framing
                       </p>
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {/* Fit vs Cover Mode Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => updateCurrentItem({ fitMode: currentItem.fitMode === 'contain' ? 'cover' : 'contain' })}
+                      className={`btn btn-xs ${currentItem.fitMode === 'contain' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                      title="Toggle Fit Whole Photo vs Fill Frame"
+                    >
+                      <Maximize2 size={12} />
+                      {currentItem.fitMode === 'contain' ? 'Fit (100% Whole)' : 'Fill (Cover)'}
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => setShowGrid(!showGrid)}
@@ -1057,6 +1120,7 @@ export default function InstagramHubPage() {
                       <Grid size={12} />
                       {showGrid ? 'Grid On' : 'Grid Off'}
                     </button>
+
                     {currentItem.type === 'photo' && (
                       <button
                         type="button"
@@ -1066,7 +1130,7 @@ export default function InstagramHubPage() {
                         title="Download cropped high-res photo"
                       >
                         <Download size={12} />
-                        Save Image
+                        Save
                       </button>
                     )}
                   </div>
@@ -1085,15 +1149,16 @@ export default function InstagramHubPage() {
                         className="btn btn-ghost btn-xs"
                         style={{ fontSize: 10, color: '#E1306C', fontWeight: 700, padding: '2px 6px' }}
                       >
-                        Apply {globalAspectRatio} to All ({mediaItems.length})
+                        Apply {globalAspectRatio === 'original' ? 'Original' : globalAspectRatio} to All ({mediaItems.length})
                       </button>
                     )}
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
                     {[
+                      { id: 'original', label: '📸 Original', desc: '100% Full Photo' },
                       { id: '1:1', label: '1:1 Square', desc: '1080x1080 Feed' },
-                      { id: '4:5', label: '4:5 Portrait', desc: '1080x1350 (Best Reach)' },
+                      { id: '4:5', label: '4:5 Portrait', desc: '1080x1350 Best Reach' },
                       { id: '9:16', label: '9:16 Story', desc: '1080x1920 Reel/Story' },
                       { id: '16:9', label: '16:9 Wide', desc: '1920x1080 Landscape' },
                     ].map((ratio) => {
@@ -1105,10 +1170,10 @@ export default function InstagramHubPage() {
                           onClick={() => handleAspectRatioChange(ratio.id as AspectRatio, false)}
                           className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
                           style={{
-                            fontSize: 11,
+                            fontSize: 10.5,
                             fontWeight: isSelected ? 800 : 600,
                             flexDirection: 'column',
-                            padding: '8px 4px',
+                            padding: '8px 3px',
                             height: 'auto',
                             background: isSelected ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
                             color: isSelected ? '#fff' : undefined,
@@ -1117,7 +1182,7 @@ export default function InstagramHubPage() {
                           }}
                         >
                           <span style={{ fontWeight: 800 }}>{ratio.label}</span>
-                          <span style={{ fontSize: 9, opacity: 0.85 }}>{ratio.desc}</span>
+                          <span style={{ fontSize: 8.5, opacity: 0.85 }}>{ratio.desc}</span>
                         </button>
                       );
                     })}
@@ -1173,13 +1238,29 @@ export default function InstagramHubPage() {
                     cursor: isDragging ? 'grabbing' : 'grab',
                     userSelect: 'none',
                     touchAction: 'none',
-                    ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio),
+                    ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio, currentItem.naturalWidth, currentItem.naturalHeight),
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  {/* Image or Video with Transform (Zoom + Pan + Rotation) */}
+                  {/* Blurred Backdrop when fitMode is contain */}
+                  {currentItem.fitMode === 'contain' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        backgroundImage: `url(${currentItem.previewUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: 'blur(16px) brightness(0.35)',
+                        transform: 'scale(1.15)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+
+                  {/* Main Image or Video with Transform (Zoom + Pan + Rotation) */}
                   {currentItem.type === 'video' ? (
                     <video
                       src={currentItem.previewUrl}
@@ -1188,10 +1269,12 @@ export default function InstagramHubPage() {
                       muted
                       loop
                       style={{
+                        position: 'absolute',
+                        inset: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
-                        transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                        objectFit: currentItem.fitMode === 'contain' ? 'contain' : 'cover',
+                        transform: `translate(${currentItem.panX}px, ${currentItem.panY}px) scale(${currentItem.zoom}) rotate(${currentItem.rotation}deg)`,
                         transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                         pointerEvents: isDragging ? 'none' : 'auto',
                       }}
@@ -1202,10 +1285,12 @@ export default function InstagramHubPage() {
                       alt="Crop Preview"
                       draggable={false}
                       style={{
+                        position: 'absolute',
+                        inset: 0,
                         width: '100%',
                         height: '100%',
-                        objectFit: 'cover',
-                        transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                        objectFit: currentItem.fitMode === 'contain' ? 'contain' : 'cover',
+                        transform: `translate(${currentItem.panX}px, ${currentItem.panY}px) scale(${currentItem.zoom}) rotate(${currentItem.rotation}deg)`,
                         transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                         pointerEvents: 'none',
                       }}
@@ -1217,14 +1302,12 @@ export default function InstagramHubPage() {
                     <div
                       style={{
                         position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
+                        inset: 0,
                         pointerEvents: 'none',
                         display: 'grid',
                         gridTemplateColumns: 'repeat(3, 1fr)',
                         gridTemplateRows: 'repeat(3, 1fr)',
+                        zIndex: 2,
                       }}
                     >
                       {[...Array(9)].map((_, i) => (
@@ -1250,6 +1333,7 @@ export default function InstagramHubPage() {
                       alignItems: 'center',
                       gap: 4,
                       backdropFilter: 'blur(4px)',
+                      zIndex: 3,
                     }}
                   >
                     <Move size={10} /> Drag to Pan / Scroll Wheel Zoom
@@ -1268,9 +1352,10 @@ export default function InstagramHubPage() {
                       padding: '3px 8px',
                       borderRadius: 6,
                       backdropFilter: 'blur(4px)',
+                      zIndex: 3,
                     }}
                   >
-                    {currentItem.aspectRatio || globalAspectRatio} • {currentItem.zoom.toFixed(1)}x Zoom {currentItem.rotation ? `• ${currentItem.rotation}°` : ''}
+                    {currentItem.aspectRatio === 'original' ? 'Original (Full)' : currentItem.aspectRatio || globalAspectRatio} • {currentItem.zoom.toFixed(1)}x Zoom {currentItem.rotation ? `• ${currentItem.rotation}°` : ''} {currentItem.fitMode === 'contain' ? '• Fit' : '• Fill'}
                   </div>
                 </div>
 
@@ -1294,6 +1379,7 @@ export default function InstagramHubPage() {
                         onClick={() => updateCurrentItem({ zoom: 1, panX: 0, panY: 0, rotation: 0 })}
                         className="btn btn-secondary btn-xs"
                         style={{ fontSize: 10, fontWeight: 700 }}
+                        title="Reset Zoom & Pan to Original"
                       >
                         Reset (1x)
                       </button>
@@ -1533,7 +1619,23 @@ export default function InstagramHubPage() {
 
                 {/* Media Mockup Viewer */}
                 {mediaItems.length > 0 && currentItem ? (
-                  <div style={{ position: 'relative', background: '#000', overflow: 'hidden', ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'relative', background: '#000', overflow: 'hidden', ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio, currentItem.naturalWidth, currentItem.naturalHeight), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Blurred Backdrop when fitMode is contain */}
+                    {currentItem.fitMode === 'contain' && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          backgroundImage: `url(${currentItem.previewUrl})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          filter: 'blur(16px) brightness(0.35)',
+                          transform: 'scale(1.15)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    )}
+
                     {currentItem.type === 'video' ? (
                       <video
                         src={currentItem.previewUrl}
@@ -1541,10 +1643,12 @@ export default function InstagramHubPage() {
                         muted
                         loop
                         style={{
+                          position: 'absolute',
+                          inset: 0,
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover',
-                          transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                          objectFit: currentItem.fitMode === 'contain' ? 'contain' : 'cover',
+                          transform: `translate(${currentItem.panX}px, ${currentItem.panY}px) scale(${currentItem.zoom}) rotate(${currentItem.rotation}deg)`,
                         }}
                       />
                     ) : (
@@ -1552,10 +1656,12 @@ export default function InstagramHubPage() {
                         src={currentItem.previewUrl}
                         alt="Mockup"
                         style={{
+                          position: 'absolute',
+                          inset: 0,
                           width: '100%',
                           height: '100%',
-                          objectFit: 'cover',
-                          transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                          objectFit: currentItem.fitMode === 'contain' ? 'contain' : 'cover',
+                          transform: `translate(${currentItem.panX}px, ${currentItem.panY}px) scale(${currentItem.zoom}) rotate(${currentItem.rotation}deg)`,
                         }}
                       />
                     )}
