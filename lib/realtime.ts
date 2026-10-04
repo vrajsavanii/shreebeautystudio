@@ -47,14 +47,16 @@ export function initSupabaseRealtime(onNewAppointment?: (appt: Appointment) => v
               (nb) => !currentBridal.some((cb) => cb.id === nb.id)
             ) || newBridal[0];
             if (addedBridal && onNewAppointment) {
+              const bridalDate = addedBridal.weddingDate || addedBridal.date || addedBridal.sagaiDate || '';
+              const bridalTime = addedBridal.weddingTime || addedBridal.sagaiTime || addedBridal.mandapTime || 'TBD';
               onNewAppointment({
                 id: addedBridal.id,
                 customer: addedBridal.name,
                 mobile: addedBridal.mobile,
-                service: `👰 Bridal: ${addedBridal.package || 'Bridal Package'}`,
-                date: addedBridal.eventDate || addedBridal.date || '',
-                time: addedBridal.eventTime || 'TBD',
-                status: 'Pending',
+                service: `👰 Bridal: ${addedBridal.packageName || addedBridal.event || 'Bridal Package'}`,
+                date: bridalDate,
+                time: bridalTime,
+                status: (addedBridal.status as any) || 'Pending',
                 price: Number(addedBridal.totalAmount || addedBridal.package || 0),
                 source: 'online',
               } as any);

@@ -100,21 +100,17 @@ export default function CustomerNavbar() {
   };
 
   return (
-    <>
-      <nav
-        className="cust-navbar"
-        style={{
-          ...navStyle,
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-          transform: 'translateZ(0)',
-          willChange: 'transform',
-          transition: 'background 0.25s ease, box-shadow 0.25s ease',
-        }}
-      >
+    <nav
+      className="cust-navbar"
+      style={{
+        ...navStyle,
+        position: 'relative',
+        zIndex: 1000,
+        transform: 'translateZ(0)',
+        willChange: 'transform',
+        transition: 'background 0.25s ease, box-shadow 0.25s ease',
+      }}
+    >
         <div
           className="cust-navbar-inner"
           style={{
@@ -703,8 +699,5 @@ export default function CustomerNavbar() {
           </div>
         )}
       </nav>
-      {/* Spacer so page content starts below fixed navbar */}
-      <div style={{ height: 68 }} />
-    </>
   );
 }

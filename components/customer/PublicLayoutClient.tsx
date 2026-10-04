@@ -53,22 +53,30 @@ export default function PublicLayoutClient({ children }: { children: React.React
   return (
     <CustomerAuthProvider>
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
-        {/* ─── Announcement Banner ─── */}
-        {bannerVisible && (
-          <div className="announcement-banner">
-            <span className="banner-text">{BANNER_MESSAGES[bannerIdx]}</span>
-            <button
-              type="button"
-              className="dismiss-btn"
-              onClick={() => setBannerVisible(false)}
-              aria-label="Dismiss announcement"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        <CustomerNavbar />
+        {/* ─── Unified Sticky Header (Announcement Banner + Navbar) ─── */}
+        <header
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 1000,
+            background: '#032B30',
+          }}
+        >
+          {bannerVisible && (
+            <div className="announcement-banner">
+              <span className="banner-text">{BANNER_MESSAGES[bannerIdx]}</span>
+              <button
+                type="button"
+                className="dismiss-btn"
+                onClick={() => setBannerVisible(false)}
+                aria-label="Dismiss announcement"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          <CustomerNavbar />
+        </header>
         <main style={{ flex: 1 }}>{children}</main>
         <CustomerFooter />
 
