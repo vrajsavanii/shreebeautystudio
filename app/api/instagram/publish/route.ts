@@ -124,6 +124,8 @@ export async function POST(req: NextRequest) {
     };
     const matchedLocId = location ? LOCATION_PAGE_IDS[location.trim()] : undefined;
 
+    const cleanUser = collaborator ? collaborator.replace(/^@/, '').trim() : '';
+
     // ── CASE 1: MULTI-PHOTO CAROUSEL ──
     if (mediaType === 'carousel' || mediaUrls.length > 1) {
       const childContainerIds: string[] = [];
@@ -140,6 +142,9 @@ export async function POST(req: NextRequest) {
           childParams.video_url = itemUrl;
         } else {
           childParams.image_url = itemUrl;
+          if (cleanUser) {
+            childParams.user_tags = JSON.stringify([{ username: cleanUser, x: 0.5, y: 0.5 }]);
+          }
         }
 
         const childRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
@@ -243,6 +248,9 @@ export async function POST(req: NextRequest) {
       };
       if (matchedLocId) {
         photoParams.location_id = matchedLocId;
+      }
+      if (cleanUser) {
+        photoParams.user_tags = JSON.stringify([{ username: cleanUser, x: 0.5, y: 0.5 }]);
       }
 
       const createRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {

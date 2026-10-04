@@ -139,6 +139,12 @@ export default function InstagramHubPage() {
   const [postLocation, setPostLocation] = useState('Katargam, Surat');
   const [collaborator, setCollaborator] = useState('');
   const [showFullCaption, setShowFullCaption] = useState(true);
+  const [isLocationOpen, setIsLocationOpen] = useState(true);
+  const [isCollabOpen, setIsCollabOpen] = useState(true);
+  const [isAiLabel, setIsAiLabel] = useState(false);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [shareThreads, setShareThreads] = useState(true);
+  const [shareFacebook, setShareFacebook] = useState(true);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [lastHookUsed, setLastHookUsed] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -1865,6 +1871,31 @@ export default function InstagramHubPage() {
                       />
                     )}
 
+                    {/* Native Instagram "Click photo to tag people" pill */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: 10,
+                        background: 'rgba(0,0,0,0.8)',
+                        color: '#fff',
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        backdropFilter: 'blur(6px)',
+                        zIndex: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                      }}
+                    >
+                      <Tag size={11} color="#E1306C" />
+                      <span>{collaborator ? `Tagged: ${collaborator}` : 'Click photo to tag people'}</span>
+                    </div>
+
                     {/* Carousel Navigation Arrows if multiple photos */}
                     {mediaItems.length > 1 && (
                       <>
@@ -1887,6 +1918,7 @@ export default function InstagramHubPage() {
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: 'pointer',
+                              zIndex: 4,
                             }}
                           >
                             <ChevronLeft size={16} />
@@ -1911,6 +1943,7 @@ export default function InstagramHubPage() {
                               alignItems: 'center',
                               justifyContent: 'center',
                               cursor: 'pointer',
+                              zIndex: 4,
                             }}
                           >
                             <ChevronRight size={16} />
@@ -1926,6 +1959,7 @@ export default function InstagramHubPage() {
                             transform: 'translateX(-50%)',
                             display: 'flex',
                             gap: 4,
+                            zIndex: 4,
                           }}
                         >
                           {mediaItems.map((_, i) => (
@@ -1951,257 +1985,353 @@ export default function InstagramHubPage() {
                   </div>
                 )}
 
-                {/* Editable Caption Textarea inside Mockup with SHOW FULL Toggle */}
-                <div style={{ padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <label className="label" style={{ fontSize: 12, fontWeight: 800, margin: 0 }}>
-                        ✏️ Edit Attached Caption & Hashtags Freely:
-                      </label>
-                      <span style={{ fontSize: 10.5, color: 'var(--muted-foreground)', background: 'var(--bg-secondary, rgba(0,0,0,0.05))', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
-                        {generatedCaption.length} chars
-                      </span>
-                    </div>
+                {/* ── NATIVE INSTAGRAM RIGHT-PANEL POST SETTINGS & CAPTION ── */}
+                <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  
+                  {/* Caption Textarea Header with SHOW FULL Toggle */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <label className="label" style={{ fontSize: 12, fontWeight: 800, margin: 0 }}>
+                          ✏️ Caption & Viral Hooks:
+                        </label>
+                        <span style={{ fontSize: 10.5, color: 'var(--muted-foreground)', background: 'var(--bg-secondary, rgba(0,0,0,0.05))', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                          {generatedCaption.length}/2,200
+                        </span>
+                      </div>
 
-                    {/* SHOW FULL TOGGLE BUTTON */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <button
-                        type="button"
-                        onClick={() => setShowFullCaption(!showFullCaption)}
-                        className={`btn btn-xs ${showFullCaption ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 800,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          background: showFullCaption ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
-                          color: showFullCaption ? '#fff' : undefined,
-                          border: showFullCaption ? 'none' : undefined,
-                          boxShadow: showFullCaption ? '0 2px 8px rgba(220, 39, 67, 0.3)' : 'none',
-                        }}
-                        title="Expand or collapse caption height to see all hashtags and contact CTA"
-                      >
-                        {showFullCaption ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                        {showFullCaption ? '📜 SHOWING FULL (100%)' : '📜 SHOW FULL CAPTION'}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(generatedCaption, 'copy-caption-btn')}
-                        className="btn btn-secondary btn-xs"
-                        style={{ fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
-                      >
-                        {copiedId === 'copy-caption-btn' ? <Check size={11} color="#16a34a" /> : <Copy size={11} />}
-                        Copy All
-                      </button>
-                    </div>
-                  </div>
-
-                  <textarea
-                    value={generatedCaption}
-                    onChange={(e) => setGeneratedCaption(e.target.value)}
-                    rows={showFullCaption ? 20 : 8}
-                    className="input"
-                    placeholder="Enter or customize Instagram caption..."
-                    style={{
-                      fontFamily: 'monospace',
-                      fontSize: 12.5,
-                      lineHeight: 1.55,
-                      padding: 12,
-                      borderRadius: 10,
-                      resize: 'vertical',
-                      width: '100%',
-                      minHeight: showFullCaption ? 400 : 160,
-                      border: '1.5px solid rgba(225, 48, 108, 0.3)',
-                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
-                      background: 'var(--card-bg, #ffffff)',
-                    }}
-                  />
-
-                  {/* Quick Tag Injection & Action Bar */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginTop: 8, paddingTop: 6, borderTop: '1px dashed var(--border)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!generatedCaption.includes(postLocation)) {
-                            setGeneratedCaption((prev) => `📍 Location: ${postLocation}\n\n` + prev);
-                            toast('📍 Injected location tag into caption!', 'success');
-                          } else {
-                            toast('Location is already in the caption', 'info');
-                          }
-                        }}
-                        className="btn btn-ghost btn-xs"
-                        style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3, color: '#E1306C', fontWeight: 700 }}
-                      >
-                        <MapPin size={11} /> + Tag Location ({postLocation})
-                      </button>
-
-                      {collaborator && (
+                      {/* SHOW FULL TOGGLE BUTTON */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <button
                           type="button"
-                          onClick={() => {
-                            const collabTag = collaborator.startsWith('@') ? collaborator : `@${collaborator}`;
-                            if (!generatedCaption.includes(collabTag)) {
-                              setGeneratedCaption((prev) => prev + `\n\n🤝 In Collab With: ${collabTag}`);
-                              toast('🤝 Injected collaborator tag into caption!', 'success');
-                            } else {
-                              toast('Collaborator is already in the caption', 'info');
-                            }
+                          onClick={() => setShowFullCaption(!showFullCaption)}
+                          className={`btn btn-xs ${showFullCaption ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            background: showFullCaption ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                            color: showFullCaption ? '#fff' : undefined,
+                            border: showFullCaption ? 'none' : undefined,
+                            boxShadow: showFullCaption ? '0 2px 8px rgba(220, 39, 67, 0.3)' : 'none',
                           }}
-                          className="btn btn-ghost btn-xs"
-                          style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3, color: '#E1306C', fontWeight: 700 }}
+                          title="Expand or collapse caption height to see all hashtags and contact CTA"
                         >
-                          <Users size={11} /> + Tag Collab ({collaborator})
+                          {showFullCaption ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                          {showFullCaption ? '📜 SHOWING FULL (100%)' : '📜 SHOW FULL CAPTION'}
                         </button>
-                      )}
+
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(generatedCaption, 'copy-caption-btn')}
+                          className="btn btn-secondary btn-xs"
+                          style={{ fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                          {copiedId === 'copy-caption-btn' ? <Check size={11} color="#16a34a" /> : <Copy size={11} />}
+                          Copy All
+                        </button>
+                      </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleGenerateFresh}
-                      className="btn btn-ghost btn-xs"
-                      style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--muted-foreground)' }}
-                    >
-                      <RefreshCw size={10} /> Regenerate Angle
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Live Step Progress Indicator */}
-              {isPublishing && publishingStep && (
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    marginBottom: 14,
-                    background: 'rgba(59, 130, 246, 0.12)',
-                    color: '#2563eb',
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                  }}
-                >
-                  <RefreshCw size={16} className="animate-spin" />
-                  <span>{publishingStep}</span>
-                </div>
-              )}
-
-              {/* Status or Alert message if published */}
-              {publishMessage && !isPublishing && (
-                <div
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 12,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    marginBottom: 14,
-                    background: publishSuccess ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                    color: publishSuccess ? '#16a34a' : '#dc2626',
-                    border: `1px solid ${publishSuccess ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Sparkles size={16} />
-                    <span>{publishMessage}</span>
-                  </div>
-                  {publishSuccess && (
-                    <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                      <a
-                        href="https://www.instagram.com/shreebeauty.studio/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-sm"
-                        style={{
-                          background: '#16a34a',
-                          color: '#fff',
-                          fontWeight: 700,
-                          border: 'none',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: 12,
-                        }}
-                      >
-                        <ExternalLink size={13} /> View Live on Instagram ↗
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 📍 Active Post Location & Tag Bar */}
-              <div
-                style={{
-                  background: 'rgba(225, 48, 108, 0.06)',
-                  border: '1px solid rgba(225, 48, 108, 0.25)',
-                  borderRadius: 12,
-                  padding: '10px 14px',
-                  marginBottom: 12,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <MapPin size={15} color="#E1306C" />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--foreground)' }}>
-                      📍 Attached Post Location:
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#E1306C', background: 'rgba(225, 48, 108, 0.1)', padding: '2px 8px', borderRadius: 6 }}>
-                      {postLocation || 'Katargam, Surat'}
-                    </span>
-                  </div>
-
-                  {collaborator && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      <Users size={12} /> Collab: {collaborator}
-                    </span>
-                  )}
-                </div>
-
-                {/* Quick 1-Click Location Selector */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 600 }}>Quick Select:</span>
-                  {[
-                    'Katargam, Surat',
-                    'Shree Beauty Studio',
-                    'Surat, Gujarat',
-                    'Mota Varachha, Surat',
-                    'Adajan, Surat',
-                    'Vesu, Surat',
-                  ].map((loc) => (
-                    <button
-                      key={loc}
-                      type="button"
-                      onClick={() => {
-                        setPostLocation(loc);
-                        toast(`📍 Location set to ${loc}!`, 'success');
-                      }}
-                      className={`btn btn-xs ${postLocation === loc ? 'btn-primary' : 'btn-ghost'}`}
+                    <textarea
+                      value={generatedCaption}
+                      onChange={(e) => setGeneratedCaption(e.target.value)}
+                      rows={showFullCaption ? 18 : 6}
+                      className="input"
+                      placeholder="Add a caption..."
                       style={{
-                        fontSize: 9.5,
-                        padding: '2px 8px',
-                        height: 'auto',
-                        borderRadius: 999,
-                        border: postLocation === loc ? 'none' : '1px solid rgba(225, 48, 108, 0.2)',
-                        background: postLocation === loc ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#ffffff',
-                        color: postLocation === loc ? '#ffffff' : 'var(--foreground)',
-                        fontWeight: postLocation === loc ? 800 : 600,
+                        fontFamily: 'monospace',
+                        fontSize: 12.5,
+                        lineHeight: 1.55,
+                        padding: 12,
+                        borderRadius: 10,
+                        resize: 'vertical',
+                        width: '100%',
+                        minHeight: showFullCaption ? 380 : 130,
+                        border: '1.5px solid rgba(225, 48, 108, 0.3)',
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
+                        background: 'var(--card-bg, #ffffff)',
+                      }}
+                    />
+                  </div>
+
+                  {/* ── 📍 NATIVE INSTAGRAM ROW 1: ADD LOCATION ── */}
+                  <div
+                    style={{
+                      borderTop: '1px solid var(--border)',
+                      paddingTop: 10,
+                    }}
+                  >
+                    <div
+                      onClick={() => setIsLocationOpen(!isLocationOpen)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        padding: '4px 0',
                       }}
                     >
-                      📍 {loc}
-                    </button>
-                  ))}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <MapPin size={17} color="#E1306C" />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
+                          Add location
+                        </span>
+                        {postLocation && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#E1306C', background: 'rgba(225, 48, 108, 0.1)', padding: '2px 8px', borderRadius: 999 }}>
+                            {postLocation}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--muted-foreground)' }}>
+                        {postLocation && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPostLocation('');
+                              toast('Cleared location tag', 'info');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px 6px', fontSize: 11, fontWeight: 700 }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                        {isLocationOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </div>
+
+                    {isLocationOpen && (
+                      <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-secondary, rgba(0,0,0,0.02))', borderRadius: 10, border: '1px solid var(--border)' }}>
+                        <div style={{ position: 'relative', marginBottom: 8 }}>
+                          <input
+                            type="text"
+                            placeholder="Search or enter location (e.g. Katargam, Surat)..."
+                            value={postLocation}
+                            onChange={(e) => setPostLocation(e.target.value)}
+                            className="input input-xs"
+                            style={{ paddingLeft: 26, fontSize: 12 }}
+                          />
+                          <MapPin size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        </div>
+
+                        {/* Surat Preset Suggestions */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                          {[
+                            'Katargam, Surat',
+                            'Shree Beauty Studio, Katargam',
+                            'Surat, Gujarat',
+                            'Mota Varachha, Surat',
+                            'Adajan, Surat',
+                            'Vesu, Surat',
+                            'VIP Road, Surat',
+                            'Ghod Dod Road, Surat',
+                          ].map((loc) => (
+                            <button
+                              key={loc}
+                              type="button"
+                              onClick={() => {
+                                setPostLocation(loc);
+                                toast(`📍 Attached location: ${loc}!`, 'success');
+                              }}
+                              className={`btn btn-xs ${postLocation === loc ? 'btn-primary' : 'btn-ghost'}`}
+                              style={{
+                                fontSize: 10,
+                                padding: '3px 9px',
+                                height: 'auto',
+                                borderRadius: 999,
+                                border: postLocation === loc ? 'none' : '1px solid var(--border)',
+                                background: postLocation === loc ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#ffffff',
+                                color: postLocation === loc ? '#ffffff' : 'var(--foreground)',
+                                fontWeight: postLocation === loc ? 800 : 600,
+                              }}
+                            >
+                              📍 {loc}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── 🤝 NATIVE INSTAGRAM ROW 2: ADD COLLABORATORS ── */}
+                  <div
+                    style={{
+                      borderTop: '1px solid var(--border)',
+                      paddingTop: 10,
+                    }}
+                  >
+                    <div
+                      onClick={() => setIsCollabOpen(!isCollabOpen)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        padding: '4px 0',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Users size={17} color="#E1306C" />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
+                          Add collaborators
+                        </span>
+                        {collaborator && (
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 8px', borderRadius: 999 }}>
+                            {collaborator}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--muted-foreground)' }}>
+                        {collaborator && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCollaborator('');
+                              toast('Cleared collaborator', 'info');
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px 6px', fontSize: 11, fontWeight: 700 }}
+                          >
+                            Clear
+                          </button>
+                        )}
+                        {isCollabOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </div>
+
+                    {isCollabOpen && (
+                      <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-secondary, rgba(0,0,0,0.02))', borderRadius: 10, border: '1px solid var(--border)' }}>
+                        <div style={{ position: 'relative', marginBottom: 8 }}>
+                          <input
+                            type="text"
+                            placeholder="Add collaborator username (e.g. @kinjal_patel, @wedding_clicks)..."
+                            value={collaborator}
+                            onChange={(e) => setCollaborator(e.target.value)}
+                            className="input input-xs"
+                            style={{ paddingLeft: 26, fontSize: 12 }}
+                          />
+                          <AtSign size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        </div>
+
+                        {/* Collaborator Preset Suggestions */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                          {[
+                            '@kinjal_patel',
+                            '@bride_look_surat',
+                            '@gujaratibrides',
+                            '@surat_weddings',
+                            '@wedding_clicks_surat',
+                          ].map((collab) => (
+                            <button
+                              key={collab}
+                              type="button"
+                              onClick={() => {
+                                setCollaborator(collab);
+                                toast(`🤝 Attached collaborator: ${collab}!`, 'success');
+                              }}
+                              className={`btn btn-xs ${collaborator === collab ? 'btn-primary' : 'btn-ghost'}`}
+                              style={{
+                                fontSize: 10,
+                                padding: '3px 9px',
+                                height: 'auto',
+                                borderRadius: 999,
+                                border: collaborator === collab ? 'none' : '1px solid var(--border)',
+                                background: collaborator === collab ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#ffffff',
+                                color: collaborator === collab ? '#ffffff' : 'var(--foreground)',
+                                fontWeight: collaborator === collab ? 800 : 600,
+                              }}
+                            >
+                              🤝 {collab}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── 🤖 NATIVE INSTAGRAM ROW 3: ADD AI LABEL ── */}
+                  <div
+                    style={{
+                      borderTop: '1px solid var(--border)',
+                      paddingTop: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
+                        Add AI label
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted-foreground)', maxWidth: 280 }}>
+                        This label is required for realistic photos and videos made with AI.
+                      </div>
+                    </div>
+
+                    <input
+                      type="checkbox"
+                      checked={isAiLabel}
+                      onChange={(e) => setIsAiLabel(e.target.checked)}
+                      style={{ width: 18, height: 18, accentColor: '#E1306C', cursor: 'pointer' }}
+                    />
+                  </div>
+
+                  {/* ── 🌐 NATIVE INSTAGRAM ROW 4: SHARE TO THREADS & FACEBOOK ── */}
+                  <div
+                    style={{
+                      borderTop: '1px solid var(--border)',
+                      paddingTop: 10,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--foreground)' }}>
+                      Share to
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                          @
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>shreebeauty.studio</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Threads • Public</div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={shareThreads}
+                        onChange={(e) => setShareThreads(e.target.checked)}
+                        style={{ width: 17, height: 17, accentColor: '#E1306C', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1877F2', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>
+                          f
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>Amita Bhalani / Shree Beauty Studio</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Facebook • Page</div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={shareFacebook}
+                        onChange={(e) => setShareFacebook(e.target.checked)}
+                        style={{ width: 17, height: 17, accentColor: '#E1306C', cursor: 'pointer' }}
+                      />
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
