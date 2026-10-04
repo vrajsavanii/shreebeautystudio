@@ -423,6 +423,7 @@ export default function InstagramHubPage() {
       hooks: { hinglish: string[]; gujarati: string[]; english: string[] };
       bodies: { hinglish: string[]; gujarati: string[]; english: string[] };
       viralTriggers: { hinglish: string[]; gujarati: string[]; english: string[] };
+      seoKeywords: string;
       hashtags: string[];
     }> = {
       bridal: {
@@ -473,6 +474,7 @@ export default function InstagramHubPage() {
             `📌 SAVE this look for your bridal moodboard!\n👭 TAG a future bride who needs this timeless glow!\n💬 Rate this transformation from 1-10 in the comments below! 👇✨`,
           ],
         },
+        seoKeywords: 'Surat Bridal Makeup • Best Makeup Artist Surat • Katargam Salon • Gujarati Bride Makeover • HD Airbrush Bridal • Wedding Makeup Surat',
         hashtags: [
           '#SuratBridalMakeup', '#SuratMakeupArtist', '#KatargamSalon', '#GujaratiBride', '#BridalMakeoverSurat',
           '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#DesiBride', '#BridalGlow',
@@ -532,6 +534,7 @@ export default function InstagramHubPage() {
             `📌 SAVE this look for your engagement inspo!\n👭 TAG a bride-to-be who would rock this look! 💍\n💬 Drop your favorite emoji in the comments! 👇`,
           ],
         },
+        seoKeywords: 'Engagement Makeup Surat • Sagai Look Surat • Ring Ceremony Makeover • Best Salon Katargam • Surat Bridal Artist',
         hashtags: [
           '#SagaiMakeupSurat', '#EngagementMakeupSurat', '#SuratEngagementBride', '#SagaiLook', '#RingCeremonyMakeup',
           '#SuratBridalStudio', '#SuratSalon', '#EngagementGlam', '#KatargamSalon', '#SuratMakeupArtist',
@@ -589,6 +592,7 @@ export default function InstagramHubPage() {
             `📌 SAVE this reception inspo for your moodboard!\n👭 TAG a bride who loves statement glam! 💎\n💬 Drop a ❤️ in the comments if you love this look! 👇`,
           ],
         },
+        seoKeywords: 'Reception Makeup Surat • High Glam Look • Surat Reception Bride • Cocktail Makeup Surat • Best Bridal Studio Katargam',
         hashtags: [
           '#ReceptionMakeupSurat', '#ReceptionBride', '#CocktailMakeupSurat', '#SuratBridalStudio', '#GlamBrideSurat',
           '#SuratMakeupArtist', '#KatargamSalon', '#EveningWeddingGlam', '#RedCarpetBride', '#SuratWeddings',
@@ -646,6 +650,7 @@ export default function InstagramHubPage() {
             `📌 SAVE this look for your Haldi & Mehendi moodboard!\n👭 TAG a bride-to-be who would love this fresh vibe! 💛\n💬 Drop a 🌻 in the comments! 👇`,
           ],
         },
+        seoKeywords: 'Haldi Makeup Surat • Mehendi Look Surat • Floral Hairdo Surat • Katargam Beauty Studio • Pre Wedding Makeover Surat',
         hashtags: [
           '#HaldiMakeupSurat', '#MehendiMakeupSurat', '#HaldiBride', '#MehendiLookSurat', '#FloralJewelryBride',
           '#SuratBridalStudio', '#KatargamSalon', '#SuratMakeupArtist', '#SweatproofMakeupSurat', '#BohoBride',
@@ -703,6 +708,7 @@ export default function InstagramHubPage() {
             `📌 SAVE this for your pre-wedding beauty checklist!\n👭 TAG a future bride who needs glowing skin! 👰\n💬 Comment 'PREBRIDAL' for consultation & booking! 👇`,
           ],
         },
+        seoKeywords: 'Pre Bridal Treatment Surat • HydraFacial Surat • Bridal Glass Skin Katargam • Hair Botox Surat • Best Salon Surat',
         hashtags: [
           '#PreBridalSurat', '#BridalSkinCareSurat', '#BridalGlowSurat', '#HydraFacialSurat', '#GlassSkinBride',
           '#SuratBridalStudio', '#KatargamSalon', '#PreWeddingSkinCare', '#BridalHairBotox', '#BridalMakeoverSurat',
@@ -760,6 +766,7 @@ export default function InstagramHubPage() {
             `📌 SAVE & Book early to lock your wedding dates!\n👭 SHARE with future brides in Surat! 👰\n💬 Drop a ❤️ to show some love! 👇`,
           ],
         },
+        seoKeywords: 'Top Rated Bridal Studio Surat • Best Salon Katargam • Real Bride Review Surat • 5 Star Bridal Makeup Surat',
         hashtags: [
           '#RealBrideReview', '#5StarsSurat', '#SuratBridalReviews', '#TrustedBridalArtist', '#KatargamSalon',
           '#SuratBridalStudio', '#HappyBrideSurat', '#SuratSalon', '#BridalReview', '#BestBridalSurat',
@@ -799,7 +806,10 @@ export default function InstagramHubPage() {
     ];
     const chosenCta = pickRandom(ctas);
 
-    return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n${chosenHashtags}`;
+    const viralMentions = `@wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`;
+    const seoLine = catData.seoKeywords || 'Surat Bridal Makeup • Best Makeup Artist Surat • Katargam Salon • Gujarati Bride Makeover • HD Airbrush Bridal • Wedding Makeup Surat';
+
+    return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n${viralMentions}\n\n${seoLine}\n\n${chosenHashtags}`;
   }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes, settings, lastHookUsed]);
 
   // Master Generation
@@ -2268,6 +2278,30 @@ export default function InstagramHubPage() {
                       <button
                         type="button"
                         onClick={() => {
+                          const mentions = `@wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`;
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n${mentions}` : mentions));
+                          toast('Added 15 Viral @Tags!', 'success');
+                        }}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6, fontWeight: 700, color: '#3b82f6' }}
+                      >
+                        + 🏷️ 15 Viral @Tags
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const seo = `Surat Bridal Makeup • Best Makeup Artist Surat • Katargam Salon • Gujarati Bride Makeover • HD Airbrush Bridal • Wedding Makeup Surat`;
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n${seo}` : seo));
+                          toast('Added Surat Search SEO Keywords!', 'success');
+                        }}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6, fontWeight: 700, color: '#16a34a' }}
+                      >
+                        + 🔍 Surat SEO Keywords
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
                           const tags50 = `#SuratBridalMakeup #SuratMakeupArtist #KatargamSalon #GujaratiBride #BridalMakeoverSurat #RoyalBride #SuratSalon #IndianWeddingBuzz #DesiBride #BridalGlow #WeddingGlam #BridalTransformation #SuratWeddings #GujaratWeddings #PanetarBride #HDAirbrushMakeup #AirbrushBridalSurat #IndianBride #WeddingInspiration #BridalLook #DulhanMakeover #TrendingBride #ViralReels #ReelsInstagram #ExplorePage #ExploreSurat #TrendingMakeup #WeddingSutra #WedMeGood #BridalFashion #BrideOfIndia #WeddingStory #WeddingPhotographySurat #RealBride #BridalPortrait #MandapLook #GharcholaBride #KankuPagla #GujaratiWeddingTradition #BridalDrapingSurat #BestMakeupArtistSurat #KatargamBridal #SuratBeautyStudio #SuratBrides #IndianBridalLook #WeddingDayVibes #BridalDiaries #InstaBride #ShreeBeautyStudiobride #ShreeBeautyStudio`;
                           setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n${tags50}` : tags50));
                           toast('Added 50 Viral Hashtags!', 'success');
@@ -2282,7 +2316,7 @@ export default function InstagramHubPage() {
                         onClick={() => {
                           const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
                           const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat';
-                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book: https://shreebeautystudio.in/book` : `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book: https://shreebeautystudio.in/book`));
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book` : `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`));
                           toast('Added Studio contact & WhatsApp info!', 'success');
                         }}
                         className="btn btn-ghost btn-xs"
