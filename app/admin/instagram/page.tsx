@@ -1188,12 +1188,39 @@ export default function InstagramHubPage() {
           </div>
 
           <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Instagram size={18} color="#E1306C" />
                 <span style={{ fontSize: 14, fontWeight: 800 }}>Ready-to-Post Instagram Caption</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: 10,
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    color: '#16a34a',
+                    border: '1px solid rgba(34, 197, 94, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  ✏️ Edit Mode (Type Freely)
+                </span>
               </div>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleGenerateFresh}
+                  disabled={isGenerating}
+                  className="btn btn-secondary btn-xs"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#E1306C' }}
+                >
+                  <RefreshCw size={12} className={isGenerating ? 'animate-spin' : ''} />
+                  New AI Angle
+                </button>
+
                 <button
                   onClick={() => copyToClipboard(generatedCaption, 'generated-cap')}
                   className="btn btn-secondary btn-xs"
@@ -1202,13 +1229,24 @@ export default function InstagramHubPage() {
                   {copiedId === 'generated-cap' ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
                   Copy All
                 </button>
+
+                <a
+                  href="https://www.instagram.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-xs"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700 }}
+                >
+                  <ExternalLink size={13} /> Open IG App
+                </a>
               </div>
             </div>
 
             <textarea
-              readOnly
               value={generatedCaption}
+              onChange={(e) => setGeneratedCaption(e.target.value)}
               rows={16}
+              placeholder="Type or customize your Instagram caption here..."
               className="input"
               style={{
                 fontFamily: 'monospace',
@@ -1216,11 +1254,16 @@ export default function InstagramHubPage() {
                 lineHeight: 1.55,
                 padding: 14,
                 borderRadius: 10,
-                resize: 'none',
+                resize: 'vertical',
                 flex: 1,
                 background: 'var(--bg-secondary, rgba(0,0,0,0.02))',
               }}
             />
+
+            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--muted-foreground)', gap: 8 }}>
+              <span>Character count: {generatedCaption.length}</span>
+              <span style={{ color: '#16a34a', fontWeight: 600 }}>✓ Non-repeating viral Instagram Reels algorithm optimized • Fully Editable</span>
+            </div>
           </div>
         </motion.div>
       )}
