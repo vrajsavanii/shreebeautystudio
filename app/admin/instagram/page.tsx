@@ -130,7 +130,7 @@ export default function InstagramHubPage() {
   const [publishMessage, setPublishMessage] = useState<string>('');
 
   // AI Caption Studio & Post Metadata State
-  const [captionCategory, setCaptionCategory] = useState<'bridal' | 'sagai' | 'hydrafacial' | 'hair' | 'nails' | 'festival' | 'review'>('bridal');
+  const [captionCategory, setCaptionCategory] = useState<'bridal' | 'sagai' | 'reception' | 'haldi_mehndi' | 'prebridal' | 'review'>('bridal');
   const [captionLanguage, setCaptionLanguage] = useState<'english' | 'hinglish' | 'gujarati'>('hinglish');
   const [generationCount, setGenerationCount] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -554,243 +554,214 @@ export default function InstagramHubPage() {
           '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#RingCeremony', '#ShreeBeautyStudio'
         ],
       },
-      hydrafacial: {
+      reception: {
         hooks: {
           hinglish: [
-            `💧 7-Step Korean Glass Skin HydraFacial Treatment in Surat ✨`,
-            `✨ Get Instant Red-Carpet Glow & Deep Pore Cleansing with Medical-Grade HydraFacial 💧`,
-            `🔥 Watch blackheads & dead skin vanish instantly with HydraFacial at ${salonName} Katargam!`,
-            `🥺 POV: Experiencing Surat's most relaxing & deeply hydrating skin makeover 💧✨`,
+            `✨ High-Glam Reception Makeover in Surat for ${nameStr} | Red Carpet Ready ✨`,
+            `🔥 Royal Reception Look: Dramatic Shimmer Eyes & Hollywood Waves for ${nameStr} at ${salonName} 💎`,
+            `✨ Velvet Lehenga & Diamond Glow: The Ultimate Surat Reception Bride Aesthetic 👰👑`,
+            `🥺 Watch her turn heads as she steps into the spotlight for her Reception Night ✨`,
+            `💎 Pure luxury. Zero filter. High-definition spotlight glam on ${nameStr} in Surat! ✨`,
           ],
           gujarati: [
-            `✨ 7-સ્ટેપ કોરિયન ગ્લાસ સ્કીન હાઇડ્રાફેશિયલ ટ્રીટમેન્ટ: શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ 💧`,
-            `💧 ડીપ પોર ક્લીનિંગ અને ઇન્સ્ટન્ટ ગ્લો સાથે મેળવો કાચ જેવી ચમકતી સ્કીન! ✨`,
-            `🌸 ખીલ, ડાઘ અને બ્લેકહેડ્સમાંથી મુક્તિ: સુરતનું બેસ્ટ હાઇડ્રાફેશિયલ 💧`,
+            `✨ રિસેપ્શન સ્પેશિયલ હાઇ-ગ્લેમ મેકઓવર: ${nameStr} નો આકર્ષક રોયલ લુક 💎`,
+            `👑 રિસેપ્શન પાર્ટી માટે મેળવો રેડ-કાર્પેટ શિમર આઇઝ અને વોટરપ્રૂફ લ્યુમિનસ ગ્લો! ✨`,
+            `🌸 શ્રી બ્યૂટી સ્ટુડિયો રોયલ રિસેપ્શન લુક: સુરતની મોર્ડન બ્રાઇડ માટે સ્પેશિયલ 👰`,
+            `💖 લગ્નની રિસેપ્શન નાઇટ પર મેળવો બોલીવૂડ સ્ટાઇલ ગ્લેમરસ મેકઓવર! ✨`,
           ],
           english: [
-            `💧 Unlock Luminous Glass Skin with Medical-Grade HydraFacial in Surat ✨`,
-            `✨ The 7-Step Korean Hydrating Glow Therapy at ${salonName} Katargam 💧`,
+            `✨ Red Carpet Glamour & Modern Reception Radiance for ${nameStr} in Surat 💎`,
+            `👑 Hollywood Waves & Luminous Spotlight Glow for ${nameStr}'s Grand Reception ✨`,
+            `💎 The Art of High-Glam Reception Perfection on ${nameStr} at ${salonName} 👰`,
           ],
         },
         bodies: {
           hinglish: [
-            `Say goodbye to dull skin, clogged pores, and pigmentation! Experience deep exfoliation, vacuum blackhead extraction, and intense hyaluronic serum infusion for an unmistakable radiant glow.`,
+            `Reception is the grand finale where the bride shines like a diamond! Featuring spotlight shimmer eye artistry, sculpted contour, glass-like highlighter, and voluminous Hollywood waves.`,
+            `Bold, confident, and breathtakingly glamorous! Engineered for high-flash photography and all-night dancing under stage spotlights.`,
           ],
           gujarati: [
-            `ડીપ પોર ક્લીનિંગ, વેક્યુમ બ્લેકહેડ્સ રિમૂવલ અને હાઇડ્રેટિંગ સીરમ ઇન્ફ્યુઝનથી મેળવો કાચ જેવી ચમકતી સ્કીન!`,
+            `રિસેપ્શન પાર્ટીમાં મેળવો શાહી અને આધુનિક ગ્લેમરસ લુક! શિમરી સ્મોકી આઇઝ, પરફેક્ટ હાઇલાઇટિંગ અને ટ્રેન્ડી ઓપન હેર વેવ્ઝ જે બનાવે છે તમને સેન્ટર ઓફ એટ્રેક્શન.`,
           ],
           english: [
-            `Vortex suction extracts impurities while simultaneously bathing the skin with nourishing antioxidants and hyaluronic peptides.`,
+            `Designed for the grand reception evening—dramatic eye definition, luminous glass skin, and couture hairstyling tailored to complement western gowns and royal lehengas.`,
           ],
         },
         technique: {
-          hinglish: [`✨ 100% Painless | No Downtime | Instant Glass-Skin Glow`],
-          gujarati: [`✨ ઇન્સ્ટન્ટ ગ્લો | ડીપ ક્લીનિંગ | 100% પેઇનલેસ`],
-          english: [`✨ Zero Downtime | Medical-Grade Extraction`],
+          hinglish: [`✨ Spotlight Shimmer Eyes | High-Definition Sculpt | 100% Flash-Ready`],
+          gujarati: [`✨ શિમરી સ્મોકી આઇઝ | 100% ફ્લેશ-પ્રૂફ | લ્યુમિનસ ફિનિશ`],
+          english: [`✨ Spotlight Shimmer & HD Sculpt | Flash-Proof & Long-Wear`],
         },
         viralTriggers: {
           hinglish: [
-            `📌 SAVE this reel for your pre-bridal or monthly skincare routine!\n👭 TAG a friend who loves glowing, glass-like skin! 💧✨\n💬 Comment 'GLOW' below to get our exclusive HydraFacial package details! 👇`,
+            `📌 SAVE this high-glam look for your Wedding Reception or Cocktail Night!\n👭 TAG a bride-to-be who loves bold glam! 💎✨\n💬 Rate this Reception Look from 1 to 10 in the comments! 👇`,
           ],
           gujarati: [
-            `📌 તમારી સ્કિનકેર રૂટિન માટે આ રીલ સેવ (SAVE) કરી લો!\n👭 સ્કિન લવર ફ્રેન્ડ સાથે શેર (SHARE) કરો! 💧✨\n💬 કમેન્ટમાં 'GLOW' લખો સ્પેશિયલ ઓફર જાણવા માટે! 👇`,
+            `📌 તમારા રિસેપ્શન માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારી બહેનપણી સાથે શેર (SHARE) કરો! 💎✨\n💬 કમેન્ટમાં જણાવો આ લુક કેવો લાગ્યો! 👇`,
           ],
           english: [
-            `📌 SAVE this for your next salon self-care day!\n👭 TAG a friend who needs a skin reset! 💧\n💬 Comment 'GLOW' for pricing & appointments! 👇`,
+            `📌 SAVE this reception inspo for your moodboard!\n👭 TAG a bride who loves statement glam! 💎\n💬 Drop a ❤️ in the comments if you love this look! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @hudabeauty @kaybykatrina @nykaabeauty @dermalogicaindia @allurekorea @vogueindia @cosmopolitanindia @elleindia @feminaweird @clinique_in @cetaphil_india @skin_care_india @surat_lifestyle @surat_bloggers @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: HydraFacial in Surat | Best Skin Clinic Katargam | Korean Glass Skin Surat | Pre-Bridal Facial Treatment | Shree Beauty Studio Surat`,
+        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
+        seoKeywords: `🔍 Instagram SEO: Reception Makeup Surat | Cocktail Bride Look Katargam | Glam Bridal Makeover Surat | Evening Wedding Makeup Surat | Shree Beauty Studio`,
         hashtags: [
-          '#HydraFacialSurat', '#GlassSkinSurat', '#SuratSkinCare', '#SkinGlowSurat', '#KatargamSalon',
-          '#PreBridalSkinCare', '#FacialSurat', '#KoreanGlassSkin', '#DeepPoreCleansing', '#GlowSkinSurat',
-          '#SuratSalon', '#MedicalHydraFacial', '#BlackheadExtraction', '#SkinTreatmentSurat', '#AcneTreatmentSurat',
-          '#BridalSkinCare', '#SuratBeautyStudio', '#SkinClinicSurat', '#HealthySkinGlow', '#FacialGlow',
-          '#ViralReels', '#ReelsInstagram', '#ExplorePage', '#ExploreSurat', '#TrendingSkinCare',
-          '#SelfCareSurat', '#SkinTransformation', '#BeautyHacks', '#SkinCareRoutine', '#ShreeBeautyStudio'
+          '#ReceptionMakeupSurat', '#ReceptionBride', '#CocktailMakeupSurat', '#SuratBridalStudio', '#GlamBrideSurat',
+          '#SuratMakeupArtist', '#KatargamSalon', '#EveningWeddingGlam', '#RedCarpetBride', '#SuratWeddings',
+          '#IndianReceptionBride', '#SmokeyEyesSurat', '#HollywoodWaves', '#LuxuryBrideSurat', '#BridalGlowSurat',
+          '#GownMakeupSurat', '#SuratSalon', '#DesiBride', '#TrendingBride', '#ViralReels',
+          '#ReelsInstagram', '#ExplorePage', '#ExploreSurat', '#TrendingMakeup', '#WeddingSutra',
+          '#WedMeGood', '#BridalTransformation', '#RoyalBride', '#ShreeBeautyStudio', '#GujaratWeddings'
         ],
       },
-      hair: {
+      haldi_mehndi: {
         hooks: {
           hinglish: [
-            `💇‍♀️ Mirror-Shine Hair Botox & Keratin Treatment in Surat | Zero Frizz ✨`,
-            `✨ Liquid Glass Hair: Formaldehyde-Free Keratin & Protein Infusion at ${salonName} 💇‍♀️`,
-            `🔥 Say goodbye to dry, frizzy hair! 6-Month Long-Lasting Hair Botox Makeover ✨`,
-            `🥺 Watch this breathtaking frizzy-to-silky hair transformation in Katargam, Surat 💇‍♀️`,
+            `🪔 Vibrant Haldi & Mehendi Look in Surat for ${nameStr} | Fresh Floral Glow ✨`,
+            `💛 Sunshine Dewy Glow & Bohemian Braids for ${nameStr}'s Haldi Ceremony at ${salonName} 🌻`,
+            `💚 Mehendi Magic: Sweatproof Fresh Glam & Floral Hairdo for ${nameStr} 🌿✨`,
+            `🥺 Bright, joyous, and glowing: The perfect Gujarati Haldi & Mehendi Bride ✨💛`,
+            `🌻 POV: Experiencing joyful Haldi vibes with Surat's top bridal artist at ${salonName} 💛`,
           ],
           gujarati: [
-            `💇‍♀️ વાળને આપો સોફ્ટ, સિલ્કી અને શાઇની લુક: હેર બોટોક્સ & કેરાટિન ટ્રીટમેન્ટ કતારગામ, સુરત ✨`,
-            `✨ 100% સેફ અને પ્રોટીન રિચ હેર સ્મૂધનીંગ: શ્રી બ્યૂટી સ્ટુડિયો 💇‍♀️`,
-            `🌸 વાંકડિયા અને ડ્રાય વાળમાંથી મેળવો 6 મહિના સુધી સિલ્કી મુલાયમ વાળ! ✨`,
+            `🪔 હળદર & મહેંદી રસમનો તાજગીભર્યો શણગાર: ${nameStr} માટે ફ્રેશ ફ્લોરલ ગ્લો ✨`,
+            `💛 પીળી હળદર અને લીલી મહેંદીના રંગમાં ખીલો: 100% સ્વેટપ્રૂફ & ડ્યૂઇ લુક 🌻`,
+            `🌸 શ્રી બ્યૂટી સ્ટુડિયો સ્પેશિયલ હળદર-મહેંદી બ્રાઇડલ મેકઓવર, કતારગામ 🌿`,
+            `✨ હળદરની રસમ માટે નેચરલ, તાજો અને ફોટોજેનિક ગ્લો: શ્રી બ્યૂટી સ્ટુડિયો 💛`,
           ],
           english: [
-            `✨ Liquid Glass Hair: Premium Keratin & Protein Infusion in Surat 💇‍♀️`,
-            `💇‍♀️ Zero Frizz, Mirror Shine: Hair Botox Transformation at ${salonName} ✨`,
+            `🪔 Fresh Floral Radiance & Sweatproof Haldi-Mehendi Glam for ${nameStr} in Surat ✨`,
+            `💛 Sunshine Glow & Bohemian Floral Hairstyling at ${salonName} Katargam 🌻`,
+            `🌿 Vibrant Mehendi & Haldi Bridal Aesthetics on ${nameStr} in Surat ✨`,
           ],
         },
         bodies: {
           hinglish: [
-            `Transform dry, frizzy, and chemically treated hair into ultra-glossy, soft-flowing hair with our formaldehyde-free protein treatment.`,
+            `Haldi and Mehendi functions call for playful, fresh, and sweatproof makeup that stays immaculate throughout all the laughter, dances, and color splashes! Paired with stunning floral accessories and textured boho braids.`,
+            `Sun-kissed, natural, and vibrant! Featuring dewy peach blush, waterproof mascara, glossy tint lips, and customized real flower hairdo.`,
           ],
           gujarati: [
-            `શ્રી બ્યૂટી સ્ટુડિયો ખાતે કરાવો પ્રીમિયમ હેર બોટોક્સ ટ્રીટમેન્ટ જે વાળને બનાવે છે એકદમ મુલાયમ, સિલ્કી અને ચમકદાર.`,
+            `હળદર અને મહેંદીની મસ્તીભરી રસમ માટે મેળવો હળવો, કુદરતી અને 100% સ્વેટપ્રૂફ મેકઅપ! ફ્લોરલ જ્વેલરી સાથે મેચિંગ બોહો બ્રેઇડ્સ અને ફ્રેશ લુક.`,
           ],
           english: [
-            `Restore damaged hair cuticle health, lock in essential hydration, and achieve effortless manageable silkiness.`,
+            `Effortless, fresh-faced radiance crafted for daytime festivities. Formulated to withstand warm outdoor weather, dancing, and celebratory colors.`,
           ],
         },
         technique: {
-          hinglish: [`✨ Formaldehyde-Free | Long-Lasting 6 Months | High-Gloss Shine`],
-          gujarati: [`✨ 100% સેફ & પ્રોટીન રિચ | 6 મહિના સુધી સોફ્ટ વાળ`],
-          english: [`✨ 100% Formaldehyde-Free | Mirror Gloss`],
+          hinglish: [`✨ Sweatproof Formula | Fresh Peach Dew | Boho Floral Braids`],
+          gujarati: [`✨ 100% સ્વેટપ્રૂફ | ફ્રેશ નેચરલ ગ્લો | ફ્લોરલ હેરસ્ટાઇલ`],
+          english: [`✨ Sweatproof & Water-Resistant | Fresh Peach Dewy Finish`],
         },
         viralTriggers: {
           hinglish: [
-            `📌 SAVE this for your next hair makeover appointment!\n👭 SHARE with a friend struggling with frizzy or unmanageable hair! 💇‍♀️✨\n💬 Comment 'HAIR' to book your hair consultation! 👇`,
+            `📌 SAVE this vibrant Haldi / Mehendi look for your pre-wedding rituals!\n👭 TAG your bride bestie or bridesmaid gang! 🌻💛\n💬 Tell us: Floral Bun or Bohemian Open Braids for Haldi? 👇✨`,
           ],
           gujarati: [
-            `📌 તમારા વાળના મેકઓવર માટે આ પોસ્ટ સેવ (SAVE) કરી લો!\n👭 ફ્રીઝી વાળવાળી ફ્રેન્ડ સાથે શેર (SHARE) કરો! 💇‍♀️✨\n💬 કમેન્ટમાં 'HAIR' લખો ફ્રી કન્સલ્ટેશન માટે! 👇`,
+            `📌 તમારી હળદર કે મહેંદી માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારી ફ્રેન્ડ સાથે શેર (SHARE) કરો! 🌻✨\n💬 કમેન્ટમાં જણાવો: ફ્લોરલ બ્રેઇડ ગમે કે ઓપન હેર? 👇`,
           ],
           english: [
-            `📌 SAVE this hair transformation inspo!\n👭 SHARE with someone who loves silky smooth hair!\n💬 Comment 'HAIR' for slot availability! 👇`,
+            `📌 SAVE this look for your Haldi & Mehendi moodboard!\n👭 TAG a bride-to-be who would love this fresh vibe! 💛\n💬 Drop a 🌻 in the comments! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @schwarzkopfpro.in @lorealpro_education_india @olaplex @wella_professionals_in @kerastase_official @moroccanoil_in @matrix @godrejprofessional @streaxprofessional @balmainhair @vogueindia @surat_lifestyle @surat_models @gujarat_fashion @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Hair Botox Surat | Best Keratin Treatment Katargam | Hair Smoothening Surat | Hair Spa & Makeover Surat | Shree Beauty Studio`,
+        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
+        seoKeywords: `🔍 Instagram SEO: Haldi Makeup Surat | Mehendi Bride Look Katargam | Floral Bridal Makeover Surat | Sweatproof Wedding Makeup | Shree Beauty Studio`,
         hashtags: [
-          '#HairBotoxSurat', '#KeratinSurat', '#HairSmootheningSurat', '#SuratHairSalon', '#KatargamSalon',
-          '#SilkyHairSurat', '#HairTransformation', '#HairBotoxTreatment', '#KeratinTreatmentSurat', '#FrizzFreeHair',
-          '#MirrorShineHair', '#HairSpaSurat', '#SuratSalon', '#HairStylistSurat', '#BridalHairSurat',
-          '#HairGoals', '#HealthyHairSurat', '#SuratBeautyStudio', '#ProteinHairTreatment', '#NanoplastiaSurat',
-          '#HairMakeover', '#ViralReels', '#ReelsInstagram', '#ExplorePage', '#ExploreSurat',
-          '#TrendingHair', '#HairStyleSurat', '#ShinyHair', '#HairTherapy', '#ShreeBeautyStudio'
+          '#HaldiMakeupSurat', '#MehendiMakeupSurat', '#HaldiBride', '#MehendiLookSurat', '#FloralJewelryBride',
+          '#SuratBridalStudio', '#KatargamSalon', '#SuratMakeupArtist', '#SweatproofMakeupSurat', '#BohoBride',
+          '#YellowHaldiLook', '#GreenMehendiGlam', '#SuratWeddings', '#GujaratWeddings', '#IndianBride',
+          '#BridalMehendi', '#HaldiCeremony', '#DesiBride', '#PreWeddingGlow', '#TrendingReels',
+          '#ExplorePage', '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#BridalTransformation',
+          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#ShreeBeautyStudio', '#SuratSalon'
         ],
       },
-      nails: {
+      prebridal: {
         hooks: {
           hinglish: [
-            `💅 Handcrafted Luxury Nail Art & Gel Extensions in Surat ✨`,
-            `✨ 4+ Weeks Chip-Free Bridal Chrome & 3D Crystal Nail Couture at ${salonName} 💅`,
-            `🔥 The ultimate French Ombre & Swarovski Crystal Nail Glam in Katargam, Surat 💎`,
+            `💧 7-Step Korean Pre-Bridal Glass Skin & Glow Ritual in Surat for ${nameStr} ✨`,
+            `✨ Get Wedding-Ready Radiance & Deep Pore Detox with Pre-Bridal HydraFacial at ${salonName} 👰`,
+            `👰 Real Bride Skin Prep: From Dull Skin to Luminous Bridal Radiance in Katargam, Surat 💧`,
+            `🥺 Watch her skin transform into pure glass before her big wedding day ✨💧`,
+            `💎 Secret to Cake-Free Bridal Makeup: Expert Pre-Bridal Skin Infusion at ${salonName} 💧`,
           ],
           gujarati: [
-            `💅 બ્રાઇડલ & ફેન્સી નેઇલ આર્ટ એક્સટેન્શન: શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ✨`,
-            `✨ તમારા હાથને આપો રોયલ લુક: 4+ અઠવાડિયા સુધી ટકી રહે તેવા જેલ એક્સટેન્શન 💅`,
+            `💧 પ્રિ-બ્રાઇડલ સ્પેશિયલ સ્કિનકેર & હાઇડ્રાફેશિયલ: લગ્ન પહેલાં મેળવો કાચ જેવી ચમકતી ત્વચા ✨`,
+            `👰 શ્રી બ્યૂટી સ્ટુડિયો પ્રિ-બ્રાઇડલ પેકેજ: 7-સ્ટેપ ડીપ ક્લીનિંગ અને ઇન્સ્ટન્ટ ગ્લો 💧`,
+            `🌸 લગ્નના 15 દિવસ પહેલાં કરાવો આ પ્રિ-બ્રાઇડલ ટ્રીટમેન્ટ: કતારગામ, સુરત ✨`,
+            `✨ ખીલ, ડાઘ અને ટેનિંગમાંથી મુક્તિ સાથે મેળવો લ્યુમિનસ બ્રાઇડલ સ્કિન! 💧`,
           ],
           english: [
-            `💅 Precision Gel Extensions & Haute Nail Couture in Surat at ${salonName} ✨`,
+            `💧 The Ultimate Pre-Bridal Skin Preparation & Glass Skin Therapy in Surat ✨`,
+            `✨ 7-Step Medical-Grade Pre-Bridal HydraFacial at ${salonName} Katargam 👰`,
+            `💧 Deep Hydration & Radiant Skin Prep for ${nameStr}'s Wedding Journey ✨`,
           ],
         },
         bodies: {
           hinglish: [
-            `Add unmatched elegance to your fingertips! From subtle French ombre chrome to 3D bridal crystal art.`,
+            `Flawless bridal makeup starts with deeply hydrated, healthy skin! Our customized pre-bridal sessions eliminate dead skin, blackheads, and tanning while infusing potent hyaluronic peptides for that irresistible bridal glow.`,
+            `Complete bridal beauty reset! Includes medical-grade deep pore vortex extraction, skin brightening serums, relaxing neck & shoulder therapy, and hair botox nourishment.`,
           ],
           gujarati: [
-            `તમારા હાથને આપો રોયલ લુક! ટ્રેન્ડિંગ નેઇલ આર્ટ, ક્રોમ ફિનિશ અને જેલ એક્સટેન્શન.`,
+            `શ્રેષ્ઠ બ્રાઇડલ મેકઅપ માટે જોઈએ હેલ્ધી અને ગ્લોઇંગ સ્કિન! પ્રિ-બ્રાઇડલ હાઇડ્રાફેશિયલ અને હેર ટ્રીટમેન્ટ તમારા લગ્નના લુકને આપે છે 10 ગણો વધુ નિખાર.`,
           ],
           english: [
-            `Flawless shape architecture, custom chrome powders, and ultra-durable long-wear gel formulations.`,
+            `The secret to cake-free, glowing bridal makeup is expert skin prep. Vortex extraction purifies pores while antioxidant serums lock in deep moisture.`,
           ],
         },
         technique: {
-          hinglish: [`✨ 4+ Weeks Chip-Resistant | Swarovski Crystal Accents`],
-          gujarati: [`✨ 4+ અઠવાડિયા સુધી ટકાઉ | જેલ એક્સટેન્શન`],
-          english: [`✨ 4+ Weeks Chip-Free`],
+          hinglish: [`✨ 7-Step Korean Glass Skin | Zero Downtime | Intense Hydration`],
+          gujarati: [`✨ 100% પેઇનલેસ | ઇન્સ્ટન્ટ ગ્લો | ડીપ પોર ક્લીનિંગ`],
+          english: [`✨ Zero Downtime | Medical-Grade Hydration & Detox`],
         },
         viralTriggers: {
           hinglish: [
-            `📌 SAVE this design for your upcoming bridal or event nail inspiration!\n👭 TAG your nail-obsessed bestie! 💅✨\n💬 What's your nail vibe: Short Minimal or Long French Ombre? 👇`,
+            `📌 SAVE this reel for your Pre-Bridal skincare planning!\n👭 TAG a bride-to-be who needs to prep her skin before wedding season! 💧✨\n💬 Comment 'PREBRIDAL' to get our customized bridal packages! 👇`,
           ],
           gujarati: [
-            `📌 તમારા ફેવરિટ નેઇલ આર્ટ માટે આ ડિઝાઇન સેવ (SAVE) કરી લો!\n👭 નેઇલ લવર ફ્રેન્ડ સાથે શેર (SHARE) કરો! 💅✨`,
+            `📌 તમારા લગ્નની સ્કિનકેર માટે આ રીલ સેવ (SAVE) કરી લો!\n👭 ભાવિ કન્યા સાથે શેર (SHARE) કરો! 💧✨\n💬 કમેન્ટમાં 'PREBRIDAL' લખો પેકેજ વિગતો માટે! 👇`,
           ],
           english: [
-            `📌 SAVE this nail art for your next refill appointment!\n👭 TAG a friend who needs fresh nails! 💅✨`,
+            `📌 SAVE this for your pre-wedding beauty checklist!\n👭 TAG a future bride who needs glowing skin! 👰\n💬 Comment 'PREBRIDAL' for consultation & booking! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @nailpromagazine @nails_journal @shills_professional @bluesky_india @opi_india @glamour_nails_in @daily_charme @nailart_community @vogueindia @popxo.beauty @cosmopolitanindia @surat_lifestyle @surat_bloggers @gujarat_fashion @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Nail Art Surat | Gel Nail Extensions Katargam | Bridal Nails Surat | Luxury Nail Studio Gujarat | Shree Beauty Studio`,
+        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
+        seoKeywords: `🔍 Instagram SEO: Pre Bridal Skin Care Surat | Bridal HydraFacial Katargam | Bridal Glass Skin Treatment | Pre Wedding Glow Package Surat | Shree Beauty Studio`,
         hashtags: [
-          '#NailArtSurat', '#GelNailsSurat', '#BridalNails', '#NailExtensionsSurat', '#KatargamSalon',
-          '#NailInspiration', '#SuratNailStudio', '#ChromeNailsSurat', '#FrenchOmbreNails', '#3DNailArt',
-          '#AcrylicNailsSurat', '#SwarovskiNails', '#NailArtistsSurat', '#SuratSalon', '#BridalNailsSurat',
-          '#NailsOfInstagram', '#TrendyNails', '#NailDesignSurat', '#SuratBeautyStudio', '#GelPolishSurat',
-          '#LuxuryNails', '#ViralReels', '#ReelsInstagram', '#ExplorePage', '#ExploreSurat',
-          '#TrendingNails', '#NailGoals', '#HandGlam', '#NailTransformation', '#ShreeBeautyStudio'
-        ],
-      },
-      festival: {
-        hooks: {
-          hinglish: [
-            `🪔 Festive Glam & Royal Event Makeover Combos in Surat at ${salonName} ✨`,
-            `✨ Sweatproof Festive Makeup, Trendy Hairdo & Radiant Glow for Navratri / Diwali 🪔`,
-          ],
-          gujarati: [
-            `🪔 તહેવારો અને લગ્નની સીઝન માટે સ્પેશિયલ મેકઓવર પેકેજ: શ્રી બ્યૂટી સ્ટુડિયો ✨`,
-            `✨ નવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ સ્વેટપ્રૂફ મેકઅપ 🪔`,
-          ],
-          english: [
-            `🪔 Festive Radiance & Event Glamour Packages in Surat at ${salonName} ✨`,
-          ],
-        },
-        bodies: {
-          hinglish: [
-            `Get celebration-ready with our signature festive makeover combos—including premium facial, hair spa, and flawless party makeup!`,
-          ],
-          gujarati: [
-            `નવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ મેકઅપ અને હેરસ્ટાઇલિંગ ઓફર્સ શ્રી બ્યૂટી સ્ટુડિયો ખાતે!`,
-          ],
-          english: [
-            `Look stunning at every gathering with our curated beauty packages designed for effortless glamour.`,
-          ],
-        },
-        technique: {
-          hinglish: [`✨ Sweatproof Festive Makeup | Party Hairdo | Instant Glow`],
-          gujarati: [`✨ તહેવારો સ્પેશિયલ | સ્વેટપ્રૂફ મેકઅપ`],
-          english: [`✨ Sweatproof Formula`],
-        },
-        viralTriggers: {
-          hinglish: [
-            `📌 SAVE this reel for your upcoming festive family function or wedding event!\n👭 TAG your garba/party partner who needs this festive look! 🪔✨\n💬 Comment 'FESTIVE' to grab the festive offer! 👇`,
-          ],
-          gujarati: [
-            `📌 તમારા ફેમિલી ફંકશન માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારી ગરબા પાર્ટનર સાથે શેર (SHARE) કરો! 🪔✨`,
-          ],
-          english: [
-            `📌 SAVE this festive look inspo!\n👭 TAG your party partner! 🪔`,
-          ],
-        },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @gujaratibrides @surat_weddings @theweddingbrigade @dulhaniyaa @navratri_surat @surat_models @surat_lifestyle @popxo.wedding @shaadisaga @witty_wedding @indianweddingbuzz @gujarat_fashion @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Festive Makeup Surat | Navratri Makeup Katargam | Party Makeover Surat | Event Glam Studio Surat | Shree Beauty Studio`,
-        hashtags: [
-          '#FestiveGlam', '#NavratriGlow', '#DiwaliMakeover', '#PartyMakeupSurat', '#SuratSalon',
-          '#KatargamSalon', '#NavratriMakeupSurat', '#FestiveMakeup', '#SweatproofMakeup', '#GarbaLookSurat',
-          '#DiwaliGlamSurat', '#FestiveSeason', '#SuratMakeupArtist', '#TraditionalLook', '#ChaniyaCholiGlam',
-          '#SuratBeautyStudio', '#FestiveOffersSurat', '#EventMakeupSurat', '#IndianFestivals', '#CelebrationLook',
-          '#ViralReels', '#ReelsInstagram', '#ExplorePage', '#ExploreSurat', '#TrendingReels',
-          '#GujaratiTradition', '#FestiveVibes', '#GlowUpSurat', '#MakeupInspo', '#ShreeBeautyStudio'
+          '#PreBridalSurat', '#BridalSkinCareSurat', '#BridalGlowSurat', '#HydraFacialSurat', '#GlassSkinBride',
+          '#SuratBridalStudio', '#KatargamSalon', '#PreWeddingSkinCare', '#BridalHairBotox', '#BridalMakeoverSurat',
+          '#SuratSkinClinic', '#WeddingPrepSurat', '#GlowFromWithin', '#SuratSalon', '#BridalFacialSurat',
+          '#BridalPackageSurat', '#SuratMakeupArtist', '#IndianBride', '#TrendingReels', '#ExplorePage',
+          '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#SkinTransformation', '#BeautyRoutine',
+          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#ShreeBeautyStudio', '#GujaratWeddings'
         ],
       },
       review: {
         hooks: {
           hinglish: [
-            `🌟 5-Star Client Review | Surat's Most Trusted Bridal & Beauty Studio 💖`,
+            `🌟 5-Star Real Bride Review | Surat's Most Trusted Bridal Studio 💖👰`,
             `🥺 "Exceeded all my expectations for my wedding day!" — Real Surat Bride Review ✨`,
+            `👰 "My makeup stayed 100% fresh for 14 hours!" — Real Surat Bride ${nameStr} at ${salonName} 👑`,
+            `💖 Surat brides choose trust, perfection, and pure royal artistry at ${salonName} ✨`,
+            `👑 "I felt like a royal queen on my wedding day!" — 5-Star Bride Review from Surat 💖`,
           ],
           gujarati: [
-            `🌟 ગ્રાહકોનો અતૂટ વિશ્વાસ અને પ્રેમ: 5-સ્ટાર રિવ્યૂ | શ્રી બ્યૂટી સ્ટુડિયો 💖`,
-            `"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — 5 Star Review ✨`,
+            `🌟 સુરતની કન્યાઓનો અતૂટ વિશ્વાસ: 5-સ્ટાર રિયલ બ્રાઇડલ રિવ્યૂ | શ્રી બ્યૂટી સ્ટુડિયો 💖`,
+            `👰 "લગ્નના દિવસે દરેક વ્યક્તિએ મારા મેકઅપની પ્રશંસા કરી!" — 5-સ્ટાર બ્રાઇડ રિવ્યૂ ✨`,
+            `🌸 10,000+ ખુશ કન્યાઓની પહેલી પસંદ શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ, સુરત 👑`,
+            `💖 "શ્રી બ્યૂટી સ્ટુડિયો સુરતનું શ્રેષ્ઠ બ્રાઇડલ સ્ટુડિયો છે!" — રિયલ બ્રાઇડ રિવ્યૂ ✨`,
           ],
           english: [
-            `🌟 "Exceeded all my expectations for my wedding day!" 💖 | 5-Star Review`,
+            `🌟 "Exceeded all my expectations for my wedding day!" 💖 | 5-Star Bride Review`,
+            `👑 Surat's Most Loved Bridal Makeup Studio | Real Bride Words of Love ✨`,
+            `👰 5-Star Wedding Makeover Experience in Katargam, Surat 💖`,
           ],
         },
         bodies: {
           hinglish: [
-            `"The best bridal and salon experience in Surat! The team at Shree Beauty Studio is incredibly skilled, warm, and attentive." — Truly humbled by your trust!`,
+            `"The best bridal experience in Surat! From the first consultation to the final veil drape on my wedding day, the team at Shree Beauty Studio made me feel like royalty. The makeup was 100% waterproof and stayed flawless all night!"`,
+            `Nothing brings us more joy than the happy tears and radiant smiles of our brides! Thank you for trusting Shree Beauty Studio on the most important day of your life.`,
           ],
           gujarati: [
-            `"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — તમારા આ સ્નેહ માટે ખૂબ ખૂબ આભાર!`,
+            `"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ સ્ટુડિયો છે! મેકઅપ એકદમ નેચરલ અને વોટરપ્રૂફ હતો, અને છેક સુધી ફ્રેશ રહ્યો." — તમારા આ સ્નેહ અને વિશ્વાસ માટે ખૂબ ખૂબ આભાર!`,
           ],
           english: [
             `Another heartwarming review from our radiant bride. Thank you for making Shree Beauty Studio part of your most cherished milestone!`,
@@ -798,27 +769,27 @@ export default function InstagramHubPage() {
         },
         technique: {
           hinglish: [`✨ 100% 5-Star Rated | Trusted by 10,000+ Surat Brides`],
-          gujarati: [`✨ 5-સ્ટાર રેટિંગ | સુરતની વિશ્વસનીય સલૂન`],
-          english: [`✨ 5-Star Certified`],
+          gujarati: [`✨ 5-સ્ટાર રેટિંગ | સુરતનું વિશ્વસનીય બ્રાઇડલ સ્ટુડિયો`],
+          english: [`✨ 5-Star Certified | 10,000+ Happy Brides`],
         },
         viralTriggers: {
           hinglish: [
             `📌 SAVE & Book early to secure your wedding or engagement dates!\n👭 SHARE with future brides looking for trusted artists in Surat! 👰💖\n💬 Tell us your dream wedding look in the comments below! 👇`,
           ],
           gujarati: [
-            `📌 તમારા લગ્નની તારીખો માટે અગાઉથી બુકિંગ કરાવો!\n👭 સુરતની ભાવિ કન્યાઓ સાથે શેર (SHARE) કરો! 👰💖`,
+            `📌 તમારા લગ્નની તારીખો માટે અગાઉથી બુકિંગ કરાવો!\n👭 સુરતની ભાવિ કન્યાઓ સાથે શેર (SHARE) કરો! 👰💖\n💬 કમેન્ટમાં જણાવો તમારા લગ્નની તારીખ! 👇`,
           ],
           english: [
-            `📌 SAVE & Book early to lock your wedding dates!\n👭 SHARE with future brides! 👰`,
+            `📌 SAVE & Book early to lock your wedding dates!\n👭 SHARE with future brides in Surat! 👰\n💬 Drop a ❤️ to show some love! 👇`,
           ],
         },
-        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @surat_lifestyle @shreebeauty.studio`,
-        seoKeywords: `🔍 Instagram SEO: Best Salon Reviews Surat | Trusted Bridal Artist Katargam | 5 Star Makeup Studio Surat | Shree Beauty Studio Reviews`,
+        viralMentions: `🏷️ Featured In & Tagged: @wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`,
+        seoKeywords: `🔍 Instagram SEO: Best Bridal Studio Reviews Surat | Trusted Wedding Artist Katargam | 5 Star Bride Review Surat | Shree Beauty Studio Reviews`,
         hashtags: [
-          '#ClientReview', '#5StarsSurat', '#SuratSalonReviews', '#TrustedMakeupArtist', '#KatargamSalon',
-          '#SuratBridalStudio', '#HappyClientSurat', '#SuratSalon', '#BridalReview', '#BestSalonSurat',
-          '#CustomerFeedback', '#SuratMakeover', '#5StarRated', '#RealBrideReview', '#SuratWeddings',
-          '#KatargamBridal', '#SuratBeautyStudio', '#SatisfiedClient', '#BridalMakeupSurat', '#ReviewOfInstagram',
+          '#RealBrideReview', '#5StarsSurat', '#SuratBridalReviews', '#TrustedBridalArtist', '#KatargamSalon',
+          '#SuratBridalStudio', '#HappyBrideSurat', '#SuratSalon', '#BridalReview', '#BestBridalSurat',
+          '#BrideFeedback', '#SuratMakeover', '#5StarRated', '#GujaratiBrideReview', '#SuratWeddings',
+          '#KatargamBridal', '#SuratBeautyStudio', '#SatisfiedBride', '#BridalMakeupSurat', '#ReviewOfInstagram',
           '#ExplorePage', '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#TrendingReels',
           '#BridalTransformation', '#DesiBride', '#WedMeGood', '#WeddingSutra', '#ShreeBeautyStudio'
         ],
@@ -1728,15 +1699,14 @@ export default function InstagramHubPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Category Chips */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6 }}>
                   {[
-                    { id: 'bridal', label: '👑 Bridal' },
-                    { id: 'sagai', label: '💍 Sagai' },
-                    { id: 'hydrafacial', label: '✨ HydraFacial' },
-                    { id: 'hair', label: '💇‍♀️ Hair Botox' },
-                    { id: 'nails', label: '💅 Nails' },
-                    { id: 'festival', label: '🪔 Festive' },
-                    { id: 'review', label: '⭐ Review' },
+                    { id: 'bridal', label: '👑 D-Day Wedding' },
+                    { id: 'sagai', label: '💍 Sagai / Engagement' },
+                    { id: 'reception', label: '✨ Reception Glam' },
+                    { id: 'haldi_mehndi', label: '🪔 Haldi & Mehendi' },
+                    { id: 'prebridal', label: '💧 Pre-Bridal Glow' },
+                    { id: 'review', label: '⭐ Bride Reviews' },
                   ].map((cat) => (
                     <button
                       key={cat.id}
@@ -2748,15 +2718,14 @@ export default function InstagramHubPage() {
             </div>
 
             {/* Category Chips */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 6 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6 }}>
               {[
-                { id: 'bridal', label: '👑 Bridal' },
-                { id: 'sagai', label: '💍 Sagai' },
-                { id: 'hydrafacial', label: '✨ HydraFacial' },
-                { id: 'hair', label: '💇‍♀️ Hair Botox' },
-                { id: 'nails', label: '💅 Nails' },
-                { id: 'festival', label: '🪔 Festive' },
-                { id: 'review', label: '⭐ Review' },
+                { id: 'bridal', label: '👑 D-Day Wedding' },
+                { id: 'sagai', label: '💍 Sagai / Engagement' },
+                { id: 'reception', label: '✨ Reception Glam' },
+                { id: 'haldi_mehndi', label: '🪔 Haldi & Mehendi' },
+                { id: 'prebridal', label: '💧 Pre-Bridal Glow' },
+                { id: 'review', label: '⭐ Bride Reviews' },
               ].map((cat) => (
                 <button
                   key={cat.id}
