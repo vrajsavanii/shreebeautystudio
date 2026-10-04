@@ -9,7 +9,7 @@ export interface BlogPost {
   metaTitle: string;
   metaDescription: string;
   excerpt: string;
-  category: 'Bridal & Makeup' | 'Hair Aesthetics' | 'Skin & Facials' | 'Nails & Body' | 'Surat Salon Guides';
+  category: 'Bridal & Makeup' | 'Hair Aesthetics' | 'Skin & Facials' | 'Nails & Body' | 'Surat Salon Guides' | 'Makeup & Beauty Trends' | 'Wedding & Occasion Beauty' | 'Skincare & Wellness';
   readTime: string;
   publishedAt: string;
   author: string;
@@ -17,5 +17,5 @@ export interface BlogPost {
   image: string;
   tags: string[];
   content: string; // Markdown / semantic HTML formatted
-  faq: BlogFAQ[];
+  faq?: BlogFAQ[];
 }
