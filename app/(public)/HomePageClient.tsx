@@ -268,7 +268,7 @@ export default function PublicHomePage() {
             >
               Best Ladies Beauty Salon &amp;{' '}
               <br />
-              <span style={{ color: '#D4AF37' }}>Bridal Studio in Surat</span>
+              <span style={{ color: '#D4AF37' }}>Bridal Studio in Katargam, Surat</span>
             </motion.h1>
 
             <motion.p
