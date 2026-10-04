@@ -422,7 +422,6 @@ export default function InstagramHubPage() {
     const DATA: Record<string, {
       hooks: { hinglish: string[]; gujarati: string[]; english: string[] };
       bodies: { hinglish: string[]; gujarati: string[]; english: string[] };
-      technique: { hinglish: string[]; gujarati: string[]; english: string[] };
       viralTriggers: { hinglish: string[]; gujarati: string[]; english: string[] };
       viralMentions: string;
       seoKeywords: string;
@@ -463,11 +462,6 @@ export default function InstagramHubPage() {
           english: [
             `Creating an ethereal, regal bridal glow that lasts through all the emotional moments and smiles. Mastered with luxury international cosmetics, weightless finish, and bespoke jewelry setting.`,
           ],
-        },
-        technique: {
-          hinglish: [`✨ HD Airbrush Finish | 100% Waterproof | Tear-Proof & Flash-Ready`],
-          gujarati: [`✨ 100% વોટરપ્રૂફ એરબ્રશ | HD ફિનિશ | રોયલ ચૂંદડી સેટિંગ`],
-          english: [`✨ HD Airbrush Magic | Tear-Proof & Waterproof`],
         },
         viralTriggers: {
           hinglish: [
@@ -527,11 +521,6 @@ export default function InstagramHubPage() {
             `Crafting a fresh, youthful, and luminous engagement makeover with weightless HD cosmetics, soft romantic waves, and custom drape.`,
           ],
         },
-        technique: {
-          hinglish: [`✨ Soft HD Glam | 100% Waterproof | Dewy Glass Finish`],
-          gujarati: [`✨ સોફ્ટ HD ગ્લો | 100% વોટરપ્રૂફ | ટ્રેન્ડી હેરસ્ટાઇલ`],
-          english: [`✨ Soft HD Glam | Dewy Radiant Finish | Long-Wear Formulation`],
-        },
         viralTriggers: {
           hinglish: [
             `📌 SAVE this look for your upcoming Sagai / Engagement moodboard!\n👭 TAG your newly engaged sister or bestie! 💍💖\n💬 Tell us in the comments: Soft Dewy Glam or Bold Lip Look for Sagai? 👇✨`,
@@ -586,11 +575,6 @@ export default function InstagramHubPage() {
           english: [
             `Designed for the grand reception evening—dramatic eye definition, luminous glass skin, and couture hairstyling tailored to complement western gowns and royal lehengas.`,
           ],
-        },
-        technique: {
-          hinglish: [`✨ Spotlight Shimmer Eyes | High-Definition Sculpt | 100% Flash-Ready`],
-          gujarati: [`✨ શિમરી સ્મોકી આઇઝ | 100% ફ્લેશ-પ્રૂફ | લ્યુમિનસ ફિનિશ`],
-          english: [`✨ Spotlight Shimmer & HD Sculpt | Flash-Proof & Long-Wear`],
         },
         viralTriggers: {
           hinglish: [
@@ -647,11 +631,6 @@ export default function InstagramHubPage() {
             `Effortless, fresh-faced radiance crafted for daytime festivities. Formulated to withstand warm outdoor weather, dancing, and celebratory colors.`,
           ],
         },
-        technique: {
-          hinglish: [`✨ Sweatproof Formula | Fresh Peach Dew | Boho Floral Braids`],
-          gujarati: [`✨ 100% સ્વેટપ્રૂફ | ફ્રેશ નેચરલ ગ્લો | ફ્લોરલ હેરસ્ટાઇલ`],
-          english: [`✨ Sweatproof & Water-Resistant | Fresh Peach Dewy Finish`],
-        },
         viralTriggers: {
           hinglish: [
             `📌 SAVE this vibrant Haldi / Mehendi look for your pre-wedding rituals!\n👭 TAG your bride bestie or bridesmaid gang! 🌻💛\n💬 Tell us: Floral Bun or Bohemian Open Braids for Haldi? 👇✨`,
@@ -706,11 +685,6 @@ export default function InstagramHubPage() {
           english: [
             `The secret to cake-free, glowing bridal makeup is expert skin prep. Vortex extraction purifies pores while antioxidant serums lock in deep moisture.`,
           ],
-        },
-        technique: {
-          hinglish: [`✨ 7-Step Korean Glass Skin | Zero Downtime | Intense Hydration`],
-          gujarati: [`✨ 100% પેઇનલેસ | ઇન્સ્ટન્ટ ગ્લો | ડીપ પોર ક્લીનિંગ`],
-          english: [`✨ Zero Downtime | Medical-Grade Hydration & Detox`],
         },
         viralTriggers: {
           hinglish: [
@@ -767,11 +741,6 @@ export default function InstagramHubPage() {
             `Another heartwarming review from our radiant bride. Thank you for making Shree Beauty Studio part of your most cherished milestone!`,
           ],
         },
-        technique: {
-          hinglish: [`✨ 100% 5-Star Rated | Trusted by 10,000+ Surat Brides`],
-          gujarati: [`✨ 5-સ્ટાર રેટિંગ | સુરતનું વિશ્વસનીય બ્રાઇડલ સ્ટુડિયો`],
-          english: [`✨ 5-Star Certified | 10,000+ Happy Brides`],
-        },
         viralTriggers: {
           hinglish: [
             `📌 SAVE & Book early to secure your wedding or engagement dates!\n👭 SHARE with future brides looking for trusted artists in Surat! 👰💖\n💬 Tell us your dream wedding look in the comments below! 👇`,
@@ -799,7 +768,6 @@ export default function InstagramHubPage() {
     const catData = DATA[captionCategory] || DATA.bridal;
     const hooksList = catData.hooks[captionLanguage] || catData.hooks.hinglish;
     const bodiesList = catData.bodies[captionLanguage] || catData.bodies.hinglish;
-    const techList = catData.technique[captionLanguage] || catData.technique.hinglish;
     const triggersList = catData.viralTriggers[captionLanguage] || catData.viralTriggers.hinglish;
 
     const availableHooks = hooksList.filter((h) => h !== lastHookUsed);
@@ -807,7 +775,6 @@ export default function InstagramHubPage() {
     setLastHookUsed(chosenHook);
 
     const chosenBody = pickRandom(bodiesList);
-    const chosenTech = pickRandom(techList);
     const chosenTrigger = pickRandom(triggersList);
     const chosenHashtags = catData.hashtags.slice(0, 30).join(' ');
 
@@ -817,7 +784,7 @@ export default function InstagramHubPage() {
     ];
     const chosenCta = pickRandom(ctas);
 
-    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n────────────────\n${catData.viralMentions}\n\n${catData.seoKeywords}\n\n${chosenHashtags}`;
+    return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n────────────────\n${catData.viralMentions}\n\n${catData.seoKeywords}\n\n${chosenHashtags}`;
   }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes, settings, lastHookUsed]);
 
   // Master Generation
