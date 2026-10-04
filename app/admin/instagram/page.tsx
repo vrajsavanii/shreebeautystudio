@@ -483,7 +483,11 @@ export default function InstagramHubPage() {
           '#WeddingGlam', '#BridalTransformation', '#SuratWeddings', '#GujaratWeddings', '#PanetarBride',
           '#HDAirbrushMakeup', '#AirbrushBridalSurat', '#IndianBride', '#WeddingInspiration', '#BridalLook',
           '#DulhanMakeover', '#TrendingBride', '#ViralReels', '#ReelsInstagram', '#ExplorePage',
-          '#ExploreSurat', '#TrendingMakeup', '#WeddingSutra', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+          '#ExploreSurat', '#TrendingMakeup', '#WeddingSutra', '#WedMeGood', '#BridalFashion',
+          '#BrideOfIndia', '#WeddingStory', '#WeddingPhotographySurat', '#RealBride', '#BridalPortrait',
+          '#MandapLook', '#GharcholaBride', '#KankuPagla', '#GujaratiWeddingTradition', '#BridalDrapingSurat',
+          '#BestMakeupArtistSurat', '#KatargamBridal', '#SuratBeautyStudio', '#SuratBrides', '#IndianBridalLook',
+          '#WeddingDayVibes', '#BridalDiaries', '#InstaBride', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
       sagai: {
@@ -540,7 +544,11 @@ export default function InstagramHubPage() {
           '#SoftGlamLook', '#DewyMakeup', '#PastelBride', '#EngagementInspo', '#IndianEngagement',
           '#PreWeddingSurat', '#SuratWeddings', '#GujaratBrides', '#DesiEngagement', '#TrendingReels',
           '#ExplorePage', '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#BridalTransformation',
-          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#RingCeremony', '#EngagementLookSurat',
+          '#PastelLehengaSurat', '#ModernBride', '#GlowySkinSurat', '#SagaiMakeover', '#RomanticHairstyle',
+          '#EngagementHairstyle', '#KatargamBridal', '#SuratBeautyStudio', '#SuratBrides', '#IndianBridalLook',
+          '#SheSaidYes', '#EngagementDiaries', '#BridalGoals', '#WeddingGlamSurat', '#LoveStorySurat',
+          '#EngagementPhotography', '#TrendyBride', '#InstaEngagement', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
       reception: {
@@ -595,7 +603,11 @@ export default function InstagramHubPage() {
           '#IndianReceptionBride', '#SmokeyEyesSurat', '#HollywoodWaves', '#LuxuryBrideSurat', '#BridalGlowSurat',
           '#GownMakeupSurat', '#SuratSalon', '#DesiBride', '#TrendingBride', '#ViralReels',
           '#ReelsInstagram', '#ExplorePage', '#ExploreSurat', '#TrendingMakeup', '#WeddingSutra',
-          '#WedMeGood', '#BridalTransformation', '#RoyalBride', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+          '#WedMeGood', '#BridalTransformation', '#RoyalBride', '#GujaratWeddings', '#ReceptionLookSurat',
+          '#CocktailBride', '#GownLookSurat', '#ShimmerEyes', '#SpotlightGlam', '#NightWeddingLook',
+          '#ReceptionGownSurat', '#RedCarpetGlam', '#BoldLipsSurat', '#KatargamBridal', '#SuratBeautyStudio',
+          '#SuratBrides', '#IndianBridalLook', '#StageGlam', '#WeddingEveningSurat', '#BridalDiariesSurat',
+          '#ReceptionHairstyle', '#HighGlamour', '#InstaReception', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
       haldi_mehndi: {
@@ -650,7 +662,11 @@ export default function InstagramHubPage() {
           '#YellowHaldiLook', '#GreenMehendiGlam', '#SuratWeddings', '#GujaratWeddings', '#IndianBride',
           '#BridalMehendi', '#HaldiCeremony', '#DesiBride', '#PreWeddingGlow', '#TrendingReels',
           '#ExplorePage', '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#BridalTransformation',
-          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#SuratSalon', '#HaldiCeremonySurat',
+          '#MehendiArtistSurat', '#FloralHairdo', '#BohemianBraids', '#SunshineGlowSurat', '#HaldiOutfitSurat',
+          '#MehendiDesignSurat', '#PreWeddingFestivities', '#ColorSplashSurat', '#KatargamBridal', '#SuratBeautyStudio',
+          '#SuratBrides', '#IndianBridalLook', '#FloralBride', '#HaldiVibes', '#MehendiNightSurat',
+          '#JoyfulBride', '#HaldiMakeover', '#InstaHaldi', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
       prebridal: {
@@ -705,7 +721,11 @@ export default function InstagramHubPage() {
           '#SuratSkinClinic', '#WeddingPrepSurat', '#GlowFromWithin', '#SuratSalon', '#BridalFacialSurat',
           '#BridalPackageSurat', '#SuratMakeupArtist', '#IndianBride', '#TrendingReels', '#ExplorePage',
           '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#SkinTransformation', '#BeautyRoutine',
-          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+          '#WedMeGood', '#WeddingSutra', '#BridalGlow', '#GujaratWeddings', '#KoreanGlassSkinSurat',
+          '#MedicalHydraFacial', '#BridalSkinPrep', '#DeepPoreCleansing', '#BridalHairCareSurat', '#HairBotoxSurat',
+          '#PreBridalPackage', '#SkinRejuvenationSurat', '#ClearSkinBride', '#KatargamBridal', '#SuratBeautyStudio',
+          '#SuratBrides', '#HealthyGlowSurat', '#BridalWellness', '#PreWeddingSelfCare', '#GlowingBrideSurat',
+          '#SkinGlowClinic', '#BrideToBeSurat', '#InstaSkinCare', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
       review: {
@@ -760,7 +780,11 @@ export default function InstagramHubPage() {
           '#BrideFeedback', '#SuratMakeover', '#5StarRated', '#GujaratiBrideReview', '#SuratWeddings',
           '#KatargamBridal', '#SuratBeautyStudio', '#SatisfiedBride', '#BridalMakeupSurat', '#ReviewOfInstagram',
           '#ExplorePage', '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#TrendingReels',
-          '#BridalTransformation', '#DesiBride', '#WedMeGood', '#WeddingSutra', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+          '#BridalTransformation', '#DesiBride', '#WedMeGood', '#WeddingSutra', '#SuratBridesLove',
+          '#ClientLoveSurat', '#BestSalonKatargam', '#CustomerTestimonial', '#TrustedByBrides', '#BrideStorySurat',
+          '#WeddingReviewSurat', '#AuthenticFeedback', '#HappyClientSurat', '#SuratBrides', '#IndianBridalLook',
+          '#5StarSalonSurat', '#BridalExcellence', '#SuratBeautySalon', '#TopBridalArtistSurat', '#WeddingRecommendation',
+          '#VerifiedReview', '#BrideApproved', '#InstaReview', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
     };
@@ -777,10 +801,10 @@ export default function InstagramHubPage() {
     const chosenBody = pickRandom(bodiesList);
     const chosenTrigger = pickRandom(triggersList);
     
-    // Always guarantee permanent brand hashtags: #ShreeBeautyStudiobride #ShreeBeautyStudio
+    // Always guarantee permanent brand hashtags: #ShreeBeautyStudiobride #ShreeBeautyStudio + 48 viral tags = 50 total
     const permanentTags = ['#ShreeBeautyStudiobride', '#ShreeBeautyStudio'];
     const filteredCatTags = catData.hashtags.filter((t) => !permanentTags.includes(t));
-    const finalTags = [...filteredCatTags.slice(0, 28), ...permanentTags];
+    const finalTags = [...filteredCatTags.slice(0, 48), ...permanentTags];
     const chosenHashtags = finalTags.join(' ');
 
     const ctas = [
@@ -2270,14 +2294,14 @@ export default function InstagramHubPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          const tags30 = `#SuratBridalMakeup #SuratMakeupArtist #KatargamSalon #GujaratiBride #BridalMakeoverSurat #RoyalBride #SuratSalon #IndianWeddingBuzz #DesiBride #BridalGlow #WeddingGlam #BridalTransformation #SuratWeddings #GujaratWeddings #PanetarBride #HDAirbrushMakeup #AirbrushBridalSurat #IndianBride #WeddingInspiration #BridalLook #DulhanMakeover #TrendingBride #ViralReels #ReelsInstagram #ExplorePage #ExploreSurat #TrendingMakeup #WeddingSutra #ShreeBeautyStudiobride #ShreeBeautyStudio`;
-                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n${tags30}` : tags30));
-                          toast('Added 30 Viral Hashtags!', 'success');
+                          const tags50 = `#SuratBridalMakeup #SuratMakeupArtist #KatargamSalon #GujaratiBride #BridalMakeoverSurat #RoyalBride #SuratSalon #IndianWeddingBuzz #DesiBride #BridalGlow #WeddingGlam #BridalTransformation #SuratWeddings #GujaratWeddings #PanetarBride #HDAirbrushMakeup #AirbrushBridalSurat #IndianBride #WeddingInspiration #BridalLook #DulhanMakeover #TrendingBride #ViralReels #ReelsInstagram #ExplorePage #ExploreSurat #TrendingMakeup #WeddingSutra #WedMeGood #BridalFashion #BrideOfIndia #WeddingStory #WeddingPhotographySurat #RealBride #BridalPortrait #MandapLook #GharcholaBride #KankuPagla #GujaratiWeddingTradition #BridalDrapingSurat #BestMakeupArtistSurat #KatargamBridal #SuratBeautyStudio #SuratBrides #IndianBridalLook #WeddingDayVibes #BridalDiaries #InstaBride #ShreeBeautyStudiobride #ShreeBeautyStudio`;
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n${tags50}` : tags50));
+                          toast('Added 50 Viral Hashtags!', 'success');
                         }}
                         className="btn btn-ghost btn-xs"
                         style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6, fontWeight: 700, color: '#E1306C' }}
                       >
-                        + #️⃣ 30 Viral Hashtags
+                        + #️⃣ 50 Viral Hashtags
                       </button>
                       <button
                         type="button"
