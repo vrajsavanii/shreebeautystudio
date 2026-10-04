@@ -601,12 +601,38 @@ function MyAppointmentsView() {
                 <h3 style={{ fontSize: 19, fontWeight: 800, color: '#05424A', marginBottom: 6 }}>
                   Verify Mobile via Instant SMS OTP
                 </h3>
-                <p style={{ fontSize: 13.5, color: '#64748b', lineHeight: 1.5, maxWidth: 400, margin: '0 auto 22px' }}>
-                  Verify your mobile number to view and manage your confirmed salon visits, advance deposits, and bridal package records.
-                </p>
+                <div style={{ marginBottom: 16, textAlign: 'left' }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#05424A', display: 'block', marginBottom: 6 }}>
+                    Your Mobile Number
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b', fontSize: 13.5 }}>
+                      +91
+                    </div>
+                    <input
+                      type="tel"
+                      value={mobile}
+                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="e.g. 98765 43210"
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px 12px 50px',
+                        borderRadius: 12,
+                        border: '1.5px solid #e2e8f0',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                      }}
+                    />
+                  </div>
+                </div>
 
                 <PhoneEmailButton
                   purpose="my-appointments"
+                  phone={mobile}
                   label="📱 Verify Mobile Number via SMS OTP"
                   sublabel="Fast cellular SMS delivered across all Indian networks"
                   onSuccess={(data) => {

@@ -92,3 +92,62 @@ export async function verifyPhoneEmailToken(accessToken: string): Promise<Verifi
     };
   }
 }
+
+/**
+ * Direct fetch & verify from user_json_url emitted by Phone.Email web plugin
+ * e.g. https://user.phone.email/user_ABC123.json
+ */
+export async function verifyPhoneEmailUserJson(userJsonUrl: string): Promise<VerifiedPhoneUser> {
+  if (!userJsonUrl || typeof userJsonUrl !== 'string') {
+    return { success: false, error: 'User JSON URL is required.' };
+  }
+
+  try {
+    const parsed = new URL(userJsonUrl);
+    if (!parsed.hostname.endsWith('phone.email')) {
+      return { success: false, error: 'Invalid verification domain.' };
+    }
+
+    const res = await fetch(userJsonUrl, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!res.ok) {
+      // Fallback: If userJsonUrl fetch fails, extract token and try server-side exchange
+      const tokenMatch = userJsonUrl.match(/user_([a-zA-Z0-9_\-]+)\.json/);
+      if (tokenMatch && tokenMatch[1]) {
+        return await verifyPhoneEmailToken(tokenMatch[1]);
+      }
+      return { success: false, error: `Failed to fetch verified user profile (HTTP ${res.status}).` };
+    }
+
+    const data = await res.json();
+    const rawPhone = data.user_phone_number || data.phone_no || '';
+    const cleanMobile = rawPhone.replace(/\D/g, '').slice(-10);
+    const countryCode = data.user_country_code || data.country_code || '+91';
+
+    if (!cleanMobile || cleanMobile.length !== 10) {
+      return { success: false, error: 'Could not extract valid 10-digit mobile number.' };
+    }
+
+    const tokenMatch = userJsonUrl.match(/user_([a-zA-Z0-9_\-]+)\.json/);
+    const jwt = tokenMatch ? tokenMatch[1] : undefined;
+
+    return {
+      success: true,
+      cleanMobile,
+      countryCode,
+      fullPhone: `${countryCode}${cleanMobile}`,
+      jwt,
+    };
+  } catch (err: any) {
+    console.error('[Phone.Email] JSON fetch exception:', err);
+    const tokenMatch = userJsonUrl.match(/user_([a-zA-Z0-9_\-]+)\.json/);
+    if (tokenMatch && tokenMatch[1]) {
+      return await verifyPhoneEmailToken(tokenMatch[1]);
+    }
+    return { success: false, error: err?.message || 'Error processing verification profile.' };
+  }
+}
+

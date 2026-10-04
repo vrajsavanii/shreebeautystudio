@@ -17,6 +17,7 @@ interface PhoneEmailButtonProps {
   className?: string;
   label?: string;
   sublabel?: string;
+  phone?: string;
 }
 
 export default function PhoneEmailButton({
@@ -26,6 +27,7 @@ export default function PhoneEmailButton({
   className = '',
   label = 'Verify via Instant SMS OTP',
   sublabel = 'Free SMS delivered directly to your mobile network',
+  phone,
 }: PhoneEmailButtonProps) {
   const [loading, setLoading] = useState(false);
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
@@ -33,23 +35,68 @@ export default function PhoneEmailButton({
   const clientId =
     process.env.NEXT_PUBLIC_PHONE_EMAIL_CLIENT_ID || '14193176295000530175';
 
-  // Listen for postMessage from the popup window callback
+  // Listen for postMessage from the Phone.Email popup window or callback
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (typeof window !== 'undefined' && event.origin !== window.location.origin) return;
+    const handleMessage = async (event: MessageEvent) => {
+      // 1. Message from our internal callback page
+      if (typeof window !== 'undefined' && event.origin === window.location.origin) {
+        if (event.data && event.data.type === 'PHONE_EMAIL_VERIFIED') {
+          setLoading(false);
+          setVerifiedSuccess(true);
+          if (onSuccess) {
+            onSuccess(event.data);
+          }
+          return;
+        }
+      }
 
-      if (event.data && event.data.type === 'PHONE_EMAIL_VERIFIED') {
-        setLoading(false);
-        setVerifiedSuccess(true);
-        if (onSuccess) {
-          onSuccess(event.data);
+      // 2. Direct message from Phone.Email popup (auth_type=8 official web postMessage)
+      if (
+        event.origin === 'https://auth.phone.email' ||
+        event.origin === 'https://www.phone.email'
+      ) {
+        const userJsonUrl = event.data?.user_json_url;
+        const flagPhone = event.data?.flag_phone;
+
+        if (userJsonUrl || flagPhone === '1' || flagPhone === 1) {
+          setLoading(true);
+          try {
+            const res = await fetch('/api/auth/phone-email-verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_json_url: userJsonUrl,
+                purpose,
+              }),
+            });
+
+            const data = await res.json();
+            if (data.success) {
+              setLoading(false);
+              setVerifiedSuccess(true);
+              if (onSuccess) {
+                onSuccess({
+                  verifiedPhone: data.verifiedPhone,
+                  customer: data.customer,
+                  appointments: data.appointments,
+                  bridal: data.bridal,
+                });
+              }
+            } else {
+              setLoading(false);
+              alert(data.error || 'Verification failed. Please try again.');
+            }
+          } catch (err: any) {
+            setLoading(false);
+            console.error('Failed to verify Phone.Email token:', err);
+          }
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onSuccess]);
+  }, [onSuccess, purpose]);
 
   const handleOpenAuth = useCallback(() => {
     setLoading(true);
@@ -60,32 +107,25 @@ export default function PhoneEmailButton({
       localStorage.setItem('pe_purpose', purpose);
     } catch {}
 
-    const isMobile =
-      typeof window !== 'undefined' &&
-      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-        window.innerWidth < 768);
+    const cleanPhone = phone ? phone.replace(/\D/g, '').slice(-10) : '';
+    const phoneParam = cleanPhone && cleanPhone.length === 10 ? `&user_phone_no=${cleanPhone}` : '';
+    const currentHref = typeof window !== 'undefined' ? window.location.href : '';
 
-    const redirectUrl = `${window.location.origin}/auth/phone-email-callback`;
-    const authUrl = `https://www.phone.email/auth/log-in?client_id=${clientId}&redirect_url=${encodeURIComponent(
-      redirectUrl
-    )}`;
+    // The official authorized Phone.Email modal URL with auth_type=8:
+    const authUrl = `https://auth.phone.email/log-in?client_id=${clientId}&auth_type=8&origin=${encodeURIComponent(
+      currentHref
+    )}${phoneParam}`;
 
-    // On mobile devices, always navigate directly so popup blockers don't suppress the SMS verification screen
-    if (isMobile) {
-      window.location.href = authUrl;
-      return;
-    }
-
-    // On desktop, try centered popup with automatic direct fallback if popup is blocked
-    const width = 480;
-    const height = 580;
+    // Centered popup modal with official dimensions
+    const width = 500;
+    const height = 560;
     const top = (window.screen.height - height) / 2;
     const left = (window.screen.width - width) / 2;
     const windowFeatures = `toolbar=0,scrollbars=0,location=0,statusbar=0,menubar=0,resizable=0,width=${width},height=${height},top=${top},left=${left}`;
 
     let authWindow: Window | null = null;
     try {
-      authWindow = window.open(authUrl, 'shreeAuthWindow', windowFeatures);
+      authWindow = window.open(authUrl, 'peLoginWindow', windowFeatures);
     } catch {
       authWindow = null;
     }
@@ -96,14 +136,15 @@ export default function PhoneEmailButton({
       return;
     }
 
-    // Watch if user closes popup manually
+    // Watch if user closes popup manually without completing verification
     const timer = setInterval(() => {
       if (authWindow && authWindow.closed) {
         clearInterval(timer);
         setLoading(false);
       }
     }, 1000);
-  }, [clientId, returnUrl, purpose]);
+  }, [clientId, returnUrl, purpose, phone]);
+
 
   return (
     <button

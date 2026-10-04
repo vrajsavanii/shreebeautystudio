@@ -514,12 +514,38 @@ function LoginFormContent() {
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#05424A', marginBottom: 6 }}>
                   Sign In with Mobile SMS OTP
                 </h3>
-                <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, maxWidth: 360, margin: '0 auto 20px' }}>
-                  Verify your mobile number to receive a genuine cellular SMS OTP delivered instantly across all Indian telecom networks (Jio, Airtel, Vi, BSNL).
-                </p>
+                <div style={{ marginBottom: 16, textAlign: 'left' }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#05424A', display: 'block', marginBottom: 6 }}>
+                    Your Mobile Number
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b', fontSize: 13.5 }}>
+                      +91
+                    </div>
+                    <input
+                      type="tel"
+                      value={otpMobile}
+                      onChange={(e) => setOtpMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      placeholder="e.g. 98765 43210"
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px 12px 50px',
+                        borderRadius: 12,
+                        border: '1.5px solid #e2e8f0',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        background: '#ffffff',
+                        color: '#0f172a',
+                      }}
+                    />
+                  </div>
+                </div>
 
                 <PhoneEmailButton
                   purpose="login"
+                  phone={otpMobile}
                   label="📱 Verify Mobile Number via SMS OTP"
                   sublabel="Direct cellular SMS OTP. 100% confidential & secure"
                   returnUrl={redirectTarget || '/profile'}

@@ -8,13 +8,14 @@ import { Loader2, CheckCircle2, AlertCircle, ShieldCheck, Sparkles } from 'lucid
 function CallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const accessToken = searchParams.get('access_token');
+  const accessToken = searchParams.get('access_token') || searchParams.get('token') || searchParams.get('phtoken');
+  const userJsonUrl = searchParams.get('user_json_url');
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [errorMsg, setErrorMsg] = useState('');
   const [phone, setPhone] = useState('');
 
   useEffect(() => {
-    if (!accessToken) {
+    if (!accessToken && !userJsonUrl) {
       setStatus('error');
       setErrorMsg('No verification token received. Please try verifying again.');
       return;
@@ -25,7 +26,7 @@ function CallbackContent() {
         const res = await fetch('/api/auth/phone-email-verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: accessToken }),
+          body: JSON.stringify({ access_token: accessToken, user_json_url: userJsonUrl }),
         });
 
         const data = await res.json();

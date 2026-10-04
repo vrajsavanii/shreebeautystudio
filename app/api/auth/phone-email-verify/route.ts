@@ -1,7 +1,7 @@
 // app/api/auth/phone-email-verify/route.ts
 // Handles Phone.Email Free SMS OTP Token Exchange, Customer Account Linking, and Session Creation
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPhoneEmailToken } from '@/lib/phone-email';
+import { verifyPhoneEmailToken, verifyPhoneEmailUserJson, VerifiedPhoneUser } from '@/lib/phone-email';
 import {
   findCustomerByIdentifier,
   upsertCustomerAccount,
@@ -16,17 +16,27 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const accessToken = body.access_token || body.accessToken || '';
+    const userJsonUrl = body.user_json_url || '';
     const purpose = body.purpose || 'login'; // 'login' | 'signup' | 'my-appointments'
 
-    if (!accessToken) {
+    if (!accessToken && !userJsonUrl) {
       return NextResponse.json(
-        { success: false, error: 'Access token is required from Phone.Email.' },
+        { success: false, error: 'Verification token or user JSON profile is required from Phone.Email.' },
         { status: 400 }
       );
     }
 
-    // 1. Verify token with Phone.Email API
-    const verified = await verifyPhoneEmailToken(accessToken);
+    // 1. Verify token or profile with Phone.Email API
+    let verified: VerifiedPhoneUser;
+    if (userJsonUrl) {
+      verified = await verifyPhoneEmailUserJson(userJsonUrl);
+      if (!verified.success && accessToken) {
+        verified = await verifyPhoneEmailToken(accessToken);
+      }
+    } else {
+      verified = await verifyPhoneEmailToken(accessToken);
+    }
+
     if (!verified.success || !verified.cleanMobile) {
       return NextResponse.json(
         { success: false, error: verified.error || 'Invalid or expired phone verification token.' },
@@ -35,6 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanMobile = verified.cleanMobile;
+
 
     // 2. Look up customer account in salon state
     const { customer: existingCustomer, salonData } = await findCustomerByIdentifier(cleanMobile);
