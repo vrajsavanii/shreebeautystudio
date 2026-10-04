@@ -117,12 +117,17 @@ export async function POST(req: NextRequest) {
     const LOCATION_PAGE_IDS: Record<string, string> = {
       'Katargam, Surat': '108873722476595',
       'Shree Beauty Studio': '108873722476595',
+      'Shree Beauty Studio, Katargam': '108873722476595',
       'Surat, Gujarat': '106720849363574',
       'Mota Varachha, Surat': '106720849363574',
+      'Varachha, Surat': '106720849363574',
       'Adajan, Surat': '106720849363574',
       'Vesu, Surat': '106720849363574',
+      'VIP Road, Surat': '106720849363574',
+      'Ghod Dod Road, Surat': '106720849363574',
+      'Surat': '106720849363574',
     };
-    const matchedLocId = location ? LOCATION_PAGE_IDS[location.trim()] : undefined;
+    const matchedLocId = location.trim() ? (LOCATION_PAGE_IDS[location.trim()] || '108873722476595') : undefined;
 
     const cleanUser = collaborator ? collaborator.replace(/^@/, '').trim() : '';
 

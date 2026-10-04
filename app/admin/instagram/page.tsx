@@ -619,20 +619,14 @@ export default function InstagramHubPage() {
     const chosenTech = pickRandom(techList);
     const chosenHashtags = pickMultipleRandom(catData.hashtags, Math.min(12, catData.hashtags.length)).join(' ');
 
-    const locStr = postLocation.trim() || 'Katargam, Surat';
-    const cleanCollab = collaborator.trim()
-      ? (collaborator.trim().startsWith('@') ? collaborator.trim() : `@${collaborator.trim()}`)
-      : '';
-    const collabStr = cleanCollab ? `\n\n🤝 In Collaboration With: ${cleanCollab}` : '';
-
     const ctas = [
-      `📍 Location: ${locStr}\n🏠 Studio: ${address}\n📞 Bridal Booking Helpline: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book`,
-      `📍 Location: ${locStr}\n🏠 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
+      `🏠 Studio: ${address}\n📞 Bridal Booking Helpline: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book`,
+      `🏠 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
-    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}${collabStr}\n\n${chosenCta}\n\n────────────────\n${chosenHashtags}`;
-  }, [captionCategory, captionLanguage, clientName, specialOffer, postLocation, collaborator, settings, lastHookUsed]);
+    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}\n\n${chosenCta}\n\n────────────────\n${chosenHashtags}`;
+  }, [captionCategory, captionLanguage, clientName, specialOffer, settings, lastHookUsed]);
 
   // Master Generation
   const handleGenerateFresh = async () => {
@@ -649,7 +643,7 @@ export default function InstagramHubPage() {
   useEffect(() => {
     const initial = generateInfiniteCaption();
     setGeneratedCaption(initial);
-  }, [captionCategory, captionLanguage, clientName, specialOffer, postLocation, collaborator]);
+  }, [captionCategory, captionLanguage, clientName, specialOffer]);
 
   // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM (WITH EXACT HIGH-RES CROP & MULTI-PHOTO CAROUSEL) ──
   const handlePublishToInstagram = async () => {
@@ -1588,7 +1582,7 @@ export default function InstagramHubPage() {
                       <MapPin size={13} color="#E1306C" />
                       <span>📍 Add Instagram Location:</span>
                     </label>
-                    <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Shown in post header & caption</span>
+                    <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 700 }}>📍 Instagram Post Geotag (Post Header)</span>
                   </div>
 
                   <div style={{ position: 'relative', marginBottom: 6 }}>
