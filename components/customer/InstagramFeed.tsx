@@ -251,7 +251,7 @@ export default function InstagramFeed() {
   return (
     <section
       style={{
-        padding: 'clamp(28px, 3.5vw, 44px) 0 clamp(16px, 2vw, 24px) 0',
+        padding: 'clamp(24px, 3vw, 36px) 0 8px 0',
         background: 'linear-gradient(180deg, #f8fafc 0%, #edf2f7 50%, #f1f5f9 100%)',
         overflow: 'hidden',
         position: 'relative',
