@@ -251,7 +251,7 @@ export default function InstagramFeed() {
   return (
     <section
       style={{
-        padding: 'clamp(52px, 7vw, 90px) 0',
+        padding: 'clamp(28px, 3.5vw, 44px) 0 clamp(16px, 2vw, 24px) 0',
         background: 'linear-gradient(180deg, #f8fafc 0%, #edf2f7 50%, #f1f5f9 100%)',
         overflow: 'hidden',
         position: 'relative',
@@ -427,7 +427,7 @@ export default function InstagramFeed() {
         </div>
 
         {/* Follow CTA Button */}
-        <div style={{ textAlign: 'center', marginTop: 'clamp(28px, 4vw, 44px)' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(12px, 2vw, 20px)' }}>
           <a
             href={instagramUrl}
             target="_blank"
