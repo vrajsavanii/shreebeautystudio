@@ -901,7 +901,7 @@ export default function PublicHomePage() {
                 letterSpacing: '-0.015em',
               }}
             >
-              Loved by Hundreds of{' '}
+              Loved &amp; Trusted by{' '}
               <span
                 style={{
                   fontStyle: 'italic',
@@ -911,7 +911,7 @@ export default function PublicHomePage() {
                   backgroundClip: 'text',
                 }}
               >
-                Surat Brides &amp; Clients
+                Brides &amp; Clients
               </span>
             </h2>
           </div>
