@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import SmoothScrollProvider from '@/components/providers/SmoothScrollProvider';
+import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -97,23 +98,7 @@ export default function RootLayout({
           {children}
         </SmoothScrollProvider>
 
-        {/* ── Google Analytics 4 — G-SY02ZF4TB3 ──────────────────────────────
-            strategy="afterInteractive" → loads after page hydration,
-            zero render-blocking impact on LCP / CLS / INP scores.         */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-157MFZDCT3"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-157MFZDCT3', {
-              page_path: window.location.pathname,
-            });
-          `}
-        </Script>
+        <GoogleAnalytics />
       </body>
     </html>
   );
