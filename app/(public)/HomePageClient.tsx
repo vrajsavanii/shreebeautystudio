@@ -889,14 +889,14 @@ export default function PublicHomePage() {
       {/* ─── 8. ⭐ GOOGLE REVIEWS CAROUSEL (4.9★ on Google Maps) ──── */}
       <section className="cust-section-alt" style={{ overflow: 'hidden', paddingTop: 'clamp(14px, 2.5vw, 28px)', paddingBottom: 'clamp(20px, 3vw, 32px)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div className="cust-section-header" style={{ marginBottom: 22 }}>
+          <div className="cust-section-header" style={{ marginBottom: 18 }}>
             <h2
               className="display-font"
               style={{
                 fontSize: 'clamp(30px, 4.5vw, 46px)',
                 fontWeight: 700,
                 color: '#032B30',
-                margin: '0 0 10px',
+                margin: 0,
                 lineHeight: 1.22,
                 letterSpacing: '-0.015em',
               }}
@@ -914,22 +914,6 @@ export default function PublicHomePage() {
                 Surat Brides &amp; Clients
               </span>
             </h2>
-            <p
-              style={{
-                color: '#64748B',
-                fontSize: 15,
-                maxWidth: 640,
-                margin: '0 auto',
-                lineHeight: 1.65,
-                fontWeight: 500,
-              }}
-            >
-              Verified 5-star experiences from our Google Maps community ·{' '}
-              <span style={{ color: '#032B30', fontWeight: 700 }}>
-                {googleRating.toFixed(1)}★ Rating
-              </span>{' '}
-              across {googleReviewCount}+ clients in Katargam, Surat.
-            </p>
           </div>
         </div>
 
