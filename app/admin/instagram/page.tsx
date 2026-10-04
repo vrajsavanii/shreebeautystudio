@@ -24,7 +24,11 @@ import {
   TrendingUp,
   X,
   Phone,
-  Layers
+  Layers,
+  Wand2,
+  Flame,
+  Star,
+  Crown
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -69,6 +73,9 @@ export default function InstagramHubPage() {
   // AI Caption Studio State
   const [captionCategory, setCaptionCategory] = useState<'bridal' | 'hydrafacial' | 'hair' | 'nails' | 'festival' | 'review'>('bridal');
   const [captionLanguage, setCaptionLanguage] = useState<'english' | 'hinglish' | 'gujarati'>('hinglish');
+  const [vibeAngle, setVibeAngle] = useState<string>('royal');
+  const [variationIndex, setVariationIndex] = useState(0);
+  const [isRotating, setIsRotating] = useState(false);
   const [clientName, setClientName] = useState('');
   const [specialOffer, setSpecialOffer] = useState('');
   const [generatedCaption, setGeneratedCaption] = useState('');
@@ -127,37 +134,134 @@ export default function InstagramHubPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Generate AI Caption dynamically
-  const generateCaption = () => {
+  // ── RICH DYNAMIC AI CAPTION & REEL HOOK ENGINE ──
+  const generateCaption = (forcedIndex?: number) => {
     const salonName = settings?.salon || 'Shree Beauty Studio';
-    const phone = settings?.phone2 || settings?.whatsapp || '+91 98241 83769';
-    const address = settings?.address || '104, Royal Plaza, Near Simada Naka, Nana Varachha, Surat - 395006';
+    const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
+    const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
     const nameStr = clientName.trim() ? clientName.trim() : 'our gorgeous bride';
-    const offerStr = specialOffer.trim() ? `\n🎉 Special Exclusive Offer: ${specialOffer.trim()}` : '';
+    const offerStr = specialOffer.trim() ? `\n\n🎉 Special Limited Offer: ${specialOffer.trim()}` : '';
 
-    let caption = '';
+    const currIdx = typeof forcedIndex === 'number' ? forcedIndex : variationIndex;
 
-    if (captionCategory === 'bridal') {
-      if (captionLanguage === 'hinglish') {
-        caption = `👑 Royal D-Day Transformation for ${nameStr} ✨\n\nEk bride ke sabse special din par uski natural beauty ko elevate karna is our pure passion! From customized HD airbrush glow to precision eye artistry and royal veil draping—every single detail crafted to perfection at ${salonName}. 💖✨${offerStr}\n\n📍 Studio Address:\n${address}\n📞 Bridal Consultation & Booking: ${phone}\n🔗 Direct Online Booking: https://shreebeautystudio.in/book\n\n────────────────\n#ShreeBeautyStudio #SuratBridalMakeup #SuratMakeupArtist #GujaratiBride #BridalMakeoverSurat #RoyalBride #VarachhaSalon #IndianWeddingBuzz #SuratBeautySalon #WeddingGlam`;
-      } else if (captionLanguage === 'gujarati') {
-        caption = `👑 શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ લુક: ${nameStr} ✨\n\nલગ્નના પવિત્ર દિવસે દરેક કન્યાનું સપનું હોય છે સૌથી સુંદર દેખાવું! શ્રી બ્યૂટી સ્ટુડિયો લાવે છે નેચરલ ફિનિશ, વોટરપ્રૂફ HD એરબ્રશ મેકઅપ અને રોયલ હેરસ્ટાઇલિંગ. 💖${offerStr}\n\n📍 સ્ટુડિયો સરનામું:\n${address}\n📞 બ્રાઇડલ એપોઇન્ટમેન્ટ બુકિંગ: ${phone}\n🔗 ઓનલાઇન બુકિંગ: https://shreebeautystudio.in/book\n\n────────────────\n#ShreeBeautyStudio #SuratBridalMakeup #SuratSalon #GujaratiBride #SuratBeautyStudio #Varachha #BridalMakeupSurat #NavsariBride #SuratDiaries`;
-      } else {
-        caption = `👑 Timeless Elegance & Bridal Perfection for ${nameStr} ✨\n\nCreating an ethereal, regal bridal glow that lasts through all the emotional moments and smiles. Mastered with luxury cosmetics, weightless finish, and bespoke jewelry setting at ${salonName}.\n\nBook your dream wedding look today! ✨${offerStr}\n\n📍 Studio: ${address}\n📞 WhatsApp & Call: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book\n\n────────────────\n#ShreeBeautyStudio #SuratBridalMakeup #LuxuryBridalSalon #BridalArtistSurat #SuratWedding #GujaratiWedding #BridalGlow #IndianBride #GlamByShree`;
-      }
-    } else if (captionCategory === 'hydrafacial') {
-      caption = `✨ 7-Step Korean Glass Skin HydraFacial Treatment 💧\n\nSay goodbye to dull skin, clogged pores, and pigmentation! Experience deep exfoliation, vacuum blackhead extraction, and intense hyaluronic serum infusion for an unmistakable radiant glow at ${salonName}.${offerStr}\n\n✨ Instant Glow | 100% Painless | No Downtime\n📍 ${address}\n📞 Book Slot: ${phone}\n\n────────────────\n#HydraFacialSurat #GlassSkinSurat #ShreeBeautyStudio #SuratSkinCare #SkinGlowSurat #FacialSurat #VarachhaBeautyStudio #KoreanSkinCareSurat`;
-    } else if (captionCategory === 'hair') {
-      caption = `💇‍♀️ Silky Smooth, Frizz-Free Hair Transformation ✨\n\nTransform dry, frizzy, and unmanageable hair into glossy, mirror-shine perfection with our premium Keratin & Botox Treatment at ${salonName}. Infused with active proteins for long-lasting smoothness and strength.${offerStr}\n\n📍 Visit us at: ${address}\n📞 Call/WhatsApp: ${phone}\n\n────────────────\n#HairBotoxSurat #KeratinSurat #HairSmootheningSurat #ShreeBeautyStudio #SuratHairSalon #GlossyHair #HairTransformation #VarachhaSalon`;
-    } else if (captionCategory === 'nails') {
-      caption = `💅 Luxury Nail Art & Gel Extensions Masterpiece ✨\n\nAdd unmatched elegance to your fingertips! From delicate ombre chrome and glitter encapsulation to handcrafted bridal 3D nail art at ${salonName}.${offerStr}\n\n📍 ${address}\n📞 Appointments: ${phone}\n\n────────────────\n#NailArtSurat #GelNailsSurat #BridalNails #ShreeBeautyStudio #NailExtensionSurat #NailsOfInstagram #SuratNailArtist`;
-    } else if (captionCategory === 'festival') {
-      caption = `🪔 Festive Glam & Royal Glow Packages at ${salonName} ✨\n\nGet celebration-ready with our signature festive makeover combos—including premium facial, hair spa, manicure-pedicure, and flawless party makeup!${offerStr}\n\n📍 ${address}\n📞 Reserve Your Slot Early: ${phone}\n\n────────────────\n#FestiveGlam #NavratriGlow #DiwaliMakeover #ShreeBeautyStudio #SuratSalonOffers #PartyMakeupSurat #SuratWomen`;
-    } else {
-      caption = `🌟 5-Star Review & Love from Our Wonderful Client! 💖\n\n"The best bridal and salon experience in Surat! The team at Shree Beauty Studio is incredibly skilled and caring." — Truly humbled by your love and trust!\n\nExperience luxury beauty care with us today.\n📍 ${address}\n📞 ${phone}\n\n────────────────\n#ClientReview #5StarsSurat #ShreeBeautyStudio #SuratSalonReviews #LovedByBrides #SuratBeautyParlour`;
-    }
+    // Angle variations library
+    const VARIATIONS: Record<string, Record<string, string[]>> = {
+      bridal: {
+        hinglish: [
+          // Var 0: Royal D-Day Look
+          `👑 Royal D-Day Transformation for ${nameStr} ✨\n\nEk bride ke sabse special din par uski natural beauty ko elevate karna is our pure passion! From customized HD airbrush glow to precision eye artistry and royal veil draping—every single detail crafted to perfection at ${salonName}. 💖✨${offerStr}\n\n📍 Studio: ${address}\n📞 WhatsApp & Call: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book\n\n────────────────\n#ShreeBeautyStudio #SuratBridalMakeup #SuratMakeupArtist #GujaratiBride #BridalMakeoverSurat #RoyalBride #SuratSalon #IndianWeddingBuzz #SuratBeautyStudio #WeddingGlam`,
 
-    setGeneratedCaption(caption);
+          // Var 1: Viral POV Reel Hook
+          `🔥 POV: You chose ${salonName} for your Dream Wedding Glam 👰💖\n\nZero cakey layers. 100% waterproof, sweatproof, and camera-ready magic! Designed to stay fresh through every emotional tear, photo flash, and midnight reception dance. ✨\n\nTag a bride-to-be who needs this exact glow! 💍👇${offerStr}\n\n📍 Studio: ${address}\n📞 Bridal Consultation: ${phone}\n🔗 Book Your Slot: https://shreebeautystudio.in/book\n\n────────────────\n#POVBride #SuratBride #ShreeBeautyStudio #BridalReel #TrendingReels #SuratMakeup #GujaratiWedding #BridalTransformation #SuratDiaries #WeddingInspo`,
+
+          // Var 2: Emotional & Tear-Proof
+          `🥺 The moment she looked into the mirror and smiled with happy tears... ✨\n\nNothing beats the joy of seeing our bride ${nameStr} glow with royal confidence. Handcrafted HD glass-skin finish, seamless blush blending, and bespoke floral hairdo crafted with love at ${salonName}. 🌸💖${offerStr}\n\n📍 Location: ${address}\n📞 Call/WhatsApp: ${phone}\n🔗 Instant Pass: https://shreebeautystudio.in/book\n\n────────────────\n#EmotionalBride #ShreeBeautyStudio #SuratBridalArtist #DesiBride #SuratBeautySalon #WeddingMoments #IndianBride #KatargamSalon #BrideGlow`,
+
+          // Var 3: Artist BTS & Skin Prep Secret
+          `💄 Behind The Scenes: The Secret to Long-Lasting Bridal Glow ✨\n\nIt all starts with our signature 40-minute bespoke skin prep! Hydrating serums, pore refinement, and customized undertone contouring before a single stroke of luxury makeup. Result? Flawless, breathable radiance on ${nameStr}! 👑${offerStr}\n\n📍 Visit Us: ${address}\n📞 Enquiries: ${phone}\n🔗 Online Reservation: https://shreebeautystudio.in/book\n\n────────────────\n#MUASecret #BridalSkinPrep #ShreeBeautyStudio #SuratBridalStudio #MakeupArtistSurat #LuxuryMakeup #Varachha #Katargam #SuratSalon`,
+
+          // Var 4: Minimalist & Clean Luxury
+          `🌟 Clean Luxury Aesthetic: Less is always more for our bride ${nameStr} ✨\n\nSoft feathered brows, radiant dewy skin, romantic nude lips, and effortless veil drape. Because on your wedding day, you should feel like the most luminous, elevated version of YOU. 🤍${offerStr}\n\n📍 ${address}\n📞 Book Consultation: ${phone}\n🔗 Direct Link: https://shreebeautystudio.in/book\n\n────────────────\n#MinimalistBride #CleanGirlAesthetic #ShreeBeautyStudio #SuratMakeupArtist #ModernBride #LuxuryBridal #SuratWeddings #BridalGlow`,
+
+          // Var 5: Sagai & Engagement Spotlight
+          `💍 Engagement & Sagai Glam for our gorgeous ${nameStr} ✨\n\nGlitter champagne halo eyes, voluminous Hollywood curls, and a lightweight glowing finish that steals the spotlight all evening! 🥂💖${offerStr}\n\n📍 Studio Address: ${address}\n📞 Appointments: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#SagaiSpecial #EngagementMakeup #ShreeBeautyStudio #SuratGlam #BridalSiders #PartyMakeupSurat #SuratSalon`,
+        ],
+        gujarati: [
+          // Var 0: Royal Heritage
+          `👑 શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ લુક: ${nameStr} ✨\n\nલગ્નના પવિત્ર દિવસે દરેક કન્યાનું સપનું હોય છે સૌથી સુંદર અને શાહી દેખાવું! શ્રી બ્યૂટી સ્ટુડિયો લાવે છે 100% વોટરપ્રૂફ HD એરબ્રશ મેકઅપ, પરફેક્ટ આઇ આર્ટ અને રોયલ ચૂંદડી ડ્રેપિંગ. 💖✨${offerStr}\n\n📍 સ્ટુડિયો સરનામું:\n${address}\n📞 બ્રાઇડલ બુકિંગ હેલ્પલાઇન: ${phone}\n🔗 ઓનલાઇન સ્લોટ બુકિંગ: https://shreebeautystudio.in/book\n\n────────────────\n#ShreeBeautyStudio #SuratBridalMakeup #SuratSalon #GujaratiBride #SuratBeautyStudio #Katargam #BridalMakeupSurat #NavsariBride #SuratDiaries #ShaadiGlow`,
+
+          // Var 1: Traditional Panetar & Lagan Glow
+          `🪔 પાનેતર અને કંકુ પગલાંનો અનોખો શણગાર: શ્રી બ્યૂટી સ્ટુડિયો ✨\n\nપરંપરાગત ગુજરાતી લગ્ન માટે ખાસ કસ્ટમાઇઝ્ડ બ્રાઇડલ પેકેજ. નેચરલ સ્કીન ગ્લો, સોફ્ટ હેરસ્ટાઇલ અને આખો દિવસ ટકી રહેતો એરબ્રશ લુક. ${nameStr} માટે ખાસ રોયલ ટ્રાન્સફોર્મેશન! 👰💫${offerStr}\n\n📍 ${address}\n📞 સંપર્ક: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#GujaratiWedding #LaganSpecial #ShreeBeautyStudio #SuratLagan #SuratBride #KatarGam #SuratParlour #BridalArtist`,
+
+          // Var 2: Sagai & Reception Look
+          `💍 સગાઈ અને રિસેપ્શન માટે સ્પેશિયલ ગ્લેમરસ લુક ✨\n\nસગાઈના ખાસ પ્રસંગે આપો તમારા ચહેરાને શાઇન અને ગ્લો! શ્રી બ્યૂટી સ્ટુડિયો ખાતે ઉપલબ્ધ છે એક્સક્લૂસિવ ઇન્ટરનેશનલ બ્યુટી પ્રોડક્ટ્સ અને પ્રોફેશનલ ટચ. 💖${offerStr}\n\n📍 ${address}\n📞 બુકિંગ માટે: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#SagaiSurat #ReceptionLook #ShreeBeautyStudio #SuratMakeup #SuratWomen #BridalSeason`,
+        ],
+        english: [
+          // Var 0: Timeless Royalty
+          `👑 Timeless Elegance & Bridal Perfection for ${nameStr} ✨\n\nCreating an ethereal, regal bridal glow that lasts through all the emotional moments and smiles. Mastered with luxury international cosmetics, weightless finish, and bespoke jewelry setting at ${salonName}.\n\nBook your dream wedding look today! ✨${offerStr}\n\n📍 Studio: ${address}\n📞 WhatsApp & Call: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book\n\n────────────────\n#ShreeBeautyStudio #SuratBridalMakeup #LuxuryBridalSalon #BridalArtistSurat #SuratWedding #GujaratiWedding #BridalGlow #IndianBride #GlamByShree`,
+
+          // Var 1: The Modern Indian Bride
+          `✨ Radiance Defined: Handcrafted Bridal Glamour by ${salonName} 👰\n\nSoft smokey eye contouring, satin skin radiance, and precision veil artistry. Every bride deserves a personalized signature look tailored to her facial features and wedding lehenga palette. 💫${offerStr}\n\n📍 Visit: ${address}\n📞 Enquiries: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#ModernBride #LuxuryMakeup #SuratSalon #ShreeBeautyStudio #BridalGoals #IndianWeddingBuzz #FlawlessGlow`,
+
+          // Var 2: Behind The Brushes
+          `💄 The Art of Flawless Bridal Artistry at ${salonName} ✨\n\nSweatproof, HD flash-ready, and lightweight comfort all through your wedding rituals. Experience personalized bridal pampering with certified master artists in Surat. 👑${offerStr}\n\n📍 Location: ${address}\n📞 Call: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#BridalArtistry #SuratMUA #ShreeBeautyStudio #LuxuryBridal #SuratBeautyHub #WeddingReady`,
+        ],
+      },
+      hydrafacial: {
+        hinglish: [
+          `✨ 7-Step Korean Glass Skin HydraFacial Treatment 💧\n\nSay goodbye to dull skin, stubborn blackheads, and uneven tan! Experience deep vacuum vortex extraction and pure hyaluronic acid infusion for an unmistakable mirror-like glow at ${salonName}.${offerStr}\n\n✨ Instant Glow | 100% Painless | Zero Downtime\n📍 ${address}\n📞 Book Slot: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#HydraFacialSurat #GlassSkinSurat #ShreeBeautyStudio #SuratSkinCare #SkinGlowSurat #FacialSurat #KatargamSalon #KoreanSkinCareSurat`,
+          `💧 Why Every Bride & Groom Needs a HydraFacial Before D-Day! ✨\n\nDeeply cleanses congested pores, removes dead skin cells, and infuses active peptides for camera-ready, soft-touch glass skin. Get your pre-event glow booster at ${salonName}! 🧖‍♀️${offerStr}\n\n📍 ${address}\n📞 Appointments: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#BridalSkinCare #PreBridalSurat #HydraFacial #ShreeBeautyStudio #GlowUpSurat #SuratSalon`,
+        ],
+        gujarati: [
+          `✨ 7-સ્ટેપ કોરિયન ગ્લાસ સ્કીન હાઇડ્રાફેશિયલ ટ્રીટમેન્ટ 💧\n\nખીલ, બ્લેકહેડ્સ અને ટેનિંગને કહો અલવિદા! ડીપ પોર ક્લીનિંગ અને સીરમ ઇન્ફ્યુઝનથી મેળવો ઇન્સ્ટન્ટ ગ્લોઇંગ સ્કીન. શ્રી બ્યૂટી સ્ટુડિયો ખાતે આજે જ સ્લોટ બુક કરો. 💖${offerStr}\n\n📍 સરનામું: ${address}\n📞 ફોન: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#HydraFacialSurat #SuratSkinCare #ShreeBeautyStudio #GlassSkin #KatargamBeauty #SkinGlow`,
+        ],
+        english: [
+          `💧 Unlock Luminous Glass Skin with Medical-Grade HydraFacial ✨\n\nVortex suction extracts impurities while simultaneously bathing the skin with nourishing antioxidants and hyaluronic peptides at ${salonName}.${offerStr}\n\n📍 ${address}\n📞 Contact: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#HydraFacialGlow #SuratSkinClinic #ShreeBeautyStudio #GlowingSkin #LuxuryFacialSurat`,
+        ],
+      },
+      hair: {
+        hinglish: [
+          `💇‍♀️ Silky Smooth, Mirror-Shine Hair Botox & Keratin Transformation ✨\n\nTransform dry, frizzy, and chemically treated hair into ultra-glossy, soft-flowing hair with our formaldehyde-free protein treatment at ${salonName}. Lasts up to 5-6 months!${offerStr}\n\n📍 Visit us: ${address}\n📞 Book Now: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#HairBotoxSurat #KeratinSurat #HairSmootheningSurat #ShreeBeautyStudio #SuratHairSalon #GlossyHair #HairTransformation #KatargamSalon`,
+          `✨ Say Goodbye to Daily Flat Irons & Frizz! 💁‍♀️\n\nWake up every single morning with runway-ready, salon-smooth hair. Deep moisture restoration and long-lasting glass shine at ${salonName}!${offerStr}\n\n📍 ${address}\n📞 Helpline: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#NanoplastiaSurat #HairSpaSurat #ShreeBeautyStudio #FrizzFreeHair #HairGoalsSurat`,
+        ],
+        gujarati: [
+          `💇‍♀️ વાળને આપો સોફ્ટ, સિલ્કી અને શાઇની લુક: હેર બોટોક્સ & કેરાટિન ✨\n\nસુકા અને ફ્રિઝી વાળથી પરેશાન છો? શ્રી બ્યૂટી સ્ટુડિયો ખાતે કરાવો પ્રીમિયમ હેર ટ્રીટમેન્ટ જે વાળને બનાવે છે એકદમ મુલાયમ અને ચમકદાર. 💖${offerStr}\n\n📍 ${address}\n📞 એપોઇન્ટમેન્ટ: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#HairBotoxSurat #KeratinTreatment #ShreeBeautyStudio #KatargamSalon #SuratHairCare`,
+        ],
+        english: [
+          `✨ Liquid Glass Hair: Premium Keratin & Protein Infusion 💇‍♀️\n\nRestore damaged hair cuticle health, lock in essential hydration, and achieve effortless manageable silkiness at ${salonName}.${offerStr}\n\n📍 ${address}\n📞 Book Session: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#GlassHairSurat #HairTransformation #ShreeBeautyStudio #SuratHairStylist #KeratinGlow`,
+        ],
+      },
+      nails: {
+        hinglish: [
+          `💅 Handcrafted Luxury Nail Art & Gel Extensions Masterpiece ✨\n\nAdd unmatched elegance to your fingertips! From subtle French ombre chrome and glitter encapsulation to 3D bridal crystal art at ${salonName}.${offerStr}\n\n📍 ${address}\n📞 Appointments: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#NailArtSurat #GelNailsSurat #BridalNails #ShreeBeautyStudio #NailExtensionSurat #NailsOfInstagram #SuratNailArtist`,
+        ],
+        gujarati: [
+          `💅 બ્રાઇડલ & ફેન્સી નેઇલ આર્ટ એક્સટેન્શન ✨\n\nતમારા હાથને આપો રોયલ લુક! ટ્રેન્ડિંગ નેઇલ આર્ટ, ક્રોમ ફિનિશ અને જેલ એક્સટેન્શન શ્રી બ્યૂટી સ્ટુડિયો ખાતે. 💖${offerStr}\n\n📍 ${address}\n📞 ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#NailArtSurat #BridalNails #ShreeBeautyStudio #Katargam`,
+        ],
+        english: [
+          `💅 Precision Gel Extensions & Haute Nail Couture at ${salonName} ✨\n\nChip-resistant, durable, and customized to complement your event outfits with Swarovski crystal accents. 💎${offerStr}\n\n📍 ${address}\n📞 Call: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#LuxuryNails #SuratNails #ShreeBeautyStudio #NailArtStudio`,
+        ],
+      },
+      festival: {
+        hinglish: [
+          `🪔 Festive Glam & Royal Celebration Combos at ${salonName} ✨\n\nGet ready for non-stop celebrations with our sweatproof makeup, party hairstyles, and glow-boosting skincare packages!${offerStr}\n\n📍 ${address}\n📞 Reserve Your Slot Early: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#FestiveGlam #NavratriGlow #DiwaliMakeover #ShreeBeautyStudio #SuratSalonOffers #PartyMakeupSurat #SuratWomen`,
+        ],
+        gujarati: [
+          `🪔 તહેવારો અને લગ્નની સીઝન માટે સ્પેશિયલ મેકઓવર પેકેજ ✨\n\nનવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ મેકઅપ અને હેરસ્ટાઇલિંગ ઓફર્સ શ્રી બ્યૂટી સ્ટુડિયો ખાતે! 💖${offerStr}\n\n📍 ${address}\n📞 બુકિંગ: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#FestiveOffersSurat #ShreeBeautyStudio #SuratDiwali #NavratriMakeover #Katargam`,
+        ],
+        english: [
+          `🪔 Festive Radiance & Event Glamour Packages at ${salonName} ✨\n\nLook stunning at every gathering with our curated beauty packages designed for effortless glamour. 🌟${offerStr}\n\n📍 ${address}\n📞 Contact: ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#FestiveMakeover #SuratEvents #ShreeBeautyStudio #CelebrationGlow`,
+        ],
+      },
+      review: {
+        hinglish: [
+          `🌟 5-Star Review & Love from Our Wonderful Client! 💖\n\n"The best bridal and salon experience in Surat! The team at Shree Beauty Studio is incredibly skilled, warm, and attentive." — Truly humbled by your trust!\n\nExperience luxury beauty care with us today.\n📍 ${address}\n📞 ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#ClientReview #5StarsSurat #ShreeBeautyStudio #SuratSalonReviews #LovedByBrides #SuratBeautyParlour`,
+        ],
+        gujarati: [
+          `🌟 ગ્રાહકોનો અતૂટ વિશ્વાસ અને પ્રેમ: 5-સ્ટાર રિવ્યૂ 💖\n\n"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — તમારા આ સ્નેહ અને સમર્થન માટે ખૂબ ખૂબ આભાર!\n\n📍 ${address}\n📞 ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#CustomerLove #5StarReview #ShreeBeautyStudio #SuratParlour #TrustedSalon`,
+        ],
+        english: [
+          `🌟 "Exceeded all my expectations for my wedding day!" 💖\n\nAnother heartwarming review from our radiant bride. Thank you for making Shree Beauty Studio part of your most cherished milestone!\n\n📍 ${address}\n📞 ${phone}\n🔗 https://shreebeautystudio.in/book\n\n────────────────\n#BrideTestimonial #5StarRating #ShreeBeautyStudio #SuratBridalHub`,
+        ],
+      },
+    };
+
+    const catObj = VARIATIONS[captionCategory] || VARIATIONS.bridal;
+    const langArray = catObj[captionLanguage] || catObj.hinglish || [];
+    const chosenIndex = currIdx % (langArray.length || 1);
+    const finalCaption = langArray[chosenIndex] || langArray[0] || '';
+
+    setGeneratedCaption(finalCaption);
+  };
+
+  // Trigger regeneration with next variation angle
+  const handleRefreshNewGenerate = () => {
+    setIsRotating(true);
+    const nextIdx = variationIndex + 1;
+    setVariationIndex(nextIdx);
+    generateCaption(nextIdx);
+    toast(`🔄 Generated fresh creative angle #${(nextIdx % 6) + 1}!`, 'success');
+    setTimeout(() => setIsRotating(false), 600);
   };
 
   useEffect(() => {
@@ -167,8 +271,8 @@ export default function InstagramHubPage() {
   // Open Share Dialog for a specific post
   const openShareModal = (post: InstagramPost) => {
     setSelectedPostForShare(post);
-    const phone = settings?.phone2 || settings?.whatsapp || '+91 98241 83769';
-    const defaultMsg = `👑 *SHREE BEAUTY STUDIO — Live Instagram Showcase* ✨\n\nHello! Check out our latest transformation on Instagram:\n👉 ${post.permalink}\n\n💄 *Caption:* ${post.caption.slice(0, 140)}...\n\n📍 *Studio Address:* ${settings?.address || '104, Royal Plaza, Near Simada Naka, Nana Varachha, Surat'}\n📞 *Book Appointment:* ${phone}\n🌐 *Book Online:* https://shreebeautystudio.in/book\n\nFollow us on Instagram: ${settings?.instagramHandle || '@shreebeauty.studio'} 💖`;
+    const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
+    const defaultMsg = `👑 *SHREE BEAUTY STUDIO — Live Instagram Showcase* ✨\n\nHello! Check out our latest transformation on Instagram:\n👉 ${post.permalink}\n\n💄 *Caption:* ${post.caption.slice(0, 140)}...\n\n📍 *Studio Address:* ${settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'}\n📞 *Book Appointment:* ${phone}\n🌐 *Book Online:* https://shreebeautystudio.in/book\n\nFollow us on Instagram: ${settings?.instagramHandle || '@shreebeauty.studio'} 💖`;
     setCustomShareMessage(defaultMsg);
   };
 
@@ -717,7 +821,7 @@ export default function InstagramHubPage() {
               </div>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>AI Reel Hook & Caption Generator</h3>
-                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>Create high-converting Surat bridal & salon captions instantly</p>
+                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>Generate unique viral hooks, storytelling captions & hashtags</p>
               </div>
             </div>
 
@@ -736,7 +840,10 @@ export default function InstagramHubPage() {
                     <button
                       key={cat.id}
                       type="button"
-                      onClick={() => setCaptionCategory(cat.id as any)}
+                      onClick={() => {
+                        setCaptionCategory(cat.id as any);
+                        setVariationIndex(0);
+                      }}
                       className={`btn btn-sm ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
                       style={{ fontSize: 12, justifyContent: 'flex-start', fontWeight: captionCategory === cat.id ? 700 : 500 }}
                     >
@@ -757,7 +864,10 @@ export default function InstagramHubPage() {
                     <button
                       key={lang.id}
                       type="button"
-                      onClick={() => setCaptionLanguage(lang.id as any)}
+                      onClick={() => {
+                        setCaptionLanguage(lang.id as any);
+                        setVariationIndex(0);
+                      }}
                       className={`btn btn-sm ${captionLanguage === lang.id ? 'btn-primary' : 'btn-secondary'}`}
                       style={{ fontSize: 12, fontWeight: captionLanguage === lang.id ? 700 : 500 }}
                     >
@@ -789,25 +899,63 @@ export default function InstagramHubPage() {
                 />
               </div>
 
+              {/* Master Refresh New Generate Button */}
               <button
                 type="button"
-                onClick={generateCaption}
+                onClick={handleRefreshNewGenerate}
                 className="btn btn-primary"
-                style={{ marginTop: 6, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                style={{
+                  marginTop: 6,
+                  fontWeight: 800,
+                  fontSize: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '10px 16px',
+                  background: 'linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%)',
+                  border: 'none',
+                  boxShadow: '0 6px 20px rgba(220, 39, 67, 0.35)',
+                }}
               >
-                <Sparkles size={16} /> Regenerate Caption
+                <RefreshCw size={16} className={isRotating ? 'animate-spin' : ''} />
+                🔄 REFRESH NEW GENERATE
               </button>
             </div>
           </div>
 
           {/* Live Preview Card */}
           <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Instagram size={18} color="#E1306C" />
-                <span style={{ fontSize: 14, fontWeight: 700 }}>Ready-to-Post Instagram Caption</span>
+                <span style={{ fontSize: 14, fontWeight: 800 }}>Ready-to-Post Instagram Caption</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 12,
+                    background: 'rgba(225, 48, 108, 0.12)',
+                    color: '#E1306C',
+                    border: '1px solid rgba(225, 48, 108, 0.25)',
+                  }}
+                >
+                  Angle #{(variationIndex % 6) + 1}
+                </span>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleRefreshNewGenerate}
+                  className="btn btn-secondary btn-xs"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#E1306C' }}
+                  title="Generate another fresh variation"
+                >
+                  <RefreshCw size={12} className={isRotating ? 'animate-spin' : ''} />
+                  New Angle
+                </button>
+
                 <button
                   onClick={() => copyToClipboard(generatedCaption, 'generated-cap')}
                   className="btn btn-secondary btn-xs"
@@ -816,6 +964,7 @@ export default function InstagramHubPage() {
                   {copiedId === 'generated-cap' ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
                   Copy All
                 </button>
+
                 <a
                   href="https://www.instagram.com/"
                   target="_blank"
@@ -877,8 +1026,8 @@ export default function InstagramHubPage() {
                 </p>
                 <button
                   onClick={() => {
-                    const phone = settings?.phone2 || settings?.whatsapp || '+91 98241 83769';
-                    const gbpPost = `👑 SHREE BEAUTY STUDIO — BRIDAL GLAM & SALON SURAT\n\nLooking for the best bridal makeup and skincare in Surat? Book your session at Shree Beauty Studio, Varachha!\n\n📍 Address: ${settings?.address || '104, Royal Plaza, Near Simada Naka, Nana Varachha, Surat'}\n📞 Call: ${phone}\n🌐 Book Online: https://shreebeautystudio.in/book\n📸 Instagram: ${settings?.instagramHandle || '@shreebeauty.studio'}`;
+                    const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
+                    const gbpPost = `👑 SHREE BEAUTY STUDIO — BRIDAL GLAM & SALON SURAT\n\nLooking for the best bridal makeup and skincare in Surat? Book your session at Shree Beauty Studio, Katargam!\n\n📍 Address: ${settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'}\n📞 Call: ${phone}\n🌐 Book Online: https://shreebeautystudio.in/book\n📸 Instagram: ${settings?.instagramHandle || '@shreebeauty.studio'}`;
                     copyToClipboard(gbpPost, 'gbp-copy');
                   }}
                   className="btn btn-secondary btn-sm"
