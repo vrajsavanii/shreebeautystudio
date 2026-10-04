@@ -788,7 +788,7 @@ export default function PublicHomePage() {
         <div className="cust-section-header">
           <span className="cust-section-badge">The Shree Difference</span>
           <h2 className="display-font" style={{ fontStyle: 'italic', color: '#032B30' }}>
-            Why Surat Chooses Shree Beauty Studio
+            Why Choose Shree Beauty Studio
           </h2>
           <p style={{ color: '#475569' }}>
             Uncompromising standards of quality, certified hygiene, and customized beauty therapies.
