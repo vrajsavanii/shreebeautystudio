@@ -59,6 +59,64 @@ export default function SettingsPage() {
   const [testingEmail, setTestingEmail] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; msg: string } | null>(null);
 
+  // Google Reviews Live Sync Testing State
+  const [testingReviews, setTestingReviews] = useState(false);
+  const [testReviewsResult, setTestReviewsResult] = useState<{
+    success: boolean;
+    source: string;
+    rating: number;
+    totalReviews: number;
+    count: number;
+    msg: string;
+  } | null>(null);
+
+  const handleTestGoogleReviews = async () => {
+    setTestingReviews(true);
+    setTestReviewsResult(null);
+    try {
+      const params = new URLSearchParams();
+      if (s.googlePlaceId) params.append('place_id', s.googlePlaceId);
+      if (s.googlePlacesApiKey) params.append('api_key', s.googlePlacesApiKey);
+      if (s.googleReviewsMinRating) params.append('min_rating', String(s.googleReviewsMinRating));
+
+      const res = await fetch(`/api/google-reviews?${params.toString()}`);
+      const json = await res.json();
+      if (json.success) {
+        setTestReviewsResult({
+          success: true,
+          source: json.source,
+          rating: json.rating,
+          totalReviews: json.totalReviews,
+          count: json.totalCount || json.reviews?.length || 0,
+          msg: `⭐ Connected! Loaded ${json.totalCount || 0} reviews (Average: ${json.rating}★ from ${json.totalReviews}+ Google reviews). Source: ${json.source === 'google_places_api' ? 'Google Places Live API' : 'Curated Verified Cache'}`,
+        });
+        toast(`✅ Google Reviews Sync active! Rating: ${json.rating}★`, 'success');
+      } else {
+        setTestReviewsResult({
+          success: false,
+          source: 'error',
+          rating: 4.9,
+          totalReviews: 210,
+          count: 0,
+          msg: `⚠️ ${json.error || 'Failed to sync from Google Places API.'}`,
+        });
+        toast(json.error || 'Google Reviews Sync Error', 'error');
+      }
+    } catch (err: any) {
+      setTestReviewsResult({
+        success: false,
+        source: 'error',
+        rating: 4.9,
+        totalReviews: 210,
+        count: 0,
+        msg: `Network error: ${err.message}`,
+      });
+      toast('Network error testing reviews sync', 'error');
+    } finally {
+      setTestingReviews(false);
+    }
+  };
+
   const handleTestEmail = async () => {
     if (!testEmailAddress.trim() || !testEmailAddress.includes('@')) {
       toast('Please enter a valid email address to test.', 'error');
@@ -847,6 +905,140 @@ export default function SettingsPage() {
                       </li>
                     </ul>
                   </div>
+                </div>
+
+                {/* ── Live Google Maps Reviews Auto-Sync ── */}
+                <div style={{
+                  gridColumn: '1 / -1',
+                  marginTop: 12,
+                  padding: 16,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, rgba(5,66,74,0.04), rgba(212,175,55,0.08))',
+                  border: '1px solid rgba(212,175,55,0.3)',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 18 }}>⭐</span>
+                      <strong style={{ fontSize: 13.5, color: 'var(--foreground)' }}>Google Maps Live 5-Star Reviews Auto-Sync</strong>
+                    </div>
+                    <span style={{
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      borderRadius: 99,
+                      background: s.googlePlacesApiKey ? 'rgba(34,197,94,0.15)' : 'rgba(212,175,55,0.15)',
+                      color: s.googlePlacesApiKey ? '#22c55e' : '#b48608',
+                      fontWeight: 700,
+                    }}>
+                      {s.googlePlacesApiKey ? '● Google Places API Connected' : '⭐ Verified Curated Cache Active'}
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 14px', lineHeight: 1.5 }}>
+                    Automatically fetch, filter and display latest 5-Star customer reviews, author photos, and real-time rating directly from Google Maps onto your homepage.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="label">Google Place ID</label>
+                        <a
+                          href="https://developers.google.com/maps/documentation/places/web-service/place-id"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+                        >
+                          Find Place ID ↗
+                        </a>
+                      </div>
+                      <input
+                        type="text"
+                        className="input"
+                        value={s.googlePlaceId || ''}
+                        onChange={(e) => update('googlePlaceId', e.target.value)}
+                        placeholder="ChIJ59f0fGfZ4DsR3k9uE3p2NQI"
+                      />
+                      <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                        Your salon's unique Google Maps location identifier.
+                      </span>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="label">Google Places API Key (Optional)</label>
+                        <a
+                          href="https://console.cloud.google.com/apis/credentials"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: 11, color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+                        >
+                          Google Cloud Console ↗
+                        </a>
+                      </div>
+                      <input
+                        type="password"
+                        className="input"
+                        value={s.googlePlacesApiKey || ''}
+                        onChange={(e) => update('googlePlacesApiKey', e.target.value)}
+                        placeholder="AIzaSy..."
+                      />
+                      <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                        API Key with Places API enabled for automated 24h background sync.
+                      </span>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="label">Minimum Rating Filter</label>
+                      <select
+                        className="input"
+                        value={s.googleReviewsMinRating || 5}
+                        onChange={(e) => update('googleReviewsMinRating', Number(e.target.value))}
+                      >
+                        <option value={5}>⭐⭐⭐⭐⭐ Only 5-Star Reviews (Recommended)</option>
+                        <option value={4}>⭐⭐⭐⭐ 4-Star & Above Reviews</option>
+                      </select>
+                      <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                        Only reviews meeting this rating will appear on the public site.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sync Test Button & Output */}
+                  <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                    <motion.button
+                      type="button"
+                      className="btn btn-sm btn-secondary"
+                      onClick={handleTestGoogleReviews}
+                      disabled={testingReviews}
+                      whileTap={{ scale: 0.97 }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <span>{testingReviews ? '⏳ Fetching from Google Maps...' : '🧪 Test & Preview Live Google Reviews'}</span>
+                    </motion.button>
+
+                    <a
+                      href="/api/google-reviews"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 11.5, color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}
+                    >
+                      View Live JSON Endpoint ↗
+                    </a>
+                  </div>
+
+                  {testReviewsResult && (
+                    <div style={{
+                      marginTop: 10,
+                      padding: '10px 14px',
+                      borderRadius: 8,
+                      background: testReviewsResult.success ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                      border: `1px solid ${testReviewsResult.success ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                      fontSize: 12,
+                      color: testReviewsResult.success ? '#15803d' : '#b91c1c',
+                      fontWeight: 600,
+                    }}>
+                      {testReviewsResult.msg}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

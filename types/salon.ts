@@ -90,6 +90,9 @@ export interface SalonSettings {
   instagramEmbedCode?: string; // Custom iframe / script embed HTML
   googleMapsUrl?: string; // e.g. 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8'
   googleMapsEmbedUrl?: string; // e.g. custom Google Maps embed URL
+  googlePlaceId?: string; // e.g. Google Place ID for live reviews auto-sync
+  googlePlacesApiKey?: string; // Google Places API key (optional, can also use server env)
+  googleReviewsMinRating?: number; // Minimum rating to auto-import (e.g. 5)
   openDays?: string; // e.g. 'Monday – Sunday (Open All 7 Days)'
   logoUrl?: string; // Custom studio logo URL / base64 image
   // AI Voice Copilot & Shortcut Settings

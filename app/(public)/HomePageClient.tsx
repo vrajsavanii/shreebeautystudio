@@ -196,6 +196,36 @@ export default function PublicHomePage() {
   const [activeAmbianceId, setActiveAmbianceId] = useState<string>('reception');
   const [isAmbiancePaused, setIsAmbiancePaused] = useState<boolean>(false);
 
+  // Live Auto-Imported Google Reviews State
+  const [reviewsRow1, setReviewsRow1] = useState(GOOGLE_REVIEWS_ROW1);
+  const [reviewsRow2, setReviewsRow2] = useState(GOOGLE_REVIEWS_ROW2);
+  const [googleRating, setGoogleRating] = useState<number>(4.9);
+  const [googleReviewCount, setGoogleReviewCount] = useState<number>(210);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveReviews = async () => {
+      try {
+        const res = await fetch('/api/google-reviews');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && isMounted) {
+            if (json.row1 && json.row1.length > 0) setReviewsRow1(json.row1);
+            if (json.row2 && json.row2.length > 0) setReviewsRow2(json.row2);
+            if (json.rating) setGoogleRating(json.rating);
+            if (json.totalReviews) setGoogleReviewCount(json.totalReviews);
+          }
+        }
+      } catch (e) {
+        console.warn('Live Google Reviews fetch error:', e);
+      }
+    };
+    fetchLiveReviews();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (isAmbiancePaused) return;
     const interval = setInterval(() => {
@@ -865,7 +895,7 @@ export default function PublicHomePage() {
             </span>
             <h2 style={{ color: '#032B30', margin: '0 0 8px' }}>Loved by Hundreds of Surat Brides &amp; Clients</h2>
             <p style={{ color: '#64748B' }}>
-              Real reviews from our clients on Google Maps. 4.9★ average from happy clients in Katargam, Surat.
+              Real reviews from our clients on Google Maps. {googleRating.toFixed(1)}★ average from {googleReviewCount}+ happy clients in Katargam, Surat.
             </p>
           </div>
         </div>
@@ -873,7 +903,7 @@ export default function PublicHomePage() {
         {/* Marquee Row 1 */}
         <div style={{ position: 'relative', overflow: 'hidden', marginBottom: 12 }} className="reviews-carousel-track-outer">
           <div className="reviews-marquee reviews-marquee-fwd">
-            {[...GOOGLE_REVIEWS_ROW1, ...GOOGLE_REVIEWS_ROW1].map((t, idx) => (
+            {[...reviewsRow1, ...reviewsRow1].map((t, idx) => (
               <div key={`r1-${idx}`} className="reviews-card">
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 6 }}>
@@ -908,7 +938,7 @@ export default function PublicHomePage() {
         {/* Marquee Row 2 */}
         <div style={{ position: 'relative', overflow: 'hidden' }} className="reviews-carousel-track-outer">
           <div className="reviews-marquee reviews-marquee-rev">
-            {[...GOOGLE_REVIEWS_ROW2, ...GOOGLE_REVIEWS_ROW2].map((t, idx) => (
+            {[...reviewsRow2, ...reviewsRow2].map((t, idx) => (
               <div key={`r2-${idx}`} className="reviews-card">
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 6 }}>
@@ -963,7 +993,7 @@ export default function PublicHomePage() {
             }}
           >
             <img src="https://www.gstatic.com/images/branding/googleg/1x/googleg_standard_color_28dp.png" alt="Google" width={20} height={20} />
-            <span>4.9★ on Google Maps · Verified Reviews</span>
+            <span>{googleRating.toFixed(1)}★ on Google Maps · {googleReviewCount}+ Verified Reviews</span>
             <ChevronRight size={14} color="#94a3b8" />
           </motion.a>
         </div>
