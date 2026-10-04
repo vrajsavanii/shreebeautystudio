@@ -85,7 +85,7 @@ export const DEFAULT_DATA: SalonData = {
     calendarDeletePastDays: 2,
     googleMapsUrl: 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8',
     googlePlaceId: 'ChIJ59f0fGfZ4DsR3k9uE3p2NQI',
-    googlePlacesApiKey: '',
+    googlePlacesApiKey: 'AIzaSyBk1SPwoMlenfU7pXNymxDEa4s-ngLLUUA',
     googleReviewsMinRating: 5,
     openDays: 'Open All 7 Days',
     instagramHandle: '@shreebeauty.studio',
