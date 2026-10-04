@@ -31,7 +31,7 @@ Format:
 1. Viral Opening Hook with emojis (POV, emotional, or royal).
 2. Engaging descriptive transformation body.
 3. Special offer (if provided).
-4. Studio address (${address}), Phone (${phone}), and Booking Link (https://shreebeautystudio.in/book).
+4. Studio address (${address}), Phone (${phone}), and Booking Link (https://shreebeauty.studio/book).
 5. Divider line (──────────).
 6. 10-15 trending Surat & Bridal hashtags.
 Return ONLY the raw caption text without code blocks.`;

@@ -801,8 +801,8 @@ export default function InstagramHubPage() {
     const chosenHashtags = finalTags.join(' ');
 
     const ctas = [
-      `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`,
-      `🏠 Visit Us: ${address}\n💬 WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
+      `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeauty.studio/book`,
+      `🏠 Visit Us: ${address}\n💬 WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeauty.studio/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
@@ -2316,7 +2316,7 @@ export default function InstagramHubPage() {
                         onClick={() => {
                           const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
                           const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat';
-                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book` : `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`));
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeauty.studio/book` : `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeauty.studio/book`));
                           toast('Added Studio contact & WhatsApp info!', 'success');
                         }}
                         className="btn btn-ghost btn-xs"
