@@ -13,53 +13,79 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export async function POST(req: NextRequest) {
   try {
     const reqContentType = req.headers.get('content-type') || '';
-    let mediaUrl = '';
-    let mediaType: 'photo' | 'reel' = 'photo';
+    let mediaUrls: string[] = [];
+    let mediaType: 'photo' | 'reel' | 'carousel' = 'photo';
     let caption = '';
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eqwfbcouxozwfwkzqano.supabase.co';
 
     if (reqContentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       caption = (formData.get('caption') as string) || '';
-      mediaType = (formData.get('mediaType') as string) === 'reel' ? 'reel' : 'photo';
-      const file = formData.get('file') as File | null;
+      mediaType = (formData.get('mediaType') as any) || 'photo';
 
-      if (file && file.size > 0) {
+      const files = formData.getAll('files') as File[];
+      const singleFile = formData.get('file') as File | null;
+
+      const uploadList: File[] = [];
+      if (files && files.length > 0 && files[0].size > 0) {
+        uploadList.push(...files.filter((f) => f.size > 0));
+      } else if (singleFile && singleFile.size > 0) {
+        uploadList.push(singleFile);
+      }
+
+      if (uploadList.length > 1) {
+        mediaType = 'carousel';
+      }
+
+      if (uploadList.length > 0) {
         const supabase = getSupabaseAdmin();
-        const ext = file.name.split('.').pop() || (mediaType === 'reel' ? 'mp4' : 'jpg');
-        const fileName = `ig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
-        const buffer = Buffer.from(await file.arrayBuffer());
 
-        const fileMime = file.type || (mediaType === 'reel' ? 'video/mp4' : 'image/jpeg');
+        for (const file of uploadList) {
+          const isVid = file.type.startsWith('video/');
+          const ext = file.name.split('.').pop() || (isVid ? 'mp4' : 'jpg');
+          const fileName = `ig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+          const buffer = Buffer.from(await file.arrayBuffer());
 
-        const { error: uploadErr } = await supabase.storage
-          .from('salon_media')
-          .upload(fileName, buffer, {
-            contentType: fileMime,
-            upsert: true,
-          });
+          const fileMime = file.type || (isVid ? 'video/mp4' : 'image/jpeg');
 
-        if (uploadErr) {
-          return NextResponse.json(
-            { success: false, error: `Media Storage Error: ${uploadErr.message}` },
-            { status: 500 }
-          );
+          const { error: uploadErr } = await supabase.storage
+            .from('salon_media')
+            .upload(fileName, buffer, {
+              contentType: fileMime,
+              upsert: true,
+            });
+
+          if (uploadErr) {
+            return NextResponse.json(
+              { success: false, error: `Media Storage Error: ${uploadErr.message}` },
+              { status: 500 }
+            );
+          }
+
+          mediaUrls.push(`${supabaseUrl}/storage/v1/object/public/salon_media/${fileName}`);
         }
-
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eqwfbcouxozwfwkzqano.supabase.co';
-        mediaUrl = `${supabaseUrl}/storage/v1/object/public/salon_media/${fileName}`;
       } else {
-        mediaUrl = (formData.get('mediaUrl') as string) || '';
+        const rawUrl = (formData.get('mediaUrl') as string) || '';
+        if (rawUrl) mediaUrls.push(rawUrl);
       }
     } else {
       const json = await req.json();
       caption = json.caption || '';
-      mediaType = json.mediaType === 'reel' ? 'reel' : 'photo';
-      mediaUrl = json.mediaUrl || '';
+      mediaType = json.mediaType || 'photo';
+      if (Array.isArray(json.mediaUrls)) {
+        mediaUrls = json.mediaUrls;
+      } else if (json.mediaUrl) {
+        mediaUrls = [json.mediaUrl];
+      }
+      if (mediaUrls.length > 1) {
+        mediaType = 'carousel';
+      }
     }
 
-    if (!mediaUrl) {
+    if (mediaUrls.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Please select a photo or video file from your device first!' },
+        { success: false, error: 'Please select photo(s) or video to publish to Instagram!' },
         { status: 400 }
       );
     }
@@ -82,76 +108,133 @@ export async function POST(req: NextRequest) {
     const accountId = settings?.instagramAccountId?.trim() || DEFAULT_ACCOUNT_ID;
     const token = settings?.instagramAccessToken?.trim() || DEFAULT_TOKEN;
 
-    // ── STEP 1: Create Container on Meta Graph API ──
-    const containerEndpoint = `https://graph.facebook.com/v19.0/${accountId}/media`;
-    const containerParams: Record<string, string> = {
-      access_token: token,
-      caption: caption,
-    };
+    let creationId = '';
 
-    if (mediaType === 'reel') {
-      containerParams.media_type = 'REELS';
-      containerParams.video_url = mediaUrl;
-      containerParams.share_to_feed = 'true';
-    } else {
-      containerParams.image_url = mediaUrl;
+    // ── CASE 1: MULTI-PHOTO CAROUSEL ──
+    if (mediaType === 'carousel' || mediaUrls.length > 1) {
+      const childContainerIds: string[] = [];
+
+      for (const itemUrl of mediaUrls) {
+        const isVid = itemUrl.includes('.mp4') || itemUrl.includes('.mov');
+        const childParams: Record<string, string> = {
+          access_token: token,
+          is_carousel_item: 'true',
+        };
+
+        if (isVid) {
+          childParams.media_type = 'VIDEO';
+          childParams.video_url = itemUrl;
+        } else {
+          childParams.image_url = itemUrl;
+        }
+
+        const childRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(childParams).toString(),
+        });
+
+        const childData = await childRes.json();
+        if (childRes.ok && childData.id) {
+          childContainerIds.push(childData.id);
+        } else {
+          return NextResponse.json(
+            { success: false, error: `Carousel item error: ${childData?.error?.message || 'Failed item container'}` },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Create Parent Carousel Container
+      const carouselRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          access_token: token,
+          media_type: 'CAROUSEL',
+          children: childContainerIds.join(','),
+          caption: caption,
+        }).toString(),
+      });
+
+      const carouselData = await carouselRes.json();
+      if (!carouselRes.ok || !carouselData.id) {
+        return NextResponse.json(
+          { success: false, error: `Carousel creation error: ${carouselData?.error?.message || 'Failed'}` },
+          { status: 400 }
+        );
+      }
+
+      creationId = carouselData.id;
     }
+    // ── CASE 2: SINGLE REEL VIDEO ──
+    else if (mediaType === 'reel') {
+      const createRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          access_token: token,
+          media_type: 'REELS',
+          video_url: mediaUrls[0],
+          share_to_feed: 'true',
+          caption: caption,
+        }).toString(),
+      });
 
-    const createRes = await fetch(containerEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(containerParams).toString(),
-    });
+      const createData = await createRes.json();
+      if (!createRes.ok || !createData.id) {
+        return NextResponse.json(
+          { success: false, error: `Reel creation error: ${createData?.error?.message || 'Failed'}` },
+          { status: 400 }
+        );
+      }
 
-    const createData = await createRes.json();
+      creationId = createData.id;
 
-    if (!createRes.ok || !createData.id) {
-      const errMsg = createData?.error?.message || 'Meta API container creation failed';
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Instagram Publishing Failed: ${errMsg}`,
-          details: createData,
-        },
-        { status: 400 }
-      );
-    }
-
-    const creationId = createData.id;
-
-    // ── STEP 2: If Video/Reel, poll status until FINISHED ──
-    if (mediaType === 'reel') {
+      // Poll Reel encoding
       let isReady = false;
       let attempts = 0;
-      const maxAttempts = 15; // 15 * 2s = 30s max wait
-
-      while (!isReady && attempts < maxAttempts) {
+      while (!isReady && attempts < 15) {
         await sleep(2000);
         attempts++;
-
-        const statusRes = await fetch(
-          `https://graph.facebook.com/v19.0/${creationId}?fields=status_code,status&access_token=${token}`
-        );
+        const statusRes = await fetch(`https://graph.facebook.com/v19.0/${creationId}?fields=status_code,status&access_token=${token}`);
         const statusData = await statusRes.json().catch(() => ({}));
-
         if (statusData.status_code === 'FINISHED') {
           isReady = true;
           break;
         } else if (statusData.status_code === 'ERROR') {
           return NextResponse.json(
-            {
-              success: false,
-              error: `Video processing error on Instagram: ${statusData.status || 'Format invalid'}`,
-            },
+            { success: false, error: `Video processing error on Instagram: ${statusData.status || 'Format invalid'}` },
             { status: 400 }
           );
         }
       }
     }
+    // ── CASE 3: SINGLE PHOTO ──
+    else {
+      const createRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          access_token: token,
+          image_url: mediaUrls[0],
+          caption: caption,
+        }).toString(),
+      });
 
-    // ── STEP 3: Publish Container to Instagram ──
-    const publishEndpoint = `https://graph.facebook.com/v19.0/${accountId}/media_publish`;
-    const publishRes = await fetch(publishEndpoint, {
+      const createData = await createRes.json();
+      if (!createRes.ok || !createData.id) {
+        return NextResponse.json(
+          { success: false, error: `Photo container error: ${createData?.error?.message || 'Failed'}` },
+          { status: 400 }
+        );
+      }
+
+      creationId = createData.id;
+    }
+
+    // ── STEP 3: PUBLISH CONTAINER TO INSTAGRAM ──
+    const publishRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
@@ -163,13 +246,8 @@ export async function POST(req: NextRequest) {
     const publishData = await publishRes.json();
 
     if (!publishRes.ok || !publishData.id) {
-      const errMsg = publishData?.error?.message || 'Failed to publish container';
       return NextResponse.json(
-        {
-          success: false,
-          error: `Instagram Publish Error: ${errMsg}`,
-          details: publishData,
-        },
+        { success: false, error: `Publish Error: ${publishData?.error?.message || 'Publishing failed'}` },
         { status: 400 }
       );
     }
@@ -178,13 +256,14 @@ export async function POST(req: NextRequest) {
       success: true,
       published: true,
       postId: publishData.id,
-      message: `🎉 Post successfully published live to Instagram @shreebeauty.studio! (Post ID: ${publishData.id})`,
+      message: `🎉 Successfully published live to Instagram @shreebeauty.studio! (Post ID: ${publishData.id})`,
       permalink: `https://www.instagram.com/shreebeauty.studio/`,
-      mediaUrl,
+      mediaCount: mediaUrls.length,
+      mediaUrls,
     });
   } catch (err: any) {
     return NextResponse.json(
-      { success: false, error: err.message || 'Internal server error during Instagram publish' },
+      { success: false, error: err.message || 'Error processing publish request' },
       { status: 500 }
     );
   }

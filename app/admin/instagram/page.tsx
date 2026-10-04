@@ -36,7 +36,19 @@ import {
   Flame,
   Star,
   Trash2,
-  CheckCircle
+  CheckCircle,
+  ZoomIn,
+  ZoomOut,
+  Crop,
+  RotateCw,
+  Move,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Download,
+  Grid,
+  Sliders,
+  EyeOff
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -59,6 +71,19 @@ interface InstagramPost {
 }
 
 type TabType = 'upload' | 'studio' | 'feed' | 'crosspost' | 'settings';
+type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | 'original';
+
+interface MediaItem {
+  id: string;
+  file: File;
+  previewUrl: string;
+  type: 'photo' | 'video';
+  zoom: number;
+  panX: number;
+  panY: number;
+  rotation: number;
+  aspectRatio: AspectRatio;
+}
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -75,20 +100,21 @@ export default function InstagramHubPage() {
   const settings = data.settings;
   const customers = data.customers || [];
 
-  // Active Tab
+  // Navigation
   const [activeTab, setActiveTab] = useState<TabType>('upload');
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState<InstagramPost[]>([]);
-  const [filterType, setFilterType] = useState<'all' | 'reel' | 'photo'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPostForShare, setSelectedPostForShare] = useState<InstagramPost | null>(null);
 
-  // ── DIRECT UPLOADER & PUBLISHER STATE ──
+  // ── MULTI-PHOTO & CROP / ZOOM STATE ──
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadMediaType, setUploadMediaType] = useState<'reel' | 'photo'>('reel');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
+  const [globalAspectRatio, setGlobalAspectRatio] = useState<AspectRatio>('1:1');
+  const [showGrid, setShowGrid] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isPublishing, setIsPublishing] = useState(false);
+  const [publishingStep, setPublishingStep] = useState('');
   const [publishSuccess, setPublishSuccess] = useState<boolean | null>(null);
   const [publishMessage, setPublishMessage] = useState<string>('');
 
@@ -103,17 +129,11 @@ export default function InstagramHubPage() {
   const [lastHookUsed, setLastHookUsed] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Share Modal State
-  const [selectedCustomerPhone, setSelectedCustomerPhone] = useState('');
-  const [customShareMessage, setCustomShareMessage] = useState('');
-
   // Settings state
   const [handle, setHandle] = useState(settings?.instagramHandle || '@shreebeauty.studio');
   const [instaUrl, setInstaUrl] = useState(settings?.instagramUrl || 'https://www.instagram.com/shreebeauty.studio/');
   const [accountId, setAccountId] = useState(settings?.instagramAccountId || '17841408494357129');
   const [token, setToken] = useState(settings?.instagramAccessToken || '');
-  const [testingApi, setTestingApi] = useState(false);
-  const [apiTestResult, setApiTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Fetch Instagram Feed
   const fetchFeed = async () => {
@@ -124,23 +144,206 @@ export default function InstagramHubPage() {
       if (json.success && Array.isArray(json.posts)) {
         setPosts(json.posts);
       }
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
+    setLoading(false);
   };
 
   useEffect(() => {
     fetchFeed();
   }, []);
 
-  // Copy helper with animation
+  // Copy helper
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     toast('📋 Copied to clipboard!', 'success');
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Active Media Item
+  const currentItem = mediaItems[activeMediaIndex] || null;
+
+  // ── MULTI-FILE SELECTION HANDLER ──
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newItems: MediaItem[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isVid = file.type.startsWith('video/');
+        const previewUrl = URL.createObjectURL(file);
+
+        newItems.push({
+          id: `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+          file,
+          previewUrl,
+          type: isVid ? 'video' : 'photo',
+          zoom: 1,
+          panX: 0,
+          panY: 0,
+          rotation: 0,
+          aspectRatio: globalAspectRatio,
+        });
+      }
+
+      setMediaItems((prev) => {
+        const combined = [...prev, ...newItems].slice(0, 10); // max 10 photos on Instagram
+        return combined;
+      });
+
+      setPublishSuccess(null);
+      setPublishMessage('');
+      toast(`📁 Added ${files.length} item(s)! Total: ${mediaItems.length + files.length}`, 'success');
+    }
+  };
+
+  // Remove individual photo
+  const handleRemoveItem = (index: number) => {
+    setMediaItems((prev) => {
+      const itemToRemove = prev[index];
+      if (itemToRemove?.previewUrl) {
+        URL.revokeObjectURL(itemToRemove.previewUrl);
+      }
+      const updated = prev.filter((_, i) => i !== index);
+      if (activeMediaIndex >= updated.length) {
+        setActiveMediaIndex(Math.max(0, updated.length - 1));
+      }
+      return updated;
+    });
+  };
+
+  // Update properties of active item (Zoom / Pan / Rotation)
+  const updateCurrentItem = (updates: Partial<MediaItem>) => {
+    if (!currentItem) return;
+    setMediaItems((prev) => {
+      return prev.map((item, idx) => (idx === activeMediaIndex ? { ...item, ...updates } : item));
+    });
+  };
+
+  // Change Aspect Ratio
+  const handleAspectRatioChange = (ratio: AspectRatio, applyToAll = true) => {
+    setGlobalAspectRatio(ratio);
+    if (applyToAll) {
+      setMediaItems((prev) => prev.map((item) => ({ ...item, aspectRatio: ratio })));
+      toast(`📐 Set Crop Aspect Ratio to ${ratio} (All Photos)`, 'success');
+    } else {
+      updateCurrentItem({ aspectRatio: ratio });
+      toast(`📐 Set Photo #${activeMediaIndex + 1} Crop to ${ratio}`, 'success');
+    }
+  };
+
+  // ── CLIENT-SIDE HIGH-RES CANVAS CROPPER & EXPORTER ──
+  const processPhotoCrop = async (item: MediaItem): Promise<File> => {
+    if (item.type === 'video') return item.file;
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        let targetW = 1080;
+        let targetH = 1080;
+
+        switch (item.aspectRatio) {
+          case '4:5':
+            targetW = 1080;
+            targetH = 1350;
+            break;
+          case '9:16':
+            targetW = 1080;
+            targetH = 1920;
+            break;
+          case '16:9':
+            targetW = 1920;
+            targetH = 1080;
+            break;
+          case '1:1':
+          default:
+            targetW = 1080;
+            targetH = 1080;
+            break;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(item.file);
+          return;
+        }
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, targetW, targetH);
+
+        // Center transformation
+        ctx.save();
+        ctx.translate(targetW / 2, targetH / 2);
+
+        if (item.rotation) {
+          ctx.rotate((item.rotation * Math.PI) / 180);
+        }
+
+        // Calculate cover scaling
+        const imgRatio = img.naturalWidth / img.naturalHeight;
+        const targetRatio = targetW / targetH;
+        let baseW = targetW;
+        let baseH = targetH;
+
+        if (imgRatio > targetRatio) {
+          baseH = targetH;
+          baseW = targetH * imgRatio;
+        } else {
+          baseW = targetW;
+          baseH = targetW / imgRatio;
+        }
+
+        const scale = Math.max(1, item.zoom || 1);
+        const drawW = baseW * scale;
+        const drawH = baseH * scale;
+
+        // Preview box is ~360px wide, calculate pan proportion
+        const panScale = targetW / 360;
+        const offsetX = (item.panX || 0) * panScale;
+        const offsetY = (item.panY || 0) * panScale;
+
+        ctx.drawImage(img, -drawW / 2 + offsetX, -drawH / 2 + offsetY, drawW, drawH);
+        ctx.restore();
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const safeName = item.file.name.replace(/\.[^/.]+$/, '') + '_instagram_crop.jpg';
+              const processedFile = new File([blob], safeName, { type: 'image/jpeg' });
+              resolve(processedFile);
+            } else {
+              resolve(item.file);
+            }
+          },
+          'image/jpeg',
+          0.95
+        );
+      };
+
+      img.onerror = () => resolve(item.file);
+      img.src = item.previewUrl;
+    });
+  };
+
+  const handleDownloadCrop = async () => {
+    if (!currentItem) return;
+    try {
+      const croppedFile = await processPhotoCrop(currentItem);
+      const url = URL.createObjectURL(croppedFile);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `shree_${currentItem.aspectRatio || '1-1'}_${Date.now()}.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('💾 Cropped photo saved to your device!', 'success');
+    } catch {
+      toast('Failed to download cropped image', 'error');
+    }
   };
 
   // ── INFINITE NON-REPEATING CAPTION GENERATOR ──
@@ -149,7 +352,7 @@ export default function InstagramHubPage() {
     const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
     const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
     const nameStr = clientName.trim() ? clientName.trim() : 'our gorgeous bride';
-    const offerStr = specialOffer.trim() ? `\n\n🎉 Limited Privilege Offer: ${specialOffer.trim()}` : '';
+    const offerStr = specialOffer.trim() ? `\n\n🎉 Special Limited Offer: ${specialOffer.trim()}` : '';
 
     const DATA: Record<string, {
       hooks: { hinglish: string[]; gujarati: string[]; english: string[] };
@@ -168,123 +371,76 @@ export default function InstagramHubPage() {
             `🌟 Less is more: The modern clean-luxury Gujarati bridal aesthetic ✨`,
             `💎 D-Day Magic: When every brushstroke is crafted with love and passion at ${salonName} 👰`,
             `🪔 Traditional Gujarati Panetar & Royal Airbrush Radiance for ${nameStr} ✨`,
-            `✨ Stop scrolling, Surat brides! Save this bridal transformation for your wedding moodboard 📌💫`,
-            `💍 From Miss to Mrs: Celebrating our stunning bride ${nameStr} with royal bridal glam 🥂`,
-            `🌸 Soft romantic curls, ethereal glass-skin glow, and regal veil setting on ${nameStr} 💖`,
           ],
           gujarati: [
             `👑 શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ લુક: ${nameStr} ✨`,
             `🪔 પાનેતર અને કંકુ પગલાંનો અનોખો શાહી શણગાર: શ્રી બ્યૂટી સ્ટુડિયો 👰`,
             `💖 લગ્નના પવિત્ર દિવસે મેળવો 100% નેચરલ અને વોટરપ્રૂફ HD એરબ્રશ ગ્લો! ✨`,
             `🌸 સુરતની દરેક કન્યાનું સપનું: શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ મેકઓવર 👑`,
-            `💫 ${nameStr} માટે ખાસ કસ્ટમાઇઝ્ડ શાહી લુક અને પરફેક્ટ ચૂંદડી ડ્રેપિંગ! 💍`,
-            `✨ કુદરતી સુંદરતા અને રોયલ ફિનિશિંગ સાથેનો અદભુત બ્રાઇડલ મેકઅપ 🪔`,
           ],
           english: [
             `👑 Timeless Elegance & Bridal Perfection for ${nameStr} ✨`,
             `✨ The Modern Indian Bride: Radiance, Grace & Bespoke Artistry at ${salonName} 👰`,
             `💄 The Art of Flawless, Flash-Ready Bridal Artistry on ${nameStr} 👑`,
-            `🌟 Pure Bridal Royalty: Unfiltered glow that lasts through every emotional tear and smile 🤍`,
-            `💍 Elevating natural beauty into a royal masterpiece for ${nameStr} ✨`,
-            `👰 Every bride has a dream look—we bring it to life with precision & love at ${salonName} 💫`,
           ],
         },
         bodies: {
           hinglish: [
             `Ek bride ke sabse special din par uski natural beauty ko elevate karna is our pure passion. From customized HD airbrush glow to precision eye artistry and royal veil draping—every single detail crafted to perfection.`,
             `Zero cakey layers. 100% waterproof, sweatproof, and camera-ready magic! Designed to stay fresh through all the emotional moments, mandap pheras, and midnight reception spotlight.`,
-            `Skin prep is the real secret! 45 minutes of customized skin hydration + lightweight waterproof coverage for that signature dewy royal radiance.`,
-            `Soft champagne halo eyes, sculpted cheekbones, romantic floral hair artistry, and precision veil setting that turns heads all evening.`,
           ],
           gujarati: [
             `લગ્નના પવિત્ર દિવસે દરેક કન્યાનું સપનું હોય છે સૌથી સુંદર અને શાહી દેખાવું! શ્રી બ્યૂટી સ્ટુડિયો લાવે છે 100% વોટરપ્રૂફ HD એરબ્રશ મેકઅપ, પરફેક્ટ આઇ આર્ટ અને રોયલ ચૂંદડી ડ્રેપિંગ.`,
-            `પરંપરાગત ગુજરાતી લગ્ન માટે ખાસ કસ્ટમાઇઝ્ડ બ્રાઇડલ પેકેજ. નેચરલ સ્કીન ગ્લો, સોફ્ટ હેરસ્ટાઇલ અને આખો દિવસ ટકી રહેતો એરબ્રશ લુક.`,
           ],
           english: [
             `Creating an ethereal, regal bridal glow that lasts through all the emotional moments and smiles. Mastered with luxury international cosmetics, weightless finish, and bespoke jewelry setting.`,
-            `Sweatproof, HD flash-ready, and lightweight comfort all through your wedding rituals. Experience personalized bridal pampering with certified master artists in Surat.`,
           ],
         },
         technique: {
           hinglish: [`✨ HD Airbrush Finish | 100% Waterproof | Tear-Proof & Flash-Ready`],
-          gujarati: [`✨ 100% વોટરપ્રૂફ એરબ્રશ | HD ફિનિશ | રોયલ ચૂંદડી & જ્વેલરી સેટિંગ`],
-          english: [`✨ HD Airbrush Magic | Tear-Proof & Waterproof | Flash-Optimized`],
+          gujarati: [`✨ 100% વોટરપ્રૂફ એરબ્રશ | HD ફિનિશ | રોયલ ચૂંદડી સેટિંગ`],
+          english: [`✨ HD Airbrush Magic | Tear-Proof & Waterproof`],
         },
         hashtags: [
           '#ShreeBeautyStudio', '#SuratBridalMakeup', '#SuratMakeupArtist', '#GujaratiBride', '#BridalMakeoverSurat',
-          '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#SuratBeautyStudio', '#WeddingGlam', '#KatargamSalon',
-          '#BridalGlow', '#IndianBride', '#GlamByShree', '#SuratBridalStudio', '#BridalArtistSurat', '#TrendingSurat'
+          '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#SuratBeautyStudio', '#WeddingGlam', '#KatargamSalon'
         ],
       },
       hydrafacial: {
         hooks: {
-          hinglish: [
-            `✨ 7-Step Korean Glass Skin HydraFacial Treatment 💧`,
-            `💧 Why Every Bride & Groom Needs a HydraFacial Before D-Day! ✨`,
-            `🌟 Instant Radiant Glow: Say goodbye to blackheads & dull skin! 🧖‍♀️`,
-          ],
-          gujarati: [
-            `✨ 7-સ્ટેપ કોરિયન ગ્લાસ સ્કીન હાઇડ્રાફેશિયલ ટ્રીટમેન્ટ 💧`,
-            `💧 ખીલ, બ્લેકહેડ્સ અને ટેનિંગને કહો હંમેશ માટે અલવિદા! ✨`,
-          ],
-          english: [
-            `💧 Unlock Luminous Glass Skin with Medical-Grade HydraFacial ✨`,
-            `✨ The Ultimate 7-Step Skin Reset: Deep vortex cleanse & antioxidant infusion 💧`,
-          ],
+          hinglish: [`✨ 7-Step Korean Glass Skin HydraFacial Treatment 💧`],
+          gujarati: [`✨ 7-સ્ટેપ કોરિયન ગ્લાસ સ્કીન હાઇડ્રાફેશિયલ ટ્રીટમેન્ટ 💧`],
+          english: [`💧 Unlock Luminous Glass Skin with Medical-Grade HydraFacial ✨`],
         },
         bodies: {
-          hinglish: [
-            `Say goodbye to dull skin, clogged pores, and pigmentation! Experience deep exfoliation, vacuum blackhead extraction, and intense hyaluronic serum infusion for an unmistakable radiant glow.`,
-          ],
-          gujarati: [
-            `ડીપ પોર ક્લીનિંગ, વેક્યુમ બ્લેકહેડ્સ રિમૂવલ અને હાઇડ્રેટિંગ સીરમ ઇન્ફ્યુઝનથી મેળવો કાચ જેવી ચમકતી સ્કીન!`,
-          ],
-          english: [
-            `Vortex suction extracts impurities while simultaneously bathing the skin with nourishing antioxidants and hyaluronic peptides.`,
-          ],
+          hinglish: [`Say goodbye to dull skin, clogged pores, and pigmentation! Experience deep exfoliation, vacuum blackhead extraction, and intense hyaluronic serum infusion for an unmistakable radiant glow.`],
+          gujarati: [`ડીપ પોર ક્લીનિંગ, વેક્યુમ બ્લેકહેડ્સ રિમૂવલ અને હાઇડ્રેટિંગ સીરમ ઇન્ફ્યુઝનથી મેળવો કાચ જેવી ચમકતી સ્કીન!`],
+          english: [`Vortex suction extracts impurities while simultaneously bathing the skin with nourishing antioxidants and hyaluronic peptides.`],
         },
         technique: {
           hinglish: [`✨ 100% Painless | No Downtime | Instant Glass-Skin Glow`],
           gujarati: [`✨ ઇન્સ્ટન્ટ ગ્લો | ડીપ ક્લીનિંગ | 100% પેઇનલેસ`],
-          english: [`✨ Zero Downtime | Medical-Grade Extraction | Instant Radiance`],
+          english: [`✨ Zero Downtime | Medical-Grade Extraction`],
         },
-        hashtags: [
-          '#HydraFacialSurat', '#GlassSkinSurat', '#ShreeBeautyStudio', '#SuratSkinCare', '#SkinGlowSurat',
-          '#FacialSurat', '#KatargamSalon', '#KoreanSkinCareSurat', '#GlowUpSurat'
-        ],
+        hashtags: ['#HydraFacialSurat', '#GlassSkinSurat', '#ShreeBeautyStudio', '#SuratSkinCare', '#SkinGlowSurat'],
       },
       hair: {
         hooks: {
-          hinglish: [
-            `💇‍♀️ Silky Smooth, Mirror-Shine Hair Botox & Keratin Transformation ✨`,
-            `✨ Say Goodbye to Daily Flat Irons & Frizz with ${salonName} Hair Spa 💁‍♀️`,
-          ],
-          gujarati: [
-            `💇‍♀️ વાળને આપો સોફ્ટ, સિલ્કી અને શાઇની લુક: હેર બોટોક્સ & કેરાટિન ✨`,
-          ],
-          english: [
-            `✨ Liquid Glass Hair: Premium Keratin & Protein Infusion 💇‍♀️`,
-          ],
+          hinglish: [`💇‍♀️ Silky Smooth, Mirror-Shine Hair Botox & Keratin Transformation ✨`],
+          gujarati: [`💇‍♀️ વાળને આપો સોફ્ટ, સિલ્કી અને શાઇની લુક: હેર બોટોક્સ & કેરાટિન ✨`],
+          english: [`✨ Liquid Glass Hair: Premium Keratin & Protein Infusion 💇‍♀️`],
         },
         bodies: {
-          hinglish: [
-            `Transform dry, frizzy, and chemically treated hair into ultra-glossy, soft-flowing hair with our formaldehyde-free protein treatment. Lasts up to 5-6 months!`,
-          ],
-          gujarati: [
-            `શ્રી બ્યૂટી સ્ટુડિયો ખાતે કરાવો પ્રીમિયમ હેર બોટોક્સ ટ્રીટમેન્ટ જે વાળને બનાવે છે એકદમ મુલાયમ, સિલ્કી અને ચમકદાર.`,
-          ],
-          english: [
-            `Restore damaged hair cuticle health, lock in essential hydration, and achieve effortless manageable silkiness.`,
-          ],
+          hinglish: [`Transform dry, frizzy, and chemically treated hair into ultra-glossy, soft-flowing hair with our formaldehyde-free protein treatment.`],
+          gujarati: [`શ્રી બ્યૂટી સ્ટુડિયો ખાતે કરાવો પ્રીમિયમ હેર બોટોક્સ ટ્રીટમેન્ટ જે વાળને બનાવે છે એકદમ મુલાયમ, સિલ્કી અને ચમકદાર.`],
+          english: [`Restore damaged hair cuticle health, lock in essential hydration, and achieve effortless manageable silkiness.`],
         },
         technique: {
           hinglish: [`✨ Formaldehyde-Free | Long-Lasting 6 Months | High-Gloss Shine`],
           gujarati: [`✨ 100% સેફ & પ્રોટીન રિચ | 6 મહિના સુધી સોફ્ટ વાળ`],
-          english: [`✨ 100% Formaldehyde-Free | Moisture Lock | Mirror Gloss`],
+          english: [`✨ 100% Formaldehyde-Free | Mirror Gloss`],
         },
-        hashtags: [
-          '#HairBotoxSurat', '#KeratinSurat', '#HairSmootheningSurat', '#ShreeBeautyStudio', '#SuratHairSalon', '#GlossyHair'
-        ],
+        hashtags: ['#HairBotoxSurat', '#KeratinSurat', '#HairSmootheningSurat', '#ShreeBeautyStudio', '#SuratHairSalon'],
       },
       nails: {
         hooks: {
@@ -300,9 +456,9 @@ export default function InstagramHubPage() {
         technique: {
           hinglish: [`✨ 4+ Weeks Chip-Resistant | Swarovski Crystal Accents`],
           gujarati: [`✨ 4+ અઠવાડિયા સુધી ટકાઉ | જેલ એક્સટેન્શન`],
-          english: [`✨ 4+ Weeks Chip-Free | Handcrafted Couture`],
+          english: [`✨ 4+ Weeks Chip-Free`],
         },
-        hashtags: ['#NailArtSurat', '#GelNailsSurat', '#BridalNails', '#ShreeBeautyStudio', '#NailExtensionSurat'],
+        hashtags: ['#NailArtSurat', '#GelNailsSurat', '#BridalNails', '#ShreeBeautyStudio'],
       },
       festival: {
         hooks: {
@@ -318,9 +474,9 @@ export default function InstagramHubPage() {
         technique: {
           hinglish: [`✨ Sweatproof Festive Makeup | Party Hairdo | Instant Glow`],
           gujarati: [`✨ તહેવારો સ્પેશિયલ | સ્વેટપ્રૂફ મેકઅપ`],
-          english: [`✨ Sweatproof Formula | Party Ready`],
+          english: [`✨ Sweatproof Formula`],
         },
-        hashtags: ['#FestiveGlam', '#NavratriGlow', '#DiwaliMakeover', '#ShreeBeautyStudio', '#SuratSalonOffers'],
+        hashtags: ['#FestiveGlam', '#NavratriGlow', '#DiwaliMakeover', '#ShreeBeautyStudio'],
       },
       review: {
         hooks: {
@@ -336,9 +492,9 @@ export default function InstagramHubPage() {
         technique: {
           hinglish: [`✨ 100% 5-Star Rated | Trusted by 10,000+ Surat Brides`],
           gujarati: [`✨ 5-સ્ટાર રેટિંગ | સુરતની વિશ્વસનીય સલૂન`],
-          english: [`✨ 5-Star Certified | Loved by Brides`],
+          english: [`✨ 5-Star Certified`],
         },
-        hashtags: ['#ClientReview', '#5StarsSurat', '#ShreeBeautyStudio', '#SuratSalonReviews', '#LovedByBrides'],
+        hashtags: ['#ClientReview', '#5StarsSurat', '#ShreeBeautyStudio', '#SuratSalonReviews'],
       },
     };
 
@@ -358,7 +514,6 @@ export default function InstagramHubPage() {
     const ctas = [
       `📍 Studio Address: ${address}\n📞 Bridal Booking Helpline: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book`,
       `📍 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
-      `📍 Location: ${address}\n📞 Priority Appointments: ${phone}\n🔗 Book Today: https://shreebeautystudio.in/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
@@ -371,43 +526,6 @@ export default function InstagramHubPage() {
     const newCount = generationCount + 1;
     setGenerationCount(newCount);
 
-    try {
-      const salonName = settings?.salon || 'Shree Beauty Studio';
-      const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
-      const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-      const res = await fetch('/api/instagram/generate-caption', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: captionCategory,
-          language: captionLanguage,
-          clientName,
-          specialOffer,
-          salonName,
-          phone,
-          address,
-          randomSeed: Date.now() + Math.random(),
-        }),
-        signal: controller.signal,
-      }).catch(() => null);
-
-      clearTimeout(timeoutId);
-
-      if (res && res.ok) {
-        const json = await res.json();
-        if (json.success && json.caption) {
-          setGeneratedCaption(json.caption);
-          toast(`✨ Generated brand-new AI caption #${newCount}!`, 'success');
-          setIsGenerating(false);
-          return;
-        }
-      }
-    } catch {}
-
     const dynamicCaption = generateInfiniteCaption();
     setGeneratedCaption(dynamicCaption);
     toast(`✨ Generated unique caption #${newCount}!`, 'success');
@@ -419,46 +537,10 @@ export default function InstagramHubPage() {
     setGeneratedCaption(initial);
   }, [captionCategory, captionLanguage, clientName, specialOffer]);
 
-  // ── MEDIA FILE SELECTION & PREVIEW ──
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      setSelectedFile(file);
-
-      // Auto detect type
-      if (file.type.startsWith('video/')) {
-        setUploadMediaType('reel');
-      } else {
-        setUploadMediaType('photo');
-      }
-
-      // Create preview URL
-      const url = URL.createObjectURL(file);
-      setMediaPreviewUrl(url);
-      setPublishSuccess(null);
-      setPublishMessage('');
-      toast(`📁 Selected ${file.type.startsWith('video/') ? 'Reel Video' : 'Photo'}: ${file.name}`, 'success');
-    }
-  };
-
-  const handleRemoveMedia = () => {
-    setSelectedFile(null);
-    if (mediaPreviewUrl) {
-      URL.revokeObjectURL(mediaPreviewUrl);
-    }
-    setMediaPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM ──
-  const [publishingStep, setPublishingStep] = useState('');
-
+  // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM (WITH EXACT HIGH-RES CROP & MULTI-PHOTO CAROUSEL) ──
   const handlePublishToInstagram = async () => {
-    if (!selectedFile) {
-      toast('⚠️ કૃપા કરીને પહેલા તમારા ફોન/લેપટોપમાંથી રીલ વીડિયો કે ફોટો સિલેક્ટ કરો (Please select a video reel or photo to post)!', 'error');
+    if (mediaItems.length === 0) {
+      toast('⚠️ કૃપા કરીને પહેલા તમારા ફોન/લેપટોપમાંથી ફોટો કે વીડિયો સિલેક્ટ કરો (Please select photo(s) or video to post)!', 'error');
       fileInputRef.current?.click();
       return;
     }
@@ -471,15 +553,43 @@ export default function InstagramHubPage() {
     setIsPublishing(true);
     setPublishSuccess(null);
     setPublishMessage('');
-    setPublishingStep('1/3: Uploading media to high-speed cloud storage...');
+    setPublishingStep(`1/4: Processing & cropping ${mediaItems.length} media file(s) with exact framing...`);
 
     try {
+      // 1. Process all photos through canvas for exact crop / zoom / pan / rotation
+      const processedFiles: File[] = [];
+      for (let i = 0; i < mediaItems.length; i++) {
+        const item = mediaItems[i];
+        if (item.type === 'photo') {
+          const cropped = await processPhotoCrop(item);
+          processedFiles.push(cropped);
+        } else {
+          processedFiles.push(item.file);
+        }
+      }
+
+      setPublishingStep(`2/4: Uploading ${processedFiles.length} file(s) to cloud storage...`);
+
       const formData = new FormData();
       formData.append('caption', generatedCaption);
-      formData.append('mediaType', uploadMediaType);
-      formData.append('file', selectedFile);
 
-      setPublishingStep(uploadMediaType === 'reel' ? '2/3: Instagram Meta API encoding Reel video...' : '2/3: Creating Instagram media container...');
+      if (processedFiles.length === 1) {
+        formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
+        formData.append('file', processedFiles[0]);
+      } else {
+        formData.append('mediaType', 'carousel');
+        processedFiles.forEach((f) => {
+          formData.append('files', f);
+        });
+      }
+
+      setPublishingStep(
+        processedFiles.length > 1
+          ? `3/4: Creating Instagram Carousel container with ${processedFiles.length} cropped photos...`
+          : mediaItems[0].type === 'video'
+          ? '3/4: Instagram Meta API encoding Reel video...'
+          : '3/4: Creating Instagram media container...'
+      );
 
       const res = await fetch('/api/instagram/publish', {
         method: 'POST',
@@ -493,10 +603,7 @@ export default function InstagramHubPage() {
         setPublishMessage(json.message || `🎉 100% Published Live to Instagram @shreebeauty.studio! (Post ID: ${json.postId || ''})`);
         toast(`🎉 Successfully published live to Instagram @shreebeauty.studio!`, 'success');
 
-        // Copy caption to clipboard
         navigator.clipboard.writeText(generatedCaption);
-
-        // Refresh feed list
         fetchFeed();
       } else {
         setPublishSuccess(false);
@@ -513,22 +620,20 @@ export default function InstagramHubPage() {
     }
   };
 
-  // Save Settings
-  const handleSaveSettings = () => {
-    const updatedData = {
-      ...data,
-      settings: {
-        ...data.settings,
-        instagramHandle: handle.trim(),
-        instagramUrl: instaUrl.trim(),
-        instagramAccountId: accountId.trim(),
-        instagramAccessToken: token.trim(),
-      },
-    };
-    setData(updatedData);
-    scheduleSave();
-    toast('💾 Instagram auto settings saved & synced to cloud!', 'success');
-    fetchFeed();
+  // Aspect ratio css map
+  const getAspectRatioStyle = (ratio: AspectRatio): React.CSSProperties => {
+    switch (ratio) {
+      case '1:1':
+        return { aspectRatio: '1 / 1' };
+      case '4:5':
+        return { aspectRatio: '4 / 5' };
+      case '9:16':
+        return { aspectRatio: '9 / 16' };
+      case '16:9':
+        return { aspectRatio: '16 / 9' };
+      default:
+        return { minHeight: 280 };
+    }
   };
 
   return (
@@ -543,9 +648,8 @@ export default function InstagramHubPage() {
           background: 'linear-gradient(135deg, rgba(225, 48, 108, 0.12) 0%, rgba(253, 29, 29, 0.08) 50%, rgba(245, 96, 64, 0.04) 100%)',
           border: '1px solid rgba(225, 48, 108, 0.3)',
           borderRadius: 16,
-          padding: '22px 26px',
+          padding: '20px 24px',
           marginBottom: 20,
-          position: 'relative',
         }}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
@@ -568,7 +672,7 @@ export default function InstagramHubPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
-                  Instagram Auto-Post & AI Reel Studio
+                  Instagram Multi-Photo Auto-Post & Crop Studio
                 </h1>
                 <span
                   style={{
@@ -586,11 +690,11 @@ export default function InstagramHubPage() {
                   }}
                 >
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
-                  Direct Auto-Post Active
+                  Carousel & Reel Direct Publish
                 </span>
               </div>
               <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--muted-foreground)' }}>
-                Upload Photos & Reels directly with auto-generated AI Captions, Hooks & Hashtags to <strong style={{ color: '#E1306C' }}>{settings?.instagramHandle || '@shreebeauty.studio'}</strong>.
+                Select multiple photos / carousel or reels, crop size (1:1 / 4:5 / 9:16), zoom & pan, attach AI captions & auto-post directly to <strong style={{ color: '#E1306C' }}>{settings?.instagramHandle || '@shreebeauty.studio'}</strong>.
               </p>
             </div>
           </div>
@@ -612,18 +716,7 @@ export default function InstagramHubPage() {
               }}
             >
               <Instagram size={14} />
-              Open Instagram Profile ↗
-            </a>
-
-            <a
-              href="https://business.facebook.com/latest/composer"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
-            >
-              <Globe size={14} color="#0084FF" />
-              Meta Creator Studio ↗
+              Open Instagram ↗
             </a>
           </div>
         </div>
@@ -654,7 +747,7 @@ export default function InstagramHubPage() {
           }}
         >
           <UploadCloud size={16} />
-          🚀 Upload & Auto-Post (Reels & Photos)
+          🚀 Multi-Photo & Reel Auto-Post
         </button>
 
         <button
@@ -663,7 +756,7 @@ export default function InstagramHubPage() {
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
         >
           <Sparkles size={15} color="#eab308" />
-          AI Caption & Reel Hook Generator
+          AI Caption Studio
         </button>
 
         <button
@@ -674,78 +767,57 @@ export default function InstagramHubPage() {
           <Instagram size={15} />
           Synced Feed ({posts.length})
         </button>
-
-        <button
-          onClick={() => setActiveTab('crosspost')}
-          className={`btn ${activeTab === 'crosspost' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
-        >
-          <Share2 size={15} color="#3b82f6" />
-          Cross-Posting & Multi-Channel
-        </button>
-
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`btn ${activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
-        >
-          <Settings size={15} />
-          Settings
-        </button>
       </div>
 
-      {/* ── TAB 1: DIRECT UPLOAD & AUTO-POST INTERFACE (PRIMARY) ── */}
+      {/* ── PRIMARY VIEW: MULTI-PHOTO UPLOAD + CROP + ZOOM + AUTO-POST ── */}
       {activeTab === 'upload' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
           
-          {/* Left Column: Media Uploader & AI Selector */}
+          {/* Left Column: Multi-File Uploader, Crop Size & Zoom Controls */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             
-            {/* Media Upload Card */}
-            <div className="card" style={{ borderRadius: 16, padding: 22 }}>
+            {/* Card 1: Multi-File Selector & Thumbnail Strip */}
+            <div className="card" style={{ borderRadius: 16, padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(225, 48, 108, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <UploadCloud size={18} color="#E1306C" />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>1. Select Photo or Reel Video</h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Upload transformation video / picture from device</p>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>1. Select Multiple Photos or Reel Video</h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Select up to 10 photos for Instagram Carousel / Album</p>
                   </div>
                 </div>
 
-                {/* Media Type Toggle */}
-                <div style={{ display: 'flex', background: 'var(--bg-secondary, rgba(0,0,0,0.05))', padding: 3, borderRadius: 10 }}>
-                  <button
-                    type="button"
-                    onClick={() => setUploadMediaType('reel')}
-                    className={`btn btn-xs ${uploadMediaType === 'reel' ? 'btn-primary' : 'btn-ghost'}`}
-                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
-                    <Film size={12} /> Reel (9:16)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadMediaType('photo')}
-                    className={`btn btn-xs ${uploadMediaType === 'photo' ? 'btn-primary' : 'btn-ghost'}`}
-                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4 }}
-                  >
-                    <ImageIcon size={12} /> Photo (1:1)
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn btn-primary btn-xs"
+                  style={{
+                    background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                    border: 'none',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <PlusCircle size={13} /> Add Photos / Reel
+                </button>
               </div>
 
-              {/* Hidden File Input */}
+              {/* Hidden Multi-file input */}
               <input
                 ref={fileInputRef}
                 type="file"
-                accept={uploadMediaType === 'reel' ? 'video/mp4,video/quicktime,video/mov' : 'image/jpeg,image/png,image/webp'}
-                onChange={handleFileChange}
+                multiple
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/mov"
+                onChange={handleFileSelect}
                 style={{ display: 'none' }}
               />
 
-              {/* Upload Drop Zone / Preview */}
-              {!mediaPreviewUrl ? (
+              {/* Empty state dropzone */}
+              {mediaItems.length === 0 ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   style={{
@@ -770,68 +842,504 @@ export default function InstagramHubPage() {
                       margin: '0 auto 12px',
                     }}
                   >
-                    {uploadMediaType === 'reel' ? <Video size={24} color="#E1306C" /> : <ImageIcon size={24} color="#E1306C" />}
+                    <ImageIcon size={24} color="#E1306C" />
                   </div>
                   <h4 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 4px', color: 'var(--foreground)' }}>
-                    Tap to Choose {uploadMediaType === 'reel' ? 'Reel Video (MP4 / MOV)' : 'Photo (JPG / PNG)'}
+                    Tap to Choose Multiple Photos or Video Reel
                   </h4>
                   <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
-                    Directly from your phone, laptop, or camera roll
+                    Select 1 to 10 bridal / makeover photos for an Instagram Carousel Album
                   </p>
                 </div>
               ) : (
-                <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000' }}>
-                  {uploadMediaType === 'reel' ? (
-                    <video
-                      src={mediaPreviewUrl}
-                      controls
-                      autoPlay
-                      muted
-                      loop
-                      style={{ width: '100%', maxHeight: 340, objectFit: 'contain', display: 'block' }}
-                    />
-                  ) : (
-                    <img
-                      src={mediaPreviewUrl}
-                      alt="Upload Preview"
-                      style={{ width: '100%', maxHeight: 340, objectFit: 'contain', display: 'block' }}
-                    />
-                  )}
-
-                  {/* Remove Button */}
-                  <button
-                    onClick={handleRemoveMedia}
-                    className="btn btn-xs"
+                <div>
+                  {/* Thumbnail Strip */}
+                  <div
                     style={{
-                      position: 'absolute',
-                      top: 10,
-                      right: 10,
-                      background: 'rgba(0,0,0,0.75)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 8,
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontWeight: 700,
+                      gap: 8,
+                      overflowX: 'auto',
+                      paddingBottom: 8,
+                      marginBottom: 12,
+                      borderBottom: '1px solid var(--border)',
                     }}
                   >
-                    <Trash2 size={12} color="#ef4444" /> Change Media
-                  </button>
+                    {mediaItems.map((item, idx) => (
+                      <div
+                        key={item.id}
+                        onClick={() => setActiveMediaIndex(idx)}
+                        style={{
+                          position: 'relative',
+                          width: 64,
+                          height: 64,
+                          borderRadius: 10,
+                          overflow: 'hidden',
+                          border: activeMediaIndex === idx ? '2.5px solid #E1306C' : '1px solid var(--border)',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          boxShadow: activeMediaIndex === idx ? '0 0 10px rgba(225, 48, 108, 0.4)' : 'none',
+                        }}
+                      >
+                        {item.type === 'video' ? (
+                          <div style={{ width: '100%', height: '100%', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Film size={18} color="#fff" />
+                          </div>
+                        ) : (
+                          <img src={item.previewUrl} alt={`Thumb ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        )}
+
+                        {/* Number badge */}
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: 2,
+                            left: 2,
+                            background: 'rgba(0,0,0,0.7)',
+                            color: '#fff',
+                            fontSize: 9,
+                            fontWeight: 800,
+                            padding: '1px 4px',
+                            borderRadius: 4,
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+
+                        {/* Delete button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRemoveItem(idx);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: 2,
+                            right: 2,
+                            background: '#ef4444',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: 16,
+                            height: 16,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            padding: 0,
+                          }}
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {/* Add More Button */}
+                    {mediaItems.length < 10 && (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: 10,
+                          border: '2px dashed rgba(225, 48, 108, 0.4)',
+                          background: 'rgba(225, 48, 108, 0.05)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: '#E1306C',
+                          flexShrink: 0,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          gap: 2,
+                        }}
+                      >
+                        <PlusCircle size={16} /> Add More
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--muted-foreground)' }}>
+                    <span>Selected: <strong>{mediaItems.length} media item(s)</strong> {mediaItems.length > 1 ? '(Carousel Post)' : ''}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        mediaItems.forEach((m) => URL.revokeObjectURL(m.previewUrl));
+                        setMediaItems([]);
+                      }}
+                      className="btn btn-ghost btn-xs"
+                      style={{ color: '#ef4444', fontSize: 11 }}
+                    >
+                      Clear All
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* AI Caption & Hook Controls */}
-            <div className="card" style={{ borderRadius: 16, padding: 22 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            {/* Card 2: Interactive Crop Size & Zoom / Pan Controls */}
+            {currentItem && (
+              <div className="card" style={{ borderRadius: 16, padding: 20, border: '1.5px solid rgba(225, 48, 108, 0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}>
+                      <Crop size={18} color="#ffffff" />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        2. Crop Size & Zoom In / Out
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: 'rgba(225, 48, 108, 0.1)', color: '#E1306C' }}>
+                          Photo #{activeMediaIndex + 1} of {mediaItems.length}
+                        </span>
+                      </h3>
+                      <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>
+                        Adjust Instagram crop aspect ratio, zoom level & drag to reposition
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowGrid(!showGrid)}
+                      className={`btn btn-xs ${showGrid ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                      title="Toggle 3x3 Rule-of-Thirds Grid"
+                    >
+                      <Grid size={12} />
+                      {showGrid ? 'Grid On' : 'Grid Off'}
+                    </button>
+                    {currentItem.type === 'photo' && (
+                      <button
+                        type="button"
+                        onClick={handleDownloadCrop}
+                        className="btn btn-secondary btn-xs"
+                        style={{ fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                        title="Download cropped high-res photo"
+                      >
+                        <Download size={12} />
+                        Save Image
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Aspect Ratio Toggles */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label className="label" style={{ fontSize: 11.5, fontWeight: 700, margin: 0 }}>
+                      📐 Choose Instagram Crop Aspect Ratio:
+                    </label>
+                    {mediaItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleAspectRatioChange(globalAspectRatio, true)}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10, color: '#E1306C', fontWeight: 700, padding: '2px 6px' }}
+                      >
+                        Apply {globalAspectRatio} to All ({mediaItems.length})
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                    {[
+                      { id: '1:1', label: '1:1 Square', desc: '1080x1080 Feed' },
+                      { id: '4:5', label: '4:5 Portrait', desc: '1080x1350 (Best Reach)' },
+                      { id: '9:16', label: '9:16 Story', desc: '1080x1920 Reel/Story' },
+                      { id: '16:9', label: '16:9 Wide', desc: '1920x1080 Landscape' },
+                    ].map((ratio) => {
+                      const isSelected = (currentItem.aspectRatio || globalAspectRatio) === ratio.id;
+                      return (
+                        <button
+                          key={ratio.id}
+                          type="button"
+                          onClick={() => handleAspectRatioChange(ratio.id as AspectRatio, false)}
+                          className={`btn btn-xs ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{
+                            fontSize: 11,
+                            fontWeight: isSelected ? 800 : 600,
+                            flexDirection: 'column',
+                            padding: '8px 4px',
+                            height: 'auto',
+                            background: isSelected ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                            color: isSelected ? '#fff' : undefined,
+                            border: isSelected ? 'none' : undefined,
+                            boxShadow: isSelected ? '0 4px 12px rgba(220, 39, 67, 0.3)' : 'none',
+                          }}
+                        >
+                          <span style={{ fontWeight: 800 }}>{ratio.label}</span>
+                          <span style={{ fontSize: 9, opacity: 0.85 }}>{ratio.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Interactive Drag-to-Pan Canvas / Crop Preview Area */}
+                <div
+                  onMouseDown={(e) => {
+                    setIsDragging(true);
+                    setDragStart({ x: e.clientX - (currentItem.panX || 0), y: e.clientY - (currentItem.panY || 0) });
+                  }}
+                  onMouseMove={(e) => {
+                    if (!isDragging) return;
+                    const newPanX = e.clientX - dragStart.x;
+                    const newPanY = e.clientY - dragStart.y;
+                    updateCurrentItem({ panX: newPanX, panY: newPanY });
+                  }}
+                  onMouseUp={() => setIsDragging(false)}
+                  onMouseLeave={() => setIsDragging(false)}
+                  onTouchStart={(e) => {
+                    if (e.touches.length === 1) {
+                      setIsDragging(true);
+                      setDragStart({
+                        x: e.touches[0].clientX - (currentItem.panX || 0),
+                        y: e.touches[0].clientY - (currentItem.panY || 0),
+                      });
+                    }
+                  }}
+                  onTouchMove={(e) => {
+                    if (!isDragging || e.touches.length !== 1) return;
+                    const newPanX = e.touches[0].clientX - dragStart.x;
+                    const newPanY = e.touches[0].clientY - dragStart.y;
+                    updateCurrentItem({ panX: newPanX, panY: newPanY });
+                  }}
+                  onTouchEnd={() => setIsDragging(false)}
+                  onWheel={(e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                    const newZoom = Math.min(3, Math.max(1, currentItem.zoom + delta));
+                    updateCurrentItem({ zoom: parseFloat(newZoom.toFixed(2)) });
+                  }}
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: 380,
+                    margin: '0 auto 14px',
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    background: '#09090b',
+                    border: '2px solid rgba(225, 48, 108, 0.6)',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.35)',
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                    userSelect: 'none',
+                    touchAction: 'none',
+                    ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {/* Image or Video with Transform (Zoom + Pan + Rotation) */}
+                  {currentItem.type === 'video' ? (
+                    <video
+                      src={currentItem.previewUrl}
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                        transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                        pointerEvents: isDragging ? 'none' : 'auto',
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={currentItem.previewUrl}
+                      alt="Crop Preview"
+                      draggable={false}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                        transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+
+                  {/* 3x3 Rule-of-Thirds Grid Overlay */}
+                  {showGrid && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        pointerEvents: 'none',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gridTemplateRows: 'repeat(3, 1fr)',
+                      }}
+                    >
+                      {[...Array(9)].map((_, i) => (
+                        <div key={i} style={{ border: '1px solid rgba(255,255,255,0.22)' }} />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Top-Right Drag Hint */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      background: 'rgba(0,0,0,0.7)',
+                      color: '#fff',
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      pointerEvents: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    <Move size={10} /> Drag to Pan / Scroll Wheel Zoom
+                  </div>
+
+                  {/* Current Aspect Ratio Tag */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 8,
+                      left: 8,
+                      background: 'rgba(0,0,0,0.75)',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    {currentItem.aspectRatio || globalAspectRatio} • {currentItem.zoom.toFixed(1)}x Zoom {currentItem.rotation ? `• ${currentItem.rotation}°` : ''}
+                  </div>
+                </div>
+
+                {/* Zoom Slider & Adjustment Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <ZoomIn size={14} color="#E1306C" /> Zoom Size ({currentItem.zoom.toFixed(2)}x)
+                    </span>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ zoom: Math.max(1, parseFloat((currentItem.zoom - 0.2).toFixed(2))) })}
+                        className="btn btn-secondary btn-xs"
+                        title="Zoom Out"
+                      >
+                        <ZoomOut size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ zoom: 1, panX: 0, panY: 0, rotation: 0 })}
+                        className="btn btn-secondary btn-xs"
+                        style={{ fontSize: 10, fontWeight: 700 }}
+                      >
+                        Reset (1x)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ zoom: Math.min(3, parseFloat((currentItem.zoom + 0.2).toFixed(2))) })}
+                        className="btn btn-secondary btn-xs"
+                        title="Zoom In"
+                      >
+                        <ZoomIn size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ rotation: (currentItem.rotation + 90) % 360 })}
+                        className="btn btn-secondary btn-xs"
+                        title="Rotate 90 degrees clockwise"
+                        style={{ fontSize: 11, fontWeight: 700 }}
+                      >
+                        <RotateCw size={12} /> 90°
+                      </button>
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="1"
+                    max="3"
+                    step="0.02"
+                    value={currentItem.zoom}
+                    onChange={(e) => updateCurrentItem({ zoom: parseFloat(e.target.value) })}
+                    style={{ width: '100%', accentColor: '#E1306C' }}
+                  />
+
+                  {/* 4-way Directional Pan Buttons */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
+                    <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
+                      Pan Framing:
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ panX: currentItem.panX + 20 })}
+                        className="btn btn-secondary btn-xs"
+                        style={{ padding: '3px 8px' }}
+                        title="Pan Left"
+                      >
+                        ◀ Left
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ panY: currentItem.panY + 20 })}
+                        className="btn btn-secondary btn-xs"
+                        style={{ padding: '3px 8px' }}
+                        title="Pan Up"
+                      >
+                        ▲ Up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ panY: currentItem.panY - 20 })}
+                        className="btn btn-secondary btn-xs"
+                        style={{ padding: '3px 8px' }}
+                        title="Pan Down"
+                      >
+                        ▼ Down
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentItem({ panX: currentItem.panX - 20 })}
+                        className="btn btn-secondary btn-xs"
+                        style={{ padding: '3px 8px' }}
+                        title="Pan Right"
+                      >
+                        ▶ Right
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Card 3: AI Caption Topic Setup */}
+            <div className="card" style={{ borderRadius: 16, padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Sparkles size={18} color="#ca8a04" />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>2. AI Caption & Reel Hook Setup</h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Customize topic, tone & bride name</p>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>3. AI Caption & Viral Hook Setup</h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Customize topic & bride name</p>
                   </div>
                 </div>
 
@@ -847,90 +1355,77 @@ export default function InstagramHubPage() {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Category Chips */}
-                <div>
-                  <label className="label" style={{ fontSize: 11.5, fontWeight: 700 }}>Makeover / Service Category</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                    {[
-                      { id: 'bridal', label: '👑 Bridal' },
-                      { id: 'hydrafacial', label: '✨ HydraFacial' },
-                      { id: 'hair', label: '💇‍♀️ Hair Botox' },
-                      { id: 'nails', label: '💅 Nails' },
-                      { id: 'festival', label: '🪔 Festive' },
-                      { id: 'review', label: '⭐ Review' },
-                    ].map((cat) => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => setCaptionCategory(cat.id as any)}
-                        className={`btn btn-xs ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ fontSize: 11, fontWeight: captionCategory === cat.id ? 800 : 500 }}
-                      >
-                        {cat.label}
-                      </button>
-                    ))}
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {[
+                    { id: 'bridal', label: '👑 Bridal' },
+                    { id: 'hydrafacial', label: '✨ HydraFacial' },
+                    { id: 'hair', label: '💇‍♀️ Hair Botox' },
+                    { id: 'nails', label: '💅 Nails' },
+                    { id: 'festival', label: '🪔 Festive' },
+                    { id: 'review', label: '⭐ Review' },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCaptionCategory(cat.id as any)}
+                      className={`btn btn-xs ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: 11, fontWeight: captionCategory === cat.id ? 800 : 500 }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Language Chips */}
-                <div>
-                  <label className="label" style={{ fontSize: 11.5, fontWeight: 700 }}>Caption Language</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                    {[
-                      { id: 'hinglish', label: 'Hinglish (Viral)' },
-                      { id: 'gujarati', label: 'ગુજરાતી' },
-                      { id: 'english', label: 'English' },
-                    ].map((lang) => (
-                      <button
-                        key={lang.id}
-                        type="button"
-                        onClick={() => setCaptionLanguage(lang.id as any)}
-                        className={`btn btn-xs ${captionLanguage === lang.id ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ fontSize: 11, fontWeight: captionLanguage === lang.id ? 800 : 500 }}
-                      >
-                        {lang.label}
-                      </button>
-                    ))}
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {[
+                    { id: 'hinglish', label: 'Hinglish (Viral)' },
+                    { id: 'gujarati', label: 'ગુજરાતી' },
+                    { id: 'english', label: 'English' },
+                  ].map((lang) => (
+                    <button
+                      key={lang.id}
+                      type="button"
+                      onClick={() => setCaptionLanguage(lang.id as any)}
+                      className={`btn btn-xs ${captionLanguage === lang.id ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: 11, fontWeight: captionLanguage === lang.id ? 800 : 500 }}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Client / Bride Name */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div>
-                    <label className="label" style={{ fontSize: 11, fontWeight: 700 }}>Client / Bride Name (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Kinjal Patel"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      className="input input-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="label" style={{ fontSize: 11, fontWeight: 700 }}>Special Offer (Optional)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 20% OFF this week"
-                      value={specialOffer}
-                      onChange={(e) => setSpecialOffer(e.target.value)}
-                      className="input input-xs"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="Bride Name: Kinjal Patel"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    className="input input-xs"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Special Offer: 20% OFF"
+                    value={specialOffer}
+                    onChange={(e) => setSpecialOffer(e.target.value)}
+                    className="input input-xs"
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Live Instagram Mockup & Master 1-Click Publish */}
+          {/* Right Column: Live Instagram Carousel / Post Mockup & 1-Click Master Publish */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             
             {/* Live Instagram Post Mockup Card */}
-            <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Instagram size={18} color="#E1306C" />
-                  <span style={{ fontSize: 14, fontWeight: 800 }}>3. Live Instagram Post Preview & Edit</span>
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>4. Live Instagram Post Preview & Edit</span>
                 </div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button
@@ -944,7 +1439,7 @@ export default function InstagramHubPage() {
                 </div>
               </div>
 
-              {/* Instagram Mobile Card Shell */}
+              {/* Instagram Mobile Card Mockup Shell */}
               <div
                 style={{
                   border: '1px solid var(--border)',
@@ -982,30 +1477,137 @@ export default function InstagramHubPage() {
                       <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Katargam, Surat • Original Audio</span>
                     </div>
                   </div>
+
+                  {mediaItems.length > 1 && (
+                    <span style={{ fontSize: 11, fontWeight: 800, background: 'rgba(225, 48, 108, 0.1)', color: '#E1306C', padding: '2px 8px', borderRadius: 8 }}>
+                      Carousel ({activeMediaIndex + 1}/{mediaItems.length})
+                    </span>
+                  )}
                 </div>
 
-                {/* Media Box in Mockup */}
-                {mediaPreviewUrl ? (
-                  <div style={{ background: '#000', maxHeight: 240, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {uploadMediaType === 'reel' ? (
-                      <video src={mediaPreviewUrl} autoPlay muted loop style={{ width: '100%', maxHeight: 240, objectFit: 'contain' }} />
+                {/* Media Mockup Viewer */}
+                {mediaItems.length > 0 && currentItem ? (
+                  <div style={{ position: 'relative', background: '#000', overflow: 'hidden', ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {currentItem.type === 'video' ? (
+                      <video
+                        src={currentItem.previewUrl}
+                        autoPlay
+                        muted
+                        loop
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                        }}
+                      />
                     ) : (
-                      <img src={mediaPreviewUrl} alt="Mockup" style={{ width: '100%', maxHeight: 240, objectFit: 'contain' }} />
+                      <img
+                        src={currentItem.previewUrl}
+                        alt="Mockup"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          transform: `scale(${currentItem.zoom}) translate(${currentItem.panX}px, ${currentItem.panY}px) rotate(${currentItem.rotation}deg)`,
+                        }}
+                      />
+                    )}
+
+                    {/* Carousel Navigation Arrows if multiple photos */}
+                    {mediaItems.length > 1 && (
+                      <>
+                        {activeMediaIndex > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveMediaIndex(activeMediaIndex - 1)}
+                            style={{
+                              position: 'absolute',
+                              left: 8,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'rgba(0,0,0,0.6)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: 28,
+                              height: 28,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <ChevronLeft size={16} />
+                          </button>
+                        )}
+                        {activeMediaIndex < mediaItems.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveMediaIndex(activeMediaIndex + 1)}
+                            style={{
+                              position: 'absolute',
+                              right: 8,
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              background: 'rgba(0,0,0,0.6)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: 28,
+                              height: 28,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <ChevronRight size={16} />
+                          </button>
+                        )}
+
+                        {/* Carousel Dots */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: 8,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            display: 'flex',
+                            gap: 4,
+                          }}
+                        >
+                          {mediaItems.map((_, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                width: activeMediaIndex === i ? 7 : 5,
+                                height: activeMediaIndex === i ? 7 : 5,
+                                borderRadius: '50%',
+                                background: activeMediaIndex === i ? '#38bdf8' : 'rgba(255,255,255,0.6)',
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
                 ) : (
-                  <div style={{ padding: '24px 16px', textAlign: 'center', background: 'var(--bg-secondary, rgba(0,0,0,0.02))', borderBottom: '1px solid var(--border)' }}>
-                    <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
-                      📸 Media selected on the left will appear here
+                  <div style={{ padding: '36px 16px', textAlign: 'center', background: 'var(--bg-secondary, rgba(0,0,0,0.02))', borderBottom: '1px solid var(--border)' }}>
+                    <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: 0 }}>
+                      📸 Selected photos and zoom framing will preview here live
                     </p>
                   </div>
                 )}
 
                 {/* Editable Caption Textarea inside Mockup */}
                 <div style={{ padding: 12 }}>
-                  <label className="label" style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px' }}>
-                    Attached AI Caption & Hashtags (You can edit directly):
-                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <label className="label" style={{ fontSize: 11, fontWeight: 700, margin: 0 }}>
+                      ✏️ Edit Attached Caption & Hashtags Freely:
+                    </label>
+                    <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>{generatedCaption.length} chars</span>
+                  </div>
                   <textarea
                     value={generatedCaption}
                     onChange={(e) => setGeneratedCaption(e.target.value)}
@@ -1087,19 +1689,6 @@ export default function InstagramHubPage() {
                       >
                         <ExternalLink size={13} /> View Live on Instagram ↗
                       </a>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleRemoveMedia();
-                          setPublishMessage('');
-                          setPublishSuccess(null);
-                          handleGenerateFresh();
-                        }}
-                        className="btn btn-secondary btn-sm"
-                        style={{ fontSize: 12, fontWeight: 700 }}
-                      >
-                        ➕ Post Another Reel
-                      </button>
                     </div>
                   )}
                 </div>
@@ -1127,7 +1716,11 @@ export default function InstagramHubPage() {
                   }}
                 >
                   <Instagram size={18} className={isPublishing ? 'animate-spin' : ''} />
-                  {isPublishing ? 'PUBLISHING TO INSTAGRAM...' : '🚀 DIRECT PUBLISH TO INSTAGRAM / REELS'}
+                  {isPublishing
+                    ? 'PUBLISHING TO INSTAGRAM...'
+                    : mediaItems.length > 1
+                    ? `🚀 DIRECT PUBLISH ${mediaItems.length} PHOTOS (CAROUSEL)`
+                    : '🚀 DIRECT PUBLISH TO INSTAGRAM / REELS'}
                 </button>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -1137,7 +1730,7 @@ export default function InstagramHubPage() {
                     rel="noopener noreferrer"
                     onClick={() => {
                       navigator.clipboard.writeText(generatedCaption);
-                      toast('📋 Caption copied! Opening Meta Business Suite...', 'success');
+                      toast('📋 Caption copied! Opening Meta Creator Studio...', 'success');
                     }}
                     className="btn btn-secondary btn-sm"
                     style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
@@ -1167,7 +1760,7 @@ export default function InstagramHubPage() {
         </motion.div>
       )}
 
-      {/* ── TAB 2: AI CAPTION & REEL HOOK GENERATOR STUDIO ── */}
+      {/* ── TAB 2: AI CAPTION STUDIO ── */}
       {activeTab === 'studio' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
           <div className="card" style={{ borderRadius: 16, padding: 22 }}>
@@ -1182,152 +1775,49 @@ export default function InstagramHubPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Category</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {[
-                    { id: 'bridal', label: '👑 Bridal Makeover' },
-                    { id: 'hydrafacial', label: '✨ HydraFacial Glow' },
-                    { id: 'hair', label: '💇‍♀️ Hair Botox/Keratin' },
-                    { id: 'nails', label: '💅 Nail Art & Ext.' },
-                    { id: 'festival', label: '🪔 Festive Combos' },
-                    { id: 'review', label: '⭐ Client Review' },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setCaptionCategory(cat.id as any)}
-                      className={`btn btn-sm ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
-                      style={{ fontSize: 12, justifyContent: 'flex-start', fontWeight: captionCategory === cat.id ? 700 : 500 }}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Tone & Language</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                  {[
-                    { id: 'hinglish', label: 'Hinglish' },
-                    { id: 'gujarati', label: 'ગુજરાતી' },
-                    { id: 'english', label: 'English' },
-                  ].map((lang) => (
-                    <button
-                      key={lang.id}
-                      type="button"
-                      onClick={() => setCaptionLanguage(lang.id as any)}
-                      className={`btn btn-sm ${captionLanguage === lang.id ? 'btn-primary' : 'btn-secondary'}`}
-                      style={{ fontSize: 12, fontWeight: captionLanguage === lang.id ? 700 : 500 }}
-                    >
-                      {lang.label}
-                    </button>
-                  ))}
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {[
+                  { id: 'bridal', label: '👑 Bridal' },
+                  { id: 'hydrafacial', label: '✨ HydraFacial' },
+                  { id: 'hair', label: '💇‍♀️ Hair Botox' },
+                  { id: 'nails', label: '💅 Nails' },
+                  { id: 'festival', label: '🪔 Festive' },
+                  { id: 'review', label: '⭐ Review' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setCaptionCategory(cat.id as any)}
+                    className={`btn btn-sm ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
               </div>
 
               <button
                 type="button"
                 onClick={handleGenerateFresh}
-                disabled={isGenerating}
                 className="btn btn-primary"
                 style={{
-                  marginTop: 6,
                   fontWeight: 800,
-                  fontSize: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  padding: '11px 18px',
-                  background: 'linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%)',
+                  background: 'linear-gradient(45deg, #f09433, #dc2743)',
                   border: 'none',
                 }}
               >
-                <RefreshCw size={16} className={isGenerating ? 'animate-spin' : ''} />
-                🔄 REFRESH NEW GENERATE (NEVER REPEATS)
+                <RefreshCw size={16} /> REFRESH NEW GENERATE
               </button>
             </div>
           </div>
 
-          <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Instagram size={18} color="#E1306C" />
-                <span style={{ fontSize: 14, fontWeight: 800 }}>Ready-to-Post Instagram Caption</span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: 10,
-                    background: 'rgba(34, 197, 94, 0.12)',
-                    color: '#16a34a',
-                    border: '1px solid rgba(34, 197, 94, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  ✏️ Edit Mode (Type Freely)
-                </span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={handleGenerateFresh}
-                  disabled={isGenerating}
-                  className="btn btn-secondary btn-xs"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#E1306C' }}
-                >
-                  <RefreshCw size={12} className={isGenerating ? 'animate-spin' : ''} />
-                  New AI Angle
-                </button>
-
-                <button
-                  onClick={() => copyToClipboard(generatedCaption, 'generated-cap')}
-                  className="btn btn-secondary btn-xs"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700 }}
-                >
-                  {copiedId === 'generated-cap' ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
-                  Copy All
-                </button>
-
-                <a
-                  href="https://www.instagram.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary btn-xs"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700 }}
-                >
-                  <ExternalLink size={13} /> Open IG App
-                </a>
-              </div>
-            </div>
-
+          <div className="card" style={{ borderRadius: 16, padding: 22 }}>
             <textarea
               value={generatedCaption}
               onChange={(e) => setGeneratedCaption(e.target.value)}
               rows={16}
-              placeholder="Type or customize your Instagram caption here..."
               className="input"
-              style={{
-                fontFamily: 'monospace',
-                fontSize: 12.5,
-                lineHeight: 1.55,
-                padding: 14,
-                borderRadius: 10,
-                resize: 'vertical',
-                flex: 1,
-                background: 'var(--bg-secondary, rgba(0,0,0,0.02))',
-              }}
+              style={{ fontFamily: 'monospace', fontSize: 12.5, lineHeight: 1.55, resize: 'vertical' }}
             />
-
-            <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--muted-foreground)', gap: 8 }}>
-              <span>Character count: {generatedCaption.length}</span>
-              <span style={{ color: '#16a34a', fontWeight: 600 }}>✓ Non-repeating viral Instagram Reels algorithm optimized • Fully Editable</span>
-            </div>
           </div>
         </motion.div>
       )}
@@ -1356,56 +1846,6 @@ export default function InstagramHubPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* ── TAB 4: CROSS-POSTING ── */}
-      {activeTab === 'crosspost' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          <div className="card" style={{ borderRadius: 16, padding: 22 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 12px' }}>Multi-Channel Cross-Posting</h3>
-            <p style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
-              Sync Instagram Reels to Facebook Page and Google Business Profile for local SEO.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 14 }}>
-              <a href="https://business.facebook.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
-                <Globe size={16} /> Meta Business Suite
-              </a>
-              <a href="https://business.google.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
-                <ExternalLink size={16} /> Google Business Profile
-              </a>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* ── TAB 5: SETTINGS ── */}
-      {activeTab === 'settings' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ maxWidth: 600 }}>
-          <div className="card" style={{ borderRadius: 16, padding: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>Meta Graph API & Instagram Connection</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Instagram Account Handle</label>
-                <input type="text" value={handle} onChange={(e) => setHandle(e.target.value)} className="input input-sm" />
-              </div>
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Instagram Profile URL</label>
-                <input type="text" value={instaUrl} onChange={(e) => setInstaUrl(e.target.value)} className="input input-sm" />
-              </div>
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Meta Account ID</label>
-                <input type="text" value={accountId} onChange={(e) => setAccountId(e.target.value)} className="input input-sm" />
-              </div>
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Meta User Token</label>
-                <textarea rows={3} value={token} onChange={(e) => setToken(e.target.value)} className="input" style={{ fontSize: 11, fontFamily: 'monospace' }} />
-              </div>
-              <button type="button" onClick={handleSaveSettings} className="btn btn-primary" style={{ fontWeight: 800 }}>
-                Save Settings
-              </button>
-            </div>
           </div>
         </motion.div>
       )}
