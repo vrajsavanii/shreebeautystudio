@@ -29,7 +29,6 @@ import {
 import { useSalonStore } from '@/lib/store';
 import { getAppointmentGoogleCalendarUrl } from '@/lib/calendar';
 import { useCustomerAuth } from '@/lib/customer-context';
-import PhoneEmailButton from '@/components/auth/PhoneEmailButton';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 15 },
@@ -41,20 +40,10 @@ function MyAppointmentsView() {
   const { data } = useSalonStore();
   const { customer, authenticated, appointments, bridal, logout } = useCustomerAuth();
 
-  // Tab State: 'otp' (Default native OTP) or 'password'
-  const [activeTab, setActiveTab] = useState<'otp' | 'password'>('otp');
-
   // Input States
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  // Native In-Page OTP States
-  const [otpCode, setOtpCode] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [maskedMobile, setMaskedMobile] = useState('');
-  const [fallbackWaUrl, setFallbackWaUrl] = useState('');
-  const [resendTimer, setResendTimer] = useState(0);
 
   // Status & Appointment States
   const [loading, setLoading] = useState(false);
@@ -63,15 +52,6 @@ function MyAppointmentsView() {
   const [searched, setSearched] = useState(false);
   const [matches, setMatches] = useState<any[]>([]);
   const [customerName, setCustomerName] = useState('');
-
-  // 1. Resend OTP countdown timer
-  useEffect(() => {
-    if (resendTimer <= 0) return;
-    const timer = setInterval(() => {
-      setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendTimer]);
 
   // 2. Fetch appointments for authenticated user via GET /api/my-appointments
   const fetchAuthenticatedAppointments = useCallback(async () => {
@@ -160,116 +140,7 @@ function MyAppointmentsView() {
     }
   }, [searchParams, authenticated]);
 
-  // 5. Send Native Security OTP via Cellular SMS
-  const handleSendOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const clean = mobile.replace(/\D/g, '').slice(-10);
-
-    if (clean.length !== 10) {
-      setError('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/my-appointments/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile: clean }),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        setError(json.error || 'Failed to dispatch security code. Please check your mobile number.');
-        return;
-      }
-
-      setOtpSent(true);
-      setMaskedMobile(json.maskedMobile || `+91 ${clean.slice(0, 5)} ***${clean.slice(-2)}`);
-      setFallbackWaUrl(json.fallbackWaUrl || '');
-      setResendTimer(30);
-      setOtpCode('');
-    } catch {
-      setError('Network error while requesting verification code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 6. Verify Native OTP & Unlock Appointments
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = mobile.replace(/\D/g, '').slice(-10);
-    const cleanOtp = otpCode.trim();
-
-    if (clean.length !== 10) {
-      setError('Please enter a valid 10-digit mobile number.');
-      return;
-    }
-
-    if (!cleanOtp || cleanOtp.length < 4) {
-      setError('Please enter the 4-digit verification code.');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/my-appointments/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          mobile: clean,
-          otp: cleanOtp,
-        }),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        setError(json.error || 'Invalid or expired verification code. Please check and try again.');
-        return;
-      }
-
-      // Successful verification
-      const appts = json.appointments || [];
-      const bridal = (json.bridal || []).map((b: any) => ({
-        id: b.id,
-        date: b.weddingDate || b.date,
-        time: '08:00 AM',
-        customer: b.name,
-        mobile: b.mobile,
-        service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
-        advance: b.advance || 0,
-        price: b.totalAmount || b.package || b.price || 0,
-        status: b.status || 'Confirmed',
-        notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
-      }));
-
-      const all = [...appts, ...bridal].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-      setMatches(all);
-      setSearched(true);
-
-      if (json.customer?.name) {
-        setCustomerName(json.customer.name);
-      } else if (all.length > 0 && all[0].customer) {
-        setCustomerName(all[0].customer);
-      }
-
-      sessionStorage.setItem('shree_appt_mobile', clean);
-    } catch {
-      setError('Network error while verifying code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 7. Secure Password Login Form Submit
+  // 5. Secure Password Login Form Submit
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const clean = mobile.replace(/\D/g, '').slice(-10);
@@ -350,8 +221,6 @@ function MyAppointmentsView() {
     setSearched(false);
     setMatches([]);
     setPassword('');
-    setOtpCode('');
-    setOtpSent(false);
     setError('');
     setCustomerName('');
     sessionStorage.removeItem('shree_appt_mobile');
@@ -397,7 +266,7 @@ function MyAppointmentsView() {
           My Appointments &amp; Bridal Bookings
         </h1>
         <p style={{ fontSize: 14.5, color: '#64748b', margin: 0, maxWidth: 580, marginInline: 'auto' }}>
-          For your confidentiality and security, please verify your registered mobile number via instant OTP or password to view your appointments.
+          For your confidentiality and security, please enter your registered mobile number and password to view your appointments.
         </p>
       </div>
 
@@ -421,7 +290,7 @@ function MyAppointmentsView() {
             }}
           >
             {/* Header Badge & Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
               <div
                 style={{
                   width: 48,
@@ -443,76 +312,9 @@ function MyAppointmentsView() {
                   Client Identity Verification
                 </h3>
                 <p style={{ margin: '3px 0 0', fontSize: 13, color: '#64748b' }}>
-                  Verify your mobile number to unlock your booking history
+                  Enter your mobile number and password to view bookings
                 </p>
               </div>
-            </div>
-
-            {/* Verification Method Tabs */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 8,
-                marginBottom: 22,
-                background: '#f1f5f9',
-                padding: 4,
-                borderRadius: 14,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('otp');
-                  setError('');
-                }}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 11,
-                  border: 'none',
-                  background: activeTab === 'otp' ? 'linear-gradient(135deg, #05424A 0%, #032B30 100%)' : 'transparent',
-                  color: activeTab === 'otp' ? '#ffffff' : '#64748b',
-                  fontWeight: activeTab === 'otp' ? 700 : 600,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  transition: 'all 0.15s ease',
-                  boxShadow: activeTab === 'otp' ? '0 3px 10px rgba(5,66,74,0.2)' : 'none',
-                }}
-              >
-                <Sparkles size={14} color={activeTab === 'otp' ? '#EABA38' : 'currentColor'} />
-                <span>Instant Mobile OTP</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('password');
-                  setError('');
-                }}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 11,
-                  border: 'none',
-                  background: activeTab === 'password' ? 'linear-gradient(135deg, #05424A 0%, #032B30 100%)' : 'transparent',
-                  color: activeTab === 'password' ? '#ffffff' : '#64748b',
-                  fontWeight: activeTab === 'password' ? 700 : 600,
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 6,
-                  transition: 'all 0.15s ease',
-                  boxShadow: activeTab === 'password' ? '0 3px 10px rgba(5,66,74,0.2)' : 'none',
-                }}
-              >
-                <KeyRound size={14} color={activeTab === 'password' ? '#EABA38' : 'currentColor'} />
-                <span>Password Login</span>
-              </button>
             </div>
 
             {/* Error Message Callout */}
@@ -540,295 +342,167 @@ function MyAppointmentsView() {
                     <span style={{ fontWeight: 600 }}>{error}</span>
                   </div>
                   {needsPasswordSetup && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('otp');
-                        setNeedsPasswordSetup(false);
-                        setError('');
-                      }}
+                    <Link
+                      href={`/forgot-password?identifier=${mobile || ''}`}
                       style={{
-                        background: 'none',
-                        border: 'none',
                         color: '#05424A',
                         fontWeight: 700,
                         textDecoration: 'underline',
-                        padding: 0,
-                        cursor: 'pointer',
-                        textAlign: 'left',
+                        fontSize: 13,
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
+                        marginTop: 2,
                       }}
                     >
-                      <span>No password needed! Click here to verify via Instant OTP</span>
+                      <span>First time? Click here to set your password</span>
                       <ArrowRight size={13} />
-                    </button>
+                    </Link>
                   )}
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* ══════════════════════════════════════════════════════
-                TAB 1: INSTANT MOBILE OTP (100% NATIVE, NO EXTERNAL POPUPS)
-                ══════════════════════════════════════════════════════ */}
-            {activeTab === 'otp' && (
-              <div
-                style={{
-                  background: 'linear-gradient(180deg, #FAF8F5 0%, #ffffff 100%)',
-                  borderRadius: 20,
-                  border: '1.5px solid rgba(234, 186, 56, 0.35)',
-                  padding: '28px 22px',
-                  boxShadow: '0 8px 30px rgba(5,66,74,0.06)',
-                  textAlign: 'center',
-                }}
-              >
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '50%',
-                    background: 'rgba(234, 186, 56, 0.15)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 14px',
-                    color: '#05424A',
-                  }}
-                >
-                  <Smartphone size={26} color="#05424A" />
-                </div>
-                <h3 style={{ fontSize: 19, fontWeight: 800, color: '#05424A', marginBottom: 6 }}>
-                  Verify Mobile via Instant SMS OTP
-                </h3>
-                <div style={{ marginBottom: 16, textAlign: 'left' }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#05424A', display: 'block', marginBottom: 6 }}>
-                    Your Mobile Number
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b', fontSize: 13.5 }}>
-                      +91
-                    </div>
-                    <input
-                      type="tel"
-                      value={mobile}
-                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="e.g. 98765 43210"
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px 12px 50px',
-                        borderRadius: 12,
-                        border: '1.5px solid #e2e8f0',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                        background: '#ffffff',
-                        color: '#0f172a',
-                      }}
-                    />
+            {/* Mobile & Password Login Form */}
+            <form onSubmit={handlePasswordLogin}>
+              {/* Mobile Input */}
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
+                  Registered Mobile Number (મોબાઈલ નંબર)
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 14,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: '#475569',
+                      borderRight: '1px solid #cbd5e1',
+                      paddingRight: 10,
+                    }}
+                  >
+                    <span>🇮🇳</span>
+                    <span>+91</span>
                   </div>
-                </div>
-
-                <PhoneEmailButton
-                  purpose="my-appointments"
-                  phone={mobile}
-                  label="📱 Verify Mobile Number via SMS OTP"
-                  sublabel="Fast cellular SMS delivered across all Indian networks"
-                  onSuccess={(data) => {
-                    if (data.customer?.name) {
-                      setCustomerName(data.customer.name);
-                    }
-                    if (data.appointments || data.bridal) {
-                      const appts = data.appointments || [];
-                      const bridal = (data.bridal || []).map((b: any) => ({
-                        id: b.id,
-                        date: b.weddingDate || b.date,
-                        time: '08:00 AM',
-                        customer: b.name,
-                        mobile: b.mobile,
-                        service: `👑 Bridal: ${b.packageName || 'Bridal Package'}`,
-                        advance: b.advance || 0,
-                        price: b.totalAmount || b.package || b.price || 0,
-                        status: b.status || 'Confirmed',
-                        notes: `Event: ${b.event || 'Wedding'} | Venue: ${b.venue || 'Surat'}`,
-                      }));
-                      const all = [...appts, ...bridal].sort((a, b) =>
-                        (b.date || '').localeCompare(a.date || '')
-                      );
-                      setMatches(all);
-                      setSearched(true);
-                      if (data.verifiedPhone) {
-                        sessionStorage.setItem('shree_appt_mobile', data.verifiedPhone);
-                        setMobile(data.verifiedPhone);
-                      }
-                    } else {
-                      fetchAuthenticatedAppointments();
-                    }
-                  }}
-                />
-
-                <div
-                  style={{
-                    marginTop: 22,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    fontSize: 12,
-                    color: '#64748b',
-                  }}
-                >
-                  <ShieldCheck size={14} color="#16a34a" />
-                  <span>Confidential &amp; secure: 100% genuine cellular SMS OTP verification delivered directly to your mobile.</span>
+                  <input
+                    type="tel"
+                    placeholder="98765 43210"
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    required
+                    maxLength={10}
+                    style={{
+                      width: '100%',
+                      padding: '13px 14px 13px 88px',
+                      borderRadius: 14,
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: 16,
+                      fontWeight: 600,
+                      letterSpacing: '0.04em',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = '#05424A')}
+                    onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
+                  />
                 </div>
               </div>
-            )}
 
-            {/* ══════════════════════════════════════════════════════
-                TAB 2: PASSWORD LOGIN
-                ══════════════════════════════════════════════════════ */}
-            {activeTab === 'password' && (
-              <form onSubmit={handlePasswordLogin}>
-                {/* Mobile Input */}
-                <div style={{ marginBottom: 18 }}>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#334155', marginBottom: 8 }}>
-                    Registered Mobile Number (મોબાઈલ નંબર)
+              {/* Password Input */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>
+                    Account Password (પાસવર્ડ)
                   </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: 14,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: '#475569',
-                        borderRight: '1px solid #cbd5e1',
-                        paddingRight: 10,
-                      }}
-                    >
-                      <span>🇮🇳</span>
-                      <span>+91</span>
-                    </div>
-                    <input
-                      type="tel"
-                      placeholder="98765 43210"
-                      value={mobile}
-                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      required
-                      maxLength={10}
-                      style={{
-                        width: '100%',
-                        padding: '13px 14px 13px 88px',
-                        borderRadius: 14,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 16,
-                        fontWeight: 600,
-                        letterSpacing: '0.04em',
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                      onFocus={(e) => (e.target.style.borderColor = '#05424A')}
-                      onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
-                    />
-                  </div>
+                  <Link
+                    href={`/forgot-password?identifier=${mobile || ''}`}
+                    style={{ fontSize: 12.5, fontWeight: 600, color: '#05424A', textDecoration: 'none' }}
+                  >
+                    Forgot Password?
+                  </Link>
                 </div>
-
-                {/* Password Input */}
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <label style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>
-                      Account Password (પાસવર્ડ)
-                    </label>
-                    <Link
-                      href={`/forgot-password?identifier=${mobile || ''}`}
-                      style={{ fontSize: 12.5, fontWeight: 600, color: '#05424A', textDecoration: 'none' }}
-                    >
-                      Forgot Password?
-                    </Link>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ position: 'absolute', left: 14, color: '#64748b' }}>
+                    <KeyRound size={17} />
                   </div>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <div style={{ position: 'absolute', left: 14, color: '#64748b' }}>
-                      <KeyRound size={17} />
-                    </div>
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '13px 44px 13px 42px',
-                        borderRadius: 14,
-                        border: '1.5px solid #cbd5e1',
-                        fontSize: 15,
-                        fontWeight: 600,
-                        outline: 'none',
-                        boxSizing: 'border-box',
-                      }}
-                      onFocus={(e) => (e.target.style.borderColor = '#05424A')}
-                      onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      style={{
-                        position: 'absolute',
-                        right: 14,
-                        background: 'none',
-                        border: 'none',
-                        color: '#64748b',
-                        cursor: 'pointer',
-                        padding: 0,
-                      }}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '13px 44px 13px 42px',
+                      borderRadius: 14,
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: 15,
+                      fontWeight: 600,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                    onFocus={(e) => (e.target.style.borderColor = '#05424A')}
+                    onBlur={(e) => (e.target.style.borderColor = '#cbd5e1')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: 14,
+                      background: 'none',
+                      border: 'none',
+                      color: '#64748b',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
+              </div>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading || mobile.replace(/\D/g, '').length < 10 || !password}
-                  style={{
-                    width: '100%',
-                    padding: '14px 20px',
-                    borderRadius: 14,
-                    background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    fontSize: 15,
-                    border: 'none',
-                    cursor: loading || mobile.replace(/\D/g, '').length < 10 || !password ? 'not-allowed' : 'pointer',
-                    opacity: loading || mobile.replace(/\D/g, '').length < 10 || !password ? 0.7 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    boxShadow: '0 4px 16px rgba(5,66,74,0.25)',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                      <span>Verifying credentials…</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock size={16} color="#EABA38" />
-                      <span>Unlock with Password</span>
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading || mobile.replace(/\D/g, '').length < 10 || !password}
+                style={{
+                  width: '100%',
+                  padding: '14px 20px',
+                  borderRadius: 14,
+                  background: 'linear-gradient(135deg, #05424A 0%, #032B30 100%)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  border: 'none',
+                  cursor: loading || mobile.replace(/\D/g, '').length < 10 || !password ? 'not-allowed' : 'pointer',
+                  opacity: loading || mobile.replace(/\D/g, '').length < 10 || !password ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 16px rgba(5,66,74,0.25)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span>Verifying credentials…</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={16} color="#EABA38" />
+                    <span>Unlock with Password</span>
+                  </>
+                )}
+              </button>
+            </form>
 
             {/* Quick Links Footer */}
             <div
