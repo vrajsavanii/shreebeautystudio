@@ -13,12 +13,30 @@ function getAudioContext(): AudioContext | null {
       }
     }
     if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
     return audioCtx;
   } catch {
     return null;
   }
+}
+
+// Auto-warmup AudioContext on first user interaction so sounds play instantly
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+    } catch {}
+    window.removeEventListener('click', unlockAudio);
+    window.removeEventListener('touchstart', unlockAudio);
+    window.removeEventListener('keydown', unlockAudio);
+  };
+  window.addEventListener('click', unlockAudio, { passive: true });
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
+  window.addEventListener('keydown', unlockAudio, { passive: true });
 }
 
 export function isAudioNotificationMuted(): boolean {

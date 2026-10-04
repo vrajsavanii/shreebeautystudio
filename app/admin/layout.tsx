@@ -12,6 +12,7 @@ import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { supabase } from '@/lib/supabase';
 import { cloudSync } from '@/lib/sync';
 import { initSupabaseRealtime } from '@/lib/realtime';
+import { playNewBookingChime } from '@/lib/notification-sound';
 import { fadeSlideUp } from '@/variants';
 import { useSalonStore } from '@/lib/store';
 
@@ -46,15 +47,22 @@ function DashboardShell({ children }: { children: ReactNode }) {
     // Cloud sync on mount unconditionally to load latest live salon state
     cloudSync().catch(() => {});
 
+    // Periodic 15-second background sync to keep admin dashboard fresh & sound triggers ready
+    const syncInterval = setInterval(() => {
+      cloudSync().catch(() => {});
+    }, 15000);
+
     // Initialize Supabase Realtime channel for live bookings
     const unsubscribeRealtime = initSupabaseRealtime((newAppt) => {
+      playNewBookingChime();
       toast(
-        `🔔 Online Booking: ${newAppt.customer} booked ${newAppt.service} for ${newAppt.date} at ${newAppt.time}!`,
+        `🔔 New Booking Request: ${newAppt.customer} booked ${newAppt.service} for ${newAppt.date} at ${newAppt.time}!`,
         'success'
       );
     });
 
     return () => {
+      clearInterval(syncInterval);
       unsubscribeRealtime();
     };
   }, [toast, pathname, currentUser, router]);

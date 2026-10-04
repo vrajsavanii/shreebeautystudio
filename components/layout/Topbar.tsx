@@ -17,13 +17,15 @@ import {
   LogOut,
   ExternalLink,
   Bell,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import CloudStatusBadge from '@/components/cloud/CloudStatusBadge';
 import { format } from 'date-fns';
 import { useSalonStore } from '@/lib/store';
 import { todayISO } from '@/lib/utils';
 import { clearAdminSession } from '@/lib/admin-auth';
-import { playNewBookingChime } from '@/lib/notification-sound';
+import { playNewBookingChime, isAudioNotificationMuted, setAudioNotificationMuted } from '@/lib/notification-sound';
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/admin':             { title: 'Dashboard Overview', subtitle: 'Real-time studio KPIs & analytics' },
@@ -56,6 +58,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const isSalesperson = currentUser?.role === 'Salesperson';
 
   const [timeStr, setTimeStr] = useState('');
+  const [soundMuted, setSoundMuted] = useState(false);
+
+  useEffect(() => {
+    setSoundMuted(isAudioNotificationMuted());
+  }, []);
 
   useEffect(() => {
     const updateTime = () => setTimeStr(format(new Date(), 'hh:mm a'));
@@ -353,6 +360,36 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           >
             <ExternalLink size={12} /> <span className="topbar-action-label">Site</span>
           </Link>
+
+          {/* Sound Notification Chime Test / Mute Button */}
+          <button
+            type="button"
+            onClick={() => {
+              const nextMuted = !soundMuted;
+              setSoundMuted(nextMuted);
+              setAudioNotificationMuted(nextMuted);
+              if (!nextMuted) playNewBookingChime(true);
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              background: soundMuted ? '#fef2f2' : '#f0fdf4',
+              border: `1px solid ${soundMuted ? '#fecaca' : '#bbf7d0'}`,
+              color: soundMuted ? '#dc2626' : '#16a34a',
+              cursor: 'pointer',
+              flexShrink: 0,
+              padding: 0,
+              transition: 'all 0.15s ease',
+            }}
+            title={soundMuted ? 'Notification Sound is MUTED. Click to un-mute.' : 'Notification Sound is ACTIVE. Click to test / mute.'}
+            aria-label={soundMuted ? 'Unmute booking notification sounds' : 'Mute booking notification sounds'}
+          >
+            {soundMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          </button>
         </div>
 
         {/* Active User Pill (28px height) */}

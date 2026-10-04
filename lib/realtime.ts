@@ -26,26 +26,47 @@ export function initSupabaseRealtime(onNewAppointment?: (appt: Appointment) => v
         table: 'salon_state',
       },
       (payload) => {
-        console.log('⚡ Supabase Realtime event received:', payload);
         if (payload.new && (payload.new as any).data) {
+          const currentStore = useSalonStore.getState();
           const newData = (payload.new as any).data as SalonData;
-          const currentAppointments = store.data.appointments || [];
+          const currentAppointments = currentStore.data.appointments || [];
           const newAppointments = newData.appointments || [];
+          const currentBridal = currentStore.data.bridal || [];
+          const newBridal = newData.bridal || [];
 
           // Check if there is a newly added appointment
           if (newAppointments.length > currentAppointments.length) {
-            const added = newAppointments[0]; // newly added is prepended
+            const added = newAppointments.find(
+              (na) => !currentAppointments.some((ca) => ca.id === na.id)
+            ) || newAppointments[0];
             if (added && onNewAppointment) {
               onNewAppointment(added);
+            }
+          } else if (newBridal.length > currentBridal.length) {
+            const addedBridal = newBridal.find(
+              (nb) => !currentBridal.some((cb) => cb.id === nb.id)
+            ) || newBridal[0];
+            if (addedBridal && onNewAppointment) {
+              onNewAppointment({
+                id: addedBridal.id,
+                customer: addedBridal.name,
+                mobile: addedBridal.mobile,
+                service: `👰 Bridal: ${addedBridal.package || 'Bridal Package'}`,
+                date: addedBridal.eventDate || addedBridal.date || '',
+                time: addedBridal.eventTime || 'TBD',
+                status: 'Pending',
+                price: Number(addedBridal.totalAmount || addedBridal.package || 0),
+                source: 'online',
+              } as any);
             }
           }
 
           // Sync into store
-          store.setData(newData);
+          currentStore.setData(newData);
           if ((payload.new as any).updated_at) {
-            store.setLastSynced((payload.new as any).updated_at);
+            currentStore.setLastSynced((payload.new as any).updated_at);
           }
-          store.setCloudStatus('saved');
+          currentStore.setCloudStatus('saved');
         }
       }
     )
