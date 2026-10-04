@@ -45,10 +45,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
+  Minimize2,
+  Maximize,
   Download,
   Grid,
   Sliders,
-  EyeOff
+  EyeOff,
+  MapPin,
+  Users,
+  AtSign,
+  Tag,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -121,13 +129,16 @@ export default function InstagramHubPage() {
   const [publishSuccess, setPublishSuccess] = useState<boolean | null>(null);
   const [publishMessage, setPublishMessage] = useState<string>('');
 
-  // AI Caption Studio State
+  // AI Caption Studio & Post Metadata State
   const [captionCategory, setCaptionCategory] = useState<'bridal' | 'sagai' | 'hydrafacial' | 'hair' | 'nails' | 'festival' | 'review'>('bridal');
   const [captionLanguage, setCaptionLanguage] = useState<'english' | 'hinglish' | 'gujarati'>('hinglish');
   const [generationCount, setGenerationCount] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [clientName, setClientName] = useState('');
   const [specialOffer, setSpecialOffer] = useState('');
+  const [postLocation, setPostLocation] = useState('Katargam, Surat');
+  const [collaborator, setCollaborator] = useState('');
+  const [showFullCaption, setShowFullCaption] = useState(true);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [lastHookUsed, setLastHookUsed] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -602,14 +613,20 @@ export default function InstagramHubPage() {
     const chosenTech = pickRandom(techList);
     const chosenHashtags = pickMultipleRandom(catData.hashtags, Math.min(12, catData.hashtags.length)).join(' ');
 
+    const locStr = postLocation.trim() || 'Katargam, Surat';
+    const cleanCollab = collaborator.trim()
+      ? (collaborator.trim().startsWith('@') ? collaborator.trim() : `@${collaborator.trim()}`)
+      : '';
+    const collabStr = cleanCollab ? `\n\n🤝 In Collaboration With: ${cleanCollab}` : '';
+
     const ctas = [
-      `📍 Studio Address: ${address}\n📞 Bridal Booking Helpline: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book`,
-      `📍 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
+      `📍 Location: ${locStr}\n🏠 Studio: ${address}\n📞 Bridal Booking Helpline: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book`,
+      `📍 Location: ${locStr}\n🏠 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
-    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}\n\n${chosenCta}\n\n────────────────\n${chosenHashtags}`;
-  }, [captionCategory, captionLanguage, clientName, specialOffer, settings, lastHookUsed]);
+    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}${collabStr}\n\n${chosenCta}\n\n────────────────\n${chosenHashtags}`;
+  }, [captionCategory, captionLanguage, clientName, specialOffer, postLocation, collaborator, settings, lastHookUsed]);
 
   // Master Generation
   const handleGenerateFresh = async () => {
@@ -626,7 +643,7 @@ export default function InstagramHubPage() {
   useEffect(() => {
     const initial = generateInfiniteCaption();
     setGeneratedCaption(initial);
-  }, [captionCategory, captionLanguage, clientName, specialOffer]);
+  }, [captionCategory, captionLanguage, clientName, specialOffer, postLocation, collaborator]);
 
   // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM (WITH EXACT HIGH-RES CROP & MULTI-PHOTO CAROUSEL) ──
   const handlePublishToInstagram = async () => {
@@ -1461,7 +1478,7 @@ export default function InstagramHubPage() {
               </div>
             )}
 
-            {/* Card 3: AI Caption Topic Setup */}
+            {/* Card 3: AI Caption Topic, Location & Collaborate Setup */}
             <div className="card" style={{ borderRadius: 16, padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1469,8 +1486,8 @@ export default function InstagramHubPage() {
                     <Sparkles size={18} color="#ca8a04" />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>3. AI Caption & Viral Hook Setup</h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Customize topic & bride name</p>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>3. AI Caption, Location & Collab Setup</h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Customize topic, bride name, location tag & Instagram collaborator</p>
                   </div>
                 </div>
 
@@ -1486,7 +1503,7 @@ export default function InstagramHubPage() {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Category Chips */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 6 }}>
                   {[
@@ -1530,20 +1547,175 @@ export default function InstagramHubPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <input
-                    type="text"
-                    placeholder="Bride Name: Kinjal Patel"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    className="input input-xs"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Special Offer: 20% OFF"
-                    value={specialOffer}
-                    onChange={(e) => setSpecialOffer(e.target.value)}
-                    className="input input-xs"
-                  />
+                  <div>
+                    <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>
+                      👰 Bride / Client Name:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Kinjal Patel"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      className="input input-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>
+                      🎉 Special Offer / Discount:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 20% OFF Bridal"
+                      value={specialOffer}
+                      onChange={(e) => setSpecialOffer(e.target.value)}
+                      className="input input-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* ── 📍 ADD LOCATION SECTION ── */}
+                <div style={{ background: 'var(--bg-secondary, rgba(0,0,0,0.02))', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label className="label" style={{ fontSize: 11.5, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--foreground)' }}>
+                      <MapPin size={13} color="#E1306C" />
+                      <span>📍 Add Instagram Location:</span>
+                    </label>
+                    <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Shown in post header & caption</span>
+                  </div>
+
+                  <div style={{ position: 'relative', marginBottom: 6 }}>
+                    <input
+                      type="text"
+                      placeholder="Location: Katargam, Surat"
+                      value={postLocation}
+                      onChange={(e) => setPostLocation(e.target.value)}
+                      className="input input-xs"
+                      style={{ paddingLeft: 26 }}
+                    />
+                    <MapPin size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    {postLocation && (
+                      <button
+                        type="button"
+                        onClick={() => setPostLocation('')}
+                        style={{
+                          position: 'absolute',
+                          right: 6,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--muted-foreground)',
+                          cursor: 'pointer',
+                          padding: 2,
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Location Preset Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {[
+                      'Katargam, Surat',
+                      'Shree Beauty Studio',
+                      'Surat, Gujarat',
+                      'Mota Varachha, Surat',
+                      'Adajan, Surat',
+                      'Vesu, Surat',
+                    ].map((loc) => (
+                      <button
+                        key={loc}
+                        type="button"
+                        onClick={() => setPostLocation(loc)}
+                        className={`btn btn-xs ${postLocation === loc ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{
+                          fontSize: 9.5,
+                          padding: '2px 7px',
+                          height: 'auto',
+                          borderRadius: 999,
+                          border: postLocation === loc ? 'none' : '1px solid var(--border)',
+                          background: postLocation === loc ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                          color: postLocation === loc ? '#fff' : undefined,
+                          fontWeight: postLocation === loc ? 800 : 500,
+                        }}
+                      >
+                        📍 {loc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── 🤝 ADD COLLABORATE SECTION ── */}
+                <div style={{ background: 'var(--bg-secondary, rgba(0,0,0,0.02))', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label className="label" style={{ fontSize: 11.5, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--foreground)' }}>
+                      <Users size={13} color="#E1306C" />
+                      <span>🤝 Add Instagram Collaborator (@username):</span>
+                    </label>
+                    <span style={{ fontSize: 10, color: '#E1306C', fontWeight: 700 }}>Co-Author Collab</span>
+                  </div>
+
+                  <div style={{ position: 'relative', marginBottom: 6 }}>
+                    <input
+                      type="text"
+                      placeholder="e.g. @kinjal_patel or @wedding_clicks"
+                      value={collaborator}
+                      onChange={(e) => setCollaborator(e.target.value)}
+                      className="input input-xs"
+                      style={{ paddingLeft: 26 }}
+                    />
+                    <AtSign size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    {collaborator && (
+                      <button
+                        type="button"
+                        onClick={() => setCollaborator('')}
+                        style={{
+                          position: 'absolute',
+                          right: 6,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--muted-foreground)',
+                          cursor: 'pointer',
+                          padding: 2,
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Collaborator Preset Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {[
+                      '@kinjal_patel',
+                      '@bride_look_surat',
+                      '@gujaratibrides',
+                      '@surat_weddings',
+                      '@shreebeautystudio',
+                    ].map((collab) => (
+                      <button
+                        key={collab}
+                        type="button"
+                        onClick={() => setCollaborator(collab)}
+                        className={`btn btn-xs ${collaborator === collab ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{
+                          fontSize: 9.5,
+                          padding: '2px 7px',
+                          height: 'auto',
+                          borderRadius: 999,
+                          border: collaborator === collab ? 'none' : '1px solid var(--border)',
+                          background: collaborator === collab ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                          color: collaborator === collab ? '#fff' : undefined,
+                          fontWeight: collaborator === collab ? 800 : 500,
+                        }}
+                      >
+                        🤝 {collab}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1587,8 +1759,8 @@ export default function InstagramHubPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div
                       style={{
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         borderRadius: '50%',
                         background: 'linear-gradient(45deg, #f09433, #dc2743)',
                         display: 'flex',
@@ -1597,16 +1769,41 @@ export default function InstagramHubPage() {
                         color: '#fff',
                         fontWeight: 800,
                         fontSize: 13,
+                        boxShadow: '0 2px 8px rgba(220, 39, 67, 0.3)',
+                        flexShrink: 0,
                       }}
                     >
                       S
                     </div>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                         <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--foreground)' }}>shreebeauty.studio</span>
                         <CheckCircle size={12} color="#3b82f6" fill="#3b82f6" />
+                        {collaborator.trim() && (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 800,
+                              color: '#E1306C',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              background: 'rgba(225, 48, 108, 0.1)',
+                              padding: '1px 6px',
+                              borderRadius: 6,
+                              border: '1px solid rgba(225, 48, 108, 0.2)',
+                            }}
+                          >
+                            <Users size={11} /> and {collaborator.trim().startsWith('@') ? collaborator.trim() : `@${collaborator.trim()}`}
+                          </span>
+                        )}
                       </div>
-                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Katargam, Surat • Original Audio</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10.5, color: 'var(--muted-foreground)' }}>
+                        <MapPin size={10} color="#E1306C" />
+                        <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{postLocation.trim() || 'Katargam, Surat'}</span>
+                        <span>•</span>
+                        <span>Original Audio</span>
+                      </div>
                     </div>
                   </div>
 
@@ -1752,29 +1949,122 @@ export default function InstagramHubPage() {
                   </div>
                 )}
 
-                {/* Editable Caption Textarea inside Mockup */}
-                <div style={{ padding: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <label className="label" style={{ fontSize: 11, fontWeight: 700, margin: 0 }}>
-                      ✏️ Edit Attached Caption & Hashtags Freely:
-                    </label>
-                    <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>{generatedCaption.length} chars</span>
+                {/* Editable Caption Textarea inside Mockup with SHOW FULL Toggle */}
+                <div style={{ padding: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <label className="label" style={{ fontSize: 12, fontWeight: 800, margin: 0 }}>
+                        ✏️ Edit Attached Caption & Hashtags Freely:
+                      </label>
+                      <span style={{ fontSize: 10.5, color: 'var(--muted-foreground)', background: 'var(--bg-secondary, rgba(0,0,0,0.05))', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                        {generatedCaption.length} chars
+                      </span>
+                    </div>
+
+                    {/* SHOW FULL TOGGLE BUTTON */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowFullCaption(!showFullCaption)}
+                        className={`btn btn-xs ${showFullCaption ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: showFullCaption ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                          color: showFullCaption ? '#fff' : undefined,
+                          border: showFullCaption ? 'none' : undefined,
+                          boxShadow: showFullCaption ? '0 2px 8px rgba(220, 39, 67, 0.3)' : 'none',
+                        }}
+                        title="Expand or collapse caption height to see all hashtags and contact CTA"
+                      >
+                        {showFullCaption ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                        {showFullCaption ? '📜 SHOWING FULL (100%)' : '📜 SHOW FULL CAPTION'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(generatedCaption, 'copy-caption-btn')}
+                        className="btn btn-secondary btn-xs"
+                        style={{ fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        {copiedId === 'copy-caption-btn' ? <Check size={11} color="#16a34a" /> : <Copy size={11} />}
+                        Copy All
+                      </button>
+                    </div>
                   </div>
+
                   <textarea
                     value={generatedCaption}
                     onChange={(e) => setGeneratedCaption(e.target.value)}
-                    rows={8}
+                    rows={showFullCaption ? 20 : 8}
                     className="input"
+                    placeholder="Enter or customize Instagram caption..."
                     style={{
                       fontFamily: 'monospace',
-                      fontSize: 12,
-                      lineHeight: 1.5,
-                      padding: 10,
-                      borderRadius: 8,
+                      fontSize: 12.5,
+                      lineHeight: 1.55,
+                      padding: 12,
+                      borderRadius: 10,
                       resize: 'vertical',
                       width: '100%',
+                      minHeight: showFullCaption ? 400 : 160,
+                      border: '1.5px solid rgba(225, 48, 108, 0.3)',
+                      boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)',
+                      background: 'var(--card-bg, #ffffff)',
                     }}
                   />
+
+                  {/* Quick Tag Injection & Action Bar */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginTop: 8, paddingTop: 6, borderTop: '1px dashed var(--border)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!generatedCaption.includes(postLocation)) {
+                            setGeneratedCaption((prev) => `📍 Location: ${postLocation}\n\n` + prev);
+                            toast('📍 Injected location tag into caption!', 'success');
+                          } else {
+                            toast('Location is already in the caption', 'info');
+                          }
+                        }}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3, color: '#E1306C', fontWeight: 700 }}
+                      >
+                        <MapPin size={11} /> + Tag Location ({postLocation})
+                      </button>
+
+                      {collaborator && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const collabTag = collaborator.startsWith('@') ? collaborator : `@${collaborator}`;
+                            if (!generatedCaption.includes(collabTag)) {
+                              setGeneratedCaption((prev) => prev + `\n\n🤝 In Collab With: ${collabTag}`);
+                              toast('🤝 Injected collaborator tag into caption!', 'success');
+                            } else {
+                              toast('Collaborator is already in the caption', 'info');
+                            }
+                          }}
+                          className="btn btn-ghost btn-xs"
+                          style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3, color: '#E1306C', fontWeight: 700 }}
+                        >
+                          <Users size={11} /> + Tag Collab ({collaborator})
+                        </button>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleGenerateFresh}
+                      className="btn btn-ghost btn-xs"
+                      style={{ fontSize: 10.5, display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--muted-foreground)' }}
+                    >
+                      <RefreshCw size={10} /> Regenerate Angle
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1915,61 +2205,161 @@ export default function InstagramHubPage() {
       {/* ── TAB 2: AI CAPTION STUDIO ── */}
       {activeTab === 'studio' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-          <div className="card" style={{ borderRadius: 16, padding: 22 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Sparkles size={20} color="#ca8a04" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>AI Reel Hook & Caption Generator</h3>
-                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>Infinite non-repeating viral hooks & captions</p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
-                {[
-                  { id: 'bridal', label: '👑 Bridal' },
-                  { id: 'sagai', label: '💍 Sagai' },
-                  { id: 'hydrafacial', label: '✨ HydraFacial' },
-                  { id: 'hair', label: '💇‍♀️ Hair Botox' },
-                  { id: 'nails', label: '💅 Nails' },
-                  { id: 'festival', label: '🪔 Festive' },
-                  { id: 'review', label: '⭐ Review' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    onClick={() => setCaptionCategory(cat.id as any)}
-                    className={`btn btn-sm ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
+          <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={20} color="#ca8a04" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>AI Reel Hook & Caption Generator</h3>
+                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>Infinite non-repeating viral hooks, location & collab tags</p>
+                </div>
               </div>
 
               <button
                 type="button"
                 onClick={handleGenerateFresh}
-                className="btn btn-primary"
-                style={{
-                  fontWeight: 800,
-                  background: 'linear-gradient(45deg, #f09433, #dc2743)',
-                  border: 'none',
-                }}
+                disabled={isGenerating}
+                className="btn btn-secondary btn-xs"
+                style={{ fontWeight: 800, color: '#E1306C', display: 'flex', alignItems: 'center', gap: 4 }}
               >
-                <RefreshCw size={16} /> REFRESH NEW GENERATE
+                <RefreshCw size={12} className={isGenerating ? 'animate-spin' : ''} />
+                Refresh Angle
               </button>
             </div>
+
+            {/* Category Chips */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 6 }}>
+              {[
+                { id: 'bridal', label: '👑 Bridal' },
+                { id: 'sagai', label: '💍 Sagai' },
+                { id: 'hydrafacial', label: '✨ HydraFacial' },
+                { id: 'hair', label: '💇‍♀️ Hair Botox' },
+                { id: 'nails', label: '💅 Nails' },
+                { id: 'festival', label: '🪔 Festive' },
+                { id: 'review', label: '⭐ Review' },
+              ].map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCaptionCategory(cat.id as any)}
+                  className={`btn btn-sm ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: 11.5, fontWeight: captionCategory === cat.id ? 800 : 500 }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Language Chips */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {[
+                { id: 'hinglish', label: 'Hinglish (Viral)' },
+                { id: 'gujarati', label: 'ગુજરાતી' },
+                { id: 'english', label: 'English' },
+              ].map((lang) => (
+                <button
+                  key={lang.id}
+                  type="button"
+                  onClick={() => setCaptionLanguage(lang.id as any)}
+                  className={`btn btn-xs ${captionLanguage === lang.id ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: 11, fontWeight: captionLanguage === lang.id ? 800 : 500 }}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Bride Name: Kinjal Patel"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="input input-xs"
+              />
+              <input
+                type="text"
+                placeholder="Special Offer: 20% OFF"
+                value={specialOffer}
+                onChange={(e) => setSpecialOffer(e.target.value)}
+                className="input input-xs"
+              />
+            </div>
+
+            {/* Location & Collab */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Location: Katargam, Surat"
+                  value={postLocation}
+                  onChange={(e) => setPostLocation(e.target.value)}
+                  className="input input-xs"
+                  style={{ paddingLeft: 24 }}
+                />
+                <MapPin size={11} color="#E1306C" style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
+
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Collaborator: @kinjal_patel"
+                  value={collaborator}
+                  onChange={(e) => setCollaborator(e.target.value)}
+                  className="input input-xs"
+                  style={{ paddingLeft: 24 }}
+                />
+                <Users size={11} color="#E1306C" style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGenerateFresh}
+              className="btn btn-primary"
+              style={{
+                fontWeight: 800,
+                background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                border: 'none',
+                boxShadow: '0 4px 14px rgba(220, 39, 67, 0.3)',
+              }}
+            >
+              <RefreshCw size={16} /> REFRESH NEW VIRAL CAPTION
+            </button>
           </div>
 
-          <div className="card" style={{ borderRadius: 16, padding: 22 }}>
+          <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 800 }}>📜 Generated Caption & Hashtags ({generatedCaption.length} chars)</span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(generatedCaption, 'copy-studio')}
+                  className="btn btn-primary btn-xs"
+                  style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  {copiedId === 'copy-studio' ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
+                  Copy Full Caption
+                </button>
+              </div>
+            </div>
+
             <textarea
               value={generatedCaption}
               onChange={(e) => setGeneratedCaption(e.target.value)}
-              rows={16}
+              rows={20}
               className="input"
-              style={{ fontFamily: 'monospace', fontSize: 12.5, lineHeight: 1.55, resize: 'vertical' }}
+              style={{
+                fontFamily: 'monospace',
+                fontSize: 12.5,
+                lineHeight: 1.55,
+                resize: 'vertical',
+                minHeight: 420,
+                padding: 12,
+                borderRadius: 10,
+              }}
             />
           </div>
         </motion.div>
