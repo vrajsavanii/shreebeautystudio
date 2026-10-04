@@ -421,30 +421,32 @@ export default function InstagramHubPage() {
       hooks: { hinglish: string[]; gujarati: string[]; english: string[] };
       bodies: { hinglish: string[]; gujarati: string[]; english: string[] };
       technique: { hinglish: string[]; gujarati: string[]; english: string[] };
+      viralTriggers: { hinglish: string[]; gujarati: string[]; english: string[] };
+      seoKeywords: string;
       hashtags: string[];
     }> = {
       bridal: {
         hooks: {
           hinglish: [
-            `👑 Royal D-Day Transformation for ${nameStr} ✨`,
-            `🔥 POV: You chose ${salonName} for your Dream Wedding Glam 👰💖`,
+            `👑 Best Bridal Makeup in Surat | Royal Wedding Day Transformation for ${nameStr} ✨`,
+            `🔥 POV: You chose Surat's top bridal studio for your Dream Wedding Glam 👰💖`,
+            `✨ Clean-luxury Gujarati bridal aesthetic & HD Airbrush Radiance for ${nameStr} 💍`,
             `🥺 The moment she looked into the mirror and saw her dream bridal look come alive... ✨`,
-            `✨ Pure luxury. Zero filter. Just 100% timeless bridal perfection on ${nameStr}! 💍`,
-            `💄 Behind The Scenes: Crafting the signature royal glow for ${nameStr} 👑`,
-            `🌟 Less is more: The modern clean-luxury Gujarati bridal aesthetic ✨`,
-            `💎 D-Day Magic: When every brushstroke is crafted with love and passion at ${salonName} 👰`,
+            `💎 Pure luxury. Zero filter. 100% Tear-proof & Waterproof Bridal Perfection on ${nameStr}! 💍`,
+            `💄 Behind The Scenes: Crafting the signature royal glow for ${nameStr} at ${salonName} 👑`,
             `🪔 Traditional Gujarati Panetar & Royal Airbrush Radiance for ${nameStr} ✨`,
+            `🌟 Less is more: Flawless HD Airbrush Bridal Glow crafted with love in Surat 👰`,
           ],
           gujarati: [
-            `👑 શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ લુક: ${nameStr} ✨`,
-            `🪔 પાનેતર અને કંકુ પગલાંનો અનોખો શાહી શણગાર: શ્રી બ્યૂટી સ્ટુડિયો 👰`,
+            `👑 સુરતનું શ્રેષ્ઠ બ્રાઇડલ મેકઅપ સ્ટુડિયો: ${nameStr} નો રોયલ ડી-ડે વેડિંગ લુક ✨`,
+            `🪔 પાનેતર અને કંકુ પગલાંનો અનોખો શાહી શણગાર: શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ 👰`,
             `💖 લગ્નના પવિત્ર દિવસે મેળવો 100% નેચરલ અને વોટરપ્રૂફ HD એરબ્રશ ગ્લો! ✨`,
             `🌸 સુરતની દરેક કન્યાનું સપનું: શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ મેકઓવર 👑`,
           ],
           english: [
-            `👑 Timeless Elegance & Bridal Perfection for ${nameStr} ✨`,
+            `👑 Best Bridal Makeup Artist in Surat | Timeless Royal Perfection for ${nameStr} ✨`,
             `✨ The Modern Indian Bride: Radiance, Grace & Bespoke Artistry at ${salonName} 👰`,
-            `💄 The Art of Flawless, Flash-Ready Bridal Artistry on ${nameStr} 👑`,
+            `💄 The Art of Flawless, Flash-Ready Bridal Artistry on ${nameStr} in Surat 👑`,
           ],
         },
         bodies: {
@@ -464,18 +466,32 @@ export default function InstagramHubPage() {
           gujarati: [`✨ 100% વોટરપ્રૂફ એરબ્રશ | HD ફિનિશ | રોયલ ચૂંદડી સેટિંગ`],
           english: [`✨ HD Airbrush Magic | Tear-Proof & Waterproof`],
         },
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this reel for your upcoming Wedding / Reception moodboard!\n👭 TAG a bride-to-be bestie who needs this royal bridal glow!\n💬 Rate this bridal look (1 to 10) in the comments below! 👇✨`,
+            `📌 SAVE this look for your D-Day inspiration!\n👭 Share with your sister or best friend who is getting married soon! 👰💖\n💬 Drop a '❤️' if you love this clean royal aesthetic! 👇`,
+          ],
+          gujarati: [
+            `📌 તમારા લગ્ન માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારી બ્રાઇડ-ટુ-બી બહેનપણી સાથે શેર (SHARE) કરો! 👰✨\n💬 તમને આ લુક કેવો લાગ્યો? કમેન્ટમાં જણાવો! 👇`,
+          ],
+          english: [
+            `📌 SAVE this look for your bridal moodboard!\n👭 TAG a future bride who needs this timeless glow!\n💬 Rate this transformation from 1-10 in the comments below! 👇✨`,
+          ],
+        },
+        seoKeywords: `🔍 Instagram SEO: Best Bridal Makeup Artist in Surat | Katargam Bridal Studio | Gujarati Bride Look | HD Airbrush Makeover Surat | Wedding Makeup Artist Gujarat | Shree Beauty Studio`,
         hashtags: [
-          '#ShreeBeautyStudio', '#SuratBridalMakeup', '#SuratMakeupArtist', '#GujaratiBride', '#BridalMakeoverSurat',
-          '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#SuratBeautyStudio', '#WeddingGlam', '#KatargamSalon'
+          '#SuratBridalMakeup', '#SuratMakeupArtist', '#KatargamSalon', '#GujaratiBride', '#BridalMakeoverSurat',
+          '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#DesiBride', '#BridalGlow', '#WeddingGlam',
+          '#BridalTransformation', '#ExplorePage', '#ReelsInstagram', '#TrendingReels', '#ViralMakeup', '#ShreeBeautyStudio'
         ],
       },
       sagai: {
         hooks: {
           hinglish: [
-            `💍 She said YES! ✨ Dreamy Sagai / Engagement Glam for ${nameStr} 💖`,
-            `✨ The Ring Ceremony Glow: When all eyes are on our gorgeous bride-to-be ${nameStr} 💍👑`,
-            `💍 Soft, Radiant & Modern Engagement Makeover for ${nameStr} at ${salonName} ✨`,
-            `🔥 POV: You chose ${salonName} for your Dream Sagai / Ring Ceremony Makeover 💍💖`,
+            `💍 Dreamy Engagement / Sagai Makeover in Surat for ${nameStr} ✨💖`,
+            `✨ Soft Pastel Glam & Dewy Glass Skin for ${nameStr}'s Ring Ceremony at ${salonName} 💍`,
+            `🔥 POV: Getting ready for your Ring Ceremony with Surat's top bridal studio 👰💖`,
+            `💍 She said YES! Minimalist modern engagement makeup with soft romantic curls ✨`,
             `🥺 That special moment she looked in the mirror before her Ring Ceremony... ✨💍`,
             `💖 Pastel Elegance, Luminous Skin & Soft Romantic Curls on ${nameStr} 💍`,
             `✨ Pure sophistication: The modern clean-glam Gujarati Sagai aesthetic ✨`,
@@ -487,7 +503,7 @@ export default function InstagramHubPage() {
             `🌸 રીંગ સેરેમની સ્પેશિયલ: સુરતની દરેક કન્યાની પહેલી પસંદ શ્રી બ્યૂટી સ્ટુડિયો 💍`,
           ],
           english: [
-            `💍 Timeless Elegance & Dreamy Engagement Glam for ${nameStr} ✨`,
+            `💍 Timeless Elegance & Dreamy Engagement Glam for ${nameStr} in Surat ✨`,
             `✨ She's Ready for the Ring Ceremony! Radiant, Dewy & Bespoke Artistry at ${salonName} 💍`,
             `💖 Soft Pastel Glam & HD Airbrush Radiance for ${nameStr}'s Engagement Day 💍`,
           ],
@@ -509,100 +525,261 @@ export default function InstagramHubPage() {
           gujarati: [`✨ સોફ્ટ HD ગ્લો | 100% વોટરપ્રૂફ | ટ્રેન્ડી હેરસ્ટાઇલ`],
           english: [`✨ Soft HD Glam | Dewy Radiant Finish | Long-Wear Formulation`],
         },
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this look for your upcoming Sagai / Engagement moodboard!\n👭 TAG your newly engaged sister or bestie! 💍💖\n💬 Tell us in the comments: Soft Dewy Glam or Bold Lip Look for Sagai? 👇✨`,
+          ],
+          gujarati: [
+            `📌 તમારી સગાઈ માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારી ફિયાન્સી કે બહેનપણી સાથે શેર (SHARE) કરો! 💍✨\n💬 કમેન્ટમાં જણાવો: તમને સોફ્ટ લુક ગમે કે બોલ્ડ લુક? 👇`,
+          ],
+          english: [
+            `📌 SAVE this look for your engagement inspo!\n👭 TAG a bride-to-be who would rock this look! 💍\n💬 Drop your favorite emoji in the comments! 👇`,
+          ],
+        },
+        seoKeywords: `🔍 Instagram SEO: Engagement Makeup Surat | Sagai Makeover Katargam | Ring Ceremony Look Surat | Soft Glam Makeup Artist Surat | Shree Beauty Studio`,
         hashtags: [
           '#SagaiMakeupSurat', '#EngagementMakeupSurat', '#SuratEngagementBride', '#SagaiLook', '#RingCeremonyMakeup',
-          '#ShreeBeautyStudio', '#SuratBridalStudio', '#SuratSalon', '#EngagementGlam', '#KatargamSalon'
+          '#ShreeBeautyStudio', '#SuratBridalStudio', '#SuratSalon', '#EngagementGlam', '#KatargamSalon',
+          '#ExplorePage', '#TrendingReels', '#ViralReels'
         ],
       },
       hydrafacial: {
         hooks: {
-          hinglish: [`✨ 7-Step Korean Glass Skin HydraFacial Treatment 💧`],
-          gujarati: [`✨ 7-સ્ટેપ કોરિયન ગ્લાસ સ્કીન હાઇડ્રાફેશિયલ ટ્રીટમેન્ટ 💧`],
-          english: [`💧 Unlock Luminous Glass Skin with Medical-Grade HydraFacial ✨`],
+          hinglish: [
+            `💧 7-Step Korean Glass Skin HydraFacial Treatment in Surat ✨`,
+            `✨ Get Instant Red-Carpet Glow & Deep Pore Cleansing with Medical-Grade HydraFacial 💧`,
+            `🔥 Watch blackheads & dead skin vanish instantly with HydraFacial at ${salonName} Katargam!`,
+            `🥺 POV: Experiencing Surat's most relaxing & deeply hydrating skin makeover 💧✨`,
+          ],
+          gujarati: [
+            `✨ 7-સ્ટેપ કોરિયન ગ્લાસ સ્કીન હાઇડ્રાફેશિયલ ટ્રીટમેન્ટ: શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ 💧`,
+            `💧 ડીપ પોર ક્લીનિંગ અને ઇન્સ્ટન્ટ ગ્લો સાથે મેળવો કાચ જેવી ચમકતી સ્કીન! ✨`,
+            `🌸 ખીલ, ડાઘ અને બ્લેકહેડ્સમાંથી મુક્તિ: સુરતનું બેસ્ટ હાઇડ્રાફેશિયલ 💧`,
+          ],
+          english: [
+            `💧 Unlock Luminous Glass Skin with Medical-Grade HydraFacial in Surat ✨`,
+            `✨ The 7-Step Korean Hydrating Glow Therapy at ${salonName} Katargam 💧`,
+          ],
         },
         bodies: {
-          hinglish: [`Say goodbye to dull skin, clogged pores, and pigmentation! Experience deep exfoliation, vacuum blackhead extraction, and intense hyaluronic serum infusion for an unmistakable radiant glow.`],
-          gujarati: [`ડીપ પોર ક્લીનિંગ, વેક્યુમ બ્લેકહેડ્સ રિમૂવલ અને હાઇડ્રેટિંગ સીરમ ઇન્ફ્યુઝનથી મેળવો કાચ જેવી ચમકતી સ્કીન!`],
-          english: [`Vortex suction extracts impurities while simultaneously bathing the skin with nourishing antioxidants and hyaluronic peptides.`],
+          hinglish: [
+            `Say goodbye to dull skin, clogged pores, and pigmentation! Experience deep exfoliation, vacuum blackhead extraction, and intense hyaluronic serum infusion for an unmistakable radiant glow.`,
+          ],
+          gujarati: [
+            `ડીપ પોર ક્લીનિંગ, વેક્યુમ બ્લેકહેડ્સ રિમૂવલ અને હાઇડ્રેટિંગ સીરમ ઇન્ફ્યુઝનથી મેળવો કાચ જેવી ચમકતી સ્કીન!`,
+          ],
+          english: [
+            `Vortex suction extracts impurities while simultaneously bathing the skin with nourishing antioxidants and hyaluronic peptides.`,
+          ],
         },
         technique: {
           hinglish: [`✨ 100% Painless | No Downtime | Instant Glass-Skin Glow`],
           gujarati: [`✨ ઇન્સ્ટન્ટ ગ્લો | ડીપ ક્લીનિંગ | 100% પેઇનલેસ`],
           english: [`✨ Zero Downtime | Medical-Grade Extraction`],
         },
-        hashtags: ['#HydraFacialSurat', '#GlassSkinSurat', '#ShreeBeautyStudio', '#SuratSkinCare', '#SkinGlowSurat'],
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this reel for your pre-bridal or monthly skincare routine!\n👭 TAG a friend who loves glowing, glass-like skin! 💧✨\n💬 Comment 'GLOW' below to get our exclusive HydraFacial package details! 👇`,
+          ],
+          gujarati: [
+            `📌 તમારી સ્કિનકેર રૂટિન માટે આ રીલ સેવ (SAVE) કરી લો!\n👭 સ્કિન લવર ફ્રેન્ડ સાથે શેર (SHARE) કરો! 💧✨\n💬 કમેન્ટમાં 'GLOW' લખો સ્પેશિયલ ઓફર જાણવા માટે! 👇`,
+          ],
+          english: [
+            `📌 SAVE this for your next salon self-care day!\n👭 TAG a friend who needs a skin reset! 💧\n💬 Comment 'GLOW' for pricing & appointments! 👇`,
+          ],
+        },
+        seoKeywords: `🔍 Instagram SEO: HydraFacial in Surat | Best Skin Clinic Katargam | Korean Glass Skin Surat | Pre-Bridal Facial Treatment | Shree Beauty Studio Surat`,
+        hashtags: [
+          '#HydraFacialSurat', '#GlassSkinSurat', '#ShreeBeautyStudio', '#SuratSkinCare', '#SkinGlowSurat',
+          '#KatargamSalon', '#PreBridalSkinCare', '#FacialSurat', '#ExplorePage', '#TrendingReels', '#ViralReels'
+        ],
       },
       hair: {
         hooks: {
-          hinglish: [`💇‍♀️ Silky Smooth, Mirror-Shine Hair Botox & Keratin Transformation ✨`],
-          gujarati: [`💇‍♀️ વાળને આપો સોફ્ટ, સિલ્કી અને શાઇની લુક: હેર બોટોક્સ & કેરાટિન ✨`],
-          english: [`✨ Liquid Glass Hair: Premium Keratin & Protein Infusion 💇‍♀️`],
+          hinglish: [
+            `💇‍♀️ Mirror-Shine Hair Botox & Keratin Treatment in Surat | Zero Frizz ✨`,
+            `✨ Liquid Glass Hair: Formaldehyde-Free Keratin & Protein Infusion at ${salonName} 💇‍♀️`,
+            `🔥 Say goodbye to dry, frizzy hair! 6-Month Long-Lasting Hair Botox Makeover ✨`,
+            `🥺 Watch this breathtaking frizzy-to-silky hair transformation in Katargam, Surat 💇‍♀️`,
+          ],
+          gujarati: [
+            `💇‍♀️ વાળને આપો સોફ્ટ, સિલ્કી અને શાઇની લુક: હેર બોટોક્સ & કેરાટિન ટ્રીટમેન્ટ કતારગામ, સુરત ✨`,
+            `✨ 100% સેફ અને પ્રોટીન રિચ હેર સ્મૂધનીંગ: શ્રી બ્યૂટી સ્ટુડિયો 💇‍♀️`,
+            `🌸 વાંકડિયા અને ડ્રાય વાળમાંથી મેળવો 6 મહિના સુધી સિલ્કી મુલાયમ વાળ! ✨`,
+          ],
+          english: [
+            `✨ Liquid Glass Hair: Premium Keratin & Protein Infusion in Surat 💇‍♀️`,
+            `💇‍♀️ Zero Frizz, Mirror Shine: Hair Botox Transformation at ${salonName} ✨`,
+          ],
         },
         bodies: {
-          hinglish: [`Transform dry, frizzy, and chemically treated hair into ultra-glossy, soft-flowing hair with our formaldehyde-free protein treatment.`],
-          gujarati: [`શ્રી બ્યૂટી સ્ટુડિયો ખાતે કરાવો પ્રીમિયમ હેર બોટોક્સ ટ્રીટમેન્ટ જે વાળને બનાવે છે એકદમ મુલાયમ, સિલ્કી અને ચમકદાર.`],
-          english: [`Restore damaged hair cuticle health, lock in essential hydration, and achieve effortless manageable silkiness.`],
+          hinglish: [
+            `Transform dry, frizzy, and chemically treated hair into ultra-glossy, soft-flowing hair with our formaldehyde-free protein treatment.`,
+          ],
+          gujarati: [
+            `શ્રી બ્યૂટી સ્ટુડિયો ખાતે કરાવો પ્રીમિયમ હેર બોટોક્સ ટ્રીટમેન્ટ જે વાળને બનાવે છે એકદમ મુલાયમ, સિલ્કી અને ચમકદાર.`,
+          ],
+          english: [
+            `Restore damaged hair cuticle health, lock in essential hydration, and achieve effortless manageable silkiness.`,
+          ],
         },
         technique: {
           hinglish: [`✨ Formaldehyde-Free | Long-Lasting 6 Months | High-Gloss Shine`],
           gujarati: [`✨ 100% સેફ & પ્રોટીન રિચ | 6 મહિના સુધી સોફ્ટ વાળ`],
           english: [`✨ 100% Formaldehyde-Free | Mirror Gloss`],
         },
-        hashtags: ['#HairBotoxSurat', '#KeratinSurat', '#HairSmootheningSurat', '#ShreeBeautyStudio', '#SuratHairSalon'],
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this for your next hair makeover appointment!\n👭 SHARE with a friend struggling with frizzy or unmanageable hair! 💇‍♀️✨\n💬 Comment 'HAIR' to book your hair consultation! 👇`,
+          ],
+          gujarati: [
+            `📌 તમારા વાળના મેકઓવર માટે આ પોસ્ટ સેવ (SAVE) કરી લો!\n👭 ફ્રીઝી વાળવાળી ફ્રેન્ડ સાથે શેર (SHARE) કરો! 💇‍♀️✨\n💬 કમેન્ટમાં 'HAIR' લખો ફ્રી કન્સલ્ટેશન માટે! 👇`,
+          ],
+          english: [
+            `📌 SAVE this hair transformation inspo!\n👭 SHARE with someone who loves silky smooth hair!\n💬 Comment 'HAIR' for slot availability! 👇`,
+          ],
+        },
+        seoKeywords: `🔍 Instagram SEO: Hair Botox Surat | Best Keratin Treatment Katargam | Hair Smoothening Surat | Hair Spa & Makeover Surat | Shree Beauty Studio`,
+        hashtags: [
+          '#HairBotoxSurat', '#KeratinSurat', '#HairSmootheningSurat', '#ShreeBeautyStudio', '#SuratHairSalon',
+          '#KatargamSalon', '#SilkyHairSurat', '#HairTransformation', '#ExplorePage', '#ViralReels', '#TrendingHair'
+        ],
       },
       nails: {
         hooks: {
-          hinglish: [`💅 Handcrafted Luxury Nail Art & Gel Extensions Masterpiece ✨`],
-          gujarati: [`💅 બ્રાઇડલ & ફેન્સી નેઇલ આર્ટ એક્સટેન્શન: શ્રી બ્યૂટી સ્ટુડિયો ✨`],
-          english: [`💅 Precision Gel Extensions & Haute Nail Couture at ${salonName} ✨`],
+          hinglish: [
+            `💅 Handcrafted Luxury Nail Art & Gel Extensions in Surat ✨`,
+            `✨ 4+ Weeks Chip-Free Bridal Chrome & 3D Crystal Nail Couture at ${salonName} 💅`,
+            `🔥 The ultimate French Ombre & Swarovski Crystal Nail Glam in Katargam, Surat 💎`,
+          ],
+          gujarati: [
+            `💅 બ્રાઇડલ & ફેન્સી નેઇલ આર્ટ એક્સટેન્શન: શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ✨`,
+            `✨ તમારા હાથને આપો રોયલ લુક: 4+ અઠવાડિયા સુધી ટકી રહે તેવા જેલ એક્સટેન્શન 💅`,
+          ],
+          english: [
+            `💅 Precision Gel Extensions & Haute Nail Couture in Surat at ${salonName} ✨`,
+          ],
         },
         bodies: {
-          hinglish: [`Add unmatched elegance to your fingertips! From subtle French ombre chrome to 3D bridal crystal art.`],
-          gujarati: [`તમારા હાથને આપો રોયલ લુક! ટ્રેન્ડિંગ નેઇલ આર્ટ, ક્રોમ ફિનિશ અને જેલ એક્સટેન્શન.`],
-          english: [`Flawless shape architecture, custom chrome powders, and ultra-durable long-wear gel formulations.`],
+          hinglish: [
+            `Add unmatched elegance to your fingertips! From subtle French ombre chrome to 3D bridal crystal art.`,
+          ],
+          gujarati: [
+            `તમારા હાથને આપો રોયલ લુક! ટ્રેન્ડિંગ નેઇલ આર્ટ, ક્રોમ ફિનિશ અને જેલ એક્સટેન્શન.`,
+          ],
+          english: [
+            `Flawless shape architecture, custom chrome powders, and ultra-durable long-wear gel formulations.`,
+          ],
         },
         technique: {
           hinglish: [`✨ 4+ Weeks Chip-Resistant | Swarovski Crystal Accents`],
           gujarati: [`✨ 4+ અઠવાડિયા સુધી ટકાઉ | જેલ એક્સટેન્શન`],
           english: [`✨ 4+ Weeks Chip-Free`],
         },
-        hashtags: ['#NailArtSurat', '#GelNailsSurat', '#BridalNails', '#ShreeBeautyStudio'],
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this design for your upcoming bridal or event nail inspiration!\n👭 TAG your nail-obsessed bestie! 💅✨\n💬 What's your nail vibe: Short Minimal or Long French Ombre? 👇`,
+          ],
+          gujarati: [
+            `📌 તમારા ફેવરિટ નેઇલ આર્ટ માટે આ ડિઝાઇન સેવ (SAVE) કરી લો!\n👭 નેઇલ લવર ફ્રેન્ડ સાથે શેર (SHARE) કરો! 💅✨`,
+          ],
+          english: [
+            `📌 SAVE this nail art for your next refill appointment!\n👭 TAG a friend who needs fresh nails! 💅✨`,
+          ],
+        },
+        seoKeywords: `🔍 Instagram SEO: Nail Art Surat | Gel Nail Extensions Katargam | Bridal Nails Surat | Luxury Nail Studio Gujarat | Shree Beauty Studio`,
+        hashtags: [
+          '#NailArtSurat', '#GelNailsSurat', '#BridalNails', '#ShreeBeautyStudio', '#KatargamSalon',
+          '#NailExtensionsSurat', '#ExplorePage', '#ViralReels', '#TrendingNails'
+        ],
       },
       festival: {
         hooks: {
-          hinglish: [`🪔 Festive Glam & Royal Celebration Combos at ${salonName} ✨`],
-          gujarati: [`🪔 તહેવારો અને લગ્નની સીઝન માટે સ્પેશિયલ મેકઓવર પેકેજ ✨`],
-          english: [`🪔 Festive Radiance & Event Glamour Packages at ${salonName} ✨`],
+          hinglish: [
+            `🪔 Festive Glam & Royal Event Makeover Combos in Surat at ${salonName} ✨`,
+            `✨ Sweatproof Festive Makeup, Trendy Hairdo & Radiant Glow for Navratri / Diwali 🪔`,
+          ],
+          gujarati: [
+            `🪔 તહેવારો અને લગ્નની સીઝન માટે સ્પેશિયલ મેકઓવર પેકેજ: શ્રી બ્યૂટી સ્ટુડિયો ✨`,
+            `✨ નવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ સ્વેટપ્રૂફ મેકઅપ 🪔`,
+          ],
+          english: [
+            `🪔 Festive Radiance & Event Glamour Packages in Surat at ${salonName} ✨`,
+          ],
         },
         bodies: {
-          hinglish: [`Get celebration-ready with our signature festive makeover combos—including premium facial, hair spa, and flawless party makeup!`],
-          gujarati: [`નવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ મેકઅપ અને હેરસ્ટાઇલિંગ ઓફર્સ શ્રી બ્યૂટી સ્ટુડિયો ખાતે!`],
-          english: [`Look stunning at every gathering with our curated beauty packages designed for effortless glamour.`],
+          hinglish: [
+            `Get celebration-ready with our signature festive makeover combos—including premium facial, hair spa, and flawless party makeup!`,
+          ],
+          gujarati: [
+            `નવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ મેકઅપ અને હેરસ્ટાઇલિંગ ઓફર્સ શ્રી બ્યૂટી સ્ટુડિયો ખાતે!`,
+          ],
+          english: [
+            `Look stunning at every gathering with our curated beauty packages designed for effortless glamour.`,
+          ],
         },
         technique: {
           hinglish: [`✨ Sweatproof Festive Makeup | Party Hairdo | Instant Glow`],
           gujarati: [`✨ તહેવારો સ્પેશિયલ | સ્વેટપ્રૂફ મેકઅપ`],
           english: [`✨ Sweatproof Formula`],
         },
-        hashtags: ['#FestiveGlam', '#NavratriGlow', '#DiwaliMakeover', '#ShreeBeautyStudio'],
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this reel for your upcoming festive family function or wedding event!\n👭 TAG your garba/party partner who needs this festive look! 🪔✨\n💬 Comment 'FESTIVE' to grab the festive offer! 👇`,
+          ],
+          gujarati: [
+            `📌 તમારા ફેમિલી ફંકશન માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારી ગરબા પાર્ટનર સાથે શેર (SHARE) કરો! 🪔✨`,
+          ],
+          english: [
+            `📌 SAVE this festive look inspo!\n👭 TAG your party partner! 🪔`,
+          ],
+        },
+        seoKeywords: `🔍 Instagram SEO: Festive Makeup Surat | Navratri Makeup Katargam | Party Makeover Surat | Event Glam Studio Surat | Shree Beauty Studio`,
+        hashtags: ['#FestiveGlam', '#NavratriGlow', '#DiwaliMakeover', '#PartyMakeupSurat', '#SuratSalon', '#KatargamSalon', '#ExplorePage', '#ViralReels', '#ShreeBeautyStudio'],
       },
       review: {
         hooks: {
-          hinglish: [`🌟 5-Star Review & Love from Our Wonderful Client! 💖`],
-          gujarati: [`🌟 ગ્રાહકોનો અતૂટ વિશ્વાસ અને પ્રેમ: 5-સ્ટાર રિવ્યૂ 💖`],
-          english: [`🌟 "Exceeded all my expectations for my wedding day!" 💖`],
+          hinglish: [
+            `🌟 5-Star Client Review | Surat's Most Trusted Bridal & Beauty Studio 💖`,
+            `🥺 "Exceeded all my expectations for my wedding day!" — Real Surat Bride Review ✨`,
+          ],
+          gujarati: [
+            `🌟 ગ્રાહકોનો અતૂટ વિશ્વાસ અને પ્રેમ: 5-સ્ટાર રિવ્યૂ | શ્રી બ્યૂટી સ્ટુડિયો 💖`,
+            `"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — 5 Star Review ✨`,
+          ],
+          english: [
+            `🌟 "Exceeded all my expectations for my wedding day!" 💖 | 5-Star Review`,
+          ],
         },
         bodies: {
-          hinglish: [`"The best bridal and salon experience in Surat! The team at Shree Beauty Studio is incredibly skilled, warm, and attentive." — Truly humbled by your trust!`],
-          gujarati: [`"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — તમારા આ સ્નેહ માટે ખૂબ ખૂબ આભાર!`],
-          english: [`Another heartwarming review from our radiant bride. Thank you for making Shree Beauty Studio part of your most cherished milestone!`],
+          hinglish: [
+            `"The best bridal and salon experience in Surat! The team at Shree Beauty Studio is incredibly skilled, warm, and attentive." — Truly humbled by your trust!`,
+          ],
+          gujarati: [
+            `"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — તમારા આ સ્નેહ માટે ખૂબ ખૂબ આભાર!`,
+          ],
+          english: [
+            `Another heartwarming review from our radiant bride. Thank you for making Shree Beauty Studio part of your most cherished milestone!`,
+          ],
         },
         technique: {
           hinglish: [`✨ 100% 5-Star Rated | Trusted by 10,000+ Surat Brides`],
           gujarati: [`✨ 5-સ્ટાર રેટિંગ | સુરતની વિશ્વસનીય સલૂન`],
           english: [`✨ 5-Star Certified`],
         },
-        hashtags: ['#ClientReview', '#5StarsSurat', '#ShreeBeautyStudio', '#SuratSalonReviews'],
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE & Book early to secure your wedding or engagement dates!\n👭 SHARE with future brides looking for trusted artists in Surat! 👰💖\n💬 Tell us your dream wedding look in the comments below! 👇`,
+          ],
+          gujarati: [
+            `📌 તમારા લગ્નની તારીખો માટે અગાઉથી બુકિંગ કરાવો!\n👭 સુરતની ભાવિ કન્યાઓ સાથે શેર (SHARE) કરો! 👰💖`,
+          ],
+          english: [
+            `📌 SAVE & Book early to lock your wedding dates!\n👭 SHARE with future brides! 👰`,
+          ],
+        },
+        seoKeywords: `🔍 Instagram SEO: Best Salon Reviews Surat | Trusted Bridal Artist Katargam | 5 Star Makeup Studio Surat | Shree Beauty Studio Reviews`,
+        hashtags: ['#ClientReview', '#5StarsSurat', '#ShreeBeautyStudio', '#SuratSalonReviews', '#KatargamSalon', '#SuratBridalStudio', '#ExplorePage'],
       },
     };
 
@@ -610,6 +787,7 @@ export default function InstagramHubPage() {
     const hooksList = catData.hooks[captionLanguage] || catData.hooks.hinglish;
     const bodiesList = catData.bodies[captionLanguage] || catData.bodies.hinglish;
     const techList = catData.technique[captionLanguage] || catData.technique.hinglish;
+    const triggersList = catData.viralTriggers[captionLanguage] || catData.viralTriggers.hinglish;
 
     const availableHooks = hooksList.filter((h) => h !== lastHookUsed);
     const chosenHook = pickRandom(availableHooks.length > 0 ? availableHooks : hooksList);
@@ -617,15 +795,16 @@ export default function InstagramHubPage() {
 
     const chosenBody = pickRandom(bodiesList);
     const chosenTech = pickRandom(techList);
-    const chosenHashtags = pickMultipleRandom(catData.hashtags, Math.min(12, catData.hashtags.length)).join(' ');
+    const chosenTrigger = pickRandom(triggersList);
+    const chosenHashtags = pickMultipleRandom(catData.hashtags, Math.min(15, catData.hashtags.length)).join(' ');
 
     const ctas = [
-      `🏠 Studio: ${address}\n📞 Bridal Booking Helpline: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book`,
-      `🏠 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
+      `📩 DM @shreebeauty.studio for bridal packages & date availability\n🏠 Studio: ${address}\n📞 Helpline / WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`,
+      `📩 Send a DM to reserve your date or get package details!\n🏠 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
-    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}\n\n${chosenCta}\n\n────────────────\n${chosenHashtags}`;
+    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n────────────────\n${catData.seoKeywords}\n\n${chosenHashtags}`;
   }, [captionCategory, captionLanguage, clientName, specialOffer, settings, lastHookUsed]);
 
   // Master Generation
@@ -2049,6 +2228,26 @@ export default function InstagramHubPage() {
                         background: 'var(--card-bg, #ffffff)',
                       }}
                     />
+
+                    {/* Instagram SEO & Viral Algorithm Indicator */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginTop: 8, fontSize: 11 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a', padding: '3px 8px', borderRadius: 6, fontWeight: 700, fontSize: 10.5 }}>
+                          <CheckCircle size={11} /> 🔍 Instagram Search SEO
+                        </span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(225, 48, 108, 0.1)', color: '#E1306C', padding: '3px 8px', borderRadius: 6, fontWeight: 700, fontSize: 10.5 }}>
+                          <Flame size={11} /> 🔥 Viral Saves & Shares Hook
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleGenerateFresh}
+                        className="btn btn-ghost btn-xs"
+                        style={{ fontSize: 10.5, fontWeight: 700, color: '#E1306C', padding: '2px 6px' }}
+                      >
+                        🎲 Shuffle Viral Hook
+                      </button>
+                    </div>
                   </div>
 
                   {/* ── 📍 NATIVE INSTAGRAM ROW 1: ADD LOCATION ── */}
