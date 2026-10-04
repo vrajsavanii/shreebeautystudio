@@ -271,9 +271,9 @@ export default function PublicHomePage() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Where <span style={{ color: '#D4AF37' }}>Elegance</span>
+              Best Ladies Beauty Salon &amp;{' '}
               <br />
-              Meets Excellence.
+              <span style={{ color: '#D4AF37' }}>Bridal Studio in Surat</span>
             </motion.h1>
 
             <motion.p

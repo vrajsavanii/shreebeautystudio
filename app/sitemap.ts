@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { ALL_BLOG_POSTS } from '@/lib/blog-data';
 import { ALL_LOCATION_SLUGS } from '@/lib/locations-data';
+import { ALL_SERVICE_SEO_SLUGS } from '@/lib/services-seo-data';
 
 const BASE_URL = 'https://shreebeauty.studio';
 
@@ -64,6 +65,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  const servicePages: MetadataRoute.Sitemap = ALL_SERVICE_SEO_SLUGS.map((slug) => ({
+    url: `${BASE_URL}/services/${slug}`,
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
+    priority: 0.9,
+  }));
+
   const blogPages: MetadataRoute.Sitemap = ALL_BLOG_POSTS.map((post) => ({
     url: `${BASE_URL}/blog/${post.slug}`,
     lastModified: post.publishedAt ? new Date(post.publishedAt).toISOString() : now,
@@ -82,9 +90,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/locations/${slug}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
-      priority: slug === 'surat' ? 0.95 : 0.9,
+      priority: slug === 'surat' || slug === 'katargam' ? 0.95 : 0.9,
     })),
   ];
 
-  return [...staticPages, ...locationPages, ...blogPages];
+  return [...staticPages, ...servicePages, ...locationPages, ...blogPages];
 }

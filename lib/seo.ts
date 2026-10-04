@@ -372,12 +372,53 @@ export function getBreadcrumbSchema(items: BreadcrumbItem[]) {
   };
 }
 
-// ─── FAQPage Schema ──────────────────────────────────────────────────────────
-
 export interface FAQItem {
   question: string;
   answer: string;
 }
+
+export const CANONICAL_FAQS: FAQItem[] = [
+  {
+    question: 'What is the best beauty salon in Surat?',
+    answer:
+      'Shree Beauty Studio, located at 22, Radhika Society, Opposite Cancer Hospital, Katargam, Surat, is consistently rated as Surat’s best 100% ladies-only beauty salon & bridal studio with a 4.9★ Google rating, 25+ years of verified heritage, and over 5,000+ happy brides.',
+  },
+  {
+    question: 'Is Shree Beauty Studio ladies-only?',
+    answer:
+      'Yes, Shree Beauty Studio is 100% exclusively dedicated to women. No male visitors or staff are admitted, ensuring complete privacy, sanctuary comfort, and discreet ladies-only care for all styling, waxing, skincare, and bridal sessions.',
+  },
+  {
+    question: 'Do you offer bridal makeup packages in Surat?',
+    answer:
+      'Yes, luxury bridal packages start from ₹15,000 for single event makeovers up to couture 3-session packages (Wedding, Mandap Muhurat, Sangeet) featuring MAC, Huda Beauty, Bobbi Brown, Dior, NARS, and Charlotte Tilbury cosmetics with trial sessions and HD styling.',
+  },
+  {
+    question: 'What hair treatments do you offer?',
+    answer:
+      'Our specialized hair menu includes Keratin Smoothing (from ₹3,000), Nanoplastia Organic Glass Hair Smoothing (from ₹4,500), Hair Botox Deep Conditioning (from ₹3,500), Intensive Hair Spa (from ₹800), and global hair coloring with authentic L’Oréal Professionnel products.',
+  },
+  {
+    question: 'Where is Shree Beauty Studio located?',
+    answer:
+      'We are located at 22, Radhika Society, Opposite Cancer Hospital, Katargam, Surat, Gujarat 395004. We are open 7 days a week, Monday through Sunday, from 10:00 AM to 07:00 PM IST.',
+  },
+  {
+    question: 'Do you serve cities other than Surat?',
+    answer:
+      'Yes, Shree Beauty Studio accepts destination bridal makeovers, pre-bridal consultations, and hair treatment bookings from clients across Gujarat including Vadodara, Ahmedabad, Navsari, Bharuch, and Rajkot.',
+  },
+  {
+    question: 'What are your prices?',
+    answer:
+      'Services start at ₹50 for fixed-rate eyebrow threading. Haircuts from ₹350, facials from ₹700 (Hydra Facial from ₹2,500), hair treatments from ₹3,000, and full 3-session bridal packages from ₹25,300. All prices are transparent with zero hidden fees.',
+  },
+  {
+    question: 'Are your beauty products genuine?',
+    answer:
+      'Yes, 100% of our salon products and cosmetics are authentic original sealed formulations from L’Oréal Professionnel, Huda Beauty, MAC, NARS, Bobbi Brown, Dior, and PAC — never counterfeit or diluted.',
+  },
+];
 
 export function getFAQSchema(faqs: FAQItem[]) {
   return {
@@ -393,6 +434,11 @@ export function getFAQSchema(faqs: FAQItem[]) {
     })),
   };
 }
+
+export function getCanonicalFAQSchema() {
+  return getFAQSchema(CANONICAL_FAQS);
+}
+
 
 // ─── WebPage Schema ──────────────────────────────────────────────────────────
 

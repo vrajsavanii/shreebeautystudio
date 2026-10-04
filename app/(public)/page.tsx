@@ -1,42 +1,39 @@
 import type { Metadata } from 'next';
 import HomePageClient from './HomePageClient';
-import { getLocalBusinessSchema, getWebSiteSchema } from '@/lib/seo';
+import { getLocalBusinessSchema, getWebSiteSchema, getCanonicalFAQSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: {
-    absolute: 'Shree Beauty Parlour & Studio — Official Website | Best Ladies Salon & Bridal Studio',
+    absolute: 'Shree Beauty Studio — Best Ladies Salon & Bridal Parlour in Surat, Katargam | 4.9★ | 25+ Years',
   },
   description:
-    'Shree Beauty Parlour & Studio is Gujarat’s premier 100% ladies-only beauty salon & bridal studio (Operating Hub: Katargam, Surat). 25+ years of verified excellence for bridal makeovers, hair treatments, and skin care.',
+    'Surat’s #1 ladies-only beauty salon & bridal studio in Katargam. 5,000+ happy brides, 4.9★ Google rating, 100% genuine luxury products. Book online instantly. Open 7 days.',
   keywords: [
-    'shree beauty parlour',
+    'best beauty salon in surat',
+    'best beauty parlour in surat',
+    'beauty parlour in surat',
+    'beauty studio surat',
+    'ladies salon surat',
+    'best bridal makeup in surat',
+    'bridal studio surat',
+    'beauty parlour katargam',
+    'ladies parlour katargam surat',
+    'keratin treatment surat',
+    'nanoplastia treatment surat',
+    'hydra facial surat',
+    'hair botox surat',
+    'bridal makeup artist surat',
+    '100% ladies only salon surat',
     'shree beauty parlour surat',
-    'shree beauty parlour katargam',
-    'shree beauty studio',
     'shree beauty studio surat',
-    'best beauty studio in surat',
-    'best beauty salon in Surat',
-    'best beauty parlour in Surat',
-    'best bridal studio in Surat',
-    'beauty studio Surat',
-    'bridal makeovers Surat',
-    'hair treatments Surat',
-    'skin care Surat',
-    'beauty parlour Katargam Surat',
-    'top salon in Surat Gujarat',
-    'bridal makeup artist Surat',
-    'hair botox salon Surat',
-    'nanoplastia treatment Surat',
-    'hydra facial Surat',
-    'ladies beauty parlour Surat',
   ],
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Shree Beauty Parlour & Studio — Official Website | Best Ladies Salon',
+    title: 'Shree Beauty Studio — Best Ladies Salon & Bridal Parlour in Surat, Katargam | 4.9★ | 25+ Years',
     description:
-      'Shree Beauty Parlour & Studio is Gujarat’s premier 100% ladies-only beauty salon & bridal studio (Operating Hub: Katargam, Surat). 25+ years of verified excellence.',
+      'Surat’s #1 ladies-only beauty salon & bridal studio in Katargam. 5,000+ happy brides, 4.9★ Google rating, 100% genuine luxury products. Book online instantly. Open 7 days.',
     url: 'https://shreebeauty.studio',
     siteName: 'Shree Beauty Studio & Parlour',
     locale: 'en_IN',
@@ -46,15 +43,15 @@ export const metadata: Metadata = {
         url: '/logo-with-name.png',
         width: 800,
         height: 600,
-        alt: 'Shree Beauty Parlour & Studio — Official Website',
+        alt: 'Shree Beauty Studio — Best Ladies Salon & Bridal Parlour in Surat',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Shree Beauty Parlour & Studio — Official Website | Best Ladies Salon',
+    title: 'Shree Beauty Studio — Best Ladies Salon & Bridal Parlour in Surat, Katargam | 4.9★ | 25+ Years',
     description:
-      'Shree Beauty Parlour & Studio is Gujarat’s premier 100% ladies-only beauty salon & bridal studio (Operating Hub: Katargam, Surat).',
+      'Surat’s #1 ladies-only beauty salon & bridal studio in Katargam. 5,000+ happy brides, 4.9★ Google rating, 100% genuine luxury products.',
     images: ['/logo-with-name.png'],
   },
 };
@@ -62,6 +59,7 @@ export const metadata: Metadata = {
 export default function HomePage() {
   const localBusinessJsonLd = getLocalBusinessSchema();
   const webSiteJsonLd = getWebSiteSchema();
+  const faqJsonLd = getCanonicalFAQSchema();
 
   return (
     <>
@@ -74,7 +72,12 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <HomePageClient />
     </>
   );
 }
+
