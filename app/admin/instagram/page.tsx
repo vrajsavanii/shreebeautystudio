@@ -119,7 +119,7 @@ export default function InstagramHubPage() {
   const [publishMessage, setPublishMessage] = useState<string>('');
 
   // AI Caption Studio State
-  const [captionCategory, setCaptionCategory] = useState<'bridal' | 'hydrafacial' | 'hair' | 'nails' | 'festival' | 'review'>('bridal');
+  const [captionCategory, setCaptionCategory] = useState<'bridal' | 'sagai' | 'hydrafacial' | 'hair' | 'nails' | 'festival' | 'review'>('bridal');
   const [captionLanguage, setCaptionLanguage] = useState<'english' | 'hinglish' | 'gujarati'>('hinglish');
   const [generationCount, setGenerationCount] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -404,6 +404,51 @@ export default function InstagramHubPage() {
         hashtags: [
           '#ShreeBeautyStudio', '#SuratBridalMakeup', '#SuratMakeupArtist', '#GujaratiBride', '#BridalMakeoverSurat',
           '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#SuratBeautyStudio', '#WeddingGlam', '#KatargamSalon'
+        ],
+      },
+      sagai: {
+        hooks: {
+          hinglish: [
+            `💍 She said YES! ✨ Dreamy Sagai / Engagement Glam for ${nameStr} 💖`,
+            `✨ The Ring Ceremony Glow: When all eyes are on our gorgeous bride-to-be ${nameStr} 💍👑`,
+            `💍 Soft, Radiant & Modern Engagement Makeover for ${nameStr} at ${salonName} ✨`,
+            `🔥 POV: You chose ${salonName} for your Dream Sagai / Ring Ceremony Makeover 💍💖`,
+            `🥺 That special moment she looked in the mirror before her Ring Ceremony... ✨💍`,
+            `💖 Pastel Elegance, Luminous Skin & Soft Romantic Curls on ${nameStr} 💍`,
+            `✨ Pure sophistication: The modern clean-glam Gujarati Sagai aesthetic ✨`,
+          ],
+          gujarati: [
+            `💍 સગાઈનો શાહી શણગાર: ${nameStr} માટે સ્પેશિયલ સોફ્ટ એન્ડ ગ્લોઇંગ મેકઓવર ✨`,
+            `💖 સગાઈના પવિત્ર દિવસે મેળવો 100% નેચરલ, ફ્રેશ અને વોટરપ્રૂફ HD એરબ્રશ ગ્લો! 💍`,
+            `💍 શ્રી બ્યૂટી સ્ટુડિયો રોયલ સગાઈ / એન્ગેજમેન્ટ લુક: ${nameStr} ✨`,
+            `🌸 રીંગ સેરેમની સ્પેશિયલ: સુરતની દરેક કન્યાની પહેલી પસંદ શ્રી બ્યૂટી સ્ટુડિયો 💍`,
+          ],
+          english: [
+            `💍 Timeless Elegance & Dreamy Engagement Glam for ${nameStr} ✨`,
+            `✨ She's Ready for the Ring Ceremony! Radiant, Dewy & Bespoke Artistry at ${salonName} 💍`,
+            `💖 Soft Pastel Glam & HD Airbrush Radiance for ${nameStr}'s Engagement Day 💍`,
+          ],
+        },
+        bodies: {
+          hinglish: [
+            `Sagai is all about fresh, radiant, and dreamy aesthetics! From customized soft-glam eye artistry to lightweight HD airbrush base and romantic hairstyle—every detail crafted to perfection.`,
+            `Minimal yet breathtakingly regal! Enhancing her natural features with luminous dewy skin finish, glossy lips, and flawless jewelry setting for the ring ceremony.`,
+          ],
+          gujarati: [
+            `સગાઈના શુભ પ્રસંગે મેળવો મનમોહક અને આકર્ષક લુક! સોફ્ટ સ્મોકી આઇઝ, નેચરલ ગ્લોઇંગ બેઝ અને ટ્રેન્ડી હેરસ્ટાઇલિંગ જે તમારા ખાસ દિવસને બનાવે છે વધુ યાદગાર.`,
+          ],
+          english: [
+            `Crafting a fresh, youthful, and luminous engagement makeover with weightless HD cosmetics, soft romantic waves, and custom drape.`,
+          ],
+        },
+        technique: {
+          hinglish: [`✨ Soft HD Glam | 100% Waterproof | Dewy Glass Finish`],
+          gujarati: [`✨ સોફ્ટ HD ગ્લો | 100% વોટરપ્રૂફ | ટ્રેન્ડી હેરસ્ટાઇલ`],
+          english: [`✨ Soft HD Glam | Dewy Radiant Finish | Long-Wear Formulation`],
+        },
+        hashtags: [
+          '#SagaiMakeupSurat', '#EngagementMakeupSurat', '#SuratEngagementBride', '#SagaiLook', '#RingCeremonyMakeup',
+          '#ShreeBeautyStudio', '#SuratBridalStudio', '#SuratSalon', '#EngagementGlam', '#KatargamSalon'
         ],
       },
       hydrafacial: {
@@ -1357,9 +1402,10 @@ export default function InstagramHubPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Category Chips */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 6 }}>
                   {[
                     { id: 'bridal', label: '👑 Bridal' },
+                    { id: 'sagai', label: '💍 Sagai' },
                     { id: 'hydrafacial', label: '✨ HydraFacial' },
                     { id: 'hair', label: '💇‍♀️ Hair Botox' },
                     { id: 'nails', label: '💅 Nails' },
@@ -1775,9 +1821,10 @@ export default function InstagramHubPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8 }}>
                 {[
                   { id: 'bridal', label: '👑 Bridal' },
+                  { id: 'sagai', label: '💍 Sagai' },
                   { id: 'hydrafacial', label: '✨ HydraFacial' },
                   { id: 'hair', label: '💇‍♀️ Hair Botox' },
                   { id: 'nails', label: '💅 Nails' },
