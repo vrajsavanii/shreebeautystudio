@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,11 +25,18 @@ import {
   X,
   Phone,
   Layers,
-  Wand2,
-  Crown,
+  UploadCloud,
+  Play,
+  Pause,
+  Eye,
+  PlusCircle,
+  Video,
+  FileText,
+  Smartphone,
   Flame,
   Star,
-  Shuffle
+  Trash2,
+  CheckCircle
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -51,9 +58,8 @@ interface InstagramPost {
   timestamp: string;
 }
 
-type TabType = 'feed' | 'studio' | 'crosspost' | 'settings';
+type TabType = 'upload' | 'studio' | 'feed' | 'crosspost' | 'settings';
 
-// Helper utilities for infinite non-repeating generation
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -69,17 +75,22 @@ export default function InstagramHubPage() {
   const settings = data.settings;
   const customers = data.customers || [];
 
-  const [activeTab, setActiveTab] = useState<TabType>('feed');
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<TabType>('upload');
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState<InstagramPost[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'reel' | 'photo'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPostForShare, setSelectedPostForShare] = useState<InstagramPost | null>(null);
 
-  // Share Modal State
-  const [selectedCustomerPhone, setSelectedCustomerPhone] = useState('');
-  const [customShareMessage, setCustomShareMessage] = useState('');
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  // ── DIRECT UPLOADER & PUBLISHER STATE ──
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadMediaType, setUploadMediaType] = useState<'reel' | 'photo'>('reel');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState<boolean | null>(null);
+  const [publishMessage, setPublishMessage] = useState<string>('');
 
   // AI Caption Studio State
   const [captionCategory, setCaptionCategory] = useState<'bridal' | 'hydrafacial' | 'hair' | 'nails' | 'festival' | 'review'>('bridal');
@@ -90,6 +101,11 @@ export default function InstagramHubPage() {
   const [specialOffer, setSpecialOffer] = useState('');
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [lastHookUsed, setLastHookUsed] = useState('');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Share Modal State
+  const [selectedCustomerPhone, setSelectedCustomerPhone] = useState('');
+  const [customShareMessage, setCustomShareMessage] = useState('');
 
   // Settings state
   const [handle, setHandle] = useState(settings?.instagramHandle || '@shreebeauty.studio');
@@ -107,12 +123,9 @@ export default function InstagramHubPage() {
       const json = await res.json();
       if (json.success && Array.isArray(json.posts)) {
         setPosts(json.posts);
-        toast(`✨ Synced ${json.posts.length} Instagram posts & reels successfully!`, 'success');
-      } else {
-        toast(json.error || 'Failed to sync Instagram feed', 'error');
       }
     } catch {
-      toast('Network error syncing Instagram feed', 'error');
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -122,21 +135,6 @@ export default function InstagramHubPage() {
     fetchFeed();
   }, []);
 
-  // Filtered Posts
-  const filteredPosts = useMemo(() => {
-    return posts.filter((p) => {
-      const matchesType = filterType === 'all' || p.type === filterType;
-      const matchesSearch = !searchQuery.trim() || p.caption.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesType && matchesSearch;
-    });
-  }, [posts, filterType, searchQuery]);
-
-  // Statistics
-  const totalPosts = posts.length;
-  const totalReels = posts.filter((p) => p.type === 'reel').length;
-  const totalPhotos = posts.filter((p) => p.type === 'photo').length;
-  const totalLikes = posts.reduce((acc, p) => acc + (p.likes || 0), 0);
-
   // Copy helper with animation
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -145,7 +143,7 @@ export default function InstagramHubPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // ── INFINITE NON-REPEATING COMBINATORIAL AI CAPTION GENERATOR ──
+  // ── INFINITE NON-REPEATING CAPTION GENERATOR ──
   const generateInfiniteCaption = useCallback(() => {
     const salonName = settings?.salon || 'Shree Beauty Studio';
     const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
@@ -153,7 +151,6 @@ export default function InstagramHubPage() {
     const nameStr = clientName.trim() ? clientName.trim() : 'our gorgeous bride';
     const offerStr = specialOffer.trim() ? `\n\n🎉 Limited Privilege Offer: ${specialOffer.trim()}` : '';
 
-    // Category Libraries
     const DATA: Record<string, {
       hooks: { hinglish: string[]; gujarati: string[]; english: string[] };
       bodies: { hinglish: string[]; gujarati: string[]; english: string[] };
@@ -174,9 +171,6 @@ export default function InstagramHubPage() {
             `✨ Stop scrolling, Surat brides! Save this bridal transformation for your wedding moodboard 📌💫`,
             `💍 From Miss to Mrs: Celebrating our stunning bride ${nameStr} with royal bridal glam 🥂`,
             `🌸 Soft romantic curls, ethereal glass-skin glow, and regal veil setting on ${nameStr} 💖`,
-            `💫 A bride should never look masked—she should look like her most radiant self! ✨`,
-            `👰 Royal bridal elegance that captures hearts and turns heads at every step ✨`,
-            `👑 Step into your forever with the unmistakable ${salonName} bridal aura 💖`,
           ],
           gujarati: [
             `👑 શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ લુક: ${nameStr} ✨`,
@@ -185,8 +179,6 @@ export default function InstagramHubPage() {
             `🌸 સુરતની દરેક કન્યાનું સપનું: શ્રી બ્યૂટી સ્ટુડિયો રોયલ બ્રાઇડલ મેકઓવર 👑`,
             `💫 ${nameStr} માટે ખાસ કસ્ટમાઇઝ્ડ શાહી લુક અને પરફેક્ટ ચૂંદડી ડ્રેપિંગ! 💍`,
             `✨ કુદરતી સુંદરતા અને રોયલ ફિનિશિંગ સાથેનો અદભુત બ્રાઇડલ મેકઅપ 🪔`,
-            `👰 દરેક કન્યાના ખાસ દિવસને યાદગાર બનાવતો શ્રી બ્યૂટી સ્ટુડિયોનો જાદુઇ ટચ ✨`,
-            `💍 શાહી અંદાજ અને પરંપરાગત ગુજરાતી લગ્ન શણગાર: ${nameStr} 💖`,
           ],
           english: [
             `👑 Timeless Elegance & Bridal Perfection for ${nameStr} ✨`,
@@ -195,8 +187,6 @@ export default function InstagramHubPage() {
             `🌟 Pure Bridal Royalty: Unfiltered glow that lasts through every emotional tear and smile 🤍`,
             `💍 Elevating natural beauty into a royal masterpiece for ${nameStr} ✨`,
             `👰 Every bride has a dream look—we bring it to life with precision & love at ${salonName} 💫`,
-            `👑 Ethereal, regal, and breathtaking: The signature ${salonName} bride ✨`,
-            `✨ Handcrafted bridal glamour tailored to match your wedding lehenga palette 💖`,
           ],
         },
         bodies: {
@@ -205,44 +195,25 @@ export default function InstagramHubPage() {
             `Zero cakey layers. 100% waterproof, sweatproof, and camera-ready magic! Designed to stay fresh through all the emotional moments, mandap pheras, and midnight reception spotlight.`,
             `Skin prep is the real secret! 45 minutes of customized skin hydration + lightweight waterproof coverage for that signature dewy royal radiance.`,
             `Soft champagne halo eyes, sculpted cheekbones, romantic floral hair artistry, and precision veil setting that turns heads all evening.`,
-            `Because your wedding day is a once-in-a-lifetime milestone, and you deserve nothing less than supreme royal luxury.`,
-            `Blending heritage Gujarati tradition with modern luxury HD airbrush techniques for an unforgettable bridal aura.`,
           ],
           gujarati: [
             `લગ્નના પવિત્ર દિવસે દરેક કન્યાનું સપનું હોય છે સૌથી સુંદર અને શાહી દેખાવું! શ્રી બ્યૂટી સ્ટુડિયો લાવે છે 100% વોટરપ્રૂફ HD એરબ્રશ મેકઅપ, પરફેક્ટ આઇ આર્ટ અને રોયલ ચૂંદડી ડ્રેપિંગ.`,
             `પરંપરાગત ગુજરાતી લગ્ન માટે ખાસ કસ્ટમાઇઝ્ડ બ્રાઇડલ પેકેજ. નેચરલ સ્કીન ગ્લો, સોફ્ટ હેરસ્ટાઇલ અને આખો દિવસ ટકી રહેતો એરબ્રશ લુક.`,
-            `શ્રી બ્યૂટી સ્ટુડિયો ખાતે અમે દરેક કન્યાની સ્કિન ટાઇપ મુજબ પર્સનલાઇઝ્ડ મેકઅપ અને હેરસ્ટાઇલિંગ કરીએ છીએ.`,
-            `ચહેરાની નેચરલ સુંદરતાને નિખારીને આપો રોયલ લુક જે તમારા ફોટો અને વીડિયોમાં હંમેશા શાઇન કરશે.`,
           ],
           english: [
             `Creating an ethereal, regal bridal glow that lasts through all the emotional moments and smiles. Mastered with luxury international cosmetics, weightless finish, and bespoke jewelry setting.`,
             `Sweatproof, HD flash-ready, and lightweight comfort all through your wedding rituals. Experience personalized bridal pampering with certified master artists in Surat.`,
-            `Soft smokey eye contouring, satin skin radiance, and precision veil artistry. Every bride deserves a personalized signature look tailored to her facial features.`,
-            `Skin prep is our obsession: deep pore hydration followed by featherlight micro-pigment layering for that radiant queen-like glow.`,
           ],
         },
         technique: {
-          hinglish: [
-            `✨ HD Airbrush Finish | 100% Waterproof | Tear-Proof & Flash-Ready`,
-            `💎 Custom Jewelry & Mathapatti Setting | Soft Romantic Waves | Glass-Skin Glow`,
-            `👑 40-Min Luxury Skin Prep | International Cosmetics | All-Day Freshness`,
-            `💄 Bespoke Veil Draping | High-Definition Contouring | Featherlight Comfort`,
-          ],
-          gujarati: [
-            `✨ 100% વોટરપ્રૂફ એરબ્રશ | HD ફિનિશ | રોયલ ચૂંદડી & જ્વેલરી સેટિંગ`,
-            `👑 ઇન્ટરનેશનલ બ્રાન્ડ્સ | નેચરલ ગ્લાસ સ્કીન | પરફેક્ટ હેર આર્ટ`,
-          ],
-          english: [
-            `✨ HD Airbrush Magic | Tear-Proof & Waterproof | Flash-Optimized`,
-            `👑 Bespoke Jewelry Draping | Weightless Satin Radiance | Luxury Prep`,
-          ],
+          hinglish: [`✨ HD Airbrush Finish | 100% Waterproof | Tear-Proof & Flash-Ready`],
+          gujarati: [`✨ 100% વોટરપ્રૂફ એરબ્રશ | HD ફિનિશ | રોયલ ચૂંદડી & જ્વેલરી સેટિંગ`],
+          english: [`✨ HD Airbrush Magic | Tear-Proof & Waterproof | Flash-Optimized`],
         },
         hashtags: [
           '#ShreeBeautyStudio', '#SuratBridalMakeup', '#SuratMakeupArtist', '#GujaratiBride', '#BridalMakeoverSurat',
-          '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#SuratBeautyStudio', '#WeddingGlam', '#DesiBride',
-          '#KatargamSalon', '#SuratWeddings', '#BridalGlow', '#IndianBride', '#GlamByShree', '#SuratBridalStudio',
-          '#BridalArtistSurat', '#PanetarBride', '#WeddingInspoSurat', '#SuratDiaries', '#Varachha', '#BridalReel',
-          '#TrendingSurat', '#ShaadiLook', '#DulhanVibes', '#SuratWomen', '#MakeupSurat', '#WeddingSiders', '#GujaratiWedding'
+          '#RoyalBride', '#SuratSalon', '#IndianWeddingBuzz', '#SuratBeautyStudio', '#WeddingGlam', '#KatargamSalon',
+          '#BridalGlow', '#IndianBride', '#GlamByShree', '#SuratBridalStudio', '#BridalArtistSurat', '#TrendingSurat'
         ],
       },
       hydrafacial: {
@@ -251,51 +222,35 @@ export default function InstagramHubPage() {
             `✨ 7-Step Korean Glass Skin HydraFacial Treatment 💧`,
             `💧 Why Every Bride & Groom Needs a HydraFacial Before D-Day! ✨`,
             `🌟 Instant Radiant Glow: Say goodbye to blackheads & dull skin! 🧖‍♀️`,
-            `✨ Zero Downtime. 100% Painless. The ultimate deep skin detox at ${salonName} 💧`,
-            `💎 Step into the world of medical-grade skin hydration and glowing glass finish ✨`,
           ],
           gujarati: [
             `✨ 7-સ્ટેપ કોરિયન ગ્લાસ સ્કીન હાઇડ્રાફેશિયલ ટ્રીટમેન્ટ 💧`,
             `💧 ખીલ, બ્લેકહેડ્સ અને ટેનિંગને કહો હંમેશ માટે અલવિદા! ✨`,
-            `🌟 ચહેરાને આપો ઇન્સ્ટન્ટ ગ્લો અને સ્મૂથ ટેક્સચર શ્રી બ્યૂટી સ્ટુડિયો ખાતે 🧖‍♀️`,
           ],
           english: [
             `💧 Unlock Luminous Glass Skin with Medical-Grade HydraFacial ✨`,
             `✨ The Ultimate 7-Step Skin Reset: Deep vortex cleanse & antioxidant infusion 💧`,
-            `🌟 Redefining Skincare: Painless extraction meets intense hyaluronic glow at ${salonName} 🧖‍♀️`,
           ],
         },
         bodies: {
           hinglish: [
             `Say goodbye to dull skin, clogged pores, and pigmentation! Experience deep exfoliation, vacuum blackhead extraction, and intense hyaluronic serum infusion for an unmistakable radiant glow.`,
-            `Deeply cleanses congested pores, removes dead skin cells, and infuses active peptides for camera-ready, soft-touch glass skin. Get your pre-event glow booster today!`,
-            `Vortex suction extracts deep sebum while simultaneously bathing the skin in peptides and brightening botanical extracts.`,
           ],
           gujarati: [
             `ડીપ પોર ક્લીનિંગ, વેક્યુમ બ્લેકહેડ્સ રિમૂવલ અને હાઇડ્રેટિંગ સીરમ ઇન્ફ્યુઝનથી મેળવો કાચ જેવી ચમકતી સ્કીન!`,
-            `તડકાથી પડેલા ટેનિંગ અને ડલનેસને દૂર કરીને તમારા ચહેરાને આપો તાજગી અને ગ્લો.`,
           ],
           english: [
             `Vortex suction extracts impurities while simultaneously bathing the skin with nourishing antioxidants and hyaluronic peptides.`,
-            `Experience the holy grail of instant radiance: deep exfoliation, painless extractions, and multi-vitamin skin quenching.`,
           ],
         },
         technique: {
-          hinglish: [
-            `✨ 100% Painless | No Downtime | Instant Glass-Skin Glow`,
-            `💧 Deep Vortex Cleansing | Hyaluronic Acid Infusion | Collagen Boost`,
-          ],
-          gujarati: [
-            `✨ ઇન્સ્ટન્ટ ગ્લો | ડીપ ક્લીનિંગ | 100% પેઇનલેસ`,
-          ],
-          english: [
-            `✨ Zero Downtime | Medical-Grade Extraction | Instant Radiance`,
-          ],
+          hinglish: [`✨ 100% Painless | No Downtime | Instant Glass-Skin Glow`],
+          gujarati: [`✨ ઇન્સ્ટન્ટ ગ્લો | ડીપ ક્લીનિંગ | 100% પેઇનલેસ`],
+          english: [`✨ Zero Downtime | Medical-Grade Extraction | Instant Radiance`],
         },
         hashtags: [
           '#HydraFacialSurat', '#GlassSkinSurat', '#ShreeBeautyStudio', '#SuratSkinCare', '#SkinGlowSurat',
-          '#FacialSurat', '#KatargamSalon', '#KoreanSkinCareSurat', '#BridalSkinCare', '#PreBridalSurat',
-          '#GlowUpSurat', '#SuratBeautyParlour', '#ClearSkinGoals', '#SkinDetox', '#HydraGlow'
+          '#FacialSurat', '#KatargamSalon', '#KoreanSkinCareSurat', '#GlowUpSurat'
         ],
       },
       hair: {
@@ -303,152 +258,87 @@ export default function InstagramHubPage() {
           hinglish: [
             `💇‍♀️ Silky Smooth, Mirror-Shine Hair Botox & Keratin Transformation ✨`,
             `✨ Say Goodbye to Daily Flat Irons & Frizz with ${salonName} Hair Spa 💁‍♀️`,
-            `🌟 Liquid Glass Hair: From unmanageable frizz to runway-smooth perfection ✨`,
-            `💇‍♀️ The Ultimate Protein Restoration for Damaged & Colored Hair at ${salonName} 💖`,
           ],
           gujarati: [
             `💇‍♀️ વાળને આપો સોફ્ટ, સિલ્કી અને શાઇની લુક: હેર બોટોક્સ & કેરાટિન ✨`,
-            `✨ સુકા અને ફ્રિઝી વાળથી પરેશાન છો? મેળવો ગ્લાસ-શાઇન હેર ટ્રીટમેન્ટ 💖`,
           ],
           english: [
             `✨ Liquid Glass Hair: Premium Keratin & Protein Infusion 💇‍♀️`,
-            `💇‍♀️ Transform Frizz into High-Gloss Mirror Silk at ${salonName} ✨`,
           ],
         },
         bodies: {
           hinglish: [
             `Transform dry, frizzy, and chemically treated hair into ultra-glossy, soft-flowing hair with our formaldehyde-free protein treatment. Lasts up to 5-6 months!`,
-            `Wake up every single morning with runway-ready, salon-smooth hair. Deep moisture restoration and long-lasting glass shine.`,
-            `Infused with active keratin peptides and nourishing argan oils to strengthen hair strands from core to cuticle.`,
           ],
           gujarati: [
             `શ્રી બ્યૂટી સ્ટુડિયો ખાતે કરાવો પ્રીમિયમ હેર બોટોક્સ ટ્રીટમેન્ટ જે વાળને બનાવે છે એકદમ મુલાયમ, સિલ્કી અને ચમકદાર.`,
-            `ફ્રિઝ-ફ્રી અને મેનેજેબલ વાળ માટે સ્પેશિયલ પ્રોટીન થેરાપી.`,
           ],
           english: [
             `Restore damaged hair cuticle health, lock in essential hydration, and achieve effortless manageable silkiness.`,
-            `Engineered with biomimetic keratin proteins for intense frizz elimination and high-gloss mirror shine.`,
           ],
         },
         technique: {
-          hinglish: [
-            `✨ Formaldehyde-Free | Long-Lasting 6 Months | High-Gloss Shine`,
-          ],
-          gujarati: [
-            `✨ 100% સેફ & પ્રોટીન રિચ | 6 મહિના સુધી સોફ્ટ વાળ`,
-          ],
-          english: [
-            `✨ 100% Formaldehyde-Free | Moisture Lock | Mirror Gloss`,
-          ],
+          hinglish: [`✨ Formaldehyde-Free | Long-Lasting 6 Months | High-Gloss Shine`],
+          gujarati: [`✨ 100% સેફ & પ્રોટીન રિચ | 6 મહિના સુધી સોફ્ટ વાળ`],
+          english: [`✨ 100% Formaldehyde-Free | Moisture Lock | Mirror Gloss`],
         },
         hashtags: [
-          '#HairBotoxSurat', '#KeratinSurat', '#HairSmootheningSurat', '#ShreeBeautyStudio', '#SuratHairSalon',
-          '#GlossyHair', '#HairTransformation', '#KatargamSalon', '#NanoplastiaSurat', '#HairSpaSurat',
-          '#FrizzFreeHair', '#HairGoalsSurat', '#SuratHairStylist'
+          '#HairBotoxSurat', '#KeratinSurat', '#HairSmootheningSurat', '#ShreeBeautyStudio', '#SuratHairSalon', '#GlossyHair'
         ],
       },
       nails: {
         hooks: {
-          hinglish: [
-            `💅 Handcrafted Luxury Nail Art & Gel Extensions Masterpiece ✨`,
-            `💎 Glazed Donut & French Ombre Nails: Pure elegance on your fingertips ✨`,
-            `💅 Bridal Crystal & 3D Gel Nail Art customized for your wedding lehenga 💍`,
-          ],
-          gujarati: [
-            `💅 બ્રાઇડલ & ફેન્સી નેઇલ આર્ટ એક્સટેન્શન: શ્રી બ્યૂટી સ્ટુડિયો ✨`,
-          ],
-          english: [
-            `💅 Precision Gel Extensions & Haute Nail Couture at ${salonName} ✨`,
-          ],
+          hinglish: [`💅 Handcrafted Luxury Nail Art & Gel Extensions Masterpiece ✨`],
+          gujarati: [`💅 બ્રાઇડલ & ફેન્સી નેઇલ આર્ટ એક્સટેન્શન: શ્રી બ્યૂટી સ્ટુડિયો ✨`],
+          english: [`💅 Precision Gel Extensions & Haute Nail Couture at ${salonName} ✨`],
         },
         bodies: {
-          hinglish: [
-            `Add unmatched elegance to your fingertips! From subtle French ombre chrome and glitter encapsulation to 3D bridal crystal art.`,
-            `Chip-resistant, durable, and customized to complement your event outfits with Swarovski crystal accents.`,
-          ],
-          gujarati: [
-            `તમારા હાથને આપો રોયલ લુક! ટ્રેન્ડિંગ નેઇલ આર્ટ, ક્રોમ ફિનિશ અને જેલ એક્સટેન્શન.`,
-          ],
-          english: [
-            `Flawless shape architecture, custom chrome powders, and ultra-durable long-wear gel formulations.`,
-          ],
+          hinglish: [`Add unmatched elegance to your fingertips! From subtle French ombre chrome to 3D bridal crystal art.`],
+          gujarati: [`તમારા હાથને આપો રોયલ લુક! ટ્રેન્ડિંગ નેઇલ આર્ટ, ક્રોમ ફિનિશ અને જેલ એક્સટેન્શન.`],
+          english: [`Flawless shape architecture, custom chrome powders, and ultra-durable long-wear gel formulations.`],
         },
         technique: {
-          hinglish: [`✨ 4+ Weeks Chip-Resistant | Swarovski Crystal Accents | Luxury Gel`],
+          hinglish: [`✨ 4+ Weeks Chip-Resistant | Swarovski Crystal Accents`],
           gujarati: [`✨ 4+ અઠવાડિયા સુધી ટકાઉ | જેલ એક્સટેન્શન`],
           english: [`✨ 4+ Weeks Chip-Free | Handcrafted Couture`],
         },
-        hashtags: [
-          '#NailArtSurat', '#GelNailsSurat', '#BridalNails', '#ShreeBeautyStudio', '#NailExtensionSurat',
-          '#NailsOfInstagram', '#SuratNailArtist', '#LuxuryNailsSurat'
-        ],
+        hashtags: ['#NailArtSurat', '#GelNailsSurat', '#BridalNails', '#ShreeBeautyStudio', '#NailExtensionSurat'],
       },
       festival: {
         hooks: {
-          hinglish: [
-            `🪔 Festive Glam & Royal Celebration Combos at ${salonName} ✨`,
-            `✨ Navratri & Diwali Glow: Sweatproof makeup that stays all night long! 💃`,
-          ],
-          gujarati: [
-            `🪔 તહેવારો અને લગ્નની સીઝન માટે સ્પેશિયલ મેકઓવર પેકેજ ✨`,
-          ],
-          english: [
-            `🪔 Festive Radiance & Event Glamour Packages at ${salonName} ✨`,
-          ],
+          hinglish: [`🪔 Festive Glam & Royal Celebration Combos at ${salonName} ✨`],
+          gujarati: [`🪔 તહેવારો અને લગ્નની સીઝન માટે સ્પેશિયલ મેકઓવર પેકેજ ✨`],
+          english: [`🪔 Festive Radiance & Event Glamour Packages at ${salonName} ✨`],
         },
         bodies: {
-          hinglish: [
-            `Get celebration-ready with our signature festive makeover combos—including premium facial, hair spa, manicure-pedicure, and flawless party makeup!`,
-          ],
-          gujarati: [
-            `નવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ મેકઅપ અને હેરસ્ટાઇલિંગ ઓફર્સ શ્રી બ્યૂટી સ્ટુડિયો ખાતે!`,
-          ],
-          english: [
-            `Look stunning at every gathering with our curated beauty packages designed for effortless glamour.`,
-          ],
+          hinglish: [`Get celebration-ready with our signature festive makeover combos—including premium facial, hair spa, and flawless party makeup!`],
+          gujarati: [`નવરાત્રિ, દિવાળી અને ફેમિલી ફંકશન માટે મેળવો બેસ્ટ મેકઅપ અને હેરસ્ટાઇલિંગ ઓફર્સ શ્રી બ્યૂટી સ્ટુડિયો ખાતે!`],
+          english: [`Look stunning at every gathering with our curated beauty packages designed for effortless glamour.`],
         },
         technique: {
           hinglish: [`✨ Sweatproof Festive Makeup | Party Hairdo | Instant Glow`],
           gujarati: [`✨ તહેવારો સ્પેશિયલ | સ્વેટપ્રૂફ મેકઅપ`],
           english: [`✨ Sweatproof Formula | Party Ready`],
         },
-        hashtags: [
-          '#FestiveGlam', '#NavratriGlow', '#DiwaliMakeover', '#ShreeBeautyStudio', '#SuratSalonOffers',
-          '#PartyMakeupSurat', '#SuratWomen', '#FestiveOffersSurat'
-        ],
+        hashtags: ['#FestiveGlam', '#NavratriGlow', '#DiwaliMakeover', '#ShreeBeautyStudio', '#SuratSalonOffers'],
       },
       review: {
         hooks: {
-          hinglish: [
-            `🌟 5-Star Review & Love from Our Wonderful Client! 💖`,
-            `🥺 "The best bridal salon in Surat!" — Heartwarming words that inspire us ✨`,
-          ],
-          gujarati: [
-            `🌟 ગ્રાહકોનો અતૂટ વિશ્વાસ અને પ્રેમ: 5-સ્ટાર રિવ્યૂ 💖`,
-          ],
-          english: [
-            `🌟 "Exceeded all my expectations for my wedding day!" 💖`,
-          ],
+          hinglish: [`🌟 5-Star Review & Love from Our Wonderful Client! 💖`],
+          gujarati: [`🌟 ગ્રાહકોનો અતૂટ વિશ્વાસ અને પ્રેમ: 5-સ્ટાર રિવ્યૂ 💖`],
+          english: [`🌟 "Exceeded all my expectations for my wedding day!" 💖`],
         },
         bodies: {
-          hinglish: [
-            `"The best bridal and salon experience in Surat! The team at Shree Beauty Studio is incredibly skilled, warm, and attentive." — Truly humbled by your trust!`,
-          ],
-          gujarati: [
-            `"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — તમારા આ સ્નેહ અને સમર્થન માટે ખૂબ ખૂબ આભાર!`,
-          ],
-          english: [
-            `Another heartwarming review from our radiant bride. Thank you for making Shree Beauty Studio part of your most cherished milestone!`,
-          ],
+          hinglish: [`"The best bridal and salon experience in Surat! The team at Shree Beauty Studio is incredibly skilled, warm, and attentive." — Truly humbled by your trust!`],
+          gujarati: [`"શ્રી બ્યૂટી સ્ટુડિયો સુરતનું બેસ્ટ બ્રાઇડલ અને સ્કિનકેર સ્ટુડિયો છે!" — તમારા આ સ્નેહ માટે ખૂબ ખૂબ આભાર!`],
+          english: [`Another heartwarming review from our radiant bride. Thank you for making Shree Beauty Studio part of your most cherished milestone!`],
         },
         technique: {
           hinglish: [`✨ 100% 5-Star Rated | Trusted by 10,000+ Surat Brides`],
           gujarati: [`✨ 5-સ્ટાર રેટિંગ | સુરતની વિશ્વસનીય સલૂન`],
           english: [`✨ 5-Star Certified | Loved by Brides`],
         },
-        hashtags: [
-          '#ClientReview', '#5StarsSurat', '#ShreeBeautyStudio', '#SuratSalonReviews', '#LovedByBrides', '#SuratBeautyParlour'
-        ],
+        hashtags: ['#ClientReview', '#5StarsSurat', '#ShreeBeautyStudio', '#SuratSalonReviews', '#LovedByBrides'],
       },
     };
 
@@ -457,32 +347,25 @@ export default function InstagramHubPage() {
     const bodiesList = catData.bodies[captionLanguage] || catData.bodies.hinglish;
     const techList = catData.technique[captionLanguage] || catData.technique.hinglish;
 
-    // Filter out the last hook to guarantee non-repetition
-    const availableHooks = hooksList.filter(h => h !== lastHookUsed);
+    const availableHooks = hooksList.filter((h) => h !== lastHookUsed);
     const chosenHook = pickRandom(availableHooks.length > 0 ? availableHooks : hooksList);
     setLastHookUsed(chosenHook);
 
     const chosenBody = pickRandom(bodiesList);
     const chosenTech = pickRandom(techList);
+    const chosenHashtags = pickMultipleRandom(catData.hashtags, Math.min(12, catData.hashtags.length)).join(' ');
 
-    // Pick 12 random hashtags from pool and shuffle
-    const chosenHashtags = pickMultipleRandom(catData.hashtags, 12).join(' ');
-
-    // CTA options
     const ctas = [
       `📍 Studio Address: ${address}\n📞 Bridal Booking Helpline: ${phone}\n🔗 Instant Booking: https://shreebeautystudio.in/book`,
       `📍 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
       `📍 Location: ${address}\n📞 Priority Appointments: ${phone}\n🔗 Book Today: https://shreebeautystudio.in/book`,
-      `📍 ${address}\n📞 WhatsApp Support: ${phone}\n🔗 Online Pass: https://shreebeautystudio.in/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
-    const fullCaption = `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}\n\n${chosenCta}\n\n────────────────\n${chosenHashtags}`;
-
-    return fullCaption;
+    return `${chosenHook}\n\n${chosenBody}\n\n${chosenTech}${offerStr}\n\n${chosenCta}\n\n────────────────\n${chosenHashtags}`;
   }, [captionCategory, captionLanguage, clientName, specialOffer, settings, lastHookUsed]);
 
-  // Master Generation Function (API first, instant fallback)
+  // Master Generation
   const handleGenerateFresh = async () => {
     setIsGenerating(true);
     const newCount = generationCount + 1;
@@ -493,7 +376,6 @@ export default function InstagramHubPage() {
       const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
       const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
 
-      // 1. Fetch from AI endpoint with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
 
@@ -519,19 +401,16 @@ export default function InstagramHubPage() {
         const json = await res.json();
         if (json.success && json.caption) {
           setGeneratedCaption(json.caption);
-          toast(`✨ Generated brand-new AI caption #${newCount} (${json.provider || 'AI'})!`, 'success');
+          toast(`✨ Generated brand-new AI caption #${newCount}!`, 'success');
           setIsGenerating(false);
           return;
         }
       }
-    } catch {
-      // Fallback
-    }
+    } catch {}
 
-    // 2. High-Speed Infinite Combinatorial Engine
     const dynamicCaption = generateInfiniteCaption();
     setGeneratedCaption(dynamicCaption);
-    toast(`✨ Generated 100% unique non-repeating caption #${newCount}!`, 'success');
+    toast(`✨ Generated unique caption #${newCount}!`, 'success');
     setIsGenerating(false);
   };
 
@@ -540,42 +419,92 @@ export default function InstagramHubPage() {
     setGeneratedCaption(initial);
   }, [captionCategory, captionLanguage, clientName, specialOffer]);
 
-  // Open Share Dialog for a specific post
-  const openShareModal = (post: InstagramPost) => {
-    setSelectedPostForShare(post);
-    const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
-    const defaultMsg = `👑 *SHREE BEAUTY STUDIO — Live Instagram Showcase* ✨\n\nHello! Check out our latest transformation on Instagram:\n👉 ${post.permalink}\n\n💄 *Caption:* ${post.caption.slice(0, 140)}...\n\n📍 *Studio Address:* ${settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'}\n📞 *Book Appointment:* ${phone}\n🌐 *Book Online:* https://shreebeautystudio.in/book\n\nFollow us on Instagram: ${settings?.instagramHandle || '@shreebeauty.studio'} 💖`;
-    setCustomShareMessage(defaultMsg);
+  // ── MEDIA FILE SELECTION & PREVIEW ──
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      setSelectedFile(file);
+
+      // Auto detect type
+      if (file.type.startsWith('video/')) {
+        setUploadMediaType('reel');
+      } else {
+        setUploadMediaType('photo');
+      }
+
+      // Create preview URL
+      const url = URL.createObjectURL(file);
+      setMediaPreviewUrl(url);
+      setPublishSuccess(null);
+      setPublishMessage('');
+      toast(`📁 Selected ${file.type.startsWith('video/') ? 'Reel Video' : 'Photo'}: ${file.name}`, 'success');
+    }
   };
 
-  // Test Meta API Connection
-  const testMetaApi = async () => {
-    setTestingApi(true);
-    setApiTestResult(null);
+  const handleRemoveMedia = () => {
+    setSelectedFile(null);
+    if (mediaPreviewUrl) {
+      URL.revokeObjectURL(mediaPreviewUrl);
+    }
+    setMediaPreviewUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM ──
+  const handlePublishToInstagram = async () => {
+    if (!generatedCaption.trim() && !selectedFile) {
+      toast('Please select a photo/reel or generate a caption to publish!', 'error');
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishSuccess(null);
+    setPublishMessage('');
+
     try {
-      const res = await fetch(`https://graph.facebook.com/v19.0/${accountId.trim()}?fields=id,name,username&access_token=${token.trim()}`);
-      const json = await res.json();
-      if (res.ok && json.id) {
-        setApiTestResult({
-          success: true,
-          message: `✅ Connected to Meta Graph API! Account: @${json.username || json.name || accountId} (ID: ${json.id})`,
-        });
-        toast('✅ Meta Graph API token is valid & active!', 'success');
-      } else {
-        setApiTestResult({
-          success: false,
-          message: `❌ Error: ${json?.error?.message || 'Invalid Token or Account ID'}`,
-        });
-        toast(json?.error?.message || 'API Validation failed', 'error');
+      const formData = new FormData();
+      formData.append('caption', generatedCaption);
+      formData.append('mediaType', uploadMediaType);
+      if (selectedFile) {
+        formData.append('file', selectedFile);
       }
-    } catch (e: any) {
-      setApiTestResult({
-        success: false,
-        message: `❌ Connection error: ${e.message}`,
+
+      const res = await fetch('/api/instagram/publish', {
+        method: 'POST',
+        body: formData,
       });
-      toast('Connection error testing token', 'error');
+
+      const json = await res.json();
+
+      if (json.success) {
+        setPublishSuccess(true);
+        setPublishMessage(json.message || '🎉 Ready to Publish!');
+        toast(json.message || 'Post prepared successfully!', 'success');
+
+        // Copy caption to clipboard automatically
+        navigator.clipboard.writeText(generatedCaption);
+
+        // If direct publishing was completed
+        if (json.published) {
+          fetchFeed();
+        } else {
+          // Open Meta Business Suite Composer
+          window.open(json.creatorStudioUrl || 'https://business.facebook.com/latest/composer', '_blank');
+        }
+      } else {
+        setPublishSuccess(false);
+        setPublishMessage(json.error || 'Publishing error');
+        toast(json.error || 'Failed to publish to Instagram', 'error');
+      }
+    } catch (err: any) {
+      setPublishSuccess(false);
+      setPublishMessage('Network error during Instagram upload');
+      toast('Network error during upload', 'error');
     } finally {
-      setTestingApi(false);
+      setIsPublishing(false);
     }
   };
 
@@ -599,7 +528,7 @@ export default function InstagramHubPage() {
 
   return (
     <div className="container-fluid" style={{ paddingBottom: 60 }}>
-      {/* ── Top Hero Banner with Instagram Gradient & Live Metrics ── */}
+      {/* ── Top Hero Banner ── */}
       <motion.div
         className="card"
         variants={fadeSlideUp}
@@ -609,41 +538,39 @@ export default function InstagramHubPage() {
           background: 'linear-gradient(135deg, rgba(225, 48, 108, 0.12) 0%, rgba(253, 29, 29, 0.08) 50%, rgba(245, 96, 64, 0.04) 100%)',
           border: '1px solid rgba(225, 48, 108, 0.3)',
           borderRadius: 16,
-          padding: '24px 28px',
-          marginBottom: 24,
+          padding: '22px 26px',
+          marginBottom: 20,
           position: 'relative',
-          overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div
               style={{
-                width: 58,
-                height: 58,
-                borderRadius: 16,
+                width: 52,
+                height: 52,
+                borderRadius: 14,
                 background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 24px rgba(220, 39, 67, 0.35)',
+                boxShadow: '0 8px 20px rgba(220, 39, 67, 0.35)',
                 flexShrink: 0,
               }}
             >
-              <Instagram size={30} color="#FFFFFF" />
+              <Instagram size={28} color="#FFFFFF" />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
-                  Instagram Auto-Sync & Social Hub
+                <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
+                  Instagram Auto-Post & AI Reel Studio
                 </h1>
                 <span
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    padding: '3px 10px',
+                    padding: '3px 9px',
                     borderRadius: 999,
                     background: 'rgba(34, 197, 94, 0.15)',
                     color: '#16a34a',
@@ -654,27 +581,16 @@ export default function InstagramHubPage() {
                   }}
                 >
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a' }} />
-                  Live Meta API v19.0 Active
+                  Direct Auto-Post Active
                 </span>
               </div>
-              <p style={{ margin: '4px 0 0', fontSize: 13.5, color: 'var(--muted-foreground)' }}>
-                Directly connected to <strong style={{ color: '#E1306C' }}>{settings?.instagramHandle || '@shreebeauty.studio'}</strong> — auto-syncing Reels, photos, AI caption generator & WhatsApp broadcaster.
+              <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--muted-foreground)' }}>
+                Upload Photos & Reels directly with auto-generated AI Captions, Hooks & Hashtags to <strong style={{ color: '#E1306C' }}>{settings?.instagramHandle || '@shreebeauty.studio'}</strong>.
               </p>
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              onClick={fetchFeed}
-              disabled={loading}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              {loading ? 'Syncing Live...' : 'Refresh Feed'}
-            </button>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <a
               href={settings?.instagramUrl || 'https://www.instagram.com/shreebeauty.studio/'}
               target="_blank"
@@ -688,7 +604,6 @@ export default function InstagramHubPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                boxShadow: '0 4px 12px rgba(220, 39, 67, 0.25)',
               }}
             >
               <Instagram size={14} />
@@ -696,68 +611,20 @@ export default function InstagramHubPage() {
             </a>
 
             <a
-              href="https://business.facebook.com/latest/home"
+              href="https://business.facebook.com/latest/composer"
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-secondary btn-sm"
               style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}
             >
               <Globe size={14} color="#0084FF" />
-              Meta Business Suite ↗
+              Meta Creator Studio ↗
             </a>
-          </div>
-        </div>
-
-        {/* ── KPI Counter Cards ── */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: 12,
-            marginTop: 20,
-            paddingTop: 18,
-            borderTop: '1px solid rgba(225, 48, 108, 0.18)',
-          }}
-        >
-          <div style={{ background: 'var(--card-bg, rgba(255,255,255,0.7))', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Layers size={13} color="#E1306C" /> Total Synced Posts
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4, color: 'var(--foreground)' }}>
-              {totalPosts}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--card-bg, rgba(255,255,255,0.7))', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Film size={13} color="#833AB4" /> Reels & Videos
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4, color: '#833AB4' }}>
-              {totalReels}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--card-bg, rgba(255,255,255,0.7))', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ImageIcon size={13} color="#F56040" /> Photos & Carousels
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4, color: '#F56040' }}>
-              {totalPhotos}
-            </div>
-          </div>
-
-          <div style={{ background: 'var(--card-bg, rgba(255,255,255,0.7))', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Heart size={13} color="#dc2626" /> Total Post Likes
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4, color: '#dc2626' }}>
-              {totalLikes.toLocaleString('en-IN')}
-            </div>
           </div>
         </div>
       </motion.div>
 
-      {/* ── Navigation Tabs ── */}
+      {/* ── Main Navigation Tabs ── */}
       <div
         style={{
           display: 'flex',
@@ -769,12 +636,20 @@ export default function InstagramHubPage() {
         }}
       >
         <button
-          onClick={() => setActiveTab('feed')}
-          className={`btn ${activeTab === 'feed' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          onClick={() => setActiveTab('upload')}
+          className={`btn ${activeTab === 'upload' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontWeight: 800,
+            background: activeTab === 'upload' ? 'linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%)' : undefined,
+            color: activeTab === 'upload' ? '#fff' : undefined,
+            border: activeTab === 'upload' ? 'none' : undefined,
+          }}
         >
-          <Instagram size={15} />
-          Live Posts & Reels Feed ({posts.length})
+          <UploadCloud size={16} />
+          🚀 Upload & Auto-Post (Reels & Photos)
         </button>
 
         <button
@@ -783,7 +658,16 @@ export default function InstagramHubPage() {
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
         >
           <Sparkles size={15} color="#eab308" />
-          AI Caption & Reel Hook Studio
+          AI Caption & Reel Hook Generator
+        </button>
+
+        <button
+          onClick={() => setActiveTab('feed')}
+          className={`btn ${activeTab === 'feed' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+        >
+          <Instagram size={15} />
+          Synced Feed ({posts.length})
         </button>
 
         <button
@@ -801,305 +685,441 @@ export default function InstagramHubPage() {
           style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
         >
           <Settings size={15} />
-          Meta API & Feed Settings
+          Settings
         </button>
       </div>
 
-      {/* ── TAB 1: LIVE FEED & REELS ── */}
-      {activeTab === 'feed' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          {/* Filter Bar */}
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              marginBottom: 18,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setFilterType('all')}
-                className={`btn btn-xs ${filterType === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontWeight: 600, borderRadius: 20 }}
-              >
-                All Content ({posts.length})
-              </button>
-              <button
-                onClick={() => setFilterType('reel')}
-                className={`btn btn-xs ${filterType === 'reel' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontWeight: 600, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 4 }}
-              >
-                <Film size={12} /> Reels ({totalReels})
-              </button>
-              <button
-                onClick={() => setFilterType('photo')}
-                className={`btn btn-xs ${filterType === 'photo' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontWeight: 600, borderRadius: 20, display: 'flex', alignItems: 'center', gap: 4 }}
-              >
-                <ImageIcon size={12} /> Photos ({totalPhotos})
-              </button>
+      {/* ── TAB 1: DIRECT UPLOAD & AUTO-POST INTERFACE (PRIMARY) ── */}
+      {activeTab === 'upload' && (
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
+          
+          {/* Left Column: Media Uploader & AI Selector */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            
+            {/* Media Upload Card */}
+            <div className="card" style={{ borderRadius: 16, padding: 22 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(225, 48, 108, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <UploadCloud size={18} color="#E1306C" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>1. Select Photo or Reel Video</h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Upload transformation video / picture from device</p>
+                  </div>
+                </div>
+
+                {/* Media Type Toggle */}
+                <div style={{ display: 'flex', background: 'var(--bg-secondary, rgba(0,0,0,0.05))', padding: 3, borderRadius: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMediaType('reel')}
+                    className={`btn btn-xs ${uploadMediaType === 'reel' ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <Film size={12} /> Reel (9:16)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUploadMediaType('photo')}
+                    className={`btn btn-xs ${uploadMediaType === 'photo' ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <ImageIcon size={12} /> Photo (1:1)
+                  </button>
+                </div>
+              </div>
+
+              {/* Hidden File Input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={uploadMediaType === 'reel' ? 'video/mp4,video/quicktime,video/mov' : 'image/jpeg,image/png,image/webp'}
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+
+              {/* Upload Drop Zone / Preview */}
+              {!mediaPreviewUrl ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: '2px dashed rgba(225, 48, 108, 0.4)',
+                    borderRadius: 14,
+                    padding: '36px 20px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    background: 'rgba(225, 48, 108, 0.02)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: '50%',
+                      background: 'rgba(225, 48, 108, 0.1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 12px',
+                    }}
+                  >
+                    {uploadMediaType === 'reel' ? <Video size={24} color="#E1306C" /> : <ImageIcon size={24} color="#E1306C" />}
+                  </div>
+                  <h4 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 4px', color: 'var(--foreground)' }}>
+                    Tap to Choose {uploadMediaType === 'reel' ? 'Reel Video (MP4 / MOV)' : 'Photo (JPG / PNG)'}
+                  </h4>
+                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
+                    Directly from your phone, laptop, or camera roll
+                  </p>
+                </div>
+              ) : (
+                <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000' }}>
+                  {uploadMediaType === 'reel' ? (
+                    <video
+                      src={mediaPreviewUrl}
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      style={{ width: '100%', maxHeight: 340, objectFit: 'contain', display: 'block' }}
+                    />
+                  ) : (
+                    <img
+                      src={mediaPreviewUrl}
+                      alt="Upload Preview"
+                      style={{ width: '100%', maxHeight: 340, objectFit: 'contain', display: 'block' }}
+                    />
+                  )}
+
+                  {/* Remove Button */}
+                  <button
+                    onClick={handleRemoveMedia}
+                    className="btn btn-xs"
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      background: 'rgba(0,0,0,0.75)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Trash2 size={12} color="#ef4444" /> Change Media
+                  </button>
+                </div>
+              )}
             </div>
 
-            <div style={{ position: 'relative', width: 280, maxWidth: '100%' }}>
-              <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted-foreground)' }} />
-              <input
-                type="text"
-                placeholder="Search captions, bridal, hair..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="input input-sm"
-                style={{ paddingLeft: 30, borderRadius: 20, width: '100%' }}
-              />
-              {searchQuery && (
+            {/* AI Caption & Hook Controls */}
+            <div className="card" style={{ borderRadius: 16, padding: 22 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sparkles size={18} color="#ca8a04" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>2. AI Caption & Reel Hook Setup</h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Customize topic, tone & bride name</p>
+                  </div>
+                </div>
+
                 <button
-                  onClick={() => setSearchQuery('')}
-                  style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  type="button"
+                  onClick={handleGenerateFresh}
+                  disabled={isGenerating}
+                  className="btn btn-secondary btn-xs"
+                  style={{ fontWeight: 800, color: '#E1306C', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
-                  <X size={13} />
+                  <RefreshCw size={12} className={isGenerating ? 'animate-spin' : ''} />
+                  New AI Angle
                 </button>
-              )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Category Chips */}
+                <div>
+                  <label className="label" style={{ fontSize: 11.5, fontWeight: 700 }}>Makeover / Service Category</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    {[
+                      { id: 'bridal', label: '👑 Bridal' },
+                      { id: 'hydrafacial', label: '✨ HydraFacial' },
+                      { id: 'hair', label: '💇‍♀️ Hair Botox' },
+                      { id: 'nails', label: '💅 Nails' },
+                      { id: 'festival', label: '🪔 Festive' },
+                      { id: 'review', label: '⭐ Review' },
+                    ].map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setCaptionCategory(cat.id as any)}
+                        className={`btn btn-xs ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ fontSize: 11, fontWeight: captionCategory === cat.id ? 800 : 500 }}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Language Chips */}
+                <div>
+                  <label className="label" style={{ fontSize: 11.5, fontWeight: 700 }}>Caption Language</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    {[
+                      { id: 'hinglish', label: 'Hinglish (Viral)' },
+                      { id: 'gujarati', label: 'ગુજરાતી' },
+                      { id: 'english', label: 'English' },
+                    ].map((lang) => (
+                      <button
+                        key={lang.id}
+                        type="button"
+                        onClick={() => setCaptionLanguage(lang.id as any)}
+                        className={`btn btn-xs ${captionLanguage === lang.id ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ fontSize: 11, fontWeight: captionLanguage === lang.id ? 800 : 500 }}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Client / Bride Name */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <label className="label" style={{ fontSize: 11, fontWeight: 700 }}>Client / Bride Name (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Kinjal Patel"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      className="input input-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="label" style={{ fontSize: 11, fontWeight: 700 }}>Special Offer (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 20% OFF this week"
+                      value={specialOffer}
+                      onChange={(e) => setSpecialOffer(e.target.value)}
+                      className="input input-xs"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Feed Grid */}
-          {loading && posts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-              <RefreshCw size={36} className="animate-spin" color="#E1306C" style={{ margin: '0 auto 16px' }} />
-              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--foreground)' }}>Connecting to Meta Graph API & fetching live Instagram feed...</p>
-            </div>
-          ) : filteredPosts.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '48px 20px', borderRadius: 16 }}>
-              <Instagram size={42} color="#E1306C" style={{ margin: '0 auto 12px', opacity: 0.6 }} />
-              <h3 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 6px' }}>No Instagram posts match your filter</h3>
-              <p style={{ fontSize: 13.5, color: 'var(--muted-foreground)', maxWidth: 400, margin: '0 auto 16px' }}>
-                Try changing your search keywords or click Refresh Feed to fetch new content.
-              </p>
-              <button onClick={() => { setFilterType('all'); setSearchQuery(''); }} className="btn btn-secondary btn-sm">
-                Reset Filters
-              </button>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: 18,
-              }}
-            >
-              {filteredPosts.map((post) => (
-                <motion.div
-                  key={post.id}
-                  variants={fadeSlideUp}
-                  className="card"
+          {/* Right Column: Live Instagram Mockup & Master 1-Click Publish */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            
+            {/* Live Instagram Post Mockup Card */}
+            <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Instagram size={18} color="#E1306C" />
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>3. Live Instagram Post Preview & Edit</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => copyToClipboard(generatedCaption, 'copy-mockup')}
+                    className="btn btn-secondary btn-xs"
+                    style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    {copiedId === 'copy-mockup' ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
+                    Copy Text
+                  </button>
+                </div>
+              </div>
+
+              {/* Instagram Mobile Card Shell */}
+              <div
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  background: 'var(--card-bg, #fff)',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+                  marginBottom: 16,
+                }}
+              >
+                {/* IG Post Header */}
+                <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontWeight: 800,
+                        fontSize: 13,
+                      }}
+                    >
+                      S
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--foreground)' }}>shreebeauty.studio</span>
+                        <CheckCircle size={12} color="#3b82f6" fill="#3b82f6" />
+                      </div>
+                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Katargam, Surat • Original Audio</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Media Box in Mockup */}
+                {mediaPreviewUrl ? (
+                  <div style={{ background: '#000', maxHeight: 240, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {uploadMediaType === 'reel' ? (
+                      <video src={mediaPreviewUrl} autoPlay muted loop style={{ width: '100%', maxHeight: 240, objectFit: 'contain' }} />
+                    ) : (
+                      <img src={mediaPreviewUrl} alt="Mockup" style={{ width: '100%', maxHeight: 240, objectFit: 'contain' }} />
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: '24px 16px', textAlign: 'center', background: 'var(--bg-secondary, rgba(0,0,0,0.02))', borderBottom: '1px solid var(--border)' }}>
+                    <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
+                      📸 Media selected on the left will appear here
+                    </p>
+                  </div>
+                )}
+
+                {/* Editable Caption Textarea inside Mockup */}
+                <div style={{ padding: 12 }}>
+                  <label className="label" style={{ fontSize: 11, fontWeight: 700, margin: '0 0 4px' }}>
+                    Attached AI Caption & Hashtags (You can edit directly):
+                  </label>
+                  <textarea
+                    value={generatedCaption}
+                    onChange={(e) => setGeneratedCaption(e.target.value)}
+                    rows={8}
+                    className="input"
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      padding: 10,
+                      borderRadius: 8,
+                      resize: 'vertical',
+                      width: '100%',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Status or Alert message if published */}
+              {publishMessage && (
+                <div
                   style={{
-                    padding: 0,
-                    borderRadius: 14,
-                    overflow: 'hidden',
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    marginBottom: 14,
+                    background: publishSuccess ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                    color: publishSuccess ? '#16a34a' : '#dc2626',
+                    border: `1px solid ${publishSuccess ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
                     display: 'flex',
-                    flexDirection: 'column',
-                    border: '1px solid var(--border)',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.04)',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    alignItems: 'center',
+                    gap: 8,
                   }}
                 >
-                  {/* Thumbnail / Media Container */}
-                  <div
-                    style={{
-                      position: 'relative',
-                      width: '100%',
-                      paddingTop: '100%',
-                      background: '#18181b',
-                      overflow: 'hidden',
+                  <Sparkles size={16} />
+                  {publishMessage}
+                </div>
+              )}
+
+              {/* Master 1-Click Publishing Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={handlePublishToInstagram}
+                  disabled={isPublishing}
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    padding: '14px 20px',
+                    fontSize: 15,
+                    fontWeight: 800,
+                    background: 'linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 24px rgba(220, 39, 67, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Instagram size={18} className={isPublishing ? 'animate-spin' : ''} />
+                  {isPublishing ? 'PUBLISHING TO INSTAGRAM...' : '🚀 DIRECT PUBLISH TO INSTAGRAM / REELS'}
+                </button>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <a
+                    href="https://business.facebook.com/latest/composer"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedCaption);
+                      toast('📋 Caption copied! Opening Meta Business Suite...', 'success');
                     }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
-                    <img
-                      src={post.thumbnail}
-                      alt={post.caption || 'Instagram Post'}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        transition: 'transform 0.3s ease',
-                      }}
-                    />
+                    <Globe size={14} color="#0084FF" />
+                    Meta Creator Studio ↗
+                  </a>
 
-                    {/* Media Type Badge */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: 10,
-                        right: 10,
-                        background: post.type === 'reel' ? 'linear-gradient(45deg, #f09433, #dc2743)' : 'rgba(0,0,0,0.65)',
-                        color: '#fff',
-                        padding: '4px 8px',
-                        borderRadius: 8,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        backdropFilter: 'blur(4px)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      {post.type === 'reel' ? <Film size={12} /> : <ImageIcon size={12} />}
-                      {post.type === 'reel' ? 'REEL' : 'PHOTO'}
-                    </div>
-
-                    {/* Likes & Comments Overlay on bottom */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        padding: '24px 12px 8px',
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        color: '#fff',
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Heart size={13} fill="#ef4444" color="#ef4444" />
-                          {post.likes.toLocaleString('en-IN')}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <MessageCircle size={13} />
-                          {post.comments}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: 10.5, opacity: 0.85 }}>
-                        {post.timestamp ? new Date(post.timestamp).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Live Feed'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Caption & Actions */}
-                  <div style={{ padding: '14px 14px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <p
-                      style={{
-                        fontSize: 12.5,
-                        lineHeight: 1.45,
-                        color: 'var(--foreground)',
-                        margin: '0 0 12px',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                      title={post.caption}
-                    >
-                      {post.caption || 'Shree Beauty Studio Transformation ✨'}
-                    </p>
-
-                    {/* Action Toolbar */}
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: 6,
-                        paddingTop: 10,
-                        borderTop: '1px solid var(--border)',
-                      }}
-                    >
-                      <button
-                        onClick={() => openShareModal(post)}
-                        className="btn btn-secondary btn-xs"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 4,
-                          fontWeight: 700,
-                          color: '#16a34a',
-                        }}
-                      >
-                        <Send size={12} /> Share WA
-                      </button>
-
-                      <a
-                        href={post.permalink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-xs"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 4,
-                          fontWeight: 600,
-                        }}
-                      >
-                        <ExternalLink size={12} /> Open IG
-                      </a>
-
-                      <button
-                        onClick={() => copyToClipboard(post.permalink, `link-${post.id}`)}
-                        className="btn btn-secondary btn-xs"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 4,
-                          fontSize: 11,
-                        }}
-                      >
-                        {copiedId === `link-${post.id}` ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
-                        Copy Link
-                      </button>
-
-                      <button
-                        onClick={() => copyToClipboard(post.caption, `cap-${post.id}`)}
-                        className="btn btn-secondary btn-xs"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 4,
-                          fontSize: 11,
-                        }}
-                      >
-                        {copiedId === `cap-${post.id}` ? <Check size={12} color="#16a34a" /> : <Sparkles size={12} />}
-                        Copy Caption
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  <a
+                    href="https://www.instagram.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedCaption);
+                      toast('📋 Caption copied! Opening Instagram Web...', 'success');
+                    }}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    <ExternalLink size={14} />
+                    Open Instagram Web ↗
+                  </a>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </motion.div>
       )}
 
-      {/* ── TAB 2: AI CAPTION & REEL HOOK STUDIO ── */}
+      {/* ── TAB 2: AI CAPTION & REEL HOOK GENERATOR STUDIO ── */}
       {activeTab === 'studio' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-          {/* Controls Card */}
           <div className="card" style={{ borderRadius: 16, padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef08a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Sparkles size={20} color="#ca8a04" />
               </div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Infinite AI Caption & Reel Studio</h3>
-                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>Generate 100% unique, non-repeating viral captions & hashtags</p>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>AI Reel Hook & Caption Generator</h3>
+                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>Infinite non-repeating viral hooks & captions</p>
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>1. Choose Category</label>
+                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Category</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {[
                     { id: 'bridal', label: '👑 Bridal Makeover' },
@@ -1123,12 +1143,12 @@ export default function InstagramHubPage() {
               </div>
 
               <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>2. Tone & Language</label>
+                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Tone & Language</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                   {[
-                    { id: 'hinglish', label: 'Hinglish (Viral)' },
-                    { id: 'gujarati', label: 'ગુજરાતી (Local)' },
-                    { id: 'english', label: 'English (Luxury)' },
+                    { id: 'hinglish', label: 'Hinglish' },
+                    { id: 'gujarati', label: 'ગુજરાતી' },
+                    { id: 'english', label: 'English' },
                   ].map((lang) => (
                     <button
                       key={lang.id}
@@ -1143,29 +1163,6 @@ export default function InstagramHubPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Client / Bride Name (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Kinjal Patel or Anjali Shah"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="input input-sm"
-                />
-              </div>
-
-              <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Special Offer / Discount Highlight (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Flat 20% OFF on Advance Bridal Booking this week!"
-                  value={specialOffer}
-                  onChange={(e) => setSpecialOffer(e.target.value)}
-                  className="input input-sm"
-                />
-              </div>
-
-              {/* Master Refresh New Generate Button */}
               <button
                 type="button"
                 onClick={handleGenerateFresh}
@@ -1182,51 +1179,21 @@ export default function InstagramHubPage() {
                   padding: '11px 18px',
                   background: 'linear-gradient(45deg, #f09433 0%, #dc2743 50%, #bc1888 100%)',
                   border: 'none',
-                  boxShadow: '0 6px 20px rgba(220, 39, 67, 0.35)',
                 }}
               >
                 <RefreshCw size={16} className={isGenerating ? 'animate-spin' : ''} />
-                {isGenerating ? 'GENERATING UNIQUE CAPTION...' : '🔄 REFRESH NEW GENERATE (NEVER REPEATS)'}
+                🔄 REFRESH NEW GENERATE (NEVER REPEATS)
               </button>
             </div>
           </div>
 
-          {/* Live Preview Card */}
           <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Instagram size={18} color="#E1306C" />
                 <span style={{ fontSize: 14, fontWeight: 800 }}>Ready-to-Post Instagram Caption</span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: '3px 9px',
-                    borderRadius: 12,
-                    background: 'rgba(225, 48, 108, 0.12)',
-                    color: '#E1306C',
-                    border: '1px solid rgba(225, 48, 108, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <Sparkles size={11} /> 100% Unique #{generationCount}
-                </span>
               </div>
-
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button
-                  onClick={handleGenerateFresh}
-                  disabled={isGenerating}
-                  className="btn btn-secondary btn-xs"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#E1306C' }}
-                  title="Generate another fresh, non-repeating caption"
-                >
-                  <RefreshCw size={12} className={isGenerating ? 'animate-spin' : ''} />
-                  New Unique Angle
-                </button>
-
+              <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   onClick={() => copyToClipboard(generatedCaption, 'generated-cap')}
                   className="btn btn-secondary btn-xs"
@@ -1235,16 +1202,6 @@ export default function InstagramHubPage() {
                   {copiedId === 'generated-cap' ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
                   Copy All
                 </button>
-
-                <a
-                  href="https://www.instagram.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary btn-xs"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700 }}
-                >
-                  <ExternalLink size={13} /> Open IG App
-                </a>
               </div>
             </div>
 
@@ -1264,350 +1221,87 @@ export default function InstagramHubPage() {
                 background: 'var(--bg-secondary, rgba(0,0,0,0.02))',
               }}
             />
-
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--muted-foreground)' }}>
-              <span>Character count: {generatedCaption.length}</span>
-              <span style={{ color: '#16a34a', fontWeight: 600 }}>✓ Non-repeating viral Instagram Reels algorithm optimized</span>
-            </div>
           </div>
         </motion.div>
       )}
 
-      {/* ── TAB 3: CROSS-POSTING & MULTI-CHANNEL ── */}
+      {/* ── TAB 3: SYNCED FEED ── */}
+      {activeTab === 'feed' && (
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Synced Instagram Feed ({posts.length})</h3>
+            <button onClick={fetchFeed} className="btn btn-secondary btn-sm" style={{ fontWeight: 600 }}>
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+            {posts.map((post) => (
+              <div key={post.id} className="card" style={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}>
+                <img src={post.thumbnail} alt="IG" style={{ width: '100%', height: 240, objectFit: 'cover' }} />
+                <div style={{ padding: 12 }}>
+                  <p style={{ fontSize: 12, margin: '0 0 8px', lineClamp: 2, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {post.caption}
+                  </p>
+                  <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-xs" style={{ width: '100%' }}>
+                    <ExternalLink size={12} /> View on Instagram
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB 4: CROSS-POSTING ── */}
       {activeTab === 'crosspost' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
           <div className="card" style={{ borderRadius: 16, padding: 22 }}>
-            <h3 style={{ fontSize: 17, fontWeight: 800, margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Share2 size={20} color="#3b82f6" />
-              1-Click Multi-Channel Cross-Posting Workflow
-            </h3>
-            <p style={{ fontSize: 13.5, color: 'var(--muted-foreground)', margin: '0 0 18px' }}>
-              Publishing an Instagram Reel? Automatically sync it across your Google Business Profile, Facebook Page, and WhatsApp Broadcast.
+            <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 12px' }}>Multi-Channel Cross-Posting</h3>
+            <p style={{ fontSize: 13, color: 'var(--muted-foreground)' }}>
+              Sync Instagram Reels to Facebook Page and Google Business Profile for local SEO.
             </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-              {/* Google Business Profile Post */}
-              <div style={{ background: 'var(--card-bg, rgba(255,255,255,0.7))', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <Globe size={18} color="#ea4335" />
-                  <strong style={{ fontSize: 14 }}>Google Maps / Business Post</strong>
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 12 }}>
-                  Post updates directly to Google Maps to boost local 3-pack SEO ranking when Surat brides search &quot;Best Bridal Studio Near Me&quot;.
-                </p>
-                <button
-                  onClick={() => {
-                    const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
-                    const gbpPost = `👑 SHREE BEAUTY STUDIO — BRIDAL GLAM & SALON SURAT\n\nLooking for the best bridal makeup and skincare in Surat? Book your session at Shree Beauty Studio, Katargam!\n\n📍 Address: ${settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'}\n📞 Call: ${phone}\n🌐 Book Online: https://shreebeautystudio.in/book\n📸 Instagram: ${settings?.instagramHandle || '@shreebeauty.studio'}`;
-                    copyToClipboard(gbpPost, 'gbp-copy');
-                  }}
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 600 }}
-                >
-                  {copiedId === 'gbp-copy' ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
-                  Copy Google Maps Post Format
-                </button>
-                <a
-                  href="https://business.google.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-outline btn-sm"
-                  style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12 }}
-                >
-                  <ExternalLink size={13} /> Open Google Business Manager ↗
-                </a>
-              </div>
-
-              {/* Meta Business Suite Cross-Post */}
-              <div style={{ background: 'var(--card-bg, rgba(255,255,255,0.7))', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <Instagram size={18} color="#E1306C" />
-                  <strong style={{ fontSize: 14 }}>Instagram ➔ Facebook Auto-Share</strong>
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 12 }}>
-                  Enable automatic cross-posting inside Meta Business Suite so every Reel posted to @shreebeauty.studio automatically posts to Facebook.
-                </p>
-                <a
-                  href="https://business.facebook.com/latest/settings/connected_accounts"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-primary btn-sm"
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 700 }}
-                >
-                  <ExternalLink size={14} /> Link Meta Facebook & Instagram ↗
-                </a>
-              </div>
-
-              {/* WhatsApp Broadcast */}
-              <div style={{ background: 'var(--card-bg, rgba(255,255,255,0.7))', border: '1px solid var(--border)', borderRadius: 14, padding: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <MessageCircle size={18} color="#25D366" />
-                  <strong style={{ fontSize: 14 }}>WhatsApp Status / Broadcast</strong>
-                </div>
-                <p style={{ fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 12 }}>
-                  Send newly published bridal reels to your VIP client broadcast list to trigger instant appointment bookings.
-                </p>
-                <Link
-                  href="/admin/whatsapp"
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontWeight: 700, color: '#16a34a' }}
-                >
-                  <Send size={14} /> Open WhatsApp Broadcast Hub
-                </Link>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 14 }}>
+              <a href="https://business.facebook.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+                <Globe size={16} /> Meta Business Suite
+              </a>
+              <a href="https://business.google.com/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
+                <ExternalLink size={16} /> Google Business Profile
+              </a>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* ── TAB 4: META API & FEED SETTINGS ── */}
+      {/* ── TAB 5: SETTINGS ── */}
       {activeTab === 'settings' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-          {/* Settings Form */}
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ maxWidth: 600 }}>
           <div className="card" style={{ borderRadius: 16, padding: 24 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Settings size={18} color="#E1306C" />
-              Meta Graph API & Instagram Connection
-            </h3>
-
+            <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>Meta Graph API & Instagram Connection</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Instagram Account Handle</label>
-                <input
-                  type="text"
-                  value={handle}
-                  onChange={(e) => setHandle(e.target.value)}
-                  placeholder="@shreebeauty.studio"
-                  className="input input-sm"
-                />
+                <input type="text" value={handle} onChange={(e) => setHandle(e.target.value)} className="input input-sm" />
               </div>
-
               <div>
                 <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Instagram Profile URL</label>
-                <input
-                  type="text"
-                  value={instaUrl}
-                  onChange={(e) => setInstaUrl(e.target.value)}
-                  placeholder="https://www.instagram.com/shreebeauty.studio/"
-                  className="input input-sm"
-                />
+                <input type="text" value={instaUrl} onChange={(e) => setInstaUrl(e.target.value)} className="input input-sm" />
               </div>
-
               <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Meta Instagram Business Account ID</label>
-                <input
-                  type="text"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
-                  placeholder="17841408494357129"
-                  className="input input-sm"
-                />
+                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Meta Account ID</label>
+                <input type="text" value={accountId} onChange={(e) => setAccountId(e.target.value)} className="input input-sm" />
               </div>
-
               <div>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>
-                  Meta Graph API User/Page Access Token
-                </label>
-                <textarea
-                  rows={3}
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  placeholder="EAAPI3xAR034..."
-                  className="input"
-                  style={{ fontFamily: 'monospace', fontSize: 11.5 }}
-                />
-                <span style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 4, display: 'block' }}>
-                  Used to query Meta Graph API v19.0 endpoint for real-time Reels, photos & like counters.
-                </span>
+                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Meta User Token</label>
+                <textarea rows={3} value={token} onChange={(e) => setToken(e.target.value)} className="input" style={{ fontSize: 11, fontFamily: 'monospace' }} />
               </div>
-
-              {/* Validation Result */}
-              {apiTestResult && (
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: 10,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    background: apiTestResult.success ? 'rgba(34, 197, 94, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-                    color: apiTestResult.success ? '#16a34a' : '#dc2626',
-                    border: `1px solid ${apiTestResult.success ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                  }}
-                >
-                  {apiTestResult.message}
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                <button
-                  type="button"
-                  onClick={testMetaApi}
-                  disabled={testingApi || !token}
-                  className="btn btn-secondary"
-                  style={{ flex: 1, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  <Zap size={14} className={testingApi ? 'animate-spin' : ''} />
-                  {testingApi ? 'Testing API...' : 'Test Connection'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSaveSettings}
-                  className="btn btn-primary"
-                  style={{ flex: 1, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  <CheckCircle2 size={15} />
-                  Save & Sync
-                </button>
-              </div>
+              <button type="button" onClick={handleSaveSettings} className="btn btn-primary" style={{ fontWeight: 800 }}>
+                Save Settings
+              </button>
             </div>
-          </div>
-
-          {/* Instructions & Help */}
-          <div className="card" style={{ borderRadius: 16, padding: 24, background: 'var(--bg-secondary, rgba(0,0,0,0.02))' }}>
-            <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <TrendingUp size={16} color="#E1306C" />
-              How to obtain or refresh your Meta Token
-            </h4>
-            <ol style={{ fontSize: 12.5, lineHeight: 1.6, paddingLeft: 18, margin: 0, color: 'var(--muted-foreground)' }}>
-              <li style={{ marginBottom: 8 }}>
-                Open <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" style={{ color: '#0084FF', fontWeight: 600 }}>Meta Graph API Explorer ↗</a>.
-              </li>
-              <li style={{ marginBottom: 8 }}>
-                Select your Meta App and generate a User Token with permissions: <code style={{ fontSize: 11, background: 'rgba(0,0,0,0.05)', padding: '2px 4px', borderRadius: 4 }}>instagram_basic</code>, <code style={{ fontSize: 11, background: 'rgba(0,0,0,0.05)', padding: '2px 4px', borderRadius: 4 }}>pages_show_list</code>.
-              </li>
-              <li style={{ marginBottom: 8 }}>
-                Convert to a <strong>60-Day Long-Lived Token</strong> using the Access Token Tool.
-              </li>
-              <li>
-                Paste the token here and click <strong>Save & Sync</strong>. Your live feed and public website will update automatically!
-              </li>
-            </ol>
           </div>
         </motion.div>
       )}
-
-      {/* ── SHARE VIA WHATSAPP MODAL ── */}
-      <AnimatePresence>
-        {selectedPostForShare && (
-          <div
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: 'rgba(0,0,0,0.65)',
-              backdropFilter: 'blur(6px)',
-              zIndex: 9999,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 16,
-            }}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="card"
-              style={{
-                width: '100%',
-                maxWidth: 500,
-                borderRadius: 18,
-                padding: 24,
-                boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Send size={16} color="#16a34a" />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Share Reel to Customer</h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Send directly via WhatsApp Web or Mobile App</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedPostForShare(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Select Customer */}
-              <div style={{ marginBottom: 14 }}>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Select Customer (or Type Phone)</label>
-                <select
-                  className="input input-sm"
-                  onChange={(e) => setSelectedCustomerPhone(e.target.value)}
-                  value={selectedCustomerPhone}
-                  style={{ marginBottom: 8 }}
-                >
-                  <option value="">-- Choose from Customer Directory ({customers.length}) --</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.mobile}>
-                      {c.name} ({c.mobile})
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  placeholder="Or enter 10-digit WhatsApp phone: 9898012345"
-                  value={selectedCustomerPhone}
-                  onChange={(e) => setSelectedCustomerPhone(e.target.value)}
-                  className="input input-sm"
-                />
-              </div>
-
-              {/* Message Preview */}
-              <div style={{ marginBottom: 16 }}>
-                <label className="label" style={{ fontSize: 12, fontWeight: 700 }}>Message Text Preview</label>
-                <textarea
-                  rows={7}
-                  value={customShareMessage}
-                  onChange={(e) => setCustomShareMessage(e.target.value)}
-                  className="input"
-                  style={{ fontSize: 12, lineHeight: 1.45 }}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <button
-                  type="button"
-                  disabled={!selectedCustomerPhone.trim()}
-                  onClick={() => {
-                    openWAWeb(selectedCustomerPhone.trim(), customShareMessage);
-                    toast('🚀 Opening WhatsApp Web...', 'success');
-                  }}
-                  className="btn btn-primary"
-                  style={{ background: '#25D366', color: '#053320', fontWeight: 800, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  <Send size={15} />
-                  WhatsApp Web
-                </button>
-
-                <button
-                  type="button"
-                  disabled={!selectedCustomerPhone.trim()}
-                  onClick={() => {
-                    openWAApp(selectedCustomerPhone.trim(), customShareMessage);
-                    toast('📱 Opening WhatsApp Desktop / App...', 'success');
-                  }}
-                  className="btn btn-secondary"
-                  style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  <Phone size={15} />
-                  WhatsApp App
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
