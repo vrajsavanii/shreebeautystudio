@@ -26,6 +26,7 @@ import {
   Zap,
   Plus,
   Sparkles,
+  Instagram,
 } from 'lucide-react';
 
 // ── 5 Designated Colorful Bottom Navigation Tabs ─────────────────────
@@ -167,6 +168,7 @@ const MORE_NAV = [
   { href: '/admin/finance',     label: 'Finance & Rojmel', gujarati: 'રોજમેળ / ખર્ચ',   icon: Wallet,        color: '#d97706', bg: '#fffbeb' },
   { href: '/admin/customers',   label: 'Customers',        gujarati: 'ગ્રાહક યાદી',    icon: Users,         color: '#0284c7', bg: '#f0f9ff' },
   { href: '/admin/whatsapp',    label: 'WhatsApp',         gujarati: 'મેસેજિંગ હબ',    icon: MessageCircle, color: '#16a34a', bg: '#f0fdf4' },
+  { href: '/admin/instagram',   label: 'Instagram Auto',   gujarati: 'ઇન્સ્ટાગ્રામ ઓટો', icon: Instagram,    color: '#E1306C', bg: '#fdf2f8' },
   { href: '/admin/inventory',   label: 'Inventory',        gujarati: 'પ્રોડક્ટ સ્ટોક',  icon: Package,       color: '#0d9488', bg: '#f0fdfa' },
   { href: '/admin/purchases',   label: 'Purchases',        gujarati: 'માલ ખરીદી બિલ',  icon: ShoppingBag,   color: '#ca8a04', bg: '#fefce8' },
   { href: '/admin/suppliers',   label: 'Suppliers',        gujarati: 'વેપારી / પાર્ટી', icon: Building2,     color: '#4f46e5', bg: '#eef2ff' },

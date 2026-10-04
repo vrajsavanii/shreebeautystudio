@@ -24,6 +24,7 @@ const ALLOWED_SALES_ROUTES = [
   '/admin/billing',
   '/admin/customers',
   '/admin/whatsapp',
+  '/admin/instagram',
 ];
 
 function DashboardShell({ children }: { children: ReactNode }) {
