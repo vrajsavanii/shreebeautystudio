@@ -887,12 +887,48 @@ export default function PublicHomePage() {
       <InstagramFeed />
 
       {/* ─── 8. ⭐ GOOGLE REVIEWS CAROUSEL (4.9★ on Google Maps) ──── */}
-      <section className="cust-section-alt" style={{ overflow: 'hidden', paddingTop: 'clamp(12px, 2vw, 24px)', paddingBottom: 'clamp(20px, 3vw, 32px)' }}>
+      <section className="cust-section-alt" style={{ overflow: 'hidden', paddingTop: 'clamp(14px, 2.5vw, 28px)', paddingBottom: 'clamp(20px, 3vw, 32px)' }}>
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div className="cust-section-header" style={{ marginBottom: 16 }}>
-            <h2 style={{ color: '#032B30', margin: '0 0 6px' }}>Loved by Hundreds of Surat Brides &amp; Clients</h2>
-            <p style={{ color: '#64748B' }}>
-              Real reviews from our clients on Google Maps. {googleRating.toFixed(1)}★ average from {googleReviewCount}+ happy clients in Katargam, Surat.
+          <div className="cust-section-header" style={{ marginBottom: 22 }}>
+            <h2
+              className="display-font"
+              style={{
+                fontSize: 'clamp(30px, 4.5vw, 46px)',
+                fontWeight: 700,
+                color: '#032B30',
+                margin: '0 0 10px',
+                lineHeight: 1.22,
+                letterSpacing: '-0.015em',
+              }}
+            >
+              Loved by Hundreds of{' '}
+              <span
+                style={{
+                  fontStyle: 'italic',
+                  background: 'linear-gradient(135deg, #05424A 0%, #B48608 55%, #D4AF37 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                Surat Brides &amp; Clients
+              </span>
+            </h2>
+            <p
+              style={{
+                color: '#64748B',
+                fontSize: 15,
+                maxWidth: 640,
+                margin: '0 auto',
+                lineHeight: 1.65,
+                fontWeight: 500,
+              }}
+            >
+              Verified 5-star experiences from our Google Maps community ·{' '}
+              <span style={{ color: '#032B30', fontWeight: 700 }}>
+                {googleRating.toFixed(1)}★ Rating
+              </span>{' '}
+              across {googleReviewCount}+ clients in Katargam, Surat.
             </p>
           </div>
         </div>
