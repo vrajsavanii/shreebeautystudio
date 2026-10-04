@@ -11,6 +11,8 @@ const REDIRECT_MAP: Record<string, string> = {
   '/staff': '/admin/staff',
   '/reports': '/admin/reports',
   '/whatsapp': '/admin/whatsapp',
+  '/instagram': '/admin/instagram',
+  '/admin/instagram-hub': '/admin/instagram',
   '/reminders': '/admin/reminders',
   '/settings': '/admin/settings',
 };
