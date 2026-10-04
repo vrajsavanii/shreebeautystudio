@@ -680,6 +680,8 @@ export default function InstagramHubPage() {
 
       const formData = new FormData();
       formData.append('caption', generatedCaption);
+      formData.append('location', postLocation);
+      formData.append('collaborator', collaborator);
 
       if (processedFiles.length === 1) {
         formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
@@ -2135,6 +2137,73 @@ export default function InstagramHubPage() {
                   )}
                 </div>
               )}
+
+              {/* 📍 Active Post Location & Tag Bar */}
+              <div
+                style={{
+                  background: 'rgba(225, 48, 108, 0.06)',
+                  border: '1px solid rgba(225, 48, 108, 0.25)',
+                  borderRadius: 12,
+                  padding: '10px 14px',
+                  marginBottom: 12,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <MapPin size={15} color="#E1306C" />
+                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--foreground)' }}>
+                      📍 Attached Post Location:
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#E1306C', background: 'rgba(225, 48, 108, 0.1)', padding: '2px 8px', borderRadius: 6 }}>
+                      {postLocation || 'Katargam, Surat'}
+                    </span>
+                  </div>
+
+                  {collaborator && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                      <Users size={12} /> Collab: {collaborator}
+                    </span>
+                  )}
+                </div>
+
+                {/* Quick 1-Click Location Selector */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 600 }}>Quick Select:</span>
+                  {[
+                    'Katargam, Surat',
+                    'Shree Beauty Studio',
+                    'Surat, Gujarat',
+                    'Mota Varachha, Surat',
+                    'Adajan, Surat',
+                    'Vesu, Surat',
+                  ].map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => {
+                        setPostLocation(loc);
+                        toast(`📍 Location set to ${loc}!`, 'success');
+                      }}
+                      className={`btn btn-xs ${postLocation === loc ? 'btn-primary' : 'btn-ghost'}`}
+                      style={{
+                        fontSize: 9.5,
+                        padding: '2px 8px',
+                        height: 'auto',
+                        borderRadius: 999,
+                        border: postLocation === loc ? 'none' : '1px solid rgba(225, 48, 108, 0.2)',
+                        background: postLocation === loc ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#ffffff',
+                        color: postLocation === loc ? '#ffffff' : 'var(--foreground)',
+                        fontWeight: postLocation === loc ? 800 : 600,
+                      }}
+                    >
+                      📍 {loc}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Master 1-Click Publishing Buttons */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

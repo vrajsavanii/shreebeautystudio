@@ -16,12 +16,16 @@ export async function POST(req: NextRequest) {
     let mediaUrls: string[] = [];
     let mediaType: 'photo' | 'reel' | 'carousel' = 'photo';
     let caption = '';
+    let location = '';
+    let collaborator = '';
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eqwfbcouxozwfwkzqano.supabase.co';
 
     if (reqContentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       caption = (formData.get('caption') as string) || '';
+      location = (formData.get('location') as string) || '';
+      collaborator = (formData.get('collaborator') as string) || '';
       mediaType = (formData.get('mediaType') as any) || 'photo';
 
       const files = formData.getAll('files') as File[];
@@ -110,6 +114,16 @@ export async function POST(req: NextRequest) {
 
     let creationId = '';
 
+    const LOCATION_PAGE_IDS: Record<string, string> = {
+      'Katargam, Surat': '108873722476595',
+      'Shree Beauty Studio': '108873722476595',
+      'Surat, Gujarat': '106720849363574',
+      'Mota Varachha, Surat': '106720849363574',
+      'Adajan, Surat': '106720849363574',
+      'Vesu, Surat': '106720849363574',
+    };
+    const matchedLocId = location ? LOCATION_PAGE_IDS[location.trim()] : undefined;
+
     // ── CASE 1: MULTI-PHOTO CAROUSEL ──
     if (mediaType === 'carousel' || mediaUrls.length > 1) {
       const childContainerIds: string[] = [];
@@ -146,15 +160,20 @@ export async function POST(req: NextRequest) {
       }
 
       // Create Parent Carousel Container
+      const parentParams: Record<string, string> = {
+        access_token: token,
+        media_type: 'CAROUSEL',
+        children: childContainerIds.join(','),
+        caption: caption,
+      };
+      if (matchedLocId) {
+        parentParams.location_id = matchedLocId;
+      }
+
       const carouselRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          access_token: token,
-          media_type: 'CAROUSEL',
-          children: childContainerIds.join(','),
-          caption: caption,
-        }).toString(),
+        body: new URLSearchParams(parentParams).toString(),
       });
 
       const carouselData = await carouselRes.json();
@@ -169,16 +188,21 @@ export async function POST(req: NextRequest) {
     }
     // ── CASE 2: SINGLE REEL VIDEO ──
     else if (mediaType === 'reel') {
+      const reelParams: Record<string, string> = {
+        access_token: token,
+        media_type: 'REELS',
+        video_url: mediaUrls[0],
+        share_to_feed: 'true',
+        caption: caption,
+      };
+      if (matchedLocId) {
+        reelParams.location_id = matchedLocId;
+      }
+
       const createRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          access_token: token,
-          media_type: 'REELS',
-          video_url: mediaUrls[0],
-          share_to_feed: 'true',
-          caption: caption,
-        }).toString(),
+        body: new URLSearchParams(reelParams).toString(),
       });
 
       const createData = await createRes.json();
@@ -212,14 +236,19 @@ export async function POST(req: NextRequest) {
     }
     // ── CASE 3: SINGLE PHOTO ──
     else {
+      const photoParams: Record<string, string> = {
+        access_token: token,
+        image_url: mediaUrls[0],
+        caption: caption,
+      };
+      if (matchedLocId) {
+        photoParams.location_id = matchedLocId;
+      }
+
       const createRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          access_token: token,
-          image_url: mediaUrls[0],
-          caption: caption,
-        }).toString(),
+        body: new URLSearchParams(photoParams).toString(),
       });
 
       const createData = await createRes.json();
