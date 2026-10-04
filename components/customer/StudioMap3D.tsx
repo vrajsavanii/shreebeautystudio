@@ -181,26 +181,37 @@ export default function StudioMap3D({
         </a>
       </div>
 
-      {/* Actual Google Maps Iframe */}
-      <iframe
-        key={viewMode}
-        src={currentEmbedUrl}
-        width="100%"
-        height="100%"
+      {/* Actual Google Maps Iframe (Clipped to eliminate native Google white info box) */}
+      <div
         style={{
-          border: 0,
-          minHeight: typeof height === 'number' ? height : 380,
+          position: 'relative',
           width: '100%',
           flex: 1,
-          display: 'block',
-          filter: viewMode === 'satellite' ? 'contrast(1.04) saturate(1.04)' : 'none',
-          pointerEvents: isMapInteractive ? 'auto' : 'none',
+          minHeight: typeof height === 'number' ? height : 380,
+          height: '100%',
+          overflow: 'hidden',
         }}
-        allowFullScreen={true}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        title="Shree Beauty Studio Katargam Surat 3D Location Map"
-      />
+      >
+        <iframe
+          key={viewMode}
+          src={currentEmbedUrl}
+          width="100%"
+          height="100%"
+          style={{
+            border: 0,
+            width: '100%',
+            height: 'calc(100% + 78px)',
+            marginTop: '-72px',
+            display: 'block',
+            filter: viewMode === 'satellite' ? 'contrast(1.04) saturate(1.04)' : 'none',
+            pointerEvents: isMapInteractive ? 'auto' : 'none',
+          }}
+          allowFullScreen={true}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Shree Beauty Studio Katargam Surat 3D Location Map"
+        />
+      </div>
 
       {/* Tap / Click to interact hint overlay */}
       {!isMapInteractive && (
