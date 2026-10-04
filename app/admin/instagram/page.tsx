@@ -779,8 +779,8 @@ export default function InstagramHubPage() {
     const chosenHashtags = catData.hashtags.slice(0, 30).join(' ');
 
     const ctas = [
-      `📩 DM @shreebeauty.studio for bridal packages & date availability\n🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`,
-      `📩 Send a DM to reserve your date or get package details!\n🏠 Visit Us: ${address}\n💬 WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
+      `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`,
+      `🏠 Visit Us: ${address}\n💬 WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
