@@ -841,8 +841,8 @@ export default function InstagramHubPage() {
     const chosenHashtags = catData.hashtags.slice(0, 30).join(' ');
 
     const ctas = [
-      `📩 DM @shreebeauty.studio for bridal packages & date availability\n🏠 Studio: ${address}\n📞 Helpline / WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`,
-      `📩 Send a DM to reserve your date or get package details!\n🏠 Visit Us: ${address}\n📞 Call / WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
+      `📩 DM @shreebeauty.studio for bridal packages & date availability\n🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book Online: https://shreebeautystudio.in/book`,
+      `📩 Send a DM to reserve your date or get package details!\n🏠 Visit Us: ${address}\n💬 WhatsApp: ${phone}\n🌐 Reserve Slot Online: https://shreebeautystudio.in/book`,
     ];
     const chosenCta = pickRandom(ctas);
 
@@ -2342,13 +2342,13 @@ export default function InstagramHubPage() {
                         onClick={() => {
                           const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
                           const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat';
-                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n🏠 Studio: ${address}\n📞 Helpline: ${phone}\n🔗 Book: https://shreebeautystudio.in/book` : `🏠 Studio: ${address}\n📞 Helpline: ${phone}\n🔗 Book: https://shreebeautystudio.in/book`));
-                          toast('Added Studio contact info!', 'success');
+                          setGeneratedCaption((prev) => (prev.trim() ? `${prev.trim()}\n\n🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book: https://shreebeautystudio.in/book` : `🏠 Studio: ${address}\n💬 WhatsApp: ${phone}\n🔗 Book: https://shreebeautystudio.in/book`));
+                          toast('Added Studio contact & WhatsApp info!', 'success');
                         }}
                         className="btn btn-ghost btn-xs"
-                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6 }}
+                        style={{ fontSize: 10, padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 6, fontWeight: 700, color: '#16a34a' }}
                       >
-                        + 📞 Contact & Booking
+                        + 💬 WhatsApp & Booking
                       </button>
                       <button
                         type="button"
