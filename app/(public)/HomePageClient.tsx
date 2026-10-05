@@ -263,8 +263,10 @@ export default function PublicHomePage() {
   const openDays = settings?.openDays || 'Open All 7 Days';
   const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
 
-  // Group services by category
-  const categories = Array.from(new Set(services.map((s) => s.category || 'Special Treatments'))).slice(0, 6);
+  // Group salon services by category (exclude bridal since it has its own dedicated /bridal showcase)
+  const categories = Array.from(new Set(services.map((s) => s.category || 'Special Treatments')))
+    .filter((cat) => !cat.toLowerCase().includes('bridal') && !cat.toLowerCase().includes('makeup'))
+    .slice(0, 6);
 
   const activeAmbiance = STUDIO_GALLERY.find((item) => item.id === activeAmbianceId) || STUDIO_GALLERY[0];
 
