@@ -143,6 +143,7 @@ export default function InstagramHubPage() {
   const [isAiLabel, setIsAiLabel] = useState(false);
   const [shareThreads, setShareThreads] = useState(true);
   const [shareFacebook, setShareFacebook] = useState(true);
+  const [shareGoogleMaps, setShareGoogleMaps] = useState(true);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [lastHookUsed, setLastHookUsed] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -863,6 +864,9 @@ export default function InstagramHubPage() {
       formData.append('caption', generatedCaption);
       formData.append('location', postLocation);
       formData.append('collaborator', collaborator);
+      formData.append('shareThreads', String(shareThreads));
+      formData.append('shareFacebook', String(shareFacebook));
+      formData.append('shareGoogleMaps', String(shareGoogleMaps));
 
       if (processedFiles.length === 1) {
         formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
@@ -2414,6 +2418,41 @@ export default function InstagramHubPage() {
                         type="checkbox"
                         checked={shareFacebook}
                         onChange={(e) => setShareFacebook(e.target.checked)}
+                        style={{ width: 17, height: 17, accentColor: '#E1306C', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            border: '1px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4"/>
+                            <circle cx="12" cy="9" r="3" fill="#ffffff"/>
+                            <circle cx="12" cy="9" r="1.8" fill="#EA4335"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>Shree Beauty Studio &amp; Bridal Parlour</div>
+                          <div style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Google Maps • Business Profile Post</div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={shareGoogleMaps}
+                        onChange={(e) => setShareGoogleMaps(e.target.checked)}
                         style={{ width: 17, height: 17, accentColor: '#E1306C', cursor: 'pointer' }}
                       />
                     </div>
