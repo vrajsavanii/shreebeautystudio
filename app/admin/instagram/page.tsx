@@ -2430,30 +2430,37 @@ export default function InstagramHubPage() {
                             height: 28,
                             borderRadius: '50%',
                             background: '#ffffff',
-                            border: '1px solid var(--border)',
+                            border: '1px solid rgba(66, 133, 244, 0.25)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                            boxShadow: '0 2px 6px rgba(66, 133, 244, 0.12)',
                             flexShrink: 0,
                           }}
                         >
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4"/>
-                            <circle cx="12" cy="9" r="3" fill="#ffffff"/>
-                            <circle cx="12" cy="9" r="1.8" fill="#EA4335"/>
+                            <path d="M12 2C9.5 2 7 3.5 6 6l6 7 6-7c-1-2.5-3.5-4-6-4z" fill="#EA4335"/>
+                            <path d="M6 6c-.6 1-.9 2-.9 3 0 3.5 4.5 9 6.9 12L6 6z" fill="#FBBC05"/>
+                            <path d="M18 6c.6 1 .9 2 .9 3 0 3.5-4.5 9-6.9 12L18 6z" fill="#34A853"/>
+                            <circle cx="12" cy="9" r="2.8" fill="#ffffff"/>
+                            <circle cx="12" cy="9" r="1.6" fill="#4285F4"/>
                           </svg>
                         </div>
                         <div>
-                          <div style={{ fontSize: 12, fontWeight: 700 }}>Shree Beauty Studio &amp; Bridal Parlour</div>
-                          <div style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Google Maps • Business Profile Post</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>
+                            Shree Beauty Studio &amp; Bridal Parlour
+                          </div>
+                          <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>
+                            Google Maps • Business Profile Post
+                          </div>
                         </div>
                       </div>
                       <input
                         type="checkbox"
                         checked={shareGoogleMaps}
                         onChange={(e) => setShareGoogleMaps(e.target.checked)}
-                        style={{ width: 17, height: 17, accentColor: '#E1306C', cursor: 'pointer' }}
+                        style={{ width: 17, height: 17, accentColor: '#4285F4', cursor: 'pointer' }}
                       />
                     </div>
                   </div>
