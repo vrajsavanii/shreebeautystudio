@@ -234,7 +234,7 @@ export default function PublicHomePage() {
         const nextIndex = (currentIndex + 1) % STUDIO_GALLERY.length;
         return STUDIO_GALLERY[nextIndex].id;
       });
-    }, 2500);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [isAmbiancePaused]);
@@ -623,7 +623,7 @@ export default function PublicHomePage() {
           </div>
 
           {/* Details & Architecture Card */}
-          <div className="cust-studio-detail-card">
+          <div className="cust-studio-detail-card" style={{ minHeight: 460 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                 <Crown size={18} color="#D4AF37" />
