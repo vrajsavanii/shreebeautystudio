@@ -1,8 +1,34 @@
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
+import { Cormorant_Garamond, Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import SmoothScrollProvider from '@/components/providers/SmoothScrollProvider';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import './globals.css';
+
+// Self-hosted Google Fonts via Next.js with zero external network requests
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-cormorant',
+  display: 'swap',
+  preload: true,
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
+  display: 'swap',
+  preload: true,
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+  preload: true,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://shreebeauty.studio'),
@@ -66,16 +92,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${jakarta.variable} ${cormorant.variable} ${inter.variable}`}
+    >
       <head>
-        {/* Font preconnects — must come before the stylesheet link */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Load ALL fonts in a single non-blocking request (display=swap) */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
+        {/* Resource Hints for High Speed & Low-Network Performance */}
+        <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
+        <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+
         <meta name="theme-color" content="#05424A" />
         <meta name="google-site-verification" content="2EZxH2Nusun00VMqlKGAB6OJv238XGDL5dqSgtrh_hs" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -97,7 +123,21 @@ export default function RootLayout({
             __html: `
               if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function() {});
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(reg) {
+                      // Check for service worker updates in background
+                      reg.onupdatefound = function() {
+                        var installingWorker = reg.installing;
+                        if (installingWorker) {
+                          installingWorker.onstatechange = function() {
+                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              // New content is available; will activate seamlessly
+                            }
+                          };
+                        }
+                      };
+                    })
+                    .catch(function() {});
                 });
               }
             `,
@@ -114,3 +154,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -5,6 +5,7 @@ import CustomerNavbar from '@/components/customer/CustomerNavbar';
 import CustomerFooter from '@/components/customer/CustomerFooter';
 import { useSalonStore } from '@/lib/store';
 import { CustomerAuthProvider } from '@/lib/customer-context';
+import { WifiOff, Zap } from 'lucide-react';
 
 const WHATSAPP_SVG = () => (
   <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
@@ -24,6 +25,26 @@ export default function PublicLayoutClient({ children }: { children: React.React
   const [bannerVisible, setBannerVisible] = useState(true);
   const [bannerIdx, setBannerIdx] = useState(0);
   const [waHover, setWaHover] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    // Monitor online/offline network transitions
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    if (typeof window !== 'undefined') {
+      setIsOffline(!navigator.onLine);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     fetch('/api/public-data')
@@ -41,7 +62,9 @@ export default function PublicLayoutClient({ children }: { children: React.React
           }));
         }
       })
-      .catch((err) => console.warn('Public data sync notice:', err));
+      .catch((err) => {
+        // In offline/low-network, local cache is already rendering; suppress warning
+      });
   }, [updateData]);
 
   // Auto-rotate banner messages every 5s
@@ -53,6 +76,28 @@ export default function PublicLayoutClient({ children }: { children: React.React
   return (
     <CustomerAuthProvider>
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+        {/* ─── Low Network / Offline Fast Notice Pill ─── */}
+        {isOffline && (
+          <div
+            style={{
+              background: '#07383e',
+              color: '#f5d36a',
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '6px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              borderBottom: '1px solid rgba(234, 186, 56, 0.3)',
+              zIndex: 9999,
+            }}
+          >
+            <WifiOff size={14} />
+            <span>⚡ Low/No Network: Viewing cached version with full offline speed</span>
+          </div>
+        )}
+
         {/* ─── Unified Sticky Header (Announcement Banner + Navbar) ─── */}
         <header
           style={{
@@ -136,3 +181,4 @@ export default function PublicLayoutClient({ children }: { children: React.React
     </CustomerAuthProvider>
   );
 }
+
