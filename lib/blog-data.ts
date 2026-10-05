@@ -11,6 +11,7 @@ import { SURAT_GUJARAT_SALON_GUIDE_4 } from './blogs/surat-gujarat-salon-guide-4
 import { MAKEUP_TRENDS_BLOGS } from './blogs/makeup-trends';
 import { OCCASION_BEAUTY_BLOGS } from './blogs/occasion-beauty';
 import { SKINCARE_WELLNESS_BLOGS } from './blogs/skincare-wellness';
+import { SEO_DRIVEN_GUIDES } from './blogs/seo-driven-guides';
 
 export const ALL_BLOG_POSTS: BlogPost[] = [
   ...BRIDAL_BLOGS,
@@ -25,6 +26,7 @@ export const ALL_BLOG_POSTS: BlogPost[] = [
   ...MAKEUP_TRENDS_BLOGS,
   ...OCCASION_BEAUTY_BLOGS,
   ...SKINCARE_WELLNESS_BLOGS,
+  ...SEO_DRIVEN_GUIDES,
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
