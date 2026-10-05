@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, Clock, Sparkles, Filter, Calendar, ArrowRight } from 'lucide-react';
 import { getCategoryIcon, getServiceImage, getUniqueServiceImageMap } from '@/lib/customer-images';
@@ -16,15 +16,19 @@ const fadeUp = {
 };
 
 function ServicesView() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || 'all';
 
   const { data } = useSalonStore();
   const services: Service[] = data?.services || [];
 
-  // NOTE: PublicLayoutClient already fetches /api/public-data and hydrates
-  // the store on every public page — no need to fetch again here.
-
+  // If user navigated directly to bridal category, redirect to dedicated bridal page
+  useEffect(() => {
+    if (initialCategory && (initialCategory.toLowerCase().includes('bridal') || initialCategory.toLowerCase().includes('makeup'))) {
+      router.replace('/bridal');
+    }
+  }, [initialCategory, router]);
 
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [search, setSearch] = useState('');
@@ -363,6 +367,38 @@ function ServicesView() {
             const count = services.filter((s: Service) => (s.category || 'Special Treatments') === cat).length;
             const icon = getCategoryIcon(cat);
             const isAct = activeCategory === cat;
+            const isBridal = cat.toLowerCase().includes('bridal') || cat.toLowerCase().includes('makeup');
+
+            if (isBridal) {
+              return (
+                <Link
+                  key={cat}
+                  href="/bridal"
+                  style={{
+                    padding: '7px 16px',
+                    borderRadius: 99,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: '#f1f5f9',
+                    color: '#05424A',
+                    border: '1px solid rgba(5, 66, 74, 0.15)',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    textDecoration: 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Open Dedicated Bridal & Makeover Studio Page"
+                >
+                  <span>{icon}</span>
+                  <span>{cat}</span>
+                  <span style={{ opacity: 0.7, fontSize: 11 }}>({count})</span>
+                </Link>
+              );
+            }
+
             return (
               <button
                 key={cat}

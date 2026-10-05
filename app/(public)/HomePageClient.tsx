@@ -754,7 +754,7 @@ export default function PublicHomePage() {
                   {/* 4. Action Bar */}
                   <div className="card-action-bar">
                     <Link
-                      href={`/services?category=${encodeURIComponent(cat)}`}
+                      href={cat.toLowerCase().includes('bridal') || cat.toLowerCase().includes('makeup') ? '/bridal' : `/services?category=${encodeURIComponent(cat)}`}
                       className="view-all-link"
                     >
                       <span>{catServices.length > 3 ? `+${catServices.length - 3} More` : 'View Menu'}</span>
