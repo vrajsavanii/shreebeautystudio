@@ -860,13 +860,14 @@ export default function InstagramHubPage() {
 
       setPublishingStep(`2/4: Uploading ${processedFiles.length} file(s) to cloud storage...`);
 
+      const hasPhotos = mediaItems.some((m) => m.type === 'photo');
       const formData = new FormData();
       formData.append('caption', generatedCaption);
       formData.append('location', postLocation);
       formData.append('collaborator', collaborator);
       formData.append('shareThreads', String(shareThreads));
       formData.append('shareFacebook', String(shareFacebook));
-      formData.append('shareGoogleMaps', String(shareGoogleMaps));
+      formData.append('shareGoogleMaps', String(shareGoogleMaps && hasPhotos));
 
       if (processedFiles.length === 1) {
         formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
@@ -2422,7 +2423,15 @@ export default function InstagramHubPage() {
                       />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        opacity: mediaItems.length > 0 && mediaItems.every((m) => m.type === 'video') ? 0.6 : 1,
+                        transition: 'opacity 0.2s ease',
+                      }}
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div
                           style={{
@@ -2448,19 +2457,40 @@ export default function InstagramHubPage() {
                           </svg>
                         </div>
                         <div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>
-                            Shree Beauty Studio &amp; Bridal Parlour
+                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                            <span>Shree Beauty Studio &amp; Bridal Parlour</span>
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 800,
+                                background: 'rgba(66, 133, 244, 0.12)',
+                                color: '#2563eb',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                border: '1px solid rgba(66, 133, 244, 0.25)',
+                              }}
+                            >
+                              📸 Photo Only
+                            </span>
                           </div>
-                          <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>
-                            Google Maps • Business Profile Post
+                          <div style={{ fontSize: 10, color: mediaItems.length > 0 && mediaItems.every((m) => m.type === 'video') ? '#ef4444' : '#16a34a', fontWeight: 600 }}>
+                            {mediaItems.length > 0 && mediaItems.every((m) => m.type === 'video')
+                              ? '⚠️ Google Maps only accepts Photos (Video selected)'
+                              : 'Google Maps • Photo Upload Only (Business Profile)'}
                           </div>
                         </div>
                       </div>
                       <input
                         type="checkbox"
-                        checked={shareGoogleMaps}
+                        checked={shareGoogleMaps && (!mediaItems.length || mediaItems.some((m) => m.type === 'photo'))}
+                        disabled={mediaItems.length > 0 && mediaItems.every((m) => m.type === 'video')}
                         onChange={(e) => setShareGoogleMaps(e.target.checked)}
-                        style={{ width: 17, height: 17, accentColor: '#4285F4', cursor: 'pointer' }}
+                        style={{
+                          width: 17,
+                          height: 17,
+                          accentColor: '#4285F4',
+                          cursor: mediaItems.length > 0 && mediaItems.every((m) => m.type === 'video') ? 'not-allowed' : 'pointer',
+                        }}
                       />
                     </div>
                   </div>
