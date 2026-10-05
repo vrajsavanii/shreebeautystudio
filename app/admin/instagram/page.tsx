@@ -140,10 +140,7 @@ export default function InstagramHubPage() {
   const [postLocation, setPostLocation] = useState('Katargam, Surat');
   const [collaborator, setCollaborator] = useState('');
   const [showFullCaption, setShowFullCaption] = useState(true);
-  const [isLocationOpen, setIsLocationOpen] = useState(true);
-  const [isCollabOpen, setIsCollabOpen] = useState(true);
   const [isAiLabel, setIsAiLabel] = useState(false);
-  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [shareThreads, setShareThreads] = useState(true);
   const [shareFacebook, setShareFacebook] = useState(true);
   const [generatedCaption, setGeneratedCaption] = useState('');
@@ -2353,213 +2350,16 @@ export default function InstagramHubPage() {
                     </div>
                   </div>
 
-                  {/* ── 📍 NATIVE INSTAGRAM ROW 1: ADD LOCATION ── */}
-                  <div
-                    style={{
-                      borderTop: '1px solid var(--border)',
-                      paddingTop: 10,
-                    }}
-                  >
+                    {/* ── 🤖 NATIVE INSTAGRAM ROW 1: ADD AI LABEL ── */}
                     <div
-                      onClick={() => setIsLocationOpen(!isLocationOpen)}
                       style={{
+                        borderTop: '1px solid var(--border)',
+                        paddingTop: 10,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        padding: '4px 0',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <MapPin size={17} color="#E1306C" />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
-                          Add location
-                        </span>
-                        {postLocation && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#E1306C', background: 'rgba(225, 48, 108, 0.1)', padding: '2px 8px', borderRadius: 999 }}>
-                            {postLocation}
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--muted-foreground)' }}>
-                        {postLocation && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPostLocation('');
-                              toast('Cleared location tag', 'info');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px 6px', fontSize: 11, fontWeight: 700 }}
-                          >
-                            Clear
-                          </button>
-                        )}
-                        {isLocationOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </div>
-                    </div>
-
-                    {isLocationOpen && (
-                      <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-secondary, rgba(0,0,0,0.02))', borderRadius: 10, border: '1px solid var(--border)' }}>
-                        <div style={{ position: 'relative', marginBottom: 8 }}>
-                          <input
-                            type="text"
-                            placeholder="Search or enter location (e.g. Katargam, Surat)..."
-                            value={postLocation}
-                            onChange={(e) => setPostLocation(e.target.value)}
-                            className="input input-xs"
-                            style={{ paddingLeft: 26, fontSize: 12 }}
-                          />
-                          <MapPin size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                        </div>
-
-                        {/* Surat Preset Suggestions */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                          {[
-                            'Katargam, Surat',
-                            'Shree Beauty Studio, Katargam',
-                            'Surat, Gujarat',
-                            'Mota Varachha, Surat',
-                            'Adajan, Surat',
-                            'Vesu, Surat',
-                            'VIP Road, Surat',
-                            'Ghod Dod Road, Surat',
-                          ].map((loc) => (
-                            <button
-                              key={loc}
-                              type="button"
-                              onClick={() => {
-                                setPostLocation(loc);
-                                toast(`📍 Attached location: ${loc}!`, 'success');
-                              }}
-                              className={`btn btn-xs ${postLocation === loc ? 'btn-primary' : 'btn-ghost'}`}
-                              style={{
-                                fontSize: 10,
-                                padding: '3px 9px',
-                                height: 'auto',
-                                borderRadius: 999,
-                                border: postLocation === loc ? 'none' : '1px solid var(--border)',
-                                background: postLocation === loc ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#ffffff',
-                                color: postLocation === loc ? '#ffffff' : 'var(--foreground)',
-                                fontWeight: postLocation === loc ? 800 : 600,
-                              }}
-                            >
-                              📍 {loc}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── 🤝 NATIVE INSTAGRAM ROW 2: ADD COLLABORATORS ── */}
-                  <div
-                    style={{
-                      borderTop: '1px solid var(--border)',
-                      paddingTop: 10,
-                    }}
-                  >
-                    <div
-                      onClick={() => setIsCollabOpen(!isCollabOpen)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        cursor: 'pointer',
-                        padding: '4px 0',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Users size={17} color="#E1306C" />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
-                          Add collaborators
-                        </span>
-                        {collaborator && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', background: 'rgba(59, 130, 246, 0.1)', padding: '2px 8px', borderRadius: 999 }}>
-                            {collaborator}
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--muted-foreground)' }}>
-                        {collaborator && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCollaborator('');
-                              toast('Cleared collaborator', 'info');
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '2px 6px', fontSize: 11, fontWeight: 700 }}
-                          >
-                            Clear
-                          </button>
-                        )}
-                        {isCollabOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </div>
-                    </div>
-
-                    {isCollabOpen && (
-                      <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--bg-secondary, rgba(0,0,0,0.02))', borderRadius: 10, border: '1px solid var(--border)' }}>
-                        <div style={{ position: 'relative', marginBottom: 8 }}>
-                          <input
-                            type="text"
-                            placeholder="Add collaborator username (e.g. @kinjal_patel, @wedding_clicks)..."
-                            value={collaborator}
-                            onChange={(e) => setCollaborator(e.target.value)}
-                            className="input input-xs"
-                            style={{ paddingLeft: 26, fontSize: 12 }}
-                          />
-                          <AtSign size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                        </div>
-
-                        {/* Collaborator Preset Suggestions */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                          {[
-                            '@kinjal_patel',
-                            '@bride_look_surat',
-                            '@gujaratibrides',
-                            '@surat_weddings',
-                            '@wedding_clicks_surat',
-                          ].map((collab) => (
-                            <button
-                              key={collab}
-                              type="button"
-                              onClick={() => {
-                                setCollaborator(collab);
-                                toast(`🤝 Attached collaborator: ${collab}!`, 'success');
-                              }}
-                              className={`btn btn-xs ${collaborator === collab ? 'btn-primary' : 'btn-ghost'}`}
-                              style={{
-                                fontSize: 10,
-                                padding: '3px 9px',
-                                height: 'auto',
-                                borderRadius: 999,
-                                border: collaborator === collab ? 'none' : '1px solid var(--border)',
-                                background: collaborator === collab ? 'linear-gradient(45deg, #f09433, #dc2743)' : '#ffffff',
-                                color: collaborator === collab ? '#ffffff' : 'var(--foreground)',
-                                fontWeight: collaborator === collab ? 800 : 600,
-                              }}
-                            >
-                              🤝 {collab}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── 🤖 NATIVE INSTAGRAM ROW 3: ADD AI LABEL ── */}
-                  <div
-                    style={{
-                      borderTop: '1px solid var(--border)',
-                      paddingTop: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>
                         Add AI label
