@@ -1664,7 +1664,7 @@ export default function InstagramHubPage() {
               </div>
             )}
 
-            {/* Card 3: AI Caption Topic & Angle Setup */}
+            {/* Card 3: AI Caption, Location & Collab Setup */}
             <div className="card" style={{ borderRadius: 16, padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1672,8 +1672,8 @@ export default function InstagramHubPage() {
                     <Sparkles size={18} color="#ca8a04" />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>3. AI Caption Setup</h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Customize bridal category, language, bride name & special offer</p>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>3. AI Caption, Location & Collab Setup</h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Customize topic, bride name, location tag & Instagram collaborator</p>
                   </div>
                 </div>
 
@@ -1773,6 +1773,154 @@ export default function InstagramHubPage() {
                     onChange={(e) => setCustomNotes(e.target.value)}
                     className="input input-xs"
                   />
+                </div>
+
+                {/* ── 📍 ADD LOCATION SECTION ── */}
+                <div style={{ background: 'var(--bg-secondary, rgba(0,0,0,0.02))', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label className="label" style={{ fontSize: 11.5, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--foreground)' }}>
+                      <MapPin size={13} color="#E1306C" />
+                      <span>📍 Add Instagram Location:</span>
+                    </label>
+                    <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 700 }}>📍 Geotag</span>
+                  </div>
+
+                  <div style={{ position: 'relative', marginBottom: 6 }}>
+                    <input
+                      type="text"
+                      placeholder="Location: Katargam, Surat"
+                      value={postLocation}
+                      onChange={(e) => setPostLocation(e.target.value)}
+                      className="input input-xs"
+                      style={{ paddingLeft: 26 }}
+                    />
+                    <MapPin size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    {postLocation && (
+                      <button
+                        type="button"
+                        onClick={() => setPostLocation('')}
+                        style={{
+                          position: 'absolute',
+                          right: 6,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--muted-foreground)',
+                          cursor: 'pointer',
+                          padding: 2,
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Location Preset Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {[
+                      'Katargam, Surat',
+                      'Shree Beauty Studio, Katargam',
+                      'Surat, Gujarat',
+                      'Mota Varachha, Surat',
+                      'Adajan, Surat',
+                      'Vesu, Surat',
+                      'VIP Road, Surat',
+                      'Ghod Dod Road, Surat',
+                    ].map((loc) => (
+                      <button
+                        key={loc}
+                        type="button"
+                        onClick={() => setPostLocation(loc)}
+                        className={`btn btn-xs ${postLocation === loc ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{
+                          fontSize: 9.5,
+                          padding: '2px 7px',
+                          height: 'auto',
+                          borderRadius: 999,
+                          border: postLocation === loc ? 'none' : '1px solid var(--border)',
+                          background: postLocation === loc ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                          color: postLocation === loc ? '#fff' : undefined,
+                          fontWeight: postLocation === loc ? 800 : 500,
+                        }}
+                      >
+                        📍 {loc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── 🤝 ADD COLLABORATE SECTION ── */}
+                <div style={{ background: 'var(--bg-secondary, rgba(0,0,0,0.02))', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <label className="label" style={{ fontSize: 11.5, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 5, color: 'var(--foreground)' }}>
+                      <Users size={13} color="#E1306C" />
+                      <span>🤝 Add Instagram Collaborator (@username):</span>
+                    </label>
+                    <span style={{ fontSize: 10, color: '#E1306C', fontWeight: 700 }}>Co-Author</span>
+                  </div>
+
+                  <div style={{ position: 'relative', marginBottom: 6 }}>
+                    <input
+                      type="text"
+                      placeholder="e.g. @kinjal_patel or @wedding_clicks"
+                      value={collaborator}
+                      onChange={(e) => setCollaborator(e.target.value)}
+                      className="input input-xs"
+                      style={{ paddingLeft: 26 }}
+                    />
+                    <AtSign size={12} color="#E1306C" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                    {collaborator && (
+                      <button
+                        type="button"
+                        onClick={() => setCollaborator('')}
+                        style={{
+                          position: 'absolute',
+                          right: 6,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--muted-foreground)',
+                          cursor: 'pointer',
+                          padding: 2,
+                        }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Collaborator Preset Chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {[
+                      '@kinjal_patel',
+                      '@bride_look_surat',
+                      '@gujaratibrides',
+                      '@surat_weddings',
+                      '@wedding_clicks_surat',
+                      '@shreebeautystudio',
+                    ].map((collab) => (
+                      <button
+                        key={collab}
+                        type="button"
+                        onClick={() => setCollaborator(collab)}
+                        className={`btn btn-xs ${collaborator === collab ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{
+                          fontSize: 9.5,
+                          padding: '2px 7px',
+                          height: 'auto',
+                          borderRadius: 999,
+                          border: collaborator === collab ? 'none' : '1px solid var(--border)',
+                          background: collaborator === collab ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                          color: collaborator === collab ? '#fff' : undefined,
+                          fontWeight: collaborator === collab ? 800 : 500,
+                        }}
+                      >
+                        🤝 {collab}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
