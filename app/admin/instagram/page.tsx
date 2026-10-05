@@ -1054,15 +1054,6 @@ export default function InstagramHubPage() {
           <Sparkles size={15} color="#eab308" />
           AI Caption Studio
         </button>
-
-        <button
-          onClick={() => setActiveTab('feed')}
-          className={`btn ${activeTab === 'feed' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
-        >
-          <Instagram size={15} />
-          Synced Feed ({posts.length})
-        </button>
       </div>
 
       {/* ── PRIMARY VIEW: MULTI-PHOTO UPLOAD + CROP + ZOOM + AUTO-POST ── */}
@@ -2655,34 +2646,6 @@ export default function InstagramHubPage() {
                 borderRadius: 10,
               }}
             />
-          </div>
-        </motion.div>
-      )}
-
-      {/* ── TAB 3: SYNCED FEED ── */}
-      {activeTab === 'feed' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>Synced Instagram Feed ({posts.length})</h3>
-            <button onClick={fetchFeed} className="btn btn-secondary btn-sm" style={{ fontWeight: 600 }}>
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
-            {posts.map((post) => (
-              <div key={post.id} className="card" style={{ padding: 0, borderRadius: 12, overflow: 'hidden' }}>
-                <img src={post.thumbnail} alt="IG" style={{ width: '100%', height: 240, objectFit: 'cover' }} />
-                <div style={{ padding: 12 }}>
-                  <p style={{ fontSize: 12, margin: '0 0 8px', lineClamp: 2, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {post.caption}
-                  </p>
-                  <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-xs" style={{ width: '100%' }}>
-                    <ExternalLink size={12} /> View on Instagram
-                  </a>
-                </div>
-              </div>
-            ))}
           </div>
         </motion.div>
       )}
