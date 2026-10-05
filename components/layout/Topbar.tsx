@@ -42,6 +42,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/admin/staff':        { title: 'Staff & Team Management', subtitle: 'Beauticians, roles, commissions & user accounts' },
   '/admin/whatsapp':     { title: 'WhatsApp Meta Hub', subtitle: 'Chat with customers, send invoices & automated promos' },
   '/admin/instagram':    { title: 'Instagram Auto Hub', subtitle: 'Live Meta Graph API sync, Reels feed, AI caption studio & auto-post' },
+  '/admin/google-maps':  { title: 'Google Map Auto Hub', subtitle: 'Live Google Reviews, AI Auto-Reply Engine, Katargam SEO booster & QR requests' },
   '/admin/reminders':    { title: 'Smart Reminders', subtitle: 'Birthdays, anniversaries & follow-ups' },
   '/admin/reports':      { title: 'Financial & Reports', subtitle: 'Sales analysis, GST summary & profit' },
   '/admin/settings':     { title: 'Studio Settings', subtitle: 'Salon profile, printer & payments setup' },

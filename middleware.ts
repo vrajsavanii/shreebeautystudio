@@ -13,6 +13,8 @@ const REDIRECT_MAP: Record<string, string> = {
   '/whatsapp': '/admin/whatsapp',
   '/instagram': '/admin/instagram',
   '/admin/instagram-hub': '/admin/instagram',
+  '/google-maps': '/admin/google-maps',
+  '/admin/google': '/admin/google-maps',
   '/reminders': '/admin/reminders',
   '/settings': '/admin/settings',
 };

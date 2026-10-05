@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Calendar, Users, Receipt, Package,
-  ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings, Sparkles, MessageCircle, ExternalLink, BookOpen, Instagram
+  ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings, Sparkles, MessageCircle, ExternalLink, BookOpen, Instagram, MapPin
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { staggerContainer, fadeSlideUp } from '@/variants';
@@ -20,6 +20,7 @@ const NAV = [
   { href: '/admin/billing',       label: 'Billing (POS)',      icon: Receipt,         role: 'all' },
   { href: '/admin/whatsapp',      label: 'WhatsApp',           icon: MessageCircle,   role: 'all' },
   { href: '/admin/instagram',     label: 'Instagram Auto',     icon: Instagram,       role: 'all' },
+  { href: '/admin/google-maps',   label: 'Google Map Auto',    icon: MapPin,          role: 'all' },
   { href: '/admin/finance',       label: 'Finance & Rojmel',   icon: BookOpen,        role: 'admin' },
   { href: '/admin/services',      label: 'Services & Menu',    icon: Sparkles,        role: 'admin' },
   { href: '/admin/inventory',     label: 'Inventory',          icon: Package,         role: 'all' },

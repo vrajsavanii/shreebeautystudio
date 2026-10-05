@@ -95,6 +95,12 @@ export interface SalonSettings {
   googleReviewsMinRating?: number; // Minimum rating to auto-import (e.g. 5)
   openDays?: string; // e.g. 'Monday – Sunday (Open All 7 Days)'
   logoUrl?: string; // Custom studio logo URL / base64 image
+  // Google Map Auto-Reply & Local SEO Settings
+  googleReviewAutoReplyEnabled?: boolean; // Master auto reply switch
+  googleReviewAutoReplyTone?: 'hinglish' | 'gujarati' | 'english' | 'multi';
+  googleReviewAutoReplyMinStars?: number; // e.g. 4 or 5
+  googleReviewAutoReplyDelay?: number; // e.g. 0 for instant, 120 for 2 mins
+  googleReviewKeywordsList?: string[]; // Custom target SEO keywords
   // AI Voice Copilot & Shortcut Settings
   aiCopilotEnabled?: boolean;         // Master Switch: Enable/disable AI Copilot (Default: true)
   aiCopilotShortcutEnabled?: boolean; // Enable/disable Ctrl+K keyboard shortcut (Default: true)
