@@ -463,3 +463,33 @@ export function getWebPageSchema(opts: {
     }),
   };
 }
+
+// ─── Blog CollectionPage / ItemList Schema ──────────────────────────────────
+
+export function getBlogCollectionSchema(
+  posts: Array<{ slug: string; title: string; excerpt?: string; image?: string; publishedAt?: string }>
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${BASE_URL}/blog#collection`,
+    url: `${BASE_URL}/blog`,
+    name: `Beauty & Bridal Journal: ${posts.length}+ Guides | Shree Beauty Studio, Surat`,
+    description: `Explore ${posts.length}+ authoritative beauty guides on bridal makeup, hair botox, skin therapies, and salon advice in Katargam, Surat.`,
+    isPartOf: { '@id': `${BASE_URL}/#website` },
+    about: { '@id': `${BASE_URL}/#business` },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: posts.length,
+      itemListElement: posts.map((post, idx) => ({
+        '@type': 'ListItem',
+        position: idx + 1,
+        url: `${BASE_URL}/blog/${post.slug}`,
+        name: post.title,
+        description: post.excerpt,
+        image: post.image,
+      })),
+    },
+  };
+}
+

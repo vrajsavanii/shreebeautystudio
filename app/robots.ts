@@ -45,7 +45,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/admin', '/admin/', '/api/', '/login', '/signup', '/forgot-password'],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: [`${baseUrl}/sitemap.xml`, `${baseUrl}/rss.xml`],
     host: baseUrl,
   };
 }

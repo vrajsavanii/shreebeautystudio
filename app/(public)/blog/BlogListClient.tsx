@@ -104,7 +104,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
               lineHeight: 1.6,
             }}
           >
-            Over 150 comprehensive guides on bridal makeup, hair Botox, Nanoplastia, skincare facials, and grooming tailored for women in Katargam, Surat, and Gujarat.
+            Over {initialPosts.length} comprehensive guides on bridal makeup, hair Botox, Nanoplastia, skincare facials, festive trends, and grooming tailored for women in Katargam, Surat, and Gujarat.
           </p>
 
           {/* Search Bar */}
@@ -121,7 +121,7 @@ export default function BlogListClient({ initialPosts, categories }: Props) {
             />
             <input
               type="text"
-              placeholder="Search 150+ beauty topics (e.g. Bridal HD, Nanoplastia, Surat Hard Water)..."
+              placeholder={`Search ${initialPosts.length}+ beauty topics (e.g. Bridal HD, Nanoplastia, Surat Hard Water)...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{

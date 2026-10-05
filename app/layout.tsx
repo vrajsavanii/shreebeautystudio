@@ -24,6 +24,17 @@ export const metadata: Metadata = {
     'keratin treatment Surat',
     'hydra facial Surat',
   ],
+  alternates: {
+    canonical: 'https://shreebeauty.studio',
+    types: {
+      'application/rss+xml': [
+        {
+          url: 'https://shreebeauty.studio/rss.xml',
+          title: 'Shree Beauty Studio & Bridal Journal RSS Feed',
+        },
+      ],
+    },
+  },
   verification: {
     google: '2EZxH2Nusun00VMqlKGAB6OJv238XGDL5dqSgtrh_hs',
   },
