@@ -228,6 +228,9 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'instant glow': '/services/instant_glow_facial.webp',
   'vitamin c facial': '/services/instant_glow_facial.webp',
   'vitamin c brightening facial': '/services/instant_glow_facial.webp',
+  'infinite youth facial': '/services/infinite_youth_facial.webp',
+  'infinite youth': '/services/infinite_youth_facial.webp',
+  'pro-collagen firming facial': '/services/infinite_youth_facial.webp',
   'herbal deep cleanup': '/services/herbal_cleanup.webp',
   'fruit glow facial': '/services/fruit_facial.webp',
   'gold radiance facial': '/services/gold_facial.webp',
@@ -237,7 +240,7 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'korean glass skin treatment': '/services/diamond_facial.webp',
   'd-tan face & neck cleanup': '/services/herbal_cleanup.webp',
   'charcoal detox facial': '/services/face_bleach_pack.webp',
-  'collagen anti-aging facial': '/services/gold_facial.webp',
+  'collagen anti-aging facial': '/services/infinite_youth_facial.webp',
 
   // Waxing & Threading (100% authentic generated & studio-matched)
   'eyebrow & upper lip threading': '/services/eyebrow_threading.webp',
@@ -313,6 +316,9 @@ export function getServiceImage(serviceName: string, category?: string): string 
   }
 
   // Skin Care & Facials
+  if (name.includes('infinite youth') || name.includes('pro-collagen') || name.includes('firming')) {
+    return '/services/infinite_youth_facial.webp';
+  }
   if (name.includes('instant glow') || name.includes('vitamin c') || name.includes('brightening programme')) {
     return '/services/instant_glow_facial.webp';
   }
