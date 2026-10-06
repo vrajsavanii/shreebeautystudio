@@ -312,30 +312,33 @@ export function getServiceImage(serviceName: string, category?: string): string 
     return '/services/hair_cut_style.webp';
   }
 
-  // Skin Care & Facials
-  if (name.includes('shine control') || name.includes('acne') || name.includes('purify') || name.includes('mattifying')) {
-    return '/services/shine_control_facial.webp';
-  }
-  if (name.includes('instant') || name.includes('vitamin c') || name.includes('glow facial')) {
-    return '/services/instant_glow_facial.webp';
-  }
-  if (name.includes('brilliance') || name.includes('pigment') || name.includes('whitening')) {
-    return '/services/brilliance_pigmentation_facial.webp';
-  }
-  if (name.includes('hydra') || name.includes('hydrating')) {
-    return '/services/hydra_boost_facial.webp';
-  }
-  if (name.includes('gold') || name.includes('radiance') || name.includes('24k') || name.includes('aging') || name.includes('collagen')) {
-    return '/services/gold_facial.webp';
-  }
-  if (name.includes('fruit') || name.includes('papaya') || name.includes('glow facial') || name.includes('vitamin')) {
+  // Skin Care & Facials (Strict, non-overlapping service matching)
+  if (name.includes('fruit') || name.includes('papaya')) {
     return '/services/fruit_facial.webp';
   }
-  if (name.includes('diamond') || name.includes('insta-glow') || name.includes('brightening') || name.includes('glass')) {
+  if (name.includes('diamond') || name.includes('insta-glow') || name.includes('glass skin')) {
     return '/services/diamond_facial.webp';
   }
-  if (name.includes('bleach') || name.includes('pack') || name.includes('detox') || name.includes('charcoal')) {
+  if (name.includes('gold') || name.includes('24k') || name.includes('collagen') || name.includes('anti-aging') || name.includes('anti aging')) {
+    return '/services/gold_facial.webp';
+  }
+  if (name.includes('shine control')) {
+    return '/services/shine_control_facial.webp';
+  }
+  if (name.includes('instant glow') || (name.includes('instant') && name.includes('glow')) || (name.includes('vitamin c') && !name.includes('fruit'))) {
+    return '/services/instant_glow_facial.webp';
+  }
+  if (name.includes('brilliance') || (name.includes('pigment') && name.includes('facial'))) {
+    return '/services/brilliance_pigmentation_facial.webp';
+  }
+  if (name.includes('hydra') || name.includes('hydrating programme')) {
+    return '/services/hydra_boost_facial.webp';
+  }
+  if (name.includes('bleach') || name.includes('pack') || name.includes('charcoal')) {
     return '/services/face_bleach_pack.webp';
+  }
+  if (name.includes('acne') || name.includes('purifying')) {
+    return '/services/shine_control_facial.webp';
   }
   if (name.includes('clean') || name.includes('herbal') || name.includes('d-tan') || name.includes('detan') || (category && category.toLowerCase().includes('skin'))) {
     return '/services/herbal_cleanup.webp';
