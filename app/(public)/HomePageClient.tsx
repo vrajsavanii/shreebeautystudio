@@ -703,10 +703,12 @@ export default function PublicHomePage() {
           viewport={{ once: true, amount: 0.1 }}
         >
           {categories.map((cat) => {
-            const catServices = services.filter((s) => (s.category || 'Special Treatments') === cat);
+            const catServices = services
+              .filter((s) => (s.category || 'Special Treatments') === cat)
+              .sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
             const icon = getCategoryIcon(cat);
             const img = getCategoryImage(cat);
-            const minPrice = catServices.reduce((min, s) => (s.price < min ? s.price : min), catServices[0]?.price || 299);
+            const minPrice = catServices[0]?.price || 299;
             const meta = CATEGORY_META[cat] || {
               tagline: 'Signature Treatment',
               description: 'Professional salon therapies tailored to your unique hair and skin profile in Surat.',

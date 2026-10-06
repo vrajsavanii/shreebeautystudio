@@ -68,9 +68,9 @@ function ServicesView() {
       return matchSearch && matchCategory;
     });
 
-    if (sortBy === 'price-low') list.sort((a: Service, b: Service) => a.price - b.price);
-    else if (sortBy === 'price-high') list.sort((a: Service, b: Service) => b.price - a.price);
+    if (sortBy === 'price-high') list.sort((a: Service, b: Service) => b.price - a.price);
     else if (sortBy === 'duration') list.sort((a: Service, b: Service) => a.duration - b.duration);
+    else list.sort((a: Service, b: Service) => a.price - b.price);
 
     return list;
   }, [services, search, activeCategory, sortBy]);
