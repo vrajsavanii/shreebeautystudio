@@ -181,6 +181,10 @@ const CATEGORY_META: Record<string, { tagline: string; description: string }> = 
     tagline: 'Gentle & Painless Grooming',
     description: 'Ultra-gentle Italian Rica peel-off wax, natural honey wax, and painless threading by senior estheticians.',
   },
+  'Body Spa & Bleach': {
+    tagline: 'Full Body Rejuvenation',
+    description: 'Relaxing body polishing, restorative aroma spa sessions, and luminous skin conditioning treatments.',
+  },
   'Hands, Feet & Nails': {
     tagline: 'Luxury Podiatry & Nail Art',
     description: 'Relaxing foot spas, French manicures, and lasting builder gel nail extensions with custom artistic finishes.',
@@ -264,9 +268,20 @@ export default function PublicHomePage() {
   const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
 
   // Group salon services by category (exclude bridal since it has its own dedicated /bridal showcase)
-  const categories = Array.from(new Set(services.map((s) => s.category || 'Special Treatments')))
-    .filter((cat) => !cat.toLowerCase().includes('bridal') && !cat.toLowerCase().includes('makeup'))
-    .slice(0, 6);
+  // Exactly 4 categories in one clean row on desktop
+  const PREFERRED_CAT_ORDER = [
+    'Hair Care & Styling',
+    'Skin Care & Facials',
+    'Waxing & Threading',
+    'Body Spa & Bleach',
+    'Hands, Feet & Nails',
+  ];
+  const allNonBridalCats = Array.from(new Set(services.map((s) => s.category || 'Special Treatments')))
+    .filter((cat) => !cat.toLowerCase().includes('bridal') && !cat.toLowerCase().includes('makeup') && !cat.toLowerCase().includes('de-tan'));
+
+  const categories = PREFERRED_CAT_ORDER.filter((c) => allNonBridalCats.includes(c))
+    .concat(allNonBridalCats.filter((c) => !PREFERRED_CAT_ORDER.includes(c)))
+    .slice(0, 4);
 
   const activeAmbiance = STUDIO_GALLERY.find((item) => item.id === activeAmbianceId) || STUDIO_GALLERY[0];
 

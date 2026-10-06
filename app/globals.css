@@ -2475,14 +2475,16 @@ a, button, input, select, textarea {
   .cust-stat-item:nth-last-child(-n+2) { border-bottom: none; }
 }
 
-/* ─── Signature Menu Showcase Cards (Centered & Responsive) ───────────── */
+/* ─── Signature Menu Showcase Cards (4 Cards in One Row Desktop) ───────────── */
+.cust-section#services {
+  max-width: 1440px;
+}
+
 .cust-bento-grid-v2 {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: stretch;
-  gap: 24px;
-  max-width: 1240px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
@@ -2497,43 +2499,26 @@ a, button, input, select, textarea {
   display: flex;
   flex-direction: column;
   position: relative;
-  flex: 0 1 360px;
   width: 100%;
-  max-width: 380px;
-  min-width: 290px;
+  min-width: 0;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .cust-bento-grid-v2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
-  }
-  .cust-bento-card-v2 {
-    flex: 0 1 340px;
-    max-width: 360px;
+    max-width: 860px;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .cust-bento-grid-v2 {
-    gap: 18px;
-    padding: 0 8px;
-  }
-  .cust-bento-card-v2 {
-    flex: 0 1 100%;
-    max-width: 440px;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .cust-bento-grid-v2 {
+    grid-template-columns: 1fr;
     gap: 16px;
+    max-width: 440px;
     padding: 0;
   }
   .cust-bento-card-v2 {
-    flex: 1 1 100%;
-    max-width: 100%;
-    min-width: 0;
     border-radius: 16px;
   }
 }
@@ -2664,13 +2649,16 @@ a, button, input, select, textarea {
 
 .cust-bento-card-v2 .card-service-row .service-name {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
+}
+
+.cust-bento-card-v2 .card-service-row .service-name span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 170px;
 }
 
 .cust-bento-card-v2 .card-service-row .service-name .dot {
@@ -2688,13 +2676,13 @@ a, button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding-top: 14px;
+  gap: 8px;
+  padding-top: 12px;
   border-top: 1px solid #f1f5f9;
 }
 
 .cust-bento-card-v2 .card-action-bar .view-all-link {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #05424a;
   text-decoration: none;
@@ -2702,27 +2690,29 @@ a, button, input, select, textarea {
   align-items: center;
   gap: 4px;
   transition: gap 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
 }
 
 .cust-bento-card-v2 .card-action-bar .view-all-link:hover {
   color: #c49821;
-  gap: 7px;
+  gap: 6px;
 }
 
 .cust-bento-card-v2 .card-action-bar .book-service-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: linear-gradient(135deg, #05424A 0%, #07505a 100%);
   color: #ffffff !important;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 700;
-  padding: 8px 16px;
+  padding: 7px 13px;
   border-radius: 99px;
   text-decoration: none;
   box-shadow: 0 2px 8px rgba(5, 66, 74, 0.25);
   border: 1px solid rgba(234, 186, 56, 0.3);
   transition: all 0.25s var(--transition-spring);
+  white-space: nowrap;
 }
 
 .cust-bento-card-v2 .card-action-bar .book-service-btn:hover {
