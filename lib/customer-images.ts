@@ -224,6 +224,10 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'anti-acne purifying facial': '/services/shine_control_facial.webp',
   'anti acne purifying facial': '/services/shine_control_facial.webp',
   'acne purifying facial': '/services/shine_control_facial.webp',
+  'instant glow facial': '/services/instant_glow_facial.webp',
+  'instant glow': '/services/instant_glow_facial.webp',
+  'vitamin c facial': '/services/instant_glow_facial.webp',
+  'vitamin c brightening facial': '/services/instant_glow_facial.webp',
   'herbal deep cleanup': '/services/herbal_cleanup.webp',
   'fruit glow facial': '/services/fruit_facial.webp',
   'gold radiance facial': '/services/gold_facial.webp',
@@ -309,6 +313,9 @@ export function getServiceImage(serviceName: string, category?: string): string 
   }
 
   // Skin Care & Facials
+  if (name.includes('instant glow') || name.includes('vitamin c') || name.includes('brightening programme')) {
+    return '/services/instant_glow_facial.webp';
+  }
   if (name.includes('shine control') || name.includes('acne') || name.includes('purify') || name.includes('mattifying')) {
     return '/services/shine_control_facial.webp';
   }
