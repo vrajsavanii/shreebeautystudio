@@ -214,7 +214,10 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'hydra boost': '/services/hydra_boost_facial.webp',
   'hydra facial': '/services/hydra_boost_facial.webp',
   'hydra glow facial': '/services/hydra_boost_facial.webp',
-  'brilliance pigmentation facial': '/services/hydra_boost_facial.webp',
+  'brilliance pigmentation facial': '/services/brilliance_pigmentation_facial.webp',
+  'brilliance white facial': '/services/brilliance_pigmentation_facial.webp',
+  'brilliance white': '/services/brilliance_pigmentation_facial.webp',
+  'pigmentation facial': '/services/brilliance_pigmentation_facial.webp',
   'herbal deep cleanup': '/services/herbal_cleanup.webp',
   'fruit glow facial': '/services/fruit_facial.webp',
   'gold radiance facial': '/services/gold_facial.webp',
@@ -301,7 +304,10 @@ export function getServiceImage(serviceName: string, category?: string): string 
   }
 
   // Skin Care & Facials
-  if (name.includes('hydra') || name.includes('brilliance') || name.includes('jeannot') || name.includes('whitening')) {
+  if (name.includes('brilliance') || name.includes('pigment') || name.includes('whitening')) {
+    return '/services/brilliance_pigmentation_facial.webp';
+  }
+  if (name.includes('hydra') || name.includes('hydrating')) {
     return '/services/hydra_boost_facial.webp';
   }
   if (name.includes('gold') || name.includes('radiance') || name.includes('24k') || name.includes('aging') || name.includes('collagen')) {
