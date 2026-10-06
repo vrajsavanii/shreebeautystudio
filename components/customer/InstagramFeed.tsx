@@ -166,6 +166,7 @@ export default function InstagramFeed() {
   const [livePhotos, setLivePhotos] = useState<PhotoPostItem[]>(DEFAULT_PHOTOS);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   // ─── Fetch live photo posts from Meta Graph API endpoint ─────────────
   useEffect(() => {
@@ -197,63 +198,97 @@ export default function InstagramFeed() {
     };
   }, []);
 
+  // ─── Automatic Slideshow Sliding Loop ────────────────────────────────
+  useEffect(() => {
+    if (isPaused || livePhotos.length === 0) return;
+
+    const interval = setInterval(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+
+      const cardWidth = el.querySelector('.insta-photo-card')?.clientWidth || 360;
+      const gap = 20;
+      const scrollStep = cardWidth + gap;
+      const maxScroll = el.scrollWidth - el.clientWidth;
+
+      if (el.scrollLeft >= maxScroll - 10) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+        setActiveIndex(0);
+      } else {
+        el.scrollBy({ left: scrollStep, behavior: 'smooth' });
+        setActiveIndex((prev) => (prev + 1) % livePhotos.length);
+      }
+    }, 3200);
+
+    return () => clearInterval(interval);
+  }, [isPaused, livePhotos.length]);
+
   const handleManualScroll = (direction: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
-    const scrollAmount = window.innerWidth < 640 ? window.innerWidth * 0.88 : 380;
-    el.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    const cardWidth = el.querySelector('.insta-photo-card')?.clientWidth || 360;
+    const gap = 20;
+    const scrollStep = cardWidth + gap;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+
+    if (direction === 'left') {
+      if (el.scrollLeft <= 10) {
+        el.scrollTo({ left: maxScroll, behavior: 'smooth' });
+        setActiveIndex(livePhotos.length - 1);
+      } else {
+        el.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+        setActiveIndex((prev) => Math.max(0, prev - 1));
+      }
+    } else {
+      if (el.scrollLeft >= maxScroll - 10) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+        setActiveIndex(0);
+      } else {
+        el.scrollBy({ left: scrollStep, behavior: 'smooth' });
+        setActiveIndex((prev) => (prev + 1) % livePhotos.length);
+      }
+    }
   };
 
   return (
     <section
       style={{
-        padding: 'clamp(24px, 3vw, 36px) 0 8px 0',
+        padding: 'clamp(28px, 3.5vw, 42px) 0 16px 0',
         background: 'linear-gradient(180deg, #f8fafc 0%, #edf2f7 50%, #f1f5f9 100%)',
         overflow: 'hidden',
         position: 'relative',
       }}
     >
-      {/* Scoped CSS for single post display on mobile */}
+      {/* Scoped CSS for slideshow presentation */}
       <style dangerouslySetInnerHTML={{ __html: `
+        .insta-marquee-container {
+          display: flex;
+          overflow-x: auto;
+          scroll-behavior: smooth;
+          padding: 14px 20px 24px;
+          gap: 20px;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+        }
+        .insta-marquee-container::-webkit-scrollbar {
+          display: none;
+        }
         @media (max-width: 640px) {
-          .insta-marquee-container {
-            display: flex !important;
-            overflow-x: auto !important;
-            scroll-snap-type: x mandatory !important;
-            -webkit-overflow-scrolling: touch !important;
-            padding: 12px 20px 20px !important;
-            gap: 16px !important;
-            scrollbar-width: none !important;
-          }
-          .insta-marquee-container::-webkit-scrollbar {
-            display: none !important;
-          }
           .insta-photo-card {
-            width: calc(100vw - 44px) !important;
-            max-width: 380px !important;
-            height: calc(100vw - 44px) !important;
-            max-height: 380px !important;
+            width: calc(100vw - 48px) !important;
+            max-width: 360px !important;
+            height: calc(100vw - 48px) !important;
+            max-height: 360px !important;
             scroll-snap-align: center !important;
-            margin: 0 auto !important;
           }
-          .insta-mobile-nav {
-            display: flex !important;
+          .insta-desktop-arrow {
+            display: none !important;
           }
         }
         @media (min-width: 641px) {
-          .insta-marquee-container {
-            display: flex;
-            overflow: hidden;
-            padding: 14px 0 24px;
-            gap: 20px;
-            cursor: grab;
-          }
           .insta-photo-card {
-            width: 380px !important;
-            height: 380px !important;
-          }
-          .insta-mobile-nav {
-            display: none !important;
+            width: 360px !important;
+            height: 360px !important;
           }
         }
       `}} />
@@ -264,7 +299,7 @@ export default function InstagramFeed() {
           position: 'absolute',
           inset: 0,
           backgroundImage:
-            'radial-gradient(circle at 15% 30%, rgba(234,186,56,0.06) 0%, transparent 60%), radial-gradient(circle at 85% 70%, rgba(220,39,67,0.06) 0%, transparent 60%)',
+            'radial-gradient(circle at 15% 30%, rgba(234,186,56,0.07) 0%, transparent 60%), radial-gradient(circle at 85% 70%, rgba(220,39,67,0.07) 0%, transparent 60%)',
           pointerEvents: 'none',
         }}
       />
@@ -274,21 +309,27 @@ export default function InstagramFeed() {
         <div
           style={{
             textAlign: 'center',
-            maxWidth: 720,
+            maxWidth: 760,
             margin: '0 auto',
             padding: '0 20px',
-            marginBottom: 'clamp(28px, 4vw, 44px)',
+            marginBottom: 'clamp(20px, 3vw, 32px)',
           }}
         >
-
+          {/* Live Slideshow Badge */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#ffffff', padding: '6px 14px', borderRadius: 99, border: '1px solid rgba(220,39,67,0.2)', boxShadow: '0 2px 8px rgba(220,39,67,0.08)', marginBottom: 12 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2743', display: 'inline-block', boxShadow: '0 0 8px #dc2743' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2743', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              Live Instagram Slideshow
+            </span>
+          </div>
 
           <h2
             style={{
-              fontSize: 'clamp(28px, 4.5vw, 44px)',
+              fontSize: 'clamp(28px, 4.2vw, 42px)',
               fontWeight: 800,
               color: '#0f172a',
               lineHeight: 1.2,
-              margin: '0 0 14px',
+              margin: '0 0 12px',
               letterSpacing: '-0.025em',
             }}
           >
@@ -306,84 +347,184 @@ export default function InstagramFeed() {
             Journey
           </h2>
 
-          <p style={{ fontSize: 15.5, color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+          <p style={{ fontSize: 15, color: '#64748b', lineHeight: 1.6, margin: 0 }}>
             Behind-the-scenes bridal transformations, beauty tips, trending hairstyles & more — all live from our Katargam studio.
           </p>
         </div>
 
-        {/* ─── Responsive Gallery: Single Post on Mobile / Infinite Marquee on Desktop ──── */}
-        <div
-          ref={scrollRef}
-          className="insta-marquee-container"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-        >
-          {livePhotos.map((photo, i) => (
-            <PhotoCard
-              key={`photo-${photo.id}-${i}`}
-              item={photo}
-              defaultUrl={instagramUrl}
-            />
-          ))}
+        {/* ─── Slideshow Carousel Wrapper with Floating Arrows ──── */}
+        <div style={{ position: 'relative', maxWidth: 1440, margin: '0 auto' }}>
+          {/* Floating Left Arrow (Desktop) */}
+          <button
+            onClick={() => handleManualScroll('left')}
+            aria-label="Previous slide"
+            className="insta-desktop-arrow"
+            style={{
+              position: 'absolute',
+              left: 16,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              width: 46,
+              height: 46,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(5,66,74,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#05424a',
+              cursor: 'pointer',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+              transition: 'all 0.25s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              e.currentTarget.style.background = '#05424a';
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+              e.currentTarget.style.color = '#05424a';
+            }}
+          >
+            <ChevronLeft size={24} />
+          </button>
+
+          {/* Floating Right Arrow (Desktop) */}
+          <button
+            onClick={() => handleManualScroll('right')}
+            aria-label="Next slide"
+            className="insta-desktop-arrow"
+            style={{
+              position: 'absolute',
+              right: 16,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 10,
+              width: 46,
+              height: 46,
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(5,66,74,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#05424a',
+              cursor: 'pointer',
+              boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+              transition: 'all 0.25s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1.1)';
+              e.currentTarget.style.background = '#05424a';
+              e.currentTarget.style.color = '#ffffff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.95)';
+              e.currentTarget.style.color = '#05424a';
+            }}
+          >
+            <ChevronRight size={24} />
+          </button>
+
+          {/* ─── Scroll Track ──── */}
+          <div
+            ref={scrollRef}
+            className="insta-marquee-container"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={() => setIsPaused(true)}
+            onTouchEnd={() => {
+              setTimeout(() => setIsPaused(false), 3000);
+            }}
+          >
+            {livePhotos.map((photo, i) => (
+              <PhotoCard
+                key={`photo-${photo.id}-${i}`}
+                item={photo}
+                defaultUrl={instagramUrl}
+              />
+            ))}
+          </div>
         </div>
 
-        {/* Mobile Swipe Navigation Controls */}
+        {/* Slideshow Controls Bar (Pause/Play + Slide Count) */}
         <div
-          className="insta-mobile-nav"
           style={{
+            display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: 16,
-            marginTop: 12,
+            gap: 14,
+            marginTop: 8,
           }}
         >
           <button
             onClick={() => handleManualScroll('left')}
             aria-label="Previous photo"
             style={{
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               borderRadius: '50%',
               background: '#ffffff',
-              border: '1px solid rgba(0,0,0,0.1)',
+              border: '1px solid rgba(0,0,0,0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#0f172a',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
             }}
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
           </button>
 
-          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
-            Swipe to explore ({livePhotos.length} posts)
-          </span>
+          <button
+            onClick={() => setIsPaused((prev) => !prev)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: isPaused ? '#fef3c7' : '#f1f5f9',
+              color: isPaused ? '#92400e' : '#475569',
+              border: '1px solid rgba(0,0,0,0.08)',
+              padding: '6px 14px',
+              borderRadius: 99,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            <span>{isPaused ? '▶ Play Slideshow' : '⏸ Pause'}</span>
+          </button>
 
           <button
             onClick={() => handleManualScroll('right')}
             aria-label="Next photo"
             style={{
-              width: 40,
-              height: 40,
+              width: 36,
+              height: 36,
               borderRadius: '50%',
               background: '#ffffff',
-              border: '1px solid rgba(0,0,0,0.1)',
+              border: '1px solid rgba(0,0,0,0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#0f172a',
               cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
             }}
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </button>
         </div>
 
         {/* Follow CTA Button */}
-        <div style={{ textAlign: 'center', marginTop: 'clamp(12px, 2vw, 20px)' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(14px, 2.5vw, 22px)' }}>
           <a
             href={instagramUrl}
             target="_blank"
@@ -396,10 +537,10 @@ export default function InstagramFeed() {
               color: '#ffffff',
               fontSize: 14.5,
               fontWeight: 700,
-              padding: '14px 34px',
+              padding: '13px 32px',
               borderRadius: 99,
               textDecoration: 'none',
-              boxShadow: '0 8px 26px rgba(220, 39, 67, 0.35)',
+              boxShadow: '0 8px 24px rgba(220, 39, 67, 0.3)',
               transition: 'all 0.3s ease',
               letterSpacing: '0.02em',
             }}
@@ -409,7 +550,7 @@ export default function InstagramFeed() {
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.transform = '';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 26px rgba(220, 39, 67, 0.35)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(220, 39, 67, 0.3)';
             }}
           >
             <Instagram size={18} />
