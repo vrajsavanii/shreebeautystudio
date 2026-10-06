@@ -509,6 +509,37 @@ function BillingContent() {
 
   const balance = Math.max(0, totalAfterLoyalty - Number(advance || 0) - effectivePaid);
 
+  const handleSetFullPayment = () => {
+    const finalPayable = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+    if (isSplitPayment) {
+      const currentSplitSum = Number(splitCash || 0) + Number(splitUpi || 0) + Number(splitCard || 0);
+      const needed = Math.max(0, finalPayable - currentSplitSum);
+      if (needed > 0) {
+        if (!splitCash && !splitUpi && !splitCard) {
+          setSplitCash(finalPayable);
+        } else if (splitCash && !splitUpi && !splitCard) {
+          setSplitCash(finalPayable);
+        } else if (splitUpi && !splitCash && !splitCard) {
+          setSplitUpi(finalPayable);
+        } else if (splitCard && !splitCash && !splitUpi) {
+          setSplitCard(finalPayable);
+        } else {
+          setSplitCash((prev) => Number(prev || 0) + needed);
+        }
+      } else if (finalPayable === 0) {
+        setSplitCash(0);
+        setSplitUpi('');
+        setSplitCard('');
+      } else {
+        setSplitCash(finalPayable);
+        setSplitUpi('');
+        setSplitCard('');
+      }
+    } else {
+      setPaid(finalPayable);
+    }
+  };
+
   const setLine = (idx: number, updates: Partial<InvoiceLine>) => {
     setLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...updates } : l)));
   };
@@ -2479,9 +2510,30 @@ function BillingContent() {
                       marginBottom: 4,
                     }}
                   >
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>
-                      Payment Method
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>
+                        Payment Method
+                      </span>
+                      {!isSplitPayment && (
+                        <button
+                          type="button"
+                          onClick={handleSetFullPayment}
+                          title="Auto-fill Full Payable Amount"
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            padding: '1px 6px',
+                            borderRadius: 4,
+                            background: balance === 0 ? '#f0fdf4' : 'rgba(5, 66, 74, 0.08)',
+                            color: balance === 0 ? '#16a34a' : '#05424A',
+                            border: balance === 0 ? '1px solid #bbf7d0' : '1px solid rgba(5, 66, 74, 0.2)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ⚡ Full ({money(Math.max(0, totalAfterLoyalty - Number(advance || 0)))})
+                        </button>
+                      )}
+                    </div>
                     <label
                       style={{
                         fontSize: 10,
@@ -2505,9 +2557,22 @@ function BillingContent() {
                   {isSplitPayment ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
                       <div>
-                        <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
-                          Cash (₹)
-                        </label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
+                          <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                            Cash (₹)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const remaining = Math.max(0, (totalAfterLoyalty - Number(advance || 0)) - Number(splitUpi || 0) - Number(splitCard || 0));
+                              setSplitCash(remaining);
+                            }}
+                            title="Fill remaining into Cash"
+                            style={{ fontSize: 8, padding: '0 3px', borderRadius: 3, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A' }}
+                          >
+                            Fill
+                          </button>
+                        </div>
                         <input
                           type="number"
                           min={0}
@@ -2527,9 +2592,6 @@ function BillingContent() {
                             marginBottom: 1,
                           }}
                         >
-                          <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
-                            UPI (₹)
-                          </label>
                           <select
                             value={splitUpiMode}
                             onChange={(e) => setSplitUpiMode(e.target.value)}
@@ -2539,11 +2601,23 @@ function BillingContent() {
                               borderRadius: 4,
                               border: '1px solid #cbd5e1',
                               background: '#ffffff',
+                              fontWeight: 600,
                             }}
                           >
-                            <option value="GPay UPI">GPay</option>
-                            <option value="PhonePe UPI">PhonePe</option>
+                            <option value="GPay UPI">GPay (₹)</option>
+                            <option value="PhonePe UPI">PhonePe (₹)</option>
                           </select>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const remaining = Math.max(0, (totalAfterLoyalty - Number(advance || 0)) - Number(splitCash || 0) - Number(splitCard || 0));
+                              setSplitUpi(remaining);
+                            }}
+                            title="Fill remaining into UPI"
+                            style={{ fontSize: 8, padding: '0 3px', borderRadius: 3, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A' }}
+                          >
+                            Fill
+                          </button>
                         </div>
                         <input
                           type="number"
@@ -2556,9 +2630,22 @@ function BillingContent() {
                         />
                       </div>
                       <div>
-                        <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
-                          Card (₹)
-                        </label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
+                          <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                            Card (₹)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const remaining = Math.max(0, (totalAfterLoyalty - Number(advance || 0)) - Number(splitCash || 0) - Number(splitUpi || 0));
+                              setSplitCard(remaining);
+                            }}
+                            title="Fill remaining into Card"
+                            style={{ fontSize: 8, padding: '0 3px', borderRadius: 3, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A' }}
+                          >
+                            Fill
+                          </button>
+                        </div>
                         <input
                           type="number"
                           min={0}
@@ -2600,7 +2687,7 @@ function BillingContent() {
                             ))}
                           </datalist>
                         </div>
-                        <div style={{ width: 95 }}>
+                        <div style={{ width: 110, display: 'flex', gap: 3, alignItems: 'center' }}>
                           <input
                             type="number"
                             min={0}
@@ -2608,8 +2695,27 @@ function BillingContent() {
                             placeholder="Paid ₹"
                             value={paid}
                             onChange={(e) => setPaid(Number(e.target.value) || '')}
-                            style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 5px' }}
+                            style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 5px', flex: 1 }}
                           />
+                          <button
+                            type="button"
+                            onClick={handleSetFullPayment}
+                            title="Auto-fill full payable amount"
+                            style={{
+                              height: 28,
+                              padding: '0 6px',
+                              borderRadius: 4,
+                              background: balance === 0 ? '#16a34a' : '#05424A',
+                              color: '#ffffff',
+                              border: 'none',
+                              fontSize: 10,
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Full
+                          </button>
                         </div>
                       </div>
 
@@ -2630,7 +2736,12 @@ function BillingContent() {
                             <button
                               key={p}
                               type="button"
-                              onClick={() => setMode(p)}
+                              onClick={() => {
+                                setMode(p);
+                                if (paid === '' || paid === 0) {
+                                  setPaid(Math.max(0, totalAfterLoyalty - Number(advance || 0)));
+                                }
+                              }}
                               style={{
                                 padding: '2px 5px',
                                 borderRadius: 4,
@@ -2651,18 +2762,67 @@ function BillingContent() {
                   )}
                 </div>
 
-                {/* Balance Due Status */}
+                {/* Balance Due Status / Full Payment Mark Row */}
                 <div
                   className="total-row"
                   style={{
-                    marginTop: 3,
+                    marginTop: 4,
+                    padding: '5px 8px',
+                    borderRadius: 6,
+                    background: balance > 0 ? '#fef2f2' : '#f0fdf4',
+                    border: balance > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     fontWeight: 700,
                     fontSize: 11,
                     color: balance > 0 ? '#dc2626' : '#16a34a',
                   }}
                 >
-                  <span>{balance > 0 ? 'Balance Due' : 'Status'}</span>
-                  <span>{balance > 0 ? money(balance) : '✅ Fully Paid'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>{balance > 0 ? 'Balance Due:' : 'Status:'}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800 }}>
+                      {balance > 0 ? money(balance) : '₹0.00'}
+                    </span>
+                  </div>
+
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      background: balance === 0 ? 'rgba(22, 163, 74, 0.12)' : '#ffffff',
+                      padding: '2px 8px',
+                      borderRadius: 99,
+                      border: balance === 0 ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      color: balance === 0 ? '#16a34a' : '#05424A',
+                      boxShadow: balance > 0 ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={balance === 0 && effectivePaid > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleSetFullPayment();
+                        } else {
+                          if (isSplitPayment) {
+                            setSplitCash('');
+                            setSplitUpi('');
+                            setSplitCard('');
+                          } else {
+                            setPaid('');
+                          }
+                        }
+                      }}
+                      style={{ accentColor: '#16a34a', cursor: 'pointer', width: 13, height: 13 }}
+                    />
+                    <span>{balance === 0 ? 'Fully Paid' : 'Mark Full Payment'}</span>
+                  </label>
                 </div>
               </div>
 
@@ -2899,7 +3059,85 @@ function BillingContent() {
               </div>
               <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginTop: 4 }}>
                 <input type="text" className="input" list="pos-payment-accounts" placeholder="Payment method…" value={mode} onChange={(e) => setMode(e.target.value)} style={{ flex: 1, height: 28, fontSize: 11.5, padding: '0 6px' }} />
-                <input type="number" min={0} className="input" placeholder="Paid ₹" value={paid} onChange={(e) => setPaid(Number(e.target.value) || '')} style={{ width: 90, textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 5px' }} />
+                <div style={{ width: 110, display: 'flex', gap: 3, alignItems: 'center' }}>
+                  <input type="number" min={0} className="input" placeholder="Paid ₹" value={paid} onChange={(e) => setPaid(Number(e.target.value) || '')} style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 5px', flex: 1 }} />
+                  <button
+                    type="button"
+                    onClick={handleSetFullPayment}
+                    title="Auto-fill Full Payable Amount"
+                    style={{
+                      height: 28,
+                      padding: '0 6px',
+                      borderRadius: 4,
+                      background: balance === 0 ? '#16a34a' : '#05424A',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Full
+                  </button>
+                </div>
+              </div>
+
+              {/* Balance Due Status / Full Payment Mark Row */}
+              <div
+                className="total-row"
+                style={{
+                  marginTop: 4,
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  background: balance > 0 ? '#fef2f2' : '#f0fdf4',
+                  border: balance > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontWeight: 700,
+                  fontSize: 11,
+                  color: balance > 0 ? '#dc2626' : '#16a34a',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>{balance > 0 ? 'Balance Due:' : 'Status:'}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800 }}>
+                    {balance > 0 ? money(balance) : '₹0.00'}
+                  </span>
+                </div>
+
+                <label
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    background: balance === 0 ? 'rgba(22, 163, 74, 0.12)' : '#ffffff',
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    border: balance === 0 ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    color: balance === 0 ? '#16a34a' : '#05424A',
+                    boxShadow: balance > 0 ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={balance === 0 && effectivePaid > 0}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        handleSetFullPayment();
+                      } else {
+                        setPaid('');
+                      }
+                    }}
+                    style={{ accentColor: '#16a34a', cursor: 'pointer', width: 13, height: 13 }}
+                  />
+                  <span>{balance === 0 ? 'Fully Paid' : 'Mark Full Payment'}</span>
+                </label>
               </div>
             </div>
 
