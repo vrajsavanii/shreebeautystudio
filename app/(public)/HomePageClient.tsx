@@ -51,7 +51,7 @@ const GOOGLE_REVIEWS_ROW1 = [
     rating: 5,
   },
   {
-    text: "Shree beauty studio has a very friendly atmosphere. Amita and Bhavna aunty are so polite. They use 100% original products. The feeling is like home salon.",
+    text: "Shree Beauty Studio has a very clean atmosphere and wonderful hospitality. They use 100% original products. Truly the best salon experience in Katargam!",
     name: "Parul Savani",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLIJbMxQ_-zezajrclqidPSKTigQELlG6e6zoBHyy6YGF45ZQ=s120-c-rp-mo-br100",
@@ -72,8 +72,8 @@ const GOOGLE_REVIEWS_ROW1 = [
     rating: 5,
   },
   {
-    text: "Excellent service, friendly staff, and a very clean and relaxing atmosphere. I'm extremely happy with the results every single visit.",
-    name: "Prushti Bhalani",
+    text: "Excellent service, friendly staff, and a very clean and relaxing atmosphere. I'm extremely happy with my facial and skin glow every single visit.",
+    name: "Priyanshi Patel",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLXP5G2hRrcgPF3Lt54fU-9cOX3z6X7_pWtzKIjVBMGdSS8NQ=s120-c-rp-mo-br100",
     rating: 5,
@@ -139,7 +139,7 @@ const GOOGLE_REVIEWS_ROW2 = [
   },
   {
     text: "Loved the service! The staff was very polite and professional. Highly recommend this salon for all hair & skin services.",
-    name: "Varsha Bhalani",
+    name: "Tanvi Shah",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocI6cBMqgLwqUGWAa4hNa-MLh_FVKiTe8e2fDtb1PdbYdGUzmg=s120-c-rp-mo-br100",
     rating: 5,

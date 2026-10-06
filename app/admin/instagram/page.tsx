@@ -55,14 +55,38 @@ import {
   Users,
   AtSign,
   Tag,
-  ChevronDown,
-  ChevronUp
+  Tv,
+  Monitor,
+  Wifi,
+  WifiOff,
+  Clock,
+  ArrowUp,
+  ArrowDown,
+  Radio,
+  Upload
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { useToast } from '@/components/ui/Toast';
 import { openWAWeb, openWAApp } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
+import { TvSlideItem, TvSlideshowSettings } from '@/types/salon';
+import {
+  convertImageTo4k,
+  saveSlideToLocalDb,
+  loadAllSlidesFromLocalDb,
+  deleteSlideFromLocalDb,
+  syncTvSlidesWithCloud,
+  DEFAULT_TV_SLIDES,
+  DEFAULT_TV_SLIDESHOW_SETTINGS,
+  DEFAULT_TV_FRAME_URL,
+  pushSlidesTo4kFrame,
+  downloadSingle4kSlide,
+  downloadAll4kSlides,
+  isNetworkOnline,
+  TV_CANVAS_WIDTH,
+  TV_CANVAS_HEIGHT,
+} from '@/lib/tv-slideshow-storage';
 
 interface InstagramPost {
   id: string;
@@ -78,7 +102,7 @@ interface InstagramPost {
   timestamp: string;
 }
 
-type TabType = 'upload' | 'studio' | 'feed' | 'crosspost' | 'settings';
+type TabType = 'upload' | 'tv_slideshow' | 'studio' | 'feed' | 'crosspost' | 'settings';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | 'original';
 
 interface MediaItem {
@@ -115,6 +139,27 @@ export default function InstagramHubPage() {
   const [activeTab, setActiveTab] = useState<TabType>('upload');
   const [loading, setLoading] = useState(false);
   const [posts, setPosts] = useState<InstagramPost[]>([]);
+
+  // ── TV SLIDESHOW & OFFLINE LOCAL DRIVE STATE ──
+  const [shareTvSlideshow, setShareTvSlideshow] = useState(true);
+  const [tvSlides, setTvSlides] = useState<TvSlideItem[]>(data.tvSlides && data.tvSlides.length > 0 ? data.tvSlides : DEFAULT_TV_SLIDES);
+  const [tvSettings, setTvSettings] = useState<TvSlideshowSettings>(data.tvSlideshowSettings || DEFAULT_TV_SLIDESHOW_SETTINGS);
+  const [isConvertingTv4k, setIsConvertingTv4k] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [manualSlideTitle, setManualSlideTitle] = useState('');
+  const [manualSlideCategory, setManualSlideCategory] = useState('Bridal Couture');
+  const [tvPreviewIndex, setTvPreviewIndex] = useState(0);
+  const [isPlayingTvPreview, setIsPlayingTvPreview] = useState(true);
+  const [tvDurationInput, setTvDurationInput] = useState<number>(tvSettings.slideDurationSeconds || 7);
+  const [tvTransitionInput, setTvTransitionInput] = useState<'kenburns' | 'fade' | 'zoom' | 'slide'>(tvSettings.transitionEffect || 'kenburns');
+  const tvManualFileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── 4kFrame (192.168.1.81:9095) LOCAL TV SERVER STATE ──
+  const [tvFrameUrl, setTvFrameUrl] = useState<string>(tvSettings.tvFrameUrl || DEFAULT_TV_FRAME_URL);
+  const [tvFrameOnline, setTvFrameOnline] = useState<boolean | null>(null);
+  const [isPushingTo4kFrame, setIsPushingTo4kFrame] = useState(false);
+  const [isDownloading4k, setIsDownloading4k] = useState(false);
+  const [tvFrameActiveMode, setTvFrameActiveMode] = useState<'CAST' | 'VIEW' | 'DELETE'>('CAST');
 
   // ── MULTI-PHOTO & CROP / ZOOM STATE ──
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +198,109 @@ export default function InstagramHubPage() {
   const [instaUrl, setInstaUrl] = useState(settings?.instagramUrl || 'https://www.instagram.com/shreebeauty.studio/');
   const [accountId, setAccountId] = useState(settings?.instagramAccountId || '17841408494357129');
   const [token, setToken] = useState(settings?.instagramAccessToken || '');
+
+  // 1. Check URL parameters for tab navigation (e.g. ?tab=tv_slideshow)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'tv_slideshow' || tabParam === 'studio' || tabParam === 'feed' || tabParam === 'crosspost' || tabParam === 'settings') {
+        setActiveTab(tabParam as TabType);
+      }
+    }
+  }, []);
+
+  // 2. Initialize TV storage from Local Drive (IndexedDB) & sync when online
+  useEffect(() => {
+    let isMounted = true;
+    setIsOnline(isNetworkOnline());
+
+    const initTvStorage = async () => {
+      try {
+        const { synced, isOffline } = await syncTvSlidesWithCloud(data.tvSlides);
+        if (isMounted) {
+          if (synced && synced.length > 0) {
+            setTvSlides(synced);
+          }
+          setIsOnline(!isOffline);
+        }
+      } catch (err) {
+        const local = await loadAllSlidesFromLocalDb();
+        if (isMounted && local.length > 0) setTvSlides(local);
+      }
+    };
+
+    initTvStorage();
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncTvSlidesWithCloud(data.tvSlides).then(({ synced }) => {
+        if (synced && synced.length > 0) setTvSlides(synced);
+      });
+      toast('🟢 Local Network Connected: TV Slides Synced!', 'success');
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast('🟡 TV Offline Mode: Playing from Local Drive Cache', 'info');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [data.tvSlides]);
+
+  // 3. Mini TV Preview Animation Timer
+  useEffect(() => {
+    if (!isPlayingTvPreview || tvSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      setTvPreviewIndex((prev) => (prev + 1) % tvSlides.length);
+    }, (tvDurationInput || 7) * 1000);
+    return () => clearInterval(interval);
+  }, [isPlayingTvPreview, tvSlides.length, tvDurationInput]);
+
+  // 4. Background Auto-Sync Worker for 4kFrame TV (http://192.168.1.81:9095)
+  // Periodically tests if TV is online and automatically uploads all pending photos without any manual click!
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    const checkAndAutoSyncToTv = async () => {
+      try {
+        const res = await fetch(`/api/tv-frame/status?url=${encodeURIComponent(tvFrameUrl)}`);
+        const json = await res.json();
+        const isUp = !!json.online;
+        setTvFrameOnline(isUp);
+
+        if (isUp) {
+          const pending = tvSlides.filter((s) => !s.uploadedToTv);
+          if (pending.length > 0) {
+            const pushRes = await pushSlidesTo4kFrame(pending, tvFrameUrl);
+            if (pushRes.success) {
+              const updated = tvSlides.map((s) => ({
+                ...s,
+                uploadedToTv: true,
+                lastSyncedAt: new Date().toISOString(),
+              }));
+              setTvSlides(updated);
+              setData({ ...data, tvSlides: updated });
+              scheduleSave();
+              for (const s of updated) {
+                await saveSlideToLocalDb(s);
+              }
+              toast(`🎉 Auto-uploaded ${pending.length} pending photo(s) to 4kFrame TV (${tvFrameUrl})!`, 'success');
+            }
+          }
+        }
+      } catch {}
+    };
+
+    checkAndAutoSyncToTv();
+    intervalId = setInterval(checkAndAutoSyncToTv, 20000);
+    return () => clearInterval(intervalId);
+  }, [tvFrameUrl, tvSlides]);
 
   // Fetch Instagram Feed
   const fetchFeed = async () => {
@@ -899,6 +1047,77 @@ export default function InstagramHubPage() {
         setPublishMessage(json.message || `🎉 100% Published Live to Instagram @shreebeauty.studio! (Post ID: ${json.postId || ''})`);
         toast(`🎉 Successfully published live to Instagram @shreebeauty.studio!`, 'success');
 
+        // 5. If "Share to TV Slideshow" is checked and we have photos, convert to 4K 2160×1440 & save to local drive (IndexedDB)
+        if (shareTvSlideshow && hasPhotos) {
+          try {
+            const newTvSlides: TvSlideItem[] = [];
+            for (let i = 0; i < mediaItems.length; i++) {
+              const item = mediaItems[i];
+              if (item.type === 'photo') {
+                const fileToConvert = processedFiles[i] || item.file;
+                const conv = await convertImageTo4k(fileToConvert, {
+                  targetWidth: 2160,
+                  targetHeight: 1440,
+                  studioTitle: 'SHREE BEAUTY STUDIO',
+                  studioSubtitle: postLocation || 'KATARGAM, SURAT • @shreebeauty.studio',
+                  addWatermark: true,
+                  blurBackdrop: true,
+                });
+
+                const catMap: Record<string, string> = {
+                  bridal: 'Bridal Couture',
+                  sagai: 'Engagement Glam',
+                  reception: 'Reception Look',
+                  haldi_mehndi: 'Haldi & Mehndi',
+                  prebridal: 'Pre-Bridal Care',
+                  review: 'Bride Reviews',
+                };
+
+                const newSlide: TvSlideItem = {
+                  id: `tv_insta_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+                  url: conv.dataUrl,
+                  title: clientName ? `${clientName} • ${catMap[captionCategory] || 'Salon Special'}` : `${catMap[captionCategory] || 'Salon Special'} Makeover`,
+                  category: catMap[captionCategory] || 'Bridal & Beauty',
+                  resolution: '4K (2160×1440)',
+                  createdAt: new Date().toISOString(),
+                  active: true,
+                  duration: 7,
+                  source: 'instagram',
+                  offlineCached: true,
+                  caption: generatedCaption ? generatedCaption.split('\n')[0].substring(0, 100) : 'Shree Beauty Studio, Katargam',
+                  aspectRatio: '2160x1440',
+                };
+
+                await saveSlideToLocalDb(newSlide);
+                newTvSlides.push(newSlide);
+              }
+            }
+
+            if (newTvSlides.length > 0) {
+              setTvSlides((prev) => {
+                const updated = [...newTvSlides, ...prev];
+                const updatedData = { ...data, tvSlides: updated };
+                setData(updatedData);
+                scheduleSave();
+                return updated;
+              });
+              toast(`📺 Converted & queued ${newTvSlides.length} photo(s) to 4K (2160×1440) TV Slideshow & saved to local drive!`, 'success');
+
+              // Also auto-push directly to 4kFrame TV server (192.168.1.81:9095) in background
+              pushSlidesTo4kFrame(newTvSlides, tvFrameUrl)
+                .then((res) => {
+                  if (res.success) {
+                    toast(`🎉 Photo(s) automatically uploaded to 4kFrame TV (${tvFrameUrl})!`, 'success');
+                    setTvFrameOnline(true);
+                  }
+                })
+                .catch(() => {});
+            }
+          } catch (tvErr) {
+            console.warn('TV Slideshow 4K Conversion error:', tvErr);
+          }
+        }
+
         navigator.clipboard.writeText(generatedCaption);
         fetchFeed();
       } else {
@@ -913,6 +1132,205 @@ export default function InstagramHubPage() {
     } finally {
       setIsPublishing(false);
       setPublishingStep('');
+    }
+  };
+
+  // ── TV SLIDESHOW MANAGEMENT & 4kFrame (192.168.1.81:9095) HANDLERS ──
+  const handleTvManualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsConvertingTv4k(true);
+    toast('⚙️ Converting photo(s) to 4K (2160×1440) Ultra-HD with luxury blur backdrop...', 'info');
+
+    try {
+      const addedSlides: TvSlideItem[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const conv = await convertImageTo4k(file, {
+          targetWidth: 2160,
+          targetHeight: 1440,
+          studioTitle: 'SHREE BEAUTY STUDIO',
+          studioSubtitle: 'KATARGAM, SURAT • 100% LADIES SANCTUARY',
+          addWatermark: true,
+          blurBackdrop: true,
+        });
+
+        const slide: TvSlideItem = {
+          id: `tv_upload_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+          url: conv.dataUrl,
+          title: file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || `Salon 4K Photo ${i + 1}`,
+          category: 'Salon Special',
+          resolution: '4K (2160×1440)',
+          createdAt: new Date().toISOString(),
+          active: true,
+          duration: tvDurationInput || 7,
+          source: 'upload',
+          offlineCached: true,
+          uploadedToTv: false,
+          caption: 'Ultra-HD 4K Native 2160×1440 Resolution • Local Drive Cached',
+          aspectRatio: '2160x1440',
+        };
+
+        await saveSlideToLocalDb(slide);
+        addedSlides.push(slide);
+      }
+
+      setTvSlides((prev) => {
+        const updated = [...addedSlides, ...prev];
+        const updatedData = { ...data, tvSlides: updated };
+        setData(updatedData);
+        scheduleSave();
+        return updated;
+      });
+
+      if (tvManualFileInputRef.current) tvManualFileInputRef.current.value = '';
+
+      // Immediately attempt push to 4kFrame TV server
+      try {
+        const pushRes = await pushSlidesTo4kFrame(addedSlides, tvFrameUrl);
+        if (pushRes.success) {
+          setTvFrameOnline(true);
+          const markedUploaded = addedSlides.map((s) => ({ ...s, uploadedToTv: true }));
+          for (const s of markedUploaded) {
+            await saveSlideToLocalDb(s);
+          }
+          setTvSlides((prev) =>
+            prev.map((s) => (addedSlides.some((a) => a.id === s.id) ? { ...s, uploadedToTv: true } : s))
+          );
+          toast(`🎉 ${addedSlides.length} Photo(s) converted to 4K & uploaded to TV (192.168.1.81:9095)!`, 'success');
+        } else {
+          setTvFrameOnline(false);
+          toast(`💾 4K Photo(s) saved in Local Drive! When TV connects to Wi-Fi, it will auto-upload.`, 'info');
+        }
+      } catch {
+        setTvFrameOnline(false);
+        toast(`💾 4K Photo(s) saved in Local Drive! Auto-upload will trigger when TV is connected.`, 'info');
+      }
+    } catch (err: any) {
+      toast(`Failed to convert 4K photo: ${err.message}`, 'error');
+    } finally {
+      setIsConvertingTv4k(false);
+    }
+  };
+
+  const handlePushAllTo4kFrame = async () => {
+    if (tvSlides.length === 0) {
+      toast('No 4K slides available to push', 'error');
+      return;
+    }
+    setIsPushingTo4kFrame(true);
+    toast(`🚀 Uploading ${tvSlides.length} 4K photos to 4kFrame TV (${tvFrameUrl})...`, 'info');
+
+    try {
+      const result = await pushSlidesTo4kFrame(tvSlides, tvFrameUrl);
+      if (result.success) {
+        toast(`🎉 Successfully uploaded all ${tvSlides.length} photos to 4kFrame TV!`, 'success');
+        setTvFrameOnline(true);
+        const updated = tvSlides.map((s) => ({ ...s, uploadedToTv: true, lastSyncedAt: new Date().toISOString() }));
+        setTvSlides(updated);
+        setData({ ...data, tvSlides: updated });
+        scheduleSave();
+        for (const s of updated) {
+          await saveSlideToLocalDb(s);
+        }
+      } else {
+        toast(result.message || `⚠️ TV server at ${tvFrameUrl} not reachable. Photos remain saved in local storage.`, 'error');
+        setTvFrameOnline(false);
+      }
+    } catch (err: any) {
+      toast(`Upload failed: ${err.message}`, 'error');
+    } finally {
+      setIsPushingTo4kFrame(false);
+    }
+  };
+
+  const handlePushSingleTo4kFrame = async (slide: TvSlideItem) => {
+    toast(`🚀 Uploading "${slide.title || 'Photo'}" to TV (${tvFrameUrl})...`, 'info');
+    try {
+      const result = await pushSlidesTo4kFrame([slide], tvFrameUrl);
+      if (result.success) {
+        toast(`🎉 Photo uploaded to TV (${tvFrameUrl})!`, 'success');
+        setTvFrameOnline(true);
+        const updated = tvSlides.map((s) => (s.id === slide.id ? { ...s, uploadedToTv: true } : s));
+        setTvSlides(updated);
+        setData({ ...data, tvSlides: updated });
+        scheduleSave();
+        await saveSlideToLocalDb({ ...slide, uploadedToTv: true });
+      } else {
+        toast(result.message || '⚠️ TV server unreachable on this Wi-Fi network.', 'error');
+        setTvFrameOnline(false);
+      }
+    } catch (err: any) {
+      toast(`Upload failed: ${err.message}`, 'error');
+    }
+  };
+
+  const handleDownloadAll4k = async () => {
+    if (tvSlides.length === 0) return;
+    setIsDownloading4k(true);
+    toast(`📥 Downloading ${tvSlides.length} 4K (2160×1440) Ultra-HD photos...`, 'info');
+    try {
+      const count = await downloadAll4kSlides(tvSlides);
+      toast(`🎉 Downloaded ${count} 4K photos! You can now drag & drop them directly into 4kFrame Admin.`, 'success');
+    } catch {
+      toast('Failed to download slides', 'error');
+    } finally {
+      setIsDownloading4k(false);
+    }
+  };
+
+  const handleToggleTvSlideActive = async (slideId: string) => {
+    const updated = tvSlides.map((s) => (s.id === slideId ? { ...s, active: s.active === false ? true : false } : s));
+    setTvSlides(updated);
+    const updatedData = { ...data, tvSlides: updated };
+    setData(updatedData);
+    scheduleSave();
+    const target = updated.find((s) => s.id === slideId);
+    if (target) await saveSlideToLocalDb(target);
+    toast(target?.active !== false ? '✅ Slide activated in TV playlist' : '⏸️ Slide hidden from TV playlist', 'info');
+  };
+
+  const handleDeleteTvSlide = async (slideId: string) => {
+    const updated = tvSlides.filter((s) => s.id !== slideId);
+    setTvSlides(updated);
+    const updatedData = { ...data, tvSlides: updated };
+    setData(updatedData);
+    scheduleSave();
+    await deleteSlideFromLocalDb(slideId);
+    toast('🗑️ Slide removed from TV Slideshow and local drive', 'info');
+  };
+
+  const handleMoveTvSlide = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= tvSlides.length) return;
+    const reordered = [...tvSlides];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    setTvSlides(reordered);
+    const updatedData = { ...data, tvSlides: reordered };
+    setData(updatedData);
+    scheduleSave();
+    toast('↕️ TV slide playlist order updated!', 'success');
+  };
+
+  const handleSaveTvSettings = (updates: Partial<TvSlideshowSettings>) => {
+    const updatedSettings: TvSlideshowSettings = { ...tvSettings, ...updates };
+    setTvSettings(updatedSettings);
+    const updatedData = { ...data, tvSlideshowSettings: updatedSettings };
+    setData(updatedData);
+    scheduleSave();
+    toast('⚙️ TV Slideshow settings saved!', 'success');
+  };
+
+  const handleForceSyncTvLocalDrive = async () => {
+    toast('🔄 Syncing TV slides to Local Drive (IndexedDB)...', 'info');
+    try {
+      const { synced, isOffline } = await syncTvSlidesWithCloud(tvSlides);
+      if (synced && synced.length > 0) setTvSlides(synced);
+      setIsOnline(!isOffline);
+      toast('✅ All 4K slides successfully cached in local drive for offline playback!', 'success');
+    } catch {
+      toast('Failed to sync local drive', 'error');
     }
   };
 
@@ -1019,6 +1437,26 @@ export default function InstagramHubPage() {
               <Instagram size={14} />
               Open Instagram ↗
             </a>
+
+            <Link
+              href="/tv-slideshow"
+              target="_blank"
+              className="btn btn-sm"
+              style={{
+                background: 'linear-gradient(135deg, #03363d 0%, #064e58 100%)',
+                color: '#eaba38',
+                fontWeight: 800,
+                border: '1px solid rgba(234, 186, 56, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 4px 14px rgba(3, 54, 61, 0.4)',
+              }}
+              title="Launch Reception 4K TV Fullscreen Slideshow Player"
+            >
+              <Tv size={15} color="#eaba38" />
+              📺 Launch 4K TV Player ↗
+            </Link>
           </div>
         </div>
       </motion.div>
@@ -1049,6 +1487,36 @@ export default function InstagramHubPage() {
         >
           <UploadCloud size={16} />
           🚀 Multi-Photo & Reel Auto-Post
+        </button>
+
+        <button
+          onClick={() => setActiveTab('tv_slideshow')}
+          className={`btn ${activeTab === 'tv_slideshow' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontWeight: 800,
+            background: activeTab === 'tv_slideshow' ? 'linear-gradient(135deg, #03363d 0%, #064e58 100%)' : undefined,
+            color: activeTab === 'tv_slideshow' ? '#eaba38' : undefined,
+            border: activeTab === 'tv_slideshow' ? '1.5px solid #eaba38' : undefined,
+            boxShadow: activeTab === 'tv_slideshow' ? '0 4px 14px rgba(3, 54, 61, 0.35)' : undefined,
+          }}
+        >
+          <Tv size={16} color={activeTab === 'tv_slideshow' ? '#eaba38' : undefined} />
+          📺 TV Slideshow (ટીવી સ્લાઇડશો 4K)
+          <span
+            style={{
+              fontSize: 10,
+              background: activeTab === 'tv_slideshow' ? '#eaba38' : 'rgba(234, 186, 56, 0.15)',
+              color: activeTab === 'tv_slideshow' ? '#031b1e' : '#d97706',
+              padding: '1px 6px',
+              borderRadius: 999,
+              fontWeight: 900,
+            }}
+          >
+            {tvSlides.length} Slides • 4K
+          </span>
         </button>
 
         <button
@@ -2411,7 +2879,7 @@ export default function InstagramHubPage() {
                           f
                         </div>
                         <div>
-                          <div style={{ fontSize: 12, fontWeight: 700 }}>Amita Bhalani / Shree Beauty Studio</div>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>Shree Beauty Studio</div>
                           <div style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>Facebook • Page</div>
                         </div>
                       </div>
@@ -2493,6 +2961,80 @@ export default function InstagramHubPage() {
                         }}
                       />
                     </div>
+
+                    {/* ── 📺 NATIVE ROW: SHARE TO SALON TV SLIDESHOW (4K 2160×1440) ── */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        background: 'linear-gradient(135deg, rgba(3, 54, 61, 0.12) 0%, rgba(234, 186, 56, 0.1) 100%)',
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        border: '1.5px solid rgba(234, 186, 56, 0.4)',
+                        boxShadow: '0 2px 8px rgba(3, 54, 61, 0.08)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: '#032a30',
+                            border: '1.5px solid #eaba38',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#eaba38',
+                            fontSize: 13,
+                            flexShrink: 0,
+                            boxShadow: '0 2px 8px rgba(3, 42, 48, 0.3)',
+                          }}
+                        >
+                          <Tv size={16} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                            <span>📺 Salon TV Slideshow</span>
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 800,
+                                background: '#eaba38',
+                                color: '#031b1e',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              4K 2160×1440
+                            </span>
+                            <span
+                              style={{
+                                fontSize: 9,
+                                fontWeight: 700,
+                                background: isOnline ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+                                color: isOnline ? '#16a34a' : '#ca8a04',
+                                padding: '1px 5px',
+                                borderRadius: 4,
+                                border: '1px solid currentColor',
+                              }}
+                            >
+                              {isOnline ? '🟢 Online Auto-Sync' : '🟡 Offline Local Drive'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--muted-foreground)', marginTop: 1 }}>
+                            Auto-converts Instagram photos into 4K (2160×1440) Ultra-HD landscape with local drive offline caching
+                          </div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={shareTvSlideshow}
+                        onChange={(e) => setShareTvSlideshow(e.target.checked)}
+                        style={{ width: 18, height: 18, accentColor: '#eaba38', cursor: 'pointer', flexShrink: 0 }}
+                      />
+                    </div>
                   </div>
 
                 </div>
@@ -2560,6 +3102,371 @@ export default function InstagramHubPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB: 📺 TV 4K AUTO-UPLOADER & SYNC (192.168.1.81:9095) ── */}
+      {activeTab === 'tv_slideshow' && (
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* Top Status & 4kFrame Server Bridge Card */}
+          <div
+            className="card"
+            style={{
+              background: 'linear-gradient(135deg, #021a1d 0%, #03363d 50%, #054852 100%)',
+              border: '2px solid rgba(234, 186, 56, 0.45)',
+              borderRadius: 16,
+              padding: '20px 24px',
+              color: '#fff',
+              boxShadow: '0 10px 30px rgba(2, 26, 29, 0.45)',
+            }}
+          >
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #eaba38 0%, #ca8a04 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 6px 18px rgba(234, 186, 56, 0.35)',
+                    color: '#031b1e',
+                  }}
+                >
+                  <Tv size={26} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
+                      TV 4K Photo Auto-Uploader
+                    </h2>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: '3px 10px',
+                        borderRadius: 999,
+                        background: tvFrameOnline ? 'rgba(34, 197, 94, 0.2)' : 'rgba(234, 179, 8, 0.2)',
+                        color: tvFrameOnline ? '#4ade80' : '#facc15',
+                        border: tvFrameOnline ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(234, 179, 8, 0.4)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                      }}
+                    >
+                      {tvFrameOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+                      {tvFrameOnline ? '🟢 TV Connected (192.168.1.81:9095) • Auto-Syncing' : '🟡 TV Offline (Saved in Local Drive • Auto-Uploads on Connect)'}
+                    </span>
+                  </div>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255, 255, 255, 0.85)' }}>
+                    ફોટો આપમેળે <strong>4K (2160×1440)</strong> માં કન્વર્ટ થઈને તમારા ટીવી <strong style={{ color: '#eaba38' }}>{tvFrameUrl}/admin/</strong> પર અપલોડ થઈ જશે. નેટ ન હોય તો લોકલ ડ્રાઇવમાં સેવ રહેશે.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <a
+                  href={`${tvFrameUrl}/admin/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-sm"
+                  style={{
+                    background: '#2563eb',
+                    color: '#fff',
+                    fontWeight: 800,
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)',
+                    padding: '8px 14px',
+                  }}
+                  title="Open 4kFrame Admin in new tab"
+                >
+                  <ExternalLink size={14} />
+                  Open TV Admin ({tvFrameUrl}) ↗
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handlePushAllTo4kFrame}
+                  disabled={isPushingTo4kFrame}
+                  className="btn btn-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #eaba38 0%, #d97706 100%)',
+                    color: '#031b1e',
+                    fontWeight: 800,
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 4px 14px rgba(234, 186, 56, 0.4)',
+                    padding: '8px 16px',
+                  }}
+                >
+                  <Upload size={14} className={isPushingTo4kFrame ? 'animate-spin' : ''} />
+                  {isPushingTo4kFrame ? 'Uploading to TV...' : `🚀 Sync All to TV Now`}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadAll4k}
+                  disabled={isDownloading4k}
+                  className="btn btn-sm"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 12px',
+                  }}
+                  title="Download all 4K photos"
+                >
+                  <Download size={14} />
+                  {isDownloading4k ? 'Downloading...' : `📥 Download 4K (${tvSlides.length})`}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Simple 1-Click Upload & Convert Area */}
+          <div
+            className="card"
+            style={{
+              borderRadius: 16,
+              padding: 24,
+              border: '2px dashed rgba(234, 186, 56, 0.5)',
+              background: 'linear-gradient(135deg, rgba(3, 54, 61, 0.04) 0%, rgba(234, 186, 56, 0.04) 100%)',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onClick={() => tvManualFileInputRef.current?.click()}
+          >
+            <input
+              type="file"
+              ref={tvManualFileInputRef}
+              onChange={handleTvManualUpload}
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+            />
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 16,
+                  background: 'linear-gradient(135deg, #eaba38 0%, #ca8a04 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#031b1e',
+                  boxShadow: '0 6px 20px rgba(234, 186, 56, 0.35)',
+                }}
+              >
+                <UploadCloud size={30} />
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: 'var(--foreground)' }}>
+                  {isConvertingTv4k ? '⚙️ Converting & Uploading to 4K TV (192.168.1.81:9095)...' : '📸 Click to Select Photo(s) or Drag & Drop Here'}
+                </h3>
+                <p style={{ fontSize: 12.5, color: 'var(--muted-foreground)', margin: '6px 0 0' }}>
+                  Auto-converts to <strong>4K Ultra-HD (2160×1440)</strong> landscape format & uploads directly to TV <strong style={{ color: '#d97706' }}>({tvFrameUrl})</strong>.
+                </p>
+                <p style={{ fontSize: 11.5, color: '#16a34a', fontWeight: 600, margin: '4px 0 0' }}>
+                  ✓ 100% Offline Support: TV નેટવર્કમાં ન હોય તો પણ ફોટો લોકલ ડ્રાઇવમાં સેવ રહેશે અને નેટવર્કમાં આવતા જ ઓટો-અપલોડ થઈ જશે!
+                </p>
+              </div>
+
+              <button
+                type="button"
+                disabled={isConvertingTv4k}
+                className="btn btn-primary btn-sm"
+                style={{
+                  background: 'linear-gradient(135deg, #03363d 0%, #064e58 100%)',
+                  color: '#eaba38',
+                  border: '1.5px solid #eaba38',
+                  fontWeight: 800,
+                  marginTop: 4,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 20px',
+                }}
+              >
+                <Sparkles size={14} color="#eaba38" />
+                {isConvertingTv4k ? 'Converting to 4K...' : '+ Add Photo to TV (2160×1440)'}
+              </button>
+            </div>
+          </div>
+
+          {/* Photo Gallery Grid */}
+          <div className="card" style={{ borderRadius: 16, padding: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(234, 186, 56, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
+                  <ImageIcon size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>
+                    🖼️ Your 4K TV Photos ({tvSlides.length} Photos)
+                  </h3>
+                  <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>
+                    All photos converted to 4K 2160×1440 resolution
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11.5, color: 'var(--muted-foreground)' }}>
+                  Total {tvSlides.length} Photos • {tvSlides.filter((s) => s.uploadedToTv).length} Uploaded to TV
+                </span>
+              </div>
+            </div>
+
+            {tvSlides.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted-foreground)' }}>
+                No photos in TV slideshow yet. Click above to add your first photo!
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                  gap: 16,
+                }}
+              >
+                {tvSlides.map((slide, idx) => (
+                  <div
+                    key={slide.id}
+                    style={{
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      border: '1px solid var(--border)',
+                      background: 'var(--card-bg, #fff)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <div style={{ position: 'relative', width: '100%', aspectRatio: '3 / 2', background: '#000' }}>
+                      <img
+                        src={slide.url}
+                        alt={slide.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          left: 8,
+                          fontSize: 9,
+                          fontWeight: 900,
+                          background: '#eaba38',
+                          color: '#031b1e',
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                        }}
+                      >
+                        4K 2160×1440
+                      </span>
+
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          background: slide.uploadedToTv ? '#16a34a' : '#d97706',
+                          color: '#fff',
+                          padding: '2px 7px',
+                          borderRadius: 4,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                        }}
+                      >
+                        {slide.uploadedToTv ? '✓ TV Uploaded' : '⏳ In Local Queue'}
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        #{idx + 1} {slide.title || `Photo ${idx + 1}`}
+                      </div>
+
+                      <div style={{ fontSize: 10.5, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span>📐 2160×1440</span>
+                        <span>{slide.source === 'instagram' ? '📸 Instagram' : '📁 Upload'}</span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 36px', gap: 6, marginTop: 'auto', paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+                        <button
+                          type="button"
+                          onClick={() => handlePushSingleTo4kFrame(slide)}
+                          className="btn btn-primary btn-xs"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: 'linear-gradient(135deg, #03363d 0%, #064e58 100%)',
+                            color: '#eaba38',
+                            border: '1px solid #eaba38',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                          }}
+                          title="Send directly to TV (192.168.1.81:9095)"
+                        >
+                          <Upload size={11} />
+                          Send to TV
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => downloadSingle4kSlide(slide)}
+                          className="btn btn-secondary btn-xs"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                          }}
+                          title="Download 4K photo file"
+                        >
+                          <Download size={11} />
+                          Download
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTvSlide(slide.id)}
+                          className="btn btn-ghost btn-xs"
+                          style={{ color: '#ef4444', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          title="Delete photo"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       )}

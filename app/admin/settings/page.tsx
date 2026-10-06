@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Plus, Pencil, Trash2, Cloud, LogOut, RefreshCw, Copy, Play, Loader2, Send,
   Store, Scissors, Bell, CreditCard, MessageCircle, CloudCog, Mail, Sparkles, Calendar, CheckCircle2,
   AlertTriangle, AlertCircle, Download, Upload, RotateCcw, ShieldAlert, Check, Users, Receipt, Wallet, ShoppingBag, Heart, Package,
-  Bot, Mic, MicOff, Keyboard, Volume2
+  Bot, Mic, MicOff, Keyboard, Volume2, ArrowUpDown, ArrowUp, ArrowDown, ChevronsUp, ChevronsDown, GripVertical, SlidersHorizontal, Eye
 } from 'lucide-react';
 import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
 import { scheduleSave, cloudSync, forceCloudReset } from '@/lib/sync';
@@ -19,8 +19,17 @@ import { supabase } from '@/lib/supabase';
 import { fadeSlideUp, staggerContainer } from '@/variants';
 import { SAMPLE_GOOGLE_APPS_SCRIPT_CODE } from '@/lib/google-calendar-server';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+import {
+  DEFAULT_NAV_ITEMS,
+  DEFAULT_NAV_ORDER,
+  getSortedNavItems,
+  moveItemDirection,
+  moveItemToEdge,
+  reorderArray,
+  NavItem,
+} from '@/lib/navigation';
 
-type SettingsTab = 'profile' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'copilot' | 'cloud' | 'reset';
+type SettingsTab = 'profile' | 'sidebar' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'copilot' | 'cloud' | 'reset';
 
 export default function SettingsPage() {
   const { data, updateData, cloudStatus, lastSynced } = useSalonStore();
@@ -39,6 +48,78 @@ export default function SettingsPage() {
   };
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+
+  // Check URL query parameters on mount to auto-open sidebar tab if requested
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('tab') === 'sidebar') {
+        setActiveTab('sidebar');
+      }
+    }
+  }, []);
+
+  // Sidebar Reordering State
+  const [navOrder, setNavOrder] = useState<string[]>(s.sidebarNavOrder || DEFAULT_NAV_ORDER);
+  const [draggedTabIdx, setDraggedTabIdx] = useState<number | null>(null);
+  const [dragOverTabIdx, setDragOverTabIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (s.sidebarNavOrder && Array.isArray(s.sidebarNavOrder) && s.sidebarNavOrder.length > 0) {
+      setNavOrder(s.sidebarNavOrder);
+    } else {
+      setNavOrder(DEFAULT_NAV_ORDER);
+    }
+  }, [s.sidebarNavOrder]);
+
+  const sortedNavItems = getSortedNavItems(navOrder);
+
+  const handleMoveTab = (idx: number, dir: 'up' | 'down') => {
+    const newOrder = moveItemDirection(navOrder, idx, dir);
+    setNavOrder(newOrder);
+    update('sidebarNavOrder', newOrder);
+  };
+
+  const handleMoveTabToEdge = (idx: number, edge: 'top' | 'bottom') => {
+    const newOrder = moveItemToEdge(navOrder, idx, edge);
+    setNavOrder(newOrder);
+    update('sidebarNavOrder', newOrder);
+  };
+
+  const handleResetNavOrder = () => {
+    setNavOrder(DEFAULT_NAV_ORDER);
+    update('sidebarNavOrder', DEFAULT_NAV_ORDER);
+    toast('🔄 Reset to default sidebar arrangement!', 'info');
+  };
+
+  const handleApplyPreset = (presetOrder: string[], presetName: string) => {
+    setNavOrder(presetOrder);
+    update('sidebarNavOrder', presetOrder);
+    toast(`✅ Applied preset: ${presetName}! Click Save to finalize.`, 'success');
+  };
+
+  const handleTabDragStart = (idx: number) => {
+    setDraggedTabIdx(idx);
+  };
+
+  const handleTabDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggedTabIdx === null || draggedTabIdx === idx) return;
+    setDragOverTabIdx(idx);
+  };
+
+  const handleTabDrop = (dropIdx: number) => {
+    if (draggedTabIdx === null || draggedTabIdx === dropIdx) {
+      setDraggedTabIdx(null);
+      setDragOverTabIdx(null);
+      return;
+    }
+    const newOrder = reorderArray(navOrder, draggedTabIdx, dropIdx);
+    setNavOrder(newOrder);
+    update('sidebarNavOrder', newOrder);
+    setDraggedTabIdx(null);
+    setDragOverTabIdx(null);
+  };
 
   // Service Modal
   const [svcModalOpen, setSvcModalOpen] = useState(false);
@@ -466,6 +547,7 @@ export default function SettingsPage() {
 
   const tabs: { id: SettingsTab; label: string; icon: any }[] = [
     { id: 'profile', label: 'Salon Profile', icon: Store },
+    { id: 'sidebar', label: '🧭 Sidebar Navigation Order', icon: ArrowUpDown },
     { id: 'services', label: 'Services & Pricing', icon: Scissors },
     { id: 'reminders', label: 'Reminder Timing', icon: Bell },
     { id: 'billing', label: 'Billing & Accounts', icon: CreditCard },
@@ -1039,6 +1121,385 @@ export default function SettingsPage() {
                       {testReviewsResult.msg}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Sidebar Navigation Order Tab */}
+        {activeTab === 'sidebar' && (
+          <motion.div key="sidebar" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
+            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h2>🧭 Sidebar Navigation Order (મેનૂ ગોઠવણી)</h2>
+                <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                  Arrange the left sidebar navigation items up and down. Click <b>▲ Up</b> / <b>▼ Down</b> buttons or drag and drop items to match your workflow.
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={handleResetNavOrder}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  <RotateCcw size={13} /> Reset to Default
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => handleSaveSettings('💾 Sidebar tab arrangement saved & synced successfully!')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  <Save size={13} /> Save Order
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Arrangement Presets */}
+            <div style={{
+              background: 'rgba(5, 66, 74, 0.04)',
+              border: '1px solid rgba(5, 66, 74, 0.12)',
+              borderRadius: 12,
+              padding: '12px 14px',
+              marginBottom: 18,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={14} color="#EABA38" />
+                <span>Quick Arrangement Presets (ઝડપી રેડીમેડ ગોઠવણી):</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(DEFAULT_NAV_ORDER, 'Default Balanced')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    background: '#ffffff',
+                    border: '1px solid var(--border)',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: 'var(--foreground)',
+                  }}
+                >
+                  Standard Default (ડિફોલ્ટ)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(
+                    ['billing', 'appointments', 'bridal', 'customers', 'whatsapp', 'dashboard', 'finance', 'inventory', 'purchases', 'services', 'staff', 'reminders', 'reports', 'instagram', 'google-maps', 'suppliers', 'settings'],
+                    'Fast Counter POS Priority'
+                  )}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    background: '#ffffff',
+                    border: '1px solid rgba(16, 185, 129, 0.3)',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: '#059669',
+                  }}
+                >
+                  ⚡ Fast POS & Counter Billing First
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(
+                    ['dashboard', 'finance', 'billing', 'appointments', 'reports', 'customers', 'bridal', 'staff', 'purchases', 'inventory', 'suppliers', 'services', 'reminders', 'whatsapp', 'instagram', 'google-maps', 'settings'],
+                    'Owner Financials & Rojmel First'
+                  )}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    background: '#ffffff',
+                    border: '1px solid rgba(217, 119, 6, 0.3)',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: '#d97706',
+                  }}
+                >
+                  💰 Owner Rojmel & Finance First
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset(
+                    ['dashboard', 'whatsapp', 'instagram', 'google-maps', 'appointments', 'bridal', 'customers', 'billing', 'finance', 'services', 'inventory', 'purchases', 'suppliers', 'staff', 'reminders', 'reports', 'settings'],
+                    'Marketing & Social Growth First'
+                  )}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    background: '#ffffff',
+                    border: '1px solid rgba(124, 58, 237, 0.3)',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    color: '#7c3aed',
+                  }}
+                >
+                  🚀 WhatsApp & Instagram Growth First
+                </button>
+              </div>
+            </div>
+
+            {/* Main Content Layout: List on Left, Live Sidebar Preview on Right */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 260px', gap: 20, alignItems: 'start' }}>
+              {/* Reorderable Items List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {sortedNavItems.map((item, idx) => {
+                  const Icon = item.icon;
+                  const isFirst = idx === 0;
+                  const isLast = idx === sortedNavItems.length - 1;
+                  const isDragging = draggedTabIdx === idx;
+                  const isOver = dragOverTabIdx === idx;
+
+                  return (
+                    <div
+                      key={item.id}
+                      draggable
+                      onDragStart={() => handleTabDragStart(idx)}
+                      onDragOver={(e) => handleTabDragOver(e, idx)}
+                      onDrop={() => handleTabDrop(idx)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        borderRadius: 10,
+                        background: isOver
+                          ? 'rgba(234, 186, 56, 0.12)'
+                          : '#ffffff',
+                        border: isOver
+                          ? '2px dashed #EABA38'
+                          : '1px solid var(--border)',
+                        opacity: isDragging ? 0.35 : 1,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                        transition: 'all 0.15s ease',
+                        cursor: 'grab',
+                        gap: 12,
+                      }}
+                    >
+                      {/* Left: Drag Handle, Number Badge, Icon, Details */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+                        <div style={{ color: 'var(--muted)', cursor: 'grab', display: 'flex', alignItems: 'center' }}>
+                          <GripVertical size={16} />
+                        </div>
+                        <div
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: '50%',
+                            background: 'var(--bg)',
+                            border: '1px solid var(--border)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: 'var(--muted)',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </div>
+                        <div
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 8,
+                            background: 'rgba(5, 66, 74, 0.08)',
+                            color: 'var(--primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Icon size={18} />
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--foreground)' }}>
+                              {item.label}
+                            </span>
+                            {item.gujarati && (
+                              <span style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 500 }}>
+                                ({item.gujarati})
+                              </span>
+                            )}
+                            <span
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: 700,
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                background: item.role === 'admin' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                color: item.role === 'admin' ? '#ef4444' : '#10b981',
+                              }}
+                            >
+                              {item.role === 'admin' ? 'Admin Only' : 'All Staff'}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.description}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Move Up / Down / Top / Bottom Buttons */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          disabled={isFirst}
+                          onClick={() => handleMoveTabToEdge(idx, 'top')}
+                          className="btn-icon"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            opacity: isFirst ? 0.3 : 1,
+                            cursor: isFirst ? 'not-allowed' : 'pointer',
+                          }}
+                          title="Move to Very Top (સૌથી ઉપર લાવો)"
+                        >
+                          <ChevronsUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isFirst}
+                          onClick={() => handleMoveTab(idx, 'up')}
+                          className="btn-icon"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            background: isFirst ? 'transparent' : 'rgba(5, 66, 74, 0.08)',
+                            color: isFirst ? 'var(--muted)' : 'var(--primary)',
+                            opacity: isFirst ? 0.3 : 1,
+                            cursor: isFirst ? 'not-allowed' : 'pointer',
+                            fontWeight: 700,
+                          }}
+                          title={`Move ${item.label} Up (એક સ્ટેપ ઉપર)`}
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLast}
+                          onClick={() => handleMoveTab(idx, 'down')}
+                          className="btn-icon"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            background: isLast ? 'transparent' : 'rgba(5, 66, 74, 0.08)',
+                            color: isLast ? 'var(--muted)' : 'var(--primary)',
+                            opacity: isLast ? 0.3 : 1,
+                            cursor: isLast ? 'not-allowed' : 'pointer',
+                            fontWeight: 700,
+                          }}
+                          title={`Move ${item.label} Down (એક સ્ટેપ નીચે)`}
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLast}
+                          onClick={() => handleMoveTabToEdge(idx, 'bottom')}
+                          className="btn-icon"
+                          style={{
+                            width: 28,
+                            height: 28,
+                            opacity: isLast ? 0.3 : 1,
+                            cursor: isLast ? 'not-allowed' : 'pointer',
+                          }}
+                          title="Move to Very Bottom (સૌથી નીચે લાવો)"
+                        >
+                          <ChevronsDown size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Live Mini Sidebar Preview */}
+              <div
+                style={{
+                  position: 'sticky',
+                  top: 20,
+                  background: 'var(--primary-dark, #032B30)',
+                  borderRadius: 14,
+                  padding: 12,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, marginBottom: 8, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Eye size={13} color="#EABA38" />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#EABA38', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                      Live Sidebar Preview
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+                    {sortedNavItems.length} Tabs
+                  </span>
+                </div>
+
+                <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, paddingRight: 2 }}>
+                  {sortedNavItems.map((item, i) => {
+                    const Icon = item.icon;
+                    const isPreviewActive = i === 0;
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '5px 10px',
+                          borderRadius: '0 6px 6px 0',
+                          background: isPreviewActive ? 'rgba(234, 186, 56, 0.18)' : 'transparent',
+                          borderLeft: isPreviewActive ? '3px solid #EABA38' : '3px solid transparent',
+                          color: isPreviewActive ? '#ffffff' : 'rgba(255,255,255,0.7)',
+                          fontSize: 11,
+                          fontWeight: isPreviewActive ? 700 : 500,
+                        }}
+                      >
+                        <Icon size={12} color={isPreviewActive ? '#EABA38' : 'rgba(255,255,255,0.5)'} />
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ marginTop: 12, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSettings('💾 Sidebar tab arrangement saved & synced successfully!')}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: '#10b981',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.35)',
+                    }}
+                  >
+                    <Save size={13} /> Save Order Now
+                  </button>
                 </div>
               </div>
             </div>

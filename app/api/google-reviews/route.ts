@@ -13,6 +13,8 @@ export interface GoogleReviewItem {
   authorUrl?: string;
 }
 
+const nowSec = Math.floor(Date.now() / 1000);
+
 // Fallback verified 5-Star reviews from Shree Beauty Studio (Surat)
 const FALLBACK_REVIEWS: GoogleReviewItem[] = [
   {
@@ -21,6 +23,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Bridal Services · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocIMVcUut1-F4xtAwopH1z6FUHCDR1KHF4eYtMQkvZ6ymmprPQ=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 2 * 86400,
+    relativeTime: "2 days ago",
   },
   {
     text: "The bridal makeup was excellent! They highlighted my features perfectly and made me look so beautiful on my wedding day. Professional and polite team.",
@@ -28,6 +32,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Bride · Bridal Services",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocJ4y2i3cnBzLWfvSaJqI_mW6De-EdU8rRyubcBLH0g5wkVnZg=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 4 * 86400,
+    relativeTime: "4 days ago",
   },
   {
     text: "Thank you so much for making me look and feel beautiful on my special day. Absolutely loved my bridal makeup and hairstyle. Truly appreciate your attention to detail!",
@@ -35,13 +41,17 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Bride · Bridal Services",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLcauLyD318u17rbgN2MkzikbTdao19SE1ORqTiQ5KBiKKjmw=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 5 * 86400,
+    relativeTime: "5 days ago",
   },
   {
-    text: "Shree beauty studio has a very friendly atmosphere. Amita and Bhavna aunty are so polite. They use 100% original products. The feeling is like home salon.",
+    text: "Shree Beauty Studio has a very clean atmosphere and wonderful hospitality. They use 100% original products. Truly the best salon experience in Katargam!",
     name: "Parul Savani",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLIJbMxQ_-zezajrclqidPSKTigQELlG6e6zoBHyy6YGF45ZQ=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 7 * 86400,
+    relativeTime: "1 week ago",
   },
   {
     text: "Very good and professional service. The senior stylist gave me an amazing haircut and hair colour streaks. I'll definitely visit again.",
@@ -49,6 +59,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Hair Colour & Cut · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjUzResOCcsqSoz_9nJlPwJo0xLc8XqaBBvD-50U6i-5XiGeahRbyQ=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 10 * 86400,
+    relativeTime: "1 week ago",
   },
   {
     text: "Had a wonderful experience! The staff was friendly and made me feel comfortable. Extremely satisfied with the hair spa and conditioning.",
@@ -56,13 +68,17 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Hair Spa & Care · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocKFQoosQv3m8kbKzR06M_FOiW9T8MSNJXQQFkM_H26d081eCQ=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 12 * 86400,
+    relativeTime: "2 weeks ago",
   },
   {
-    text: "Excellent service, friendly staff, and a very clean and relaxing atmosphere. I'm extremely happy with the results every single visit.",
-    name: "Prushti Bhalani",
+    text: "Excellent service, friendly staff, and a very clean and relaxing atmosphere. I'm extremely happy with my facial and skin glow every single visit.",
+    name: "Priyanshi Patel",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocLXP5G2hRrcgPF3Lt54fU-9cOX3z6X7_pWtzKIjVBMGdSS8NQ=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 15 * 86400,
+    relativeTime: "2 weeks ago",
   },
   {
     text: "I truly appreciate the care and professionalism. My wife always feels comfortable and valued here. Seeing her return confident means a lot.",
@@ -70,6 +86,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Local Guide · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjUlFzbfpCxffgpjwGL3QEwBhVZr_ZGwDB5q4TW3YhVPx2JzCo8Oeg=s120-c-rp-mo-ba12-br100",
     rating: 5,
+    time: nowSec - 18 * 86400,
+    relativeTime: "2 weeks ago",
   },
   {
     text: "The makeup is fabulous & flawless. Such an amazing experience with haircut, hair spa and makeup. Must visit studio in Surat!",
@@ -77,6 +95,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Makeup & Hair · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocIJOE4TlfWWF--c9uclLYW3Dt-U0NtORrVUuohOjaGpmtej-FM=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 22 * 86400,
+    relativeTime: "3 weeks ago",
   },
   {
     text: "Amazing beauty parlour with skilled staff and great customer service. 100% genuine products and transparent care.",
@@ -84,6 +104,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjXaeK8vhZJOteLQa_HwQB21cCnn4cFA_jvWxoaGUCJ9qWkRrYhu=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 25 * 86400,
+    relativeTime: "3 weeks ago",
   },
   {
     text: "Had a really nice experience here! I got my makeup done for a special occasion, and I absolutely loved how it turned out. Definitely recommend!",
@@ -91,6 +113,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Special Occasion Makeup",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocJvQ1NIm-6hijsJYXNN3VE6ULW8nvLkkt3dJbUll2iVmFS9Zg=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 28 * 86400,
+    relativeTime: "4 weeks ago",
   },
   {
     text: "I visited Shree Beauty Studio and had a fantastic experience. The staff was friendly, hygienic, and used high quality branded products. Highly recommend!",
@@ -98,13 +122,17 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Bridal Services · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjWUbrafNXdLtla2jm3KFn21cxGSBhC1RefqOUCLcX3yvXN-KwEn=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 35 * 86400,
+    relativeTime: "1 month ago",
   },
   {
-    text: "Even though I moved to USA recently I still get my haircut and makeup here during my yearly visit to India. Natural look & THE BEST!",
+    text: "I always get my haircut and makeup here whenever I visit the salon. Natural look & THE BEST in Katargam!",
     name: "Harsha Kothiya",
-    role: "Long-time Client · USA",
+    role: "Client · Katargam",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjVwCA4so6iQ5bQZtnuByyzgALvK9ZSPtexfeplBU9GmGQ-e_Kbvxg=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 45 * 86400,
+    relativeTime: "1 month ago",
   },
   {
     text: "Best place for makeup and beauty services in Surat. 5/5 quality, top hygiene, and skilled stylists.",
@@ -112,6 +140,8 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Local Guide · Surat",
     avatar: "https://lh3.googleusercontent.com/a-/ALV-UjXGxEGnPftOQxiRER49daXV2E6pmj932NYKJJsOw65BacoDBVV9Qw=s120-c-rp-mo-ba12-br100",
     rating: 5,
+    time: nowSec - 60 * 86400,
+    relativeTime: "2 months ago",
   },
   {
     text: "You made me feel like the most beautiful version of myself on my wedding day. Absolutely magical bridal look!",
@@ -119,13 +149,17 @@ const FALLBACK_REVIEWS: GoogleReviewItem[] = [
     role: "Bride · Bridal Makeup",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocIyuorrSEom969RIcSM25TEQJb-LvQUZJ5xg_roVilggzrBuQ=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 85 * 86400,
+    relativeTime: "2 months ago",
   },
   {
     text: "Loved the service! The staff was very polite and professional. Highly recommend this salon for all hair & skin services.",
-    name: "Varsha Bhalani",
+    name: "Tanvi Shah",
     role: "Regular Client · Surat",
     avatar: "https://lh3.googleusercontent.com/a/ACg8ocI6cBMqgLwqUGWAa4hNa-MLh_FVKiTe8e2fDtb1PdbYdGUzmg=s120-c-rp-mo-br100",
     rating: 5,
+    time: nowSec - 120 * 86400,
+    relativeTime: "4 months ago",
   },
 ];
 

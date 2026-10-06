@@ -107,6 +107,53 @@ export interface SalonSettings {
   aiCopilotFloatingBtn?: boolean;     // Show/hide floating button on bottom-right (Default: true)
   aiCopilotAutoVoice?: boolean;       // Auto-start microphone listening when opened
   aiCopilotVoiceReplies?: boolean;    // Enable audio voice spoken responses
+  // Sidebar Navigation Order Customization
+  sidebarNavOrder?: string[];         // Array of nav item IDs in custom arranged order
+  // Google Reviews Filters & Replied Tracking
+  googleReviewsRepliedMap?: Record<string, { text: string; time: string; source: 'ai' | 'manual' }>;
+  googleReviewsHiddenList?: string[];
+  googleReviewsHideReplied?: boolean;
+  googleReviewsHideOld?: boolean;
+  googleReviewsDateFilter?: 'all' | '7d' | '30d' | '90d' | 'recent';
+  // Salon TV Ultra-HD Slideshow Settings
+  tvSlideshowEnabled?: boolean;
+  tvSlideDuration?: number; // seconds (default 7)
+  tvSlideTransition?: 'kenburns' | 'fade' | 'zoom' | 'slide';
+  tvSlideShowBranding?: boolean;
+  tvSlideShowClock?: boolean;
+  tvSlideShowRating?: boolean;
+}
+
+// ── Salon TV 4K Ultra-HD Slideshow Item ──────────────────────────────────────
+export interface TvSlideItem {
+  id: string;
+  url: string;              // 4K High-Res image data URL or storage URL
+  title?: string;            // e.g. "Royal HD Bridal Makeover"
+  category?: string;         // e.g. "Bridal", "Hair Botox", "Hydra Facial", "Nail Art"
+  resolution?: string;       // e.g. "4K (2160×1440)"
+  createdAt?: string;        // ISO timestamp
+  active?: boolean;          // Active in slideshow loop (default true)
+  duration?: number;         // Seconds per slide
+  source?: 'instagram' | 'upload' | 'local_cached';
+  offlineCached?: boolean;   // Cached in IndexedDB / Local Storage
+  uploadedToTv?: boolean;    // Successfully pushed to 4kFrame TV server (192.168.1.81:9095)
+  lastSyncedAt?: string;     // Timestamp of TV upload
+  caption?: string;          // Optional client name or tagline
+  aspectRatio?: string;      // e.g. "2160x1440 (3:2 TV)"
+}
+
+export interface TvSlideshowSettings {
+  enabled?: boolean;
+  slideDurationSeconds?: number; // default: 7
+  transitionEffect?: 'kenburns' | 'fade' | 'zoom' | 'slide';
+  showStudioBranding?: boolean;  // Show "Shree Beauty Studio" luxury logo/header
+  showServiceInfo?: boolean;     // Show service title & category pill
+  showRatingBadge?: boolean;     // Show "5.0 ★ Google Rating Katargam"
+  showClock?: boolean;           // Show luxury digital clock & Gujarati calendar date
+  autoSyncNetwork?: boolean;     // Auto-sync when local network / WiFi is active
+  cacheOfflineMaxPhotos?: number;// e.g. 100
+  tvFrameUrl?: string;           // e.g. "http://192.168.1.81:9095" (4kFrame local TV server)
+  autoUploadTo4kFrame?: boolean; // Auto-upload directly to 4kFrame on publish
 }
 
 export type ServicePricingType = 'fixed' | 'hair_length' | 'skin_type' | 'starting';
@@ -634,4 +681,7 @@ export interface SalonData {
     status: 'sent' | 'delivered' | 'read';
     templateId?: string;
   }>;
+  // Salon TV 4K Slideshow Reel
+  tvSlides?: TvSlideItem[];
+  tvSlideshowSettings?: TvSlideshowSettings;
 }

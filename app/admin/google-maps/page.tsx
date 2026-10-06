@@ -28,7 +28,13 @@ import {
   Crown,
   HeartHandshake,
   Smartphone,
-  Printer
+  Printer,
+  EyeOff,
+  Eye,
+  Trash2,
+  Calendar,
+  Clock,
+  RotateCcw
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -47,7 +53,7 @@ const SEO_KEYWORDS = [
   'Hair Botox Treatment Surat',
   'Nanoplastia Treatment Katargam',
   'Hydra Facial in Surat',
-  'Gujarati Panetar & Choli Draping',
+  'Panetar & Saree Draping',
   '100% Ladies Only Salon in Surat',
   'Shree Beauty Studio & Bridal Parlour'
 ];
@@ -85,7 +91,25 @@ export default function GoogleMapAutoHubPage() {
   const [newKeyword, setNewKeyword] = useState('');
 
   // AI Replied state tracking in-memory & stored
-  const [repliedMap, setRepliedMap] = useState<Record<string, { text: string; time: string; source: 'ai' | 'manual' }>>({});
+  const [repliedMap, setRepliedMap] = useState<Record<string, { text: string; time: string; source: 'ai' | 'manual' }>>(
+    settings?.googleReviewsRepliedMap || {}
+  );
+  // Hidden / Dismissed Old Reviews List
+  const [hiddenKeys, setHiddenKeys] = useState<string[]>(
+    settings?.googleReviewsHiddenList || []
+  );
+  // Hide Replied Toggle (hide old reviews that already got replies)
+  const [hideReplied, setHideReplied] = useState<boolean>(
+    settings?.googleReviewsHideReplied ?? false
+  );
+  // Hide Old Reviews (> 30 Days) - Defaults to true so old reviews do not show there
+  const [hideOldReviews, setHideOldReviews] = useState<boolean>(
+    settings?.googleReviewsHideOld ?? true
+  );
+  // Date filter (all | 7d | 30d | 90d | recent)
+  const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d' | 'recent'>(
+    settings?.googleReviewsDateFilter || '30d'
+  );
   const [editingReplyKey, setEditingReplyKey] = useState<string | null>(null);
   const [customReplyText, setCustomReplyText] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -131,51 +155,135 @@ export default function GoogleMapAutoHubPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // 2. AI Keyword-Rich Response Generator
+  // 2. AI Service-Only Response Generator (Strictly mentions ONLY services written in review)
   const generateAiReply = useCallback(
     (reviewText: string, authorName: string, ratingVal: number, tone: 'hinglish' | 'gujarati' | 'english' | 'multi' = autoReplyTone) => {
       const lower = reviewText.toLowerCase();
-      const isBridal = lower.includes('bridal') || lower.includes('wedding') || lower.includes('marriage') || lower.includes('makeup');
-      const isHair = lower.includes('hair') || lower.includes('botox') || lower.includes('nanoplastia') || lower.includes('spa') || lower.includes('cut');
-      const isSkin = lower.includes('skin') || lower.includes('facial') || lower.includes('glow') || lower.includes('hydra');
-
       const name = authorName.trim() ? authorName.split(' ')[0] : 'Client';
 
       if (ratingVal < 4) {
-        return `Dear ${name}, thank you for your feedback. We always strive for 100% perfection. Please call Amita Bhalani directly at +91 ${salonPhone} so we can personally resolve your concern immediately. — ${salonName}, Katargam, Surat.`;
+        return `Dear ${name}, thank you for your feedback. We always strive for 100% perfection. Please call us directly at +91 ${salonPhone} so we can personally resolve your concern immediately. — ${salonName}, Katargam, Surat.`;
       }
 
+      // Check exact services present in review
+      const isBridal =
+        lower.includes('bridal') ||
+        lower.includes('bride') ||
+        lower.includes('wedding') ||
+        lower.includes('lagan') ||
+        lower.includes('marriage') ||
+        lower.includes('panetar') ||
+        lower.includes('sagai') ||
+        lower.includes('engagement');
+
+      const hasHaircut =
+        lower.includes('haircut') ||
+        lower.includes('hair cut') ||
+        lower.includes('cutting') ||
+        lower.includes('trimming');
+
+      const hasHairTreatment =
+        lower.includes('botox') ||
+        lower.includes('nanoplastia') ||
+        lower.includes('keratin') ||
+        lower.includes('smoothening') ||
+        lower.includes('straightening') ||
+        lower.includes('hair spa') ||
+        lower.includes('hair colour') ||
+        lower.includes('hair color') ||
+        lower.includes('hair treatment');
+
+      const hasGeneralHair = !hasHaircut && !hasHairTreatment && lower.includes('hair');
+
+      const hasMakeup =
+        !isBridal &&
+        (lower.includes('makeup') ||
+          lower.includes('make up') ||
+          lower.includes('makeover') ||
+          lower.includes('party look') ||
+          lower.includes('natural look'));
+
+      const hasFacialSkin =
+        lower.includes('facial') ||
+        lower.includes('hydra') ||
+        lower.includes('skin') ||
+        lower.includes('cleanup') ||
+        lower.includes('clean up') ||
+        lower.includes('glow');
+
+      const hasWaxThreading =
+        lower.includes('wax') ||
+        lower.includes('waxing') ||
+        lower.includes('threading') ||
+        lower.includes('eyebrow');
+
+      const hasNails =
+        lower.includes('nail') ||
+        lower.includes('manicure') ||
+        lower.includes('pedicure');
+
+      // ── GUJARATI TONE ──
       if (tone === 'gujarati') {
         if (isBridal) {
-          return `ખૂબ ખૂબ આભાર ${name}જી! 👑 તમારા ખાસ લગ્નના દિવસે રોયલ બ્રાઇડલ લુક & પાનેતર ડ્રેપિંગ તૈયાર કરવાનું સૌભાગ્ય મળ્યું. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ (સુરત) તરફથી સુખી દામ્પત્ય જીવનની હાર્દિક શુભકામનાઓ! 🌸✨`;
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારો બ્રાઇડલ મેકઅપ પસંદ આવ્યો તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
         }
-        if (isHair) {
-          return `થેન્ક યૂ સો મચ ${name}જી! 💇‍♀️ શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે અમારું હેર બોટોક્સ અને સ્મૂધનિંગ ટ્રીટમેન્ટ તમને ગમ્યું તે જાણીને ખૂબ આનંદ થયો. ફરીથી પધારજો! ✨`;
+        if (hasHaircut && hasMakeup) {
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારું હેરકટ અને મેકઅપ ગમ્યું તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
         }
-        return `આપનો ખૂબ ખૂબ આભાર ${name}જી! 💖 શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ, સુરત પર વિશ્વાસ મૂકવા બદલ ધન્યવાદ. આપનો સંતોષ એ જ અમારો શ્રેષ્ઠ પુરસ્કાર છે! ✨`;
+        if (hasHaircut) {
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારો હેરકટ પસંદ આવ્યો તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
+        }
+        if (hasHairTreatment) {
+          return `ખૂબ ખૂબ આભાર ${name}! હેર ટ્રીટમેન્ટનું સુંદર પરિણામ તમને મળ્યું તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
+        }
+        if (hasGeneralHair) {
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારી હેર સર્વિસ પસંદ આવી તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
+        }
+        if (hasMakeup) {
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારો મેકઅપ ગમ્યો તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
+        }
+        if (hasFacialSkin) {
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારી ફેસિયલ અને સ્કિન સર્વિસ ગમી તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
+        }
+        if (hasWaxThreading) {
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારી વેક્સિંગ અને થ્રેડિંગ સર્વિસ ગમી તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
+        }
+        if (hasNails) {
+          return `ખૂબ ખૂબ આભાર ${name}! તમને અમારી નેઇલ કેર સર્વિસ ગમી તે બદલ ધન્યવાદ. શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ ખાતે ફરી પધારજો! ✨`;
+        }
+        return `આપનો ખૂબ ખૂબ આભાર ${name}! શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ, સુરત ખાતે ફરી પધારજો! ✨`;
       }
 
-      if (tone === 'english') {
-        if (isBridal) {
-          return `Thank you so much ${name}! 👑 It was an absolute pleasure crafting your dream HD bridal makeover. Wishing you a blissful married life ahead from all of us at ${salonName}, Katargam, Surat! ✨💍`;
-        }
-        if (isHair) {
-          return `Thank you ${name}! ✨ We are thrilled you loved your hair transformation and restorative treatment at ${salonName}, Katargam. Look forward to seeing you again soon! 💇‍♀️`;
-        }
-        return `Thank you so much ${name} for your wonderful 5-star review! 💖 We truly appreciate your patronage and look forward to welcoming you back to ${salonName}, Katargam, Surat! ✨`;
-      }
-
-      // Default: Viral Hinglish with maximum local SEO keywords
+      // ── ENGLISH & HINGLISH (Direct, Crisp & Service-Specific) ──
       if (isBridal) {
-        return `Thank you so much ${name} ji! 👑 It was an absolute honor to craft your royal Gujarati Bridal Look & HD Airbrush glow on your special day! Wishing you a very happy married life ahead from Amita Bhalani & the entire ${salonName} team, Katargam, Surat! 💍✨`;
+        return `Thank you so much ${name}! Glad you loved your bridal makeup. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
       }
-      if (isHair) {
-        return `Thank you ${name} ji! ✨ So glad you loved the results of our Hair Botox & restorative styling treatment. We use only 100% authentic luxury products in Katargam. Can't wait to pamper you again soon at ${salonName}! 💇‍♀️💖`;
+      if (hasHaircut && hasMakeup) {
+        return `Thank you so much ${name}! Glad you loved your haircut and makeup. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
       }
-      if (isSkin) {
-        return `Thank you so much ${name} ji! 💖 Thrilled to know you enjoyed our Hydra Facial glow and soothing salon ambiance. Looking forward to welcoming you back to ${salonName}, Katargam, Surat! ✨`;
+      if (hasHaircut) {
+        return `Thank you so much ${name}! Glad you loved your haircut. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
       }
-      return `Thank you so much ${name} ji for your wonderful 5-star review! 🌸 Your trust in ${salonName} motivates us to deliver the best ladies salon & bridal experience in Katargam, Surat! ✨`;
+      if (hasHairTreatment) {
+        return `Thank you so much ${name}! Glad you loved your hair treatment. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
+      }
+      if (hasGeneralHair) {
+        return `Thank you so much ${name}! Glad you loved our hair service. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
+      }
+      if (hasMakeup) {
+        return `Thank you so much ${name}! Glad you loved your makeup look. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
+      }
+      if (hasFacialSkin) {
+        return `Thank you so much ${name}! Glad you loved your facial treatment. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
+      }
+      if (hasWaxThreading) {
+        return `Thank you so much ${name}! Glad you had a great experience with our salon services at ${salonName}, Katargam, Surat! ✨`;
+      }
+      if (hasNails) {
+        return `Thank you so much ${name}! Glad you loved your nail service. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
+      }
+
+      return `Thank you so much ${name}! Glad you loved our service. Looking forward to welcoming you again at ${salonName}, Katargam, Surat! ✨`;
     },
     [autoReplyTone, salonName, salonPhone]
   );
@@ -234,18 +342,137 @@ export default function GoogleMapAutoHubPage() {
     toast(`Removed keyword: "${kw}"`, 'info');
   };
 
-  // 4. Instant One-Click Auto-Reply to Google
-  const handleTriggerReply = (reviewKey: string, replyText: string) => {
-    setRepliedMap((prev) => ({
-      ...prev,
+  // 4. Instant One-Click Auto-Reply to Google & Persist
+  const handleTriggerReply = (reviewKey: string, replyText: string, openMaps: boolean = true) => {
+    const updatedReplied = {
+      ...repliedMap,
       [reviewKey]: {
         text: replyText,
-        time: 'Just now (AI Auto-Reply)',
-        source: 'ai',
+        time: new Date().toLocaleDateString('en-GB') + ' (Copied for Google)',
+        source: 'ai' as const,
       },
-    }));
+    };
+    setRepliedMap(updatedReplied);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsRepliedMap: updatedReplied,
+      },
+    });
+    scheduleSave();
     navigator.clipboard.writeText(replyText);
-    toast(`⚡ Auto-Replied to Google Review! (Text copied to clipboard)`, 'success');
+
+    if (openMaps) {
+      window.open(googleMapsUrl, '_blank');
+      toast(`📋 Reply Copied! Opening Google Maps... Just click "Reply" and paste (Ctrl+V)!`, 'success');
+    } else {
+      toast(`📋 Reply copied to clipboard!`, 'success');
+    }
+  };
+
+  // Hide / Dismiss an Old Review
+  const handleHideReview = (reviewKey: string) => {
+    const updated = [...hiddenKeys, reviewKey];
+    setHiddenKeys(updated);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsHiddenList: updated,
+      },
+    });
+    scheduleSave();
+    toast('🗑️ Old review dismissed & hidden from list!', 'info');
+  };
+
+  // Restore All Hidden Reviews
+  const handleUnhideAll = () => {
+    setHiddenKeys([]);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsHiddenList: [],
+      },
+    });
+    scheduleSave();
+    toast('🔄 All hidden reviews restored!', 'success');
+  };
+
+  // Toggle Hide Replied
+  const handleToggleHideReplied = (val: boolean) => {
+    setHideReplied(val);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsHideReplied: val,
+      },
+    });
+    scheduleSave();
+  };
+
+  // Toggle Hide Old Reviews (>30 Days)
+  const handleToggleHideOldReviews = (val: boolean) => {
+    setHideOldReviews(val);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsHideOld: val,
+      },
+    });
+    scheduleSave();
+    toast(val ? '🚫 Old reviews hidden (Showing only recent reviews)' : '👀 Showing all reviews history', 'info');
+  };
+
+  // One-click dismiss all old reviews (> 30 days)
+  const handleDismissAllOldReviews = () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const oldKeys: string[] = [];
+    reviews.forEach((r) => {
+      const key = `${r.name}_${r.text.slice(0, 15)}`;
+      const reviewSec = r.time
+        ? r.time > 10000000000
+          ? Math.floor(r.time / 1000)
+          : r.time
+        : nowSec - 60 * 86400;
+      const diffDays = Math.max(0, (nowSec - reviewSec) / 86400);
+      if (diffDays > 30 && !hiddenKeys.includes(key)) {
+        oldKeys.push(key);
+      }
+    });
+
+    if (oldKeys.length === 0) {
+      toast('No old reviews found to hide', 'info');
+      return;
+    }
+
+    const updated = [...hiddenKeys, ...oldKeys];
+    setHiddenKeys(updated);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsHiddenList: updated,
+      },
+    });
+    scheduleSave();
+    toast(`🗑️ Dismissed ${oldKeys.length} old reviews!`, 'success');
+  };
+
+  // Change Date Filter
+  const handleChangeDateFilter = (val: 'all' | '7d' | '30d' | '90d' | 'recent') => {
+    setDateFilter(val);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsDateFilter: val,
+      },
+    });
+    scheduleSave();
   };
 
   // 5. Select Customer for WhatsApp Review Request
@@ -307,12 +534,22 @@ If you loved our service and hospitality, please take *10 seconds* to share your
 "${sampleReview}"
 
 Your review helps other brides and ladies in Surat find authentic salon care! 💖
-— Warmly, Amita & Shree Beauty Studio Team`;
+— Warmly, ${salonName} Team`;
   }, [clientName, selectedService, customKeywordInput, salonName, googleMapsUrl]);
 
-  // Filtered Reviews list
+  // Filtered Reviews list (Respects Date, Replied Status, and Hidden items)
   const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
+      const key = `${r.name}_${r.text.slice(0, 15)}`;
+
+      // 1. Manually dismissed / hidden reviews
+      if (hiddenKeys.includes(key)) return false;
+
+      // 2. Hide already replied reviews if toggle ON
+      const hasReplied = Boolean(repliedMap[key]);
+      if (hideReplied && hasReplied) return false;
+
+      // 3. Search query
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -322,17 +559,35 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
 
       if (!matchSearch) return false;
 
-      const key = `${r.name}_${r.text.slice(0, 15)}`;
-      const hasReplied = Boolean(repliedMap[key]);
+      // 4. Star & Status filter
+      if (starFilter === '5' && r.rating !== 5) return false;
+      if (starFilter === '4' && r.rating !== 4) return false;
+      if (starFilter === 'replied' && !hasReplied) return false;
+      if (starFilter === 'pending' && hasReplied) return false;
 
-      if (starFilter === '5') return r.rating === 5;
-      if (starFilter === '4') return r.rating === 4;
-      if (starFilter === 'replied') return hasReplied;
-      if (starFilter === 'pending') return !hasReplied;
+      // 5. Calculate age of review in days
+      const nowSec = Math.floor(Date.now() / 1000);
+      const reviewSec = r.time
+        ? r.time > 10000000000
+          ? Math.floor(r.time / 1000)
+          : r.time
+        : nowSec - 60 * 86400; // If no time stamp, treat as old
+      const diffDays = Math.max(0, (nowSec - reviewSec) / 86400);
+
+      // 6. Hide Old Reviews (> 30 days) if toggle ON
+      if (hideOldReviews && diffDays > 30) {
+        return false;
+      }
+
+      // 7. Date range filter
+      if (dateFilter === '7d' && diffDays > 7) return false;
+      if (dateFilter === '30d' && diffDays > 30) return false;
+      if (dateFilter === '90d' && diffDays > 90) return false;
+      if (dateFilter === 'recent' && diffDays > 14) return false;
 
       return true;
     });
-  }, [reviews, searchQuery, starFilter, repliedMap]);
+  }, [reviews, searchQuery, starFilter, hideReplied, hideOldReviews, dateFilter, hiddenKeys, repliedMap]);
 
   return (
     <div className="container-fluid" style={{ paddingBottom: 60 }}>
@@ -547,53 +802,210 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
       {activeTab === 'reviews' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           
-          {/* Search & Star Filter Bar */}
-          <div className="card" style={{ padding: 14, borderRadius: 14, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 260 }}>
-              <input
-                type="text"
-                placeholder="Search reviews by client name or keyword (e.g. Bridal, Hair Botox, Facial)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="input input-sm"
-                style={{ paddingLeft: 30, width: '100%' }}
-              />
-              <Search size={14} color="var(--muted-foreground)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+          {/* Search & Filter Toolbar */}
+          <div className="card" style={{ padding: 14, borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              {/* Search Bar */}
+              <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
+                <input
+                  type="text"
+                  placeholder="Search reviews by client name or service (e.g. Haircut, Botox, Facial)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input input-sm"
+                  style={{ paddingLeft: 30, width: '100%' }}
+                />
+                <Search size={14} color="var(--muted-foreground)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
+
+              {/* Star & Status Filters */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setStarFilter('all')}
+                  className={`btn btn-xs ${starFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontWeight: starFilter === 'all' ? 800 : 500 }}
+                >
+                  All ({reviews.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStarFilter('pending')}
+                  className={`btn btn-xs ${starFilter === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontWeight: starFilter === 'pending' ? 800 : 500, background: starFilter === 'pending' ? '#f59e0b' : undefined, color: starFilter === 'pending' ? '#fff' : undefined }}
+                >
+                  ⚡ Needs Reply
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStarFilter('replied')}
+                  className={`btn btn-xs ${starFilter === 'replied' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontWeight: starFilter === 'replied' ? 800 : 500 }}
+                >
+                  ✅ Replied
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStarFilter('5')}
+                  className={`btn btn-xs ${starFilter === '5' ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontWeight: starFilter === '5' ? 800 : 500 }}
+                >
+                  ⭐⭐⭐⭐⭐ 5-Stars
+                </button>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={() => setStarFilter('all')}
-                className={`btn btn-xs ${starFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontWeight: starFilter === 'all' ? 800 : 500 }}
-              >
-                All ({reviews.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStarFilter('5')}
-                className={`btn btn-xs ${starFilter === '5' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontWeight: starFilter === '5' ? 800 : 500 }}
-              >
-                ⭐⭐⭐⭐⭐ 5-Stars
-              </button>
-              <button
-                type="button"
-                onClick={() => setStarFilter('4')}
-                className={`btn btn-xs ${starFilter === '4' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontWeight: starFilter === '4' ? 800 : 500 }}
-              >
-                ⭐⭐⭐⭐ 4-Stars
-              </button>
-              <button
-                type="button"
-                onClick={() => setStarFilter('pending')}
-                className={`btn btn-xs ${starFilter === 'pending' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontWeight: starFilter === 'pending' ? 800 : 500 }}
-              >
-                ⚡ Needs Reply
-              </button>
+            {/* Date Range & Hide Old / Replied Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Calendar size={13} /> Date Filter:
+                </span>
+                {(['30d', '7d', '90d', 'all'] as const).map((d) => {
+                  const labelMap = { '30d': '📅 Past 30 Days (Active)', '7d': '⚡ Past 7 Days', '90d': 'Past 90 Days', all: '📂 All History (Archive)' };
+                  const isActive = dateFilter === d;
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => handleChangeDateFilter(d)}
+                      style={{
+                        padding: '3px 9px',
+                        borderRadius: 6,
+                        border: isActive ? '1px solid #4285F4' : '1px solid var(--border)',
+                        background: isActive ? 'rgba(66, 133, 244, 0.12)' : '#ffffff',
+                        color: isActive ? '#2563eb' : 'var(--foreground)',
+                        fontSize: 11,
+                        fontWeight: isActive ? 700 : 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {labelMap[d]}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {/* Hide Old Reviews (> 30 Days) Toggle */}
+                <button
+                  type="button"
+                  onClick={() => handleToggleHideOldReviews(!hideOldReviews)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: hideOldReviews ? '1px solid #16a34a' : '1px solid var(--border)',
+                    background: hideOldReviews ? 'rgba(22, 163, 74, 0.1)' : '#ffffff',
+                    color: hideOldReviews ? '#16a34a' : 'var(--muted-foreground)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                  title="Toggle hiding reviews older than 30 days"
+                >
+                  <EyeOff size={13} />
+                  <span>{hideOldReviews ? '✓ Hiding Old Reviews' : 'Show Old Reviews'}</span>
+                </button>
+
+                {/* Hide Replied Reviews Toggle */}
+                <button
+                  type="button"
+                  onClick={() => handleToggleHideReplied(!hideReplied)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    border: hideReplied ? '1px solid #16a34a' : '1px solid var(--border)',
+                    background: hideReplied ? 'rgba(22, 163, 74, 0.1)' : '#ffffff',
+                    color: hideReplied ? '#16a34a' : 'var(--muted-foreground)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                  title="Automatically hide reviews that already have replies"
+                >
+                  <CheckCircle2 size={13} />
+                  <span>{hideReplied ? '✓ Hiding Replied' : 'Hide Replied'}</span>
+                </button>
+
+                {/* Dismiss All Old Reviews Button */}
+                <button
+                  type="button"
+                  onClick={handleDismissAllOldReviews}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(239, 68, 68, 0.06)',
+                    color: '#ef4444',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                  title="Dismiss all reviews older than 30 days with 1 click"
+                >
+                  <Trash2 size={12} />
+                  <span>Dismiss All Old</span>
+                </button>
+
+                {/* Restore Hidden Reviews Button */}
+                {hiddenKeys.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleUnhideAll}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      background: 'rgba(59, 130, 246, 0.08)',
+                      color: '#2563eb',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                    title="Unhide and restore all dismissed reviews"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Restore ({hiddenKeys.length}) Hidden</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* How Google Maps Reply Works Infobox */}
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(66, 133, 244, 0.08) 0%, rgba(52, 168, 83, 0.06) 100%)',
+              border: '1px solid rgba(66, 133, 244, 0.25)',
+              borderRadius: 12,
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12,
+            }}
+          >
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: '#4285F4', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0, marginTop: 2 }}>
+              💡
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--foreground)', marginBottom: 2 }}>
+                How to Post Your AI Reply to Google Maps:
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
+                Click <b>"📋 Copy &amp; Open Google Maps to Paste ↗"</b> on any review. The AI reply is automatically copied to your clipboard and your Google Maps review page opens in a new tab — simply click <b>"Reply"</b> on Google Maps and press <b>Ctrl+V (Paste)</b>!
+              </div>
             </div>
           </div>
 
@@ -602,8 +1014,15 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
             {filteredReviews.length === 0 ? (
               <div className="card" style={{ padding: 40, textAlign: 'center', borderRadius: 16 }}>
                 <Star size={36} color="var(--muted-foreground)" style={{ margin: '0 auto 10px' }} />
-                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px' }}>No reviews found</h3>
-                <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: 0 }}>Try clearing search or filters</p>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px' }}>No reviews found in this filter</h3>
+                <p style={{ fontSize: 13, color: 'var(--muted-foreground)', margin: '0 0 12px' }}>
+                  Old reviews are hidden. Try switching date filter to "All History" or turning off "Hiding Old Reviews".
+                </p>
+                {hiddenKeys.length > 0 && (
+                  <button type="button" onClick={handleUnhideAll} className="btn btn-secondary btn-sm" style={{ margin: '0 auto' }}>
+                    <RotateCcw size={13} /> Restore {hiddenKeys.length} Dismissed Reviews
+                  </button>
+                )}
               </div>
             ) : (
               filteredReviews.map((rev, idx) => {
@@ -611,6 +1030,15 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 const replyState = repliedMap[key];
                 const aiReply = generateAiReply(rev.text, rev.name, rev.rating);
                 const isEditing = editingReplyKey === key;
+
+                const nowSec = Math.floor(Date.now() / 1000);
+                const reviewSec = rev.time
+                  ? rev.time > 10000000000
+                    ? Math.floor(rev.time / 1000)
+                    : rev.time
+                  : nowSec - 60 * 86400;
+                const diffDays = Math.max(0, (nowSec - reviewSec) / 86400);
+                const isOldReview = diffDays > 30;
 
                 return (
                   <div
@@ -635,11 +1063,21 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                           }}
                         />
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--foreground)' }}>{rev.name}</span>
                             <span style={{ fontSize: 10, background: 'rgba(52, 168, 83, 0.12)', color: '#16a34a', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
                               ✓ Verified Google Review
                             </span>
+                            {rev.relativeTime && (
+                              <span style={{ fontSize: 10.5, color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 600 }}>
+                                <Clock size={11} /> {rev.relativeTime}
+                              </span>
+                            )}
+                            {isOldReview && (
+                              <span style={{ fontSize: 9.5, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }}>
+                                Past Archive Review
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>
                             {rev.role || 'Google Maps Verified Client'}
@@ -647,19 +1085,44 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                         </div>
                       </div>
 
-                      {/* Stars */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={16}
-                            color={i < rev.rating ? '#eab308' : '#cbd5e1'}
-                            fill={i < rev.rating ? '#eab308' : 'none'}
-                          />
-                        ))}
-                        <span style={{ fontSize: 12, fontWeight: 800, marginLeft: 4, color: '#eab308' }}>
-                          {rev.rating}.0
-                        </span>
+                      {/* Stars & Dismiss Action */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={16}
+                              color={i < rev.rating ? '#eab308' : '#cbd5e1'}
+                              fill={i < rev.rating ? '#eab308' : 'none'}
+                            />
+                          ))}
+                          <span style={{ fontSize: 12, fontWeight: 800, marginLeft: 4, color: '#eab308' }}>
+                            {rev.rating}.0
+                          </span>
+                        </div>
+
+                        {/* Dismiss / Hide Old Review Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleHideReview(key)}
+                          style={{
+                            background: 'rgba(0,0,0,0.04)',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            borderRadius: 6,
+                            padding: '4px 8px',
+                            color: 'var(--muted-foreground)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 10.5,
+                            fontWeight: 600,
+                          }}
+                          title="Dismiss / Hide this review from list"
+                        >
+                          <Trash2 size={12} />
+                          <span>Hide</span>
+                        </button>
                       </div>
                     </div>
 
@@ -683,7 +1146,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                             🤖
                           </div>
                           <span style={{ fontSize: 12, fontWeight: 800, color: '#2563eb' }}>
-                            {replyState ? '✅ Owner Replied via AI' : '⚡ AI SEO Auto-Reply (Katargam Keywords Injected):'}
+                            {replyState ? '✅ Reply Copied & Ready for Google Maps' : '⚡ AI Suggested Reply (Exact Service Mentioned):'}
                           </span>
                         </div>
 
@@ -728,13 +1191,13 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                           <button
                             type="button"
                             onClick={() => {
-                              handleTriggerReply(key, customReplyText);
+                              handleTriggerReply(key, customReplyText, true);
                               setEditingReplyKey(null);
                             }}
                             className="btn btn-primary btn-xs"
-                            style={{ alignSelf: 'flex-start', fontWeight: 800 }}
+                            style={{ alignSelf: 'flex-start', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4 }}
                           >
-                            Save &amp; Post Custom Reply
+                            <ExternalLink size={12} /> Save, Copy &amp; Open Google Maps ↗
                           </button>
                         </div>
                       ) : (
@@ -746,25 +1209,50 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                       {/* Action Row */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 8, borderTop: '1px dashed rgba(66, 133, 244, 0.2)' }}>
                         <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <CheckCircle2 size={12} /> Local SEO Keyword Density: 100%
+                          <CheckCircle2 size={12} /> Exact Service-Only Reply
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {!replyState && (
+                          {replyState ? (
                             <button
                               type="button"
-                              onClick={() => handleTriggerReply(key, aiReply)}
+                              onClick={() => {
+                                navigator.clipboard.writeText(replyState.text);
+                                window.open(googleMapsUrl, '_blank');
+                                toast('📋 Copied! Opening Google Maps...', 'success');
+                              }}
+                              className="btn btn-xs"
+                              style={{
+                                background: 'rgba(66, 133, 244, 0.1)',
+                                border: '1px solid #4285F4',
+                                color: '#2563eb',
+                                fontWeight: 800,
+                                fontSize: 11,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                padding: '4px 10px',
+                              }}
+                            >
+                              <ExternalLink size={11} /> ↗ Open Google Maps to Paste (Ctrl+V)
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerReply(key, aiReply, true)}
                               className="btn btn-primary btn-xs"
                               style={{
                                 background: 'linear-gradient(45deg, #4285F4, #34A853)',
                                 border: 'none',
                                 fontWeight: 800,
+                                fontSize: 11,
+                                padding: '5px 12px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 4,
+                                gap: 5,
                               }}
                             >
-                              <Zap size={11} /> ⚡ Auto-Reply to Google Now
+                              <ExternalLink size={12} /> 📋 Copy &amp; Open Google Maps to Paste ↗
                             </button>
                           )}
 
@@ -772,7 +1260,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                             type="button"
                             onClick={() => {
                               const phone = customers.find((c) => c.name.toLowerCase() === rev.name.toLowerCase())?.mobile;
-                              const thankYou = `Dear ${rev.name}, thank you so much for your wonderful 5-Star review for ${salonName}! We truly appreciate your feedback. 💖 — Amita & Shree Beauty Studio Team`;
+                              const thankYou = `Dear ${rev.name}, thank you so much for your wonderful 5-Star review for ${salonName}! We truly appreciate your feedback. 💖 — ${salonName} Team`;
                               if (phone) {
                                 openWAWeb(phone, thankYou);
                               } else {
