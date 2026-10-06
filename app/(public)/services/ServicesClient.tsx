@@ -21,7 +21,37 @@ function ServicesView() {
   const initialCategory = searchParams.get('category') || 'all';
 
   const { data } = useSalonStore();
-  const services: Service[] = data?.services || [];
+  const storeServices: Service[] = (data?.services && data.services.length > 0) ? data.services : [];
+  const [liveServices, setLiveServices] = useState<Service[]>(storeServices);
+
+  // Sync when local store services change
+  useEffect(() => {
+    if (data?.services && data.services.length > 0) {
+      setLiveServices(data.services);
+    }
+  }, [data?.services]);
+
+  // Auto-sync live services from cloud public API
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLiveServices = async () => {
+      try {
+        const res = await fetch('/api/public-data', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && isMounted && Array.isArray(json.services) && json.services.length > 0) {
+            setLiveServices(json.services);
+          }
+        }
+      } catch (e) {
+        console.warn('Services live data fetch error:', e);
+      }
+    };
+    fetchLiveServices();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // If user navigated directly to bridal category, redirect to dedicated bridal page
   useEffect(() => {
@@ -49,16 +79,16 @@ function ServicesView() {
 
   // Guaranteed 100% Unique non-repeating image map for all rendered services
   const serviceImageMap = useMemo(() => {
-    return getUniqueServiceImageMap(services);
-  }, [services]);
+    return getUniqueServiceImageMap(liveServices);
+  }, [liveServices]);
 
   const categories = useMemo(() => {
-    return Array.from(new Set(services.map((s: Service) => s.category || 'Special Treatments')));
-  }, [services]);
+    return Array.from(new Set(liveServices.map((s: Service) => s.category || 'Special Treatments')));
+  }, [liveServices]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    let list = services.filter((s: Service) => {
+    let list = liveServices.filter((s: Service) => {
       const matchSearch =
         !q ||
         s.name.toLowerCase().includes(q) ||
@@ -73,7 +103,7 @@ function ServicesView() {
     else list.sort((a: Service, b: Service) => a.price - b.price);
 
     return list;
-  }, [services, search, activeCategory, sortBy]);
+  }, [liveServices, search, activeCategory, sortBy]);
 
   // Salon background images for page ambiance
   const salonBgImages = [
@@ -244,7 +274,7 @@ function ServicesView() {
           Salon Services &amp; Starting Rates
         </h1>
         <p style={{ fontSize: 15, color: '#64748b', maxWidth: 640, margin: '0 auto 12px', lineHeight: 1.65 }}>
-          Explore our complete collection of {services.length} signature salon therapies. All prices listed are starting rates — final quotation is customized according to your exact requirements.
+          Explore our complete collection of {liveServices.length} signature salon therapies. All prices listed are starting rates — final quotation is customized according to your exact requirements.
         </p>
 
         {/* Informative Pricing Policy Banner (Hair Length & Skin Type Guide) */}
@@ -361,10 +391,10 @@ function ServicesView() {
               transition: 'all 0.15s ease',
             }}
           >
-            All Services ({services.length})
+            All Services ({liveServices.length})
           </button>
           {categories.map((cat: string) => {
-            const count = services.filter((s: Service) => (s.category || 'Special Treatments') === cat).length;
+            const count = liveServices.filter((s: Service) => (s.category || 'Special Treatments') === cat).length;
             const icon = getCategoryIcon(cat);
             const isAct = activeCategory === cat;
             const isBridal = cat.toLowerCase().includes('bridal') || cat.toLowerCase().includes('makeup');

@@ -4,8 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { DEFAULT_DATA, DEFAULT_BRIDAL_PACKAGES } from '@/lib/store';
 import { SalonData } from '@/types/salon';
 
-// ISR: revalidate every 60 seconds — served from Vercel CDN edge cache
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -17,7 +17,7 @@ export async function GET() {
       .limit(1);
 
     const headers = {
-      'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=86400',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
     };
 
     if (error || !rows || rows.length === 0 || !rows[0].data) {

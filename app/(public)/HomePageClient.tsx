@@ -194,7 +194,15 @@ const CATEGORY_META: Record<string, { tagline: string; description: string }> = 
 export default function PublicHomePage() {
   const { data } = useSalonStore();
   const settings = data?.settings;
-  const services = (data?.services && data.services.length > 0) ? data.services : DEFAULT_DATA.services;
+  const storeServices = (data?.services && data.services.length > 0) ? data.services : DEFAULT_DATA.services;
+  const [liveServices, setLiveServices] = useState(storeServices);
+
+  // Sync when local store services change
+  useEffect(() => {
+    if (data?.services && data.services.length > 0) {
+      setLiveServices(data.services);
+    }
+  }, [data?.services]);
 
   // Real Studio Ambiance Showcase State & Automatic Slideshow
   const [activeAmbianceId, setActiveAmbianceId] = useState<string>('reception');
@@ -206,13 +214,19 @@ export default function PublicHomePage() {
   const [googleRating, setGoogleRating] = useState<number>(4.9);
   const [googleReviewCount, setGoogleReviewCount] = useState<number>(210);
 
+  // Auto-sync live services & reviews from cloud public API
   useEffect(() => {
     let isMounted = true;
-    const fetchLiveReviews = async () => {
+
+    const fetchLivePublicData = async () => {
       try {
-        const res = await fetch('/api/google-reviews');
-        if (res.ok) {
-          const json = await res.json();
+        const [reviewsRes, publicDataRes] = await Promise.all([
+          fetch('/api/google-reviews'),
+          fetch('/api/public-data', { cache: 'no-store' }),
+        ]);
+
+        if (reviewsRes.ok) {
+          const json = await reviewsRes.json();
           if (json.success && isMounted) {
             if (json.row1 && json.row1.length > 0) setReviewsRow1(json.row1);
             if (json.row2 && json.row2.length > 0) setReviewsRow2(json.row2);
@@ -220,11 +234,19 @@ export default function PublicHomePage() {
             if (json.totalReviews) setGoogleReviewCount(json.totalReviews);
           }
         }
+
+        if (publicDataRes.ok) {
+          const dataJson = await publicDataRes.json();
+          if (dataJson.success && isMounted && Array.isArray(dataJson.services) && dataJson.services.length > 0) {
+            setLiveServices(dataJson.services);
+          }
+        }
       } catch (e) {
-        console.warn('Live Google Reviews fetch error:', e);
+        console.warn('Live public-data fetch error:', e);
       }
     };
-    fetchLiveReviews();
+
+    fetchLivePublicData();
     return () => {
       isMounted = false;
     };
@@ -276,7 +298,7 @@ export default function PublicHomePage() {
     'Body Spa & Bleach',
     'Hands, Feet & Nails',
   ];
-  const allNonBridalCats = Array.from(new Set(services.map((s) => s.category || 'Special Treatments')))
+  const allNonBridalCats = Array.from(new Set(liveServices.map((s) => s.category || 'Special Treatments')))
     .filter((cat) => !cat.toLowerCase().includes('bridal') && !cat.toLowerCase().includes('makeup') && !cat.toLowerCase().includes('de-tan'));
 
   const categories = PREFERRED_CAT_ORDER.filter((c) => allNonBridalCats.includes(c))
@@ -703,7 +725,7 @@ export default function PublicHomePage() {
           viewport={{ once: true, amount: 0.1 }}
         >
           {categories.map((cat) => {
-            const catServices = services
+            const catServices = liveServices
               .filter((s) => (s.category || 'Special Treatments') === cat)
               .sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
             const icon = getCategoryIcon(cat);
