@@ -198,7 +198,7 @@ export default function InstagramFeed() {
     };
   }, []);
 
-  // ─── Automatic Slideshow Sliding Loop ────────────────────────────────
+  // ─── Automatic Slideshow Sliding Loop (Every 2 Seconds) ───────────────
   useEffect(() => {
     if (isPaused || livePhotos.length === 0) return;
 
@@ -218,7 +218,7 @@ export default function InstagramFeed() {
         el.scrollBy({ left: scrollStep, behavior: 'smooth' });
         setActiveIndex((prev) => (prev + 1) % livePhotos.length);
       }
-    }, 3200);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [isPaused, livePhotos.length]);
@@ -440,7 +440,7 @@ export default function InstagramFeed() {
             onMouseLeave={() => setIsPaused(false)}
             onTouchStart={() => setIsPaused(true)}
             onTouchEnd={() => {
-              setTimeout(() => setIsPaused(false), 3000);
+              setTimeout(() => setIsPaused(false), 2000);
             }}
           >
             {livePhotos.map((photo, i) => (
