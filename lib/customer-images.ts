@@ -218,13 +218,18 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'brilliance white facial': '/services/brilliance_pigmentation_facial.webp',
   'brilliance white': '/services/brilliance_pigmentation_facial.webp',
   'pigmentation facial': '/services/brilliance_pigmentation_facial.webp',
+  'shine control acne facial': '/services/shine_control_facial.webp',
+  'shine control facial': '/services/shine_control_facial.webp',
+  'shine control': '/services/shine_control_facial.webp',
+  'anti-acne purifying facial': '/services/shine_control_facial.webp',
+  'anti acne purifying facial': '/services/shine_control_facial.webp',
+  'acne purifying facial': '/services/shine_control_facial.webp',
   'herbal deep cleanup': '/services/herbal_cleanup.webp',
   'fruit glow facial': '/services/fruit_facial.webp',
   'gold radiance facial': '/services/gold_facial.webp',
   'diamond insta-glow facial': '/services/diamond_facial.webp',
   'full face bleach & pack': '/services/face_bleach_pack.webp',
   'o3+ advanced d-tan facial': '/services/herbal_cleanup.webp',
-  'anti-acne purifying facial': '/services/herbal_cleanup.webp',
   'korean glass skin treatment': '/services/diamond_facial.webp',
   'd-tan face & neck cleanup': '/services/herbal_cleanup.webp',
   'charcoal detox facial': '/services/face_bleach_pack.webp',
@@ -304,6 +309,9 @@ export function getServiceImage(serviceName: string, category?: string): string 
   }
 
   // Skin Care & Facials
+  if (name.includes('shine control') || name.includes('acne') || name.includes('purify') || name.includes('mattifying')) {
+    return '/services/shine_control_facial.webp';
+  }
   if (name.includes('brilliance') || name.includes('pigment') || name.includes('whitening')) {
     return '/services/brilliance_pigmentation_facial.webp';
   }
@@ -322,7 +330,7 @@ export function getServiceImage(serviceName: string, category?: string): string 
   if (name.includes('bleach') || name.includes('pack') || name.includes('detox') || name.includes('charcoal')) {
     return '/services/face_bleach_pack.webp';
   }
-  if (name.includes('clean') || name.includes('herbal') || name.includes('d-tan') || name.includes('detan') || name.includes('acne') || name.includes('purify') || (category && category.toLowerCase().includes('skin'))) {
+  if (name.includes('clean') || name.includes('herbal') || name.includes('d-tan') || name.includes('detan') || (category && category.toLowerCase().includes('skin'))) {
     return '/services/herbal_cleanup.webp';
   }
 
