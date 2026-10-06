@@ -31,26 +31,6 @@ export default function CustomerNavbar() {
   const salonName = settings?.salon || 'Shree Beauty Studio';
 
   useEffect(() => {
-    let lastScrolled = false;
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const isScrolled = window.scrollY > 30;
-          if (isScrolled !== lastScrolled) {
-            setScrolled(isScrolled);
-            lastScrolled = isScrolled;
-          }
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
     if (menuOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -78,18 +58,12 @@ export default function CustomerNavbar() {
     setMenuOpen(false);
   }, [pathname]);
 
-  const navStyle = scrolled ? {
-    background: 'rgba(3, 43, 48, 0.98)',
+  const navStyle = {
+    background: 'rgba(3, 43, 48, 0.96)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    borderBottom: '1px solid rgba(234, 186, 56, 0.28)',
-    boxShadow: '0 4px 28px rgba(0, 0, 0, 0.28)',
-  } : {
-    background: 'rgba(3, 43, 48, 0.90)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(234, 186, 56, 0.15)',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+    borderBottom: '1px solid rgba(234, 186, 56, 0.22)',
+    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
   };
 
   const getInitials = (name?: string) => {
@@ -106,9 +80,6 @@ export default function CustomerNavbar() {
         ...navStyle,
         position: 'relative',
         zIndex: 1000,
-        transform: 'translateZ(0)',
-        willChange: 'transform',
-        transition: 'background 0.25s ease, box-shadow 0.25s ease',
       }}
     >
         <div

@@ -197,50 +197,6 @@ export default function InstagramFeed() {
     };
   }, []);
 
-  // Tripled array for desktop infinite loop
-  const allPhotos = [...livePhotos, ...livePhotos, ...livePhotos];
-
-  // Auto-scrolling animation (active on desktop only when visible in viewport)
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || typeof window === 'undefined') return;
-
-    // Check if on mobile (screen < 640px), let user swipe naturally
-    if (window.innerWidth < 640) return;
-
-    let animId: number;
-    let scrollPos = el.scrollLeft || 0;
-    let isVisible = false;
-    const speed = 0.5;
-
-    // Only run animation when element is actually visible in the viewport
-    const observer = new IntersectionObserver(
-      (entries) => {
-        isVisible = entries[0]?.isIntersecting ?? false;
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(el);
-
-    const animate = () => {
-      if (isVisible && !isPaused && el) {
-        scrollPos += speed;
-        const singleSetWidth = el.scrollWidth / 3;
-        if (scrollPos >= singleSetWidth) {
-          scrollPos -= singleSetWidth;
-        }
-        el.scrollLeft = scrollPos;
-      }
-      animId = requestAnimationFrame(animate);
-    };
-
-    animId = requestAnimationFrame(animate);
-    return () => {
-      observer.disconnect();
-      cancelAnimationFrame(animId);
-    };
-  }, [isPaused, livePhotos]);
-
   const handleManualScroll = (direction: 'left' | 'right') => {
     const el = scrollRef.current;
     if (!el) return;
@@ -362,7 +318,7 @@ export default function InstagramFeed() {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {allPhotos.map((photo, i) => (
+          {livePhotos.map((photo, i) => (
             <PhotoCard
               key={`photo-${photo.id}-${i}`}
               item={photo}

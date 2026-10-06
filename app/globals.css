@@ -2342,9 +2342,9 @@ a, button, input, select, textarea {
 
 /* ─── Floating Decorative Orb ───────────────────────────────────────────── */
 .floating-orb { position: absolute; border-radius: 50%; filter: blur(60px); pointer-events: none; z-index: 0; }
-.floating-orb-gold { background: radial-gradient(circle, rgba(234,186,56,0.25) 0%, transparent 70%); animation: float-gentle 8s ease-in-out infinite; }
-.floating-orb-teal { background: radial-gradient(circle, rgba(5,66,74,0.3) 0%, transparent 70%); animation: float-gentle 10s ease-in-out infinite reverse; }
-.floating-orb-white { background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%); animation: float-gentle 12s ease-in-out infinite 2s; }
+.floating-orb-gold { background: radial-gradient(circle, rgba(234,186,56,0.25) 0%, transparent 70%); animation: orb-pulse 8s ease-in-out infinite; }
+.floating-orb-teal { background: radial-gradient(circle, rgba(5,66,74,0.3) 0%, transparent 70%); animation: orb-pulse 10s ease-in-out infinite reverse; }
+.floating-orb-white { background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%); animation: orb-pulse 12s ease-in-out infinite 2s; }
 
 /* ─── Pulse Ring ────────────────────────────────────────────────────────── */
 .pulse-ring { position: relative; }
@@ -2388,10 +2388,9 @@ a, button, input, select, textarea {
   100% { background-position: 200% center; }
 }
 
-@keyframes float-gentle {
-  0%, 100% { transform: translateY(0px) scale(1); }
-  33%       { transform: translateY(-20px) scale(1.05); }
-  66%       { transform: translateY(-10px) scale(0.97); }
+@keyframes orb-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 0.55; }
 }
 
 @keyframes glow-pulse {
