@@ -117,8 +117,8 @@ export const customerImages = {
   categories: {
     'Hair': 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&q=80&auto=format&fit=crop',
     'Hair Care & Styling': 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=800&q=80&auto=format&fit=crop',
-    'Skin': 'https://images.unsplash.com/photo-1576426863848-c21f53c60b19?w=800&q=80&auto=format&fit=crop',
-    'Skin Care & Facials': 'https://images.unsplash.com/photo-1576426863848-c21f53c60b19?w=800&q=80&auto=format&fit=crop',
+    'Skin': '/services/hydra_boost_facial.webp',
+    'Skin Care & Facials': '/services/hydra_boost_facial.webp',
     'Waxing': 'https://images.unsplash.com/photo-1552693673-1bf958298935?w=800&q=80&auto=format&fit=crop',
     'Waxing & Threading': 'https://images.unsplash.com/photo-1552693673-1bf958298935?w=800&q=80&auto=format&fit=crop',
     'Nail': 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&q=80&auto=format&fit=crop',
