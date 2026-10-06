@@ -210,13 +210,17 @@ export const EXACT_SERVICE_IMAGES: Record<string, string> = {
   'head massage & champi': '/services/hair_spa_wash.webp',
 
   // Skin Care & Facials (100% authentic generated & studio-matched)
+  'hydra boost facial': '/services/hydra_boost_facial.webp',
+  'hydra boost': '/services/hydra_boost_facial.webp',
+  'hydra facial': '/services/hydra_boost_facial.webp',
+  'hydra glow facial': '/services/hydra_boost_facial.webp',
+  'brilliance pigmentation facial': '/services/hydra_boost_facial.webp',
   'herbal deep cleanup': '/services/herbal_cleanup.webp',
   'fruit glow facial': '/services/fruit_facial.webp',
   'gold radiance facial': '/services/gold_facial.webp',
   'diamond insta-glow facial': '/services/diamond_facial.webp',
   'full face bleach & pack': '/services/face_bleach_pack.webp',
   'o3+ advanced d-tan facial': '/services/herbal_cleanup.webp',
-  'hydra glow facial': '/services/diamond_facial.webp',
   'anti-acne purifying facial': '/services/herbal_cleanup.webp',
   'korean glass skin treatment': '/services/diamond_facial.webp',
   'd-tan face & neck cleanup': '/services/herbal_cleanup.webp',
@@ -297,13 +301,16 @@ export function getServiceImage(serviceName: string, category?: string): string 
   }
 
   // Skin Care & Facials
+  if (name.includes('hydra') || name.includes('brilliance') || name.includes('jeannot') || name.includes('whitening')) {
+    return '/services/hydra_boost_facial.webp';
+  }
   if (name.includes('gold') || name.includes('radiance') || name.includes('24k') || name.includes('aging') || name.includes('collagen')) {
     return '/services/gold_facial.webp';
   }
   if (name.includes('fruit') || name.includes('papaya') || name.includes('glow facial') || name.includes('vitamin')) {
     return '/services/fruit_facial.webp';
   }
-  if (name.includes('diamond') || name.includes('hydra') || name.includes('insta-glow') || name.includes('brightening') || name.includes('glass')) {
+  if (name.includes('diamond') || name.includes('insta-glow') || name.includes('brightening') || name.includes('glass')) {
     return '/services/diamond_facial.webp';
   }
   if (name.includes('bleach') || name.includes('pack') || name.includes('detox') || name.includes('charcoal')) {
