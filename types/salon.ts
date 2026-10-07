@@ -93,6 +93,9 @@ export interface SalonSettings {
   googlePlaceId?: string; // e.g. Google Place ID for live reviews auto-sync
   googlePlacesApiKey?: string; // Google Places API key (optional, can also use server env)
   googleReviewsMinRating?: number; // Minimum rating to auto-import (e.g. 5)
+  googleBusinessAccountId?: string; // e.g. 'accounts/1122334455' (Google Business Profile API)
+  googleBusinessLocationId?: string; // e.g. 'locations/6677889900'
+  googleBusinessAccessToken?: string; // OAuth Access Token / Service Account Key for auto-reply API
   openDays?: string; // e.g. 'Monday – Sunday (Open All 7 Days)'
   logoUrl?: string; // Custom studio logo URL / base64 image
   // Google Map Auto-Reply & Local SEO Settings
@@ -110,7 +113,7 @@ export interface SalonSettings {
   // Sidebar Navigation Order Customization
   sidebarNavOrder?: string[];         // Array of nav item IDs in custom arranged order
   // Google Reviews Filters & Replied Tracking
-  googleReviewsRepliedMap?: Record<string, { text: string; time: string; source: 'ai' | 'manual' }>;
+  googleReviewsRepliedMap?: Record<string, { text: string; time: string; source: 'ai' | 'manual' | 'api' }>;
   googleReviewsHiddenList?: string[];
   googleReviewsHideReplied?: boolean;
   googleReviewsHideOld?: boolean;

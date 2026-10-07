@@ -104,7 +104,7 @@ export default function GoogleMapAutoHubPage() {
   const [newKeyword, setNewKeyword] = useState('');
 
   // AI Replied state tracking in-memory & stored
-  const [repliedMap, setRepliedMap] = useState<Record<string, { text: string; time: string; source: 'ai' | 'manual' }>>(
+  const [repliedMap, setRepliedMap] = useState<Record<string, { text: string; time: string; source: 'ai' | 'manual' | 'api' }>>(
     settings?.googleReviewsRepliedMap || {}
   );
   // Hidden / Dismissed Old Reviews List
@@ -132,6 +132,8 @@ export default function GoogleMapAutoHubPage() {
   // Custom & Live Review Management State
   const [googleApiError, setGoogleApiError] = useState<string | null>(null);
   const [addReviewModalOpen, setAddReviewModalOpen] = useState<boolean>(false);
+  const [replyingKey, setReplyingKey] = useState<string | null>(null);
+  const [batchReplying, setBatchReplying] = useState<boolean>(false);
   const [reviewForm, setReviewForm] = useState({
     name: '',
     rating: 5,
@@ -464,6 +466,111 @@ export default function GoogleMapAutoHubPage() {
     } else {
       toast(`📋 Reply copied to clipboard!`, 'success');
     }
+  };
+
+  // 4b. Direct Auto-Reply via API (Backend & Database Sync)
+  const handleApiAutoReply = async (rev: GoogleReviewItem, customText?: string) => {
+    const key = `${rev.name}_${rev.text.slice(0, 15)}`;
+    const textToPost = customText || generateAiReply(rev.text, rev.name, rev.rating);
+    setReplyingKey(key);
+
+    try {
+      const res = await fetch('/api/google-reviews/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          authorName: rev.name,
+          reviewText: rev.text,
+          replyText: textToPost,
+          reviewId: key,
+          rating: rev.rating,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        const updatedReplied = {
+          ...repliedMap,
+          [key]: {
+            text: textToPost,
+            time: new Date().toLocaleDateString('en-GB') + ' (Auto-Replied via API)',
+            source: 'api' as const,
+          },
+        };
+        setRepliedMap(updatedReplied);
+        setData({
+          ...data,
+          settings: {
+            ...data.settings,
+            googleReviewsRepliedMap: updatedReplied,
+          },
+        });
+        scheduleSave();
+        safeCopy(textToPost, `reply-${key}`);
+        toast(`🤖 API Auto-Reply posted & saved for ${rev.name}!`, 'success');
+      } else {
+        toast(`Error: ${json.error || 'Failed to reply via API'}`, 'error');
+      }
+    } catch (err: any) {
+      toast(`API Reply error: ${err?.message || 'Network error'}`, 'error');
+    } finally {
+      setReplyingKey(null);
+    }
+  };
+
+  // 4c. Batch Auto-Reply to all pending reviews via API
+  const handleAutoReplyAllPending = async () => {
+    const pendingReviews = reviews.filter((r) => {
+      const key = `${r.name}_${r.text.slice(0, 15)}`;
+      return !repliedMap[key] && !hiddenKeys.includes(key);
+    });
+
+    if (pendingReviews.length === 0) {
+      toast('🎉 All reviews are already replied!', 'info');
+      return;
+    }
+
+    setBatchReplying(true);
+    let successCount = 0;
+    const newReplied = { ...repliedMap };
+
+    for (const rev of pendingReviews) {
+      const key = `${rev.name}_${rev.text.slice(0, 15)}`;
+      const aiReply = generateAiReply(rev.text, rev.name, rev.rating);
+      try {
+        await fetch('/api/google-reviews/reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            authorName: rev.name,
+            reviewText: rev.text,
+            replyText: aiReply,
+            reviewId: key,
+            rating: rev.rating,
+          }),
+        });
+        newReplied[key] = {
+          text: aiReply,
+          time: new Date().toLocaleDateString('en-GB') + ' (Auto-Replied via API)',
+          source: 'api' as const,
+        };
+        successCount++;
+      } catch (e) {
+        console.warn('Batch reply error for review:', key, e);
+      }
+    }
+
+    setRepliedMap(newReplied);
+    setData({
+      ...data,
+      settings: {
+        ...data.settings,
+        googleReviewsRepliedMap: newReplied,
+      },
+    });
+    scheduleSave();
+    setBatchReplying(false);
+    toast(`🚀 Auto-Replied to ${successCount} reviews via API!`, 'success');
   };
 
   // Hide / Dismiss an Old Review
@@ -1171,6 +1278,28 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
 
                 <button
                   type="button"
+                  onClick={handleAutoReplyAllPending}
+                  disabled={batchReplying}
+                  className="btn btn-xs"
+                  style={{
+                    background: 'linear-gradient(45deg, #9333ea, #4f46e5)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 10px',
+                    boxShadow: '0 2px 6px rgba(147, 51, 234, 0.25)',
+                  }}
+                  title="Auto-reply to all unreplied reviews instantly via API"
+                >
+                  <Zap size={13} className={batchReplying ? 'animate-spin' : ''} />
+                  {batchReplying ? 'Replying All...' : '🚀 Auto-Reply All (API)'}
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setAddReviewModalOpen(true)}
                   className="btn btn-xs"
                   style={{
@@ -1606,48 +1735,72 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {replyState ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                safeCopy(replyState.text, `reply-${key}`);
-                                window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
-                                toast('📋 Copied! Opening Google Maps...', 'success');
-                              }}
-                              className="btn btn-xs"
-                              style={{
-                                background: 'rgba(66, 133, 244, 0.1)',
-                                border: '1px solid #4285F4',
-                                color: '#2563eb',
-                                fontWeight: 800,
-                                fontSize: 11,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                padding: '5px 10px',
-                                minHeight: 32,
-                              }}
-                            >
-                              <ExternalLink size={11} /> ↗ Open Google Maps to Paste
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.12)', color: '#16a34a', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '4px 8px', borderRadius: 6, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <Check size={12} /> Replied ({replyState.source === 'api' ? 'via API' : 'Saved'})
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  safeCopy(replyState.text, `reply-${key}`);
+                                  window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+                                  toast('📋 Copied! Opening Google Maps...', 'success');
+                                }}
+                                className="btn btn-xs btn-secondary"
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: 10.5,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  minHeight: 30,
+                                }}
+                              >
+                                <ExternalLink size={11} /> ↗ Open Maps
+                              </button>
+                            </div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleTriggerReply(key, aiReply, true)}
-                              className="btn btn-primary btn-xs"
-                              style={{
-                                background: 'linear-gradient(45deg, #4285F4, #34A853)',
-                                border: 'none',
-                                fontWeight: 800,
-                                fontSize: 11,
-                                padding: '6px 12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                minHeight: 32,
-                              }}
-                            >
-                              <ExternalLink size={12} /> 📋 Copy &amp; Open Google Maps ↗
-                            </button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => handleApiAutoReply(rev, isEditing ? customReplyText : undefined)}
+                                disabled={replyingKey === key}
+                                className="btn btn-xs"
+                                style={{
+                                  background: 'linear-gradient(45deg, #16a34a, #059669)',
+                                  color: '#fff',
+                                  border: 'none',
+                                  fontWeight: 800,
+                                  fontSize: 11,
+                                  padding: '6px 12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  minHeight: 32,
+                                  boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+                                }}
+                              >
+                                <Zap size={12} className={replyingKey === key ? 'animate-spin' : ''} />
+                                {replyingKey === key ? 'Replying via API...' : '⚡ Auto-Reply via API'}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleTriggerReply(key, isEditing ? customReplyText : aiReply, true)}
+                                className="btn btn-secondary btn-xs"
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: 11,
+                                  padding: '6px 10px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  minHeight: 32,
+                                }}
+                              >
+                                <ExternalLink size={11} /> 📋 Copy &amp; Open Maps ↗
+                              </button>
+                            </div>
                           )}
 
                           <button
