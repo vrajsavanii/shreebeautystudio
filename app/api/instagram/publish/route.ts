@@ -113,27 +113,11 @@ export async function POST(req: NextRequest) {
     const token = settings?.instagramAccessToken?.trim() || DEFAULT_TOKEN;
 
     let creationId = '';
-
-    const LOCATION_PAGE_IDS: Record<string, string> = {
-      'Katargam, Surat': '108873722476595',
-      'Shree Beauty Studio': '108873722476595',
-      'Shree Beauty Studio, Katargam': '108873722476595',
-      'Surat, Gujarat': '106720849363574',
-      'Mota Varachha, Surat': '106720849363574',
-      'Varachha, Surat': '106720849363574',
-      'Adajan, Surat': '106720849363574',
-      'Vesu, Surat': '106720849363574',
-      'VIP Road, Surat': '106720849363574',
-      'Ghod Dod Road, Surat': '106720849363574',
-      'Surat': '106720849363574',
-    };
-    const matchedLocId = location.trim() ? (LOCATION_PAGE_IDS[location.trim()] || '108873722476595') : undefined;
-
     const cleanUser = collaborator ? collaborator.replace(/^@/, '').trim() : '';
 
     // ── HELPER: ROBUST CONTAINER CREATION WITH SELF-HEALING RETRIES ──
     const createContainerWithFallback = async (params: Record<string, string>): Promise<{ success: boolean; id?: string; error?: string }> => {
-      // Attempt 1: Full params
+      // Attempt 1: Standard params
       let res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -145,22 +129,7 @@ export async function POST(req: NextRequest) {
         return { success: true, id: data.id };
       }
 
-      // Attempt 2: If failed with location_id, strip location_id and retry
-      if (params.location_id) {
-        const fallback = { ...params };
-        delete fallback.location_id;
-        res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(fallback).toString(),
-        });
-        data = await res.json();
-        if (res.ok && data.id) {
-          return { success: true, id: data.id };
-        }
-      }
-
-      // Attempt 3: If failed with user_tags, strip user_tags and retry
+      // Attempt 2: If failed with user_tags or optional fields, strip and retry
       if (params.user_tags || params.location_id) {
         const fallback = { ...params };
         delete fallback.location_id;
@@ -180,7 +149,7 @@ export async function POST(req: NextRequest) {
         success: false,
         error: data?.error?.message || 'Failed to create Instagram container',
       };
-    }
+    };
 
     // ── CASE 1: MULTI-PHOTO CAROUSEL ──
     if (mediaType === 'carousel' || mediaUrls.length > 1) {
@@ -221,9 +190,6 @@ export async function POST(req: NextRequest) {
         children: childContainerIds.join(','),
         caption: caption,
       };
-      if (matchedLocId) {
-        parentParams.location_id = matchedLocId;
-      }
 
       const parentResult = await createContainerWithFallback(parentParams);
       if (!parentResult.success || !parentResult.id) {
@@ -244,9 +210,6 @@ export async function POST(req: NextRequest) {
         share_to_feed: 'true',
         caption: caption,
       };
-      if (matchedLocId) {
-        reelParams.location_id = matchedLocId;
-      }
 
       const reelResult = await createContainerWithFallback(reelParams);
       if (!reelResult.success || !reelResult.id) {
@@ -284,9 +247,6 @@ export async function POST(req: NextRequest) {
         image_url: mediaUrls[0],
         caption: caption,
       };
-      if (matchedLocId) {
-        photoParams.location_id = matchedLocId;
-      }
       if (cleanUser) {
         photoParams.user_tags = JSON.stringify([{ username: cleanUser, x: 0.5, y: 0.5 }]);
       }
