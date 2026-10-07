@@ -468,7 +468,7 @@ export default function GoogleMapAutoHubPage() {
     }
   };
 
-  // 4b. Direct Auto-Reply via API (Backend & Database Sync)
+  // 4b. Direct Auto-Reply via API (Backend & Database Sync + Direct Google Maps Paste)
   const handleApiAutoReply = async (rev: GoogleReviewItem, customText?: string) => {
     const key = `${rev.name}_${rev.text.slice(0, 15)}`;
     const textToPost = customText || generateAiReply(rev.text, rev.name, rev.rating);
@@ -493,8 +493,8 @@ export default function GoogleMapAutoHubPage() {
           ...repliedMap,
           [key]: {
             text: textToPost,
-            time: new Date().toLocaleDateString('en-GB') + ' (Auto-Replied via API)',
-            source: 'api' as const,
+            time: new Date().toLocaleDateString('en-GB') + ' (Auto-Replied)',
+            source: (json.apiPosted ? 'api' : 'ai') as any,
           },
         };
         setRepliedMap(updatedReplied);
@@ -506,10 +506,21 @@ export default function GoogleMapAutoHubPage() {
           },
         });
         scheduleSave();
-        safeCopy(textToPost, `reply-${key}`);
-        toast(`🤖 API Auto-Reply posted & saved for ${rev.name}!`, 'success');
+        
+        // 1. Copy reply text to clipboard
+        await safeCopy(textToPost, `reply-${key}`);
+
+        // 2. If API was posted directly on Google servers
+        if (json.apiPosted) {
+          toast(`✅ Auto-Reply posted directly to Google Maps via API for ${rev.name}!`, 'success');
+        } else {
+          // 3. Open Google Maps review page so owner can paste in 1 click
+          const targetUrl = rev.authorUrl || googleMapsUrl;
+          window.open(targetUrl, '_blank', 'noopener,noreferrer');
+          toast(`📋 AI Reply Copied! Opening Google Maps... Just tap "Reply" and Paste (Ctrl+V)!`, 'success');
+        }
       } else {
-        toast(`Error: ${json.error || 'Failed to reply via API'}`, 'error');
+        toast(`Error: ${json.error || 'Failed to reply'}`, 'error');
       }
     } catch (err: any) {
       toast(`API Reply error: ${err?.message || 'Network error'}`, 'error');
