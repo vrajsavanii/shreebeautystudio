@@ -420,18 +420,6 @@ export default function InstagramHubPage() {
   const processPhotoCrop = async (item: MediaItem): Promise<File> => {
     if (item.type === 'video') return item.file;
 
-    // If original ratio with standard framing, return raw file
-    if (
-      item.aspectRatio === 'original' &&
-      (!item.zoom || item.zoom === 1) &&
-      !item.panX &&
-      !item.panY &&
-      !item.rotation &&
-      item.fitMode !== 'contain'
-    ) {
-      return item.file;
-    }
-
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -440,10 +428,24 @@ export default function InstagramHubPage() {
         let targetH = 1080;
 
         switch (item.aspectRatio) {
-          case 'original':
-            targetW = img.naturalWidth || 1080;
-            targetH = img.naturalHeight || 1080;
+          case 'original': {
+            const rawW = img.naturalWidth || 1080;
+            const rawH = img.naturalHeight || 1080;
+            const maxDim = 1920;
+            if (rawW > maxDim || rawH > maxDim) {
+              if (rawW >= rawH) {
+                targetW = maxDim;
+                targetH = Math.round((rawH / rawW) * maxDim);
+              } else {
+                targetH = maxDim;
+                targetW = Math.round((rawW / rawH) * maxDim);
+              }
+            } else {
+              targetW = rawW;
+              targetH = rawH;
+            }
             break;
+          }
           case '4:5':
             targetW = 1080;
             targetH = 1350;
@@ -1009,38 +1011,105 @@ export default function InstagramHubPage() {
       setPublishingStep(`2/4: Uploading ${processedFiles.length} file(s) to cloud storage...`);
 
       const hasPhotos = mediaItems.some((m) => m.type === 'photo');
-      const formData = new FormData();
-      formData.append('caption', generatedCaption);
-      formData.append('location', postLocation);
-      formData.append('collaborator', collaborator);
-      formData.append('shareThreads', String(shareThreads));
-      formData.append('shareFacebook', String(shareFacebook));
-      formData.append('shareGoogleMaps', String(shareGoogleMaps && hasPhotos));
+      const uploadedPublicUrls: string[] = [];
 
-      if (processedFiles.length === 1) {
-        formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
-        formData.append('file', processedFiles[0]);
+      // Try direct signed URL upload to bypass any Vercel request body limits
+      for (let i = 0; i < processedFiles.length; i++) {
+        const file = processedFiles[i];
+        setPublishingStep(`2/4: Uploading file ${i + 1}/${processedFiles.length} to cloud storage...`);
+
+        try {
+          const urlRes = await fetch('/api/instagram/upload-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              contentType: file.type || 'image/jpeg',
+            }),
+          });
+          const urlData = await urlRes.json();
+          if (urlData.success && urlData.signedUrl && urlData.publicUrl) {
+            const putRes = await fetch(urlData.signedUrl, {
+              method: 'PUT',
+              headers: { 'Content-Type': file.type || 'image/jpeg' },
+              body: file,
+            });
+            if (putRes.ok) {
+              uploadedPublicUrls.push(urlData.publicUrl);
+            }
+          }
+        } catch (uploadErr) {
+          console.warn('Direct signed upload failed, will fallback to multipart:', uploadErr);
+        }
+      }
+
+      let res: Response;
+
+      // If all files successfully uploaded directly to storage CDN
+      if (uploadedPublicUrls.length === processedFiles.length && uploadedPublicUrls.length > 0) {
+        setPublishingStep(
+          uploadedPublicUrls.length > 1
+            ? `3/4: Creating Instagram Carousel container with ${uploadedPublicUrls.length} photos...`
+            : mediaItems[0].type === 'video'
+            ? '3/4: Instagram Meta API encoding Reel video...'
+            : '3/4: Creating Instagram media container...'
+        );
+
+        res = await fetch('/api/instagram/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mediaUrls: uploadedPublicUrls,
+            caption: generatedCaption,
+            location: postLocation,
+            collaborator: collaborator,
+            mediaType: processedFiles.length > 1 ? 'carousel' : (mediaItems[0].type === 'video' ? 'reel' : 'photo'),
+          }),
+        });
       } else {
-        formData.append('mediaType', 'carousel');
-        processedFiles.forEach((f) => {
-          formData.append('files', f);
+        // Fallback to FormData multipart upload
+        const formData = new FormData();
+        formData.append('caption', generatedCaption);
+        formData.append('location', postLocation);
+        formData.append('collaborator', collaborator);
+        formData.append('shareThreads', String(shareThreads));
+        formData.append('shareFacebook', String(shareFacebook));
+        formData.append('shareGoogleMaps', String(shareGoogleMaps && hasPhotos));
+
+        if (processedFiles.length === 1) {
+          formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
+          formData.append('file', processedFiles[0]);
+        } else {
+          formData.append('mediaType', 'carousel');
+          processedFiles.forEach((f) => {
+            formData.append('files', f);
+          });
+        }
+
+        setPublishingStep(
+          processedFiles.length > 1
+            ? `3/4: Creating Instagram Carousel container with ${processedFiles.length} photos...`
+            : mediaItems[0].type === 'video'
+            ? '3/4: Instagram Meta API encoding Reel video...'
+            : '3/4: Creating Instagram media container...'
+        );
+
+        res = await fetch('/api/instagram/publish', {
+          method: 'POST',
+          body: formData,
         });
       }
 
-      setPublishingStep(
-        processedFiles.length > 1
-          ? `3/4: Creating Instagram Carousel container with ${processedFiles.length} cropped photos...`
-          : mediaItems[0].type === 'video'
-          ? '3/4: Instagram Meta API encoding Reel video...'
-          : '3/4: Creating Instagram media container...'
-      );
-
-      const res = await fetch('/api/instagram/publish', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const json = await res.json();
+      let json: any = {};
+      try {
+        json = await res.json();
+      } catch (parseErr) {
+        const text = await res.text().catch(() => '');
+        json = {
+          success: false,
+          error: text || `Server error (Status: ${res.status})`,
+        };
+      }
 
       if (json.success && json.published) {
         setPublishSuccess(true);
@@ -1127,8 +1196,8 @@ export default function InstagramHubPage() {
       }
     } catch (err: any) {
       setPublishSuccess(false);
-      setPublishMessage(`Network error: ${err.message}`);
-      toast('Network error during Instagram upload', 'error');
+      setPublishMessage(`Upload Error: ${err.message || 'Network request failed'}`);
+      toast(`Upload Error: ${err.message || 'Please check your connection and try again'}`, 'error');
     } finally {
       setIsPublishing(false);
       setPublishingStep('');
