@@ -122,6 +122,17 @@ export interface SalonSettings {
   tvSlideShowBranding?: boolean;
   tvSlideShowClock?: boolean;
   tvSlideShowRating?: boolean;
+  // Custom & Live Google Reviews
+  customGoogleReviews?: Array<{
+    text: string;
+    name: string;
+    role: string;
+    avatar: string;
+    rating: number;
+    time?: number;
+    relativeTime?: string;
+    authorUrl?: string;
+  }>;
 }
 
 // ── Salon TV 4K Ultra-HD Slideshow Item ──────────────────────────────────────

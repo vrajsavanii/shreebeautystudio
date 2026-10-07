@@ -43,7 +43,11 @@ import {
   ChevronRight,
   Instagram,
   PhoneCall,
-  Globe
+  Globe,
+  Plus,
+  X,
+  Info,
+  Edit3
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -125,6 +129,18 @@ export default function GoogleMapAutoHubPage() {
   const [customReplyText, setCustomReplyText] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Custom & Live Review Management State
+  const [googleApiError, setGoogleApiError] = useState<string | null>(null);
+  const [addReviewModalOpen, setAddReviewModalOpen] = useState<boolean>(false);
+  const [reviewForm, setReviewForm] = useState({
+    name: '',
+    rating: 5,
+    role: 'Bridal Services · Surat',
+    text: '',
+    timeAgo: 'now', // 'now' | 'today' | 'yesterday' | '2d' | '1w' | '1m'
+    avatar: '',
+  });
+
   // Review Booster / WhatsApp Request State
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [clientName, setClientName] = useState<string>('');
@@ -157,6 +173,8 @@ export default function GoogleMapAutoHubPage() {
         if (Array.isArray(json.reviews)) setReviews(json.reviews);
         if (json.rating) setRating(json.rating);
         if (json.totalReviews) setTotalReviews(json.totalReviews);
+        if (json.googleApiError) setGoogleApiError(json.googleApiError);
+        else setGoogleApiError(null);
       }
     } catch {
       toast('Could not fetch live reviews from Google API', 'error');
@@ -552,6 +570,98 @@ export default function GoogleMapAutoHubPage() {
     scheduleSave();
   };
 
+  // Add / Import New Custom Google Review (Shows First)
+  const handleAddReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewForm.name.trim()) {
+      toast('Please enter the client / reviewer name', 'error');
+      return;
+    }
+    if (!reviewForm.text.trim()) {
+      toast('Please enter the review text', 'error');
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    let timeSec = now;
+    let relTime = 'Just now';
+    if (reviewForm.timeAgo === 'today') {
+      timeSec = now - 3600 * 2;
+      relTime = 'Today';
+    } else if (reviewForm.timeAgo === 'yesterday') {
+      timeSec = now - 86400;
+      relTime = 'Yesterday';
+    } else if (reviewForm.timeAgo === '2d') {
+      timeSec = now - 86400 * 2;
+      relTime = '2 days ago';
+    } else if (reviewForm.timeAgo === '1w') {
+      timeSec = now - 86400 * 7;
+      relTime = '1 week ago';
+    } else if (reviewForm.timeAgo === '1m') {
+      timeSec = now - 86400 * 30;
+      relTime = '1 month ago';
+    }
+
+    const newRev: GoogleReviewItem = {
+      name: reviewForm.name.trim(),
+      rating: Number(reviewForm.rating) || 5,
+      role: reviewForm.role.trim() || 'Verified Client · Surat',
+      text: reviewForm.text.trim(),
+      avatar: reviewForm.avatar.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(reviewForm.name.trim())}&background=05424A&color=EABA38&bold=true`,
+      time: timeSec,
+      relativeTime: relTime,
+    };
+
+    // Update settings in store & Supabase
+    const existingCustom = settings?.customGoogleReviews || [];
+    const updatedCustom = [newRev, ...existingCustom.filter((r) => !(r.name === newRev.name && r.text === newRev.text))];
+
+    const updatedSettings = {
+      ...data.settings,
+      customGoogleReviews: updatedCustom,
+    };
+    const updatedData = {
+      ...data,
+      settings: updatedSettings,
+    };
+    setData(updatedData);
+    scheduleSave();
+
+    // Update active reviews list and prepend at the very top
+    setReviews((prev) => [newRev, ...prev.filter((r) => !(r.name === newRev.name && r.text === newRev.text))]);
+
+    setAddReviewModalOpen(false);
+    setReviewForm({
+      name: '',
+      rating: 5,
+      role: 'Bridal Services · Surat',
+      text: '',
+      timeAgo: 'now',
+      avatar: '',
+    });
+    toast('🎉 New Google Review added and showing first!', 'success');
+  };
+
+  // Delete or Dismiss Review
+  const handleDeleteReview = (rev: GoogleReviewItem) => {
+    const existingCustom = settings?.customGoogleReviews || [];
+    const isCustom = existingCustom.some((r) => r.name === rev.name && r.text === rev.text);
+
+    if (isCustom) {
+      const updatedCustom = existingCustom.filter((r) => !(r.name === rev.name && r.text === rev.text));
+      const updatedSettings = { ...data.settings, customGoogleReviews: updatedCustom };
+      const updatedData = { ...data, settings: updatedSettings };
+      setData(updatedData);
+      scheduleSave();
+      setReviews((prev) => prev.filter((r) => !(r.name === rev.name && r.text === rev.text)));
+      toast('🗑️ Custom review deleted', 'success');
+    } else {
+      const key = `${rev.name}_${rev.text.slice(0, 15)}`;
+      handleHideReview(key);
+      toast('🗑️ Review hidden from list', 'info');
+    }
+  };
+
   // 5. Select Customer for WhatsApp Review Request
   const handleSelectCustomer = (cId: string) => {
     setSelectedCustomerId(cId);
@@ -820,6 +930,26 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <button
               type="button"
+              onClick={() => setAddReviewModalOpen(true)}
+              className="btn btn-sm"
+              style={{
+                background: 'linear-gradient(45deg, #16a34a, #059669)',
+                color: '#fff',
+                fontWeight: 800,
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                minHeight: 40,
+                boxShadow: '0 2px 8px rgba(22, 163, 74, 0.25)',
+              }}
+            >
+              <Plus size={15} />
+              ➕ Add New Review
+            </button>
+
+            <button
+              type="button"
               onClick={fetchGoogleReviews}
               disabled={loading}
               className="btn btn-secondary btn-sm"
@@ -1004,7 +1134,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 <Search size={14} color="var(--muted-foreground)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
               </div>
 
-              {/* Star & Status Filters */}
+              {/* Star & Status Filters + Add Button */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   type="button"
@@ -1037,6 +1167,24 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                   style={{ fontWeight: starFilter === '5' ? 800 : 500 }}
                 >
                   ⭐⭐⭐⭐⭐ 5-Stars
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setAddReviewModalOpen(true)}
+                  className="btn btn-xs"
+                  style={{
+                    background: '#16a34a',
+                    color: '#fff',
+                    fontWeight: 800,
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '4px 10px',
+                  }}
+                >
+                  <Plus size={13} /> Add Review
                 </button>
               </div>
             </div>
@@ -1345,16 +1493,16 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                           </button>
                         )}
 
-                        {/* Dismiss / Hide Old Review Button */}
+                        {/* Delete / Dismiss Review */}
                         <button
                           type="button"
-                          onClick={() => handleHideReview(key)}
+                          onClick={() => handleDeleteReview(rev)}
                           style={{
-                            background: 'rgba(0,0,0,0.04)',
-                            border: '1px solid rgba(0,0,0,0.08)',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            border: '1px solid rgba(239, 68, 68, 0.2)',
                             borderRadius: 6,
                             padding: '4px 8px',
-                            color: 'var(--muted-foreground)',
+                            color: '#ef4444',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -1362,10 +1510,10 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                             fontSize: 10.5,
                             fontWeight: 600,
                           }}
-                          title="Dismiss / Hide this review from list"
+                          title="Delete or hide review from list"
                         >
                           <Trash2 size={12} />
-                          <span>Hide</span>
+                          <span>Delete</span>
                         </button>
                       </div>
                     </div>
@@ -2273,6 +2421,201 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
           </div>
         </motion.div>
       )}
+
+      {/* ── ADD / PASTE NEW GOOGLE REVIEW MODAL ── */}
+      <AnimatePresence>
+        {addReviewModalOpen && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+            onClick={() => setAddReviewModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
+              onClick={(e) => e.stopPropagation()}
+              className="card"
+              style={{
+                width: '100%',
+                maxWidth: 520,
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                borderRadius: 18,
+                padding: 24,
+                background: '#ffffff',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+              }}
+            >
+              {/* Modal Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--foreground)' }}>
+                    <Star size={18} fill="#eab308" color="#eab308" />
+                    Add / Paste New Google Review
+                  </h3>
+                  <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--muted-foreground)' }}>
+                    Add your newest Google review so it appears at the top (Recent First)
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAddReviewModalOpen(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--muted-foreground)' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleAddReviewSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {/* Reviewer Name */}
+                <div>
+                  <label className="label" style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                    Client / Reviewer Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Pooja Patel, Kinjal Shah..."
+                    value={reviewForm.name}
+                    onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })}
+                    className="input input-sm"
+                    style={{ width: '100%', minHeight: 38 }}
+                  />
+                </div>
+
+                {/* Rating & Recency Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label className="label" style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                      Star Rating
+                    </label>
+                    <select
+                      value={reviewForm.rating}
+                      onChange={(e) => setReviewForm({ ...reviewForm, rating: Number(e.target.value) })}
+                      className="input input-sm"
+                      style={{ width: '100%', minHeight: 38, fontWeight: 700 }}
+                    >
+                      <option value={5}>⭐⭐⭐⭐⭐ 5.0 (Recommended)</option>
+                      <option value={4}>⭐⭐⭐⭐ 4.0</option>
+                      <option value={3}>⭐⭐⭐ 3.0</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="label" style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                      Recency / Date
+                    </label>
+                    <select
+                      value={reviewForm.timeAgo}
+                      onChange={(e) => setReviewForm({ ...reviewForm, timeAgo: e.target.value })}
+                      className="input input-sm"
+                      style={{ width: '100%', minHeight: 38 }}
+                    >
+                      <option value="now">⚡ Just now (Top of list)</option>
+                      <option value="today">📅 Today</option>
+                      <option value="yesterday">Yesterday</option>
+                      <option value="2d">2 days ago</option>
+                      <option value="1w">1 week ago</option>
+                      <option value="1m">1 month ago</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Service Tag */}
+                <div>
+                  <label className="label" style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                    Service / Category Tag
+                  </label>
+                  <select
+                    value={reviewForm.role}
+                    onChange={(e) => setReviewForm({ ...reviewForm, role: e.target.value })}
+                    className="input input-sm"
+                    style={{ width: '100%', minHeight: 38 }}
+                  >
+                    <option value="Bridal Services · Surat">👑 Bridal Services · Surat</option>
+                    <option value="HD Bridal Makeup & Hair">💄 HD Bridal Makeup &amp; Hair</option>
+                    <option value="Hair Botox & Keratin · Surat">💆 Hair Botox &amp; Keratin · Surat</option>
+                    <option value="Hydra Facial Glow · Katargam">✨ Hydra Facial Glow · Katargam</option>
+                    <option value="Hair Colour & Cut · Surat">💇 Hair Colour &amp; Cut · Surat</option>
+                    <option value="Regular Client · Surat">⭐ Regular Client · Surat</option>
+                    <option value="Google Verified Review">✓ Google Verified Review</option>
+                  </select>
+                </div>
+
+                {/* Review Text */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <label className="label" style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>
+                      Review Text *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setReviewForm({
+                          ...reviewForm,
+                          text: 'I had an amazing experience at Shree Beauty Studio! The bridal makeup and hairstyling was flawless, and the staff was extremely friendly and professional. Best salon in Katargam!',
+                        })
+                      }
+                      style={{ background: 'none', border: 'none', fontSize: 11, color: '#2563eb', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                    >
+                      Use Sample Text
+                    </button>
+                  </div>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Paste review from Google Maps (e.g. Loved the service! My bridal makeup and hair were perfect...)"
+                    value={reviewForm.text}
+                    onChange={(e) => setReviewForm({ ...reviewForm, text: e.target.value })}
+                    className="input input-sm"
+                    style={{ width: '100%', padding: '10px 12px', lineHeight: 1.5 }}
+                  />
+                </div>
+
+                {/* Submit Buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setAddReviewModalOpen(false)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ minHeight: 38 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      background: 'linear-gradient(45deg, #16a34a, #059669)',
+                      border: 'none',
+                      color: '#fff',
+                      fontWeight: 800,
+                      minHeight: 38,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <Check size={15} />
+                    Save &amp; Show at Top (Recent)
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

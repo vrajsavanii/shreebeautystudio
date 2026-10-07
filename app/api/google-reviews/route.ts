@@ -173,27 +173,31 @@ export async function GET(req: NextRequest) {
     let placeId = queryPlaceId || process.env.GOOGLE_PLACE_ID;
     let apiKey = queryApiKey || process.env.GOOGLE_PLACES_API_KEY;
 
-    // If not in env / params, attempt to fetch from Supabase salon settings
-    if (!apiKey || !placeId) {
-      try {
-        const { data: dbRow } = await supabase
-          .from('salon_state')
-          .select('data')
-          .limit(1)
-          .single();
+    let customReviews: GoogleReviewItem[] = [];
+    let googleApiError: string | null = null;
 
-        if (dbRow?.data) {
-          const salonData = dbRow.data as SalonData;
-          if (!placeId && salonData.settings?.googlePlaceId) {
-            placeId = salonData.settings.googlePlaceId;
-          }
-          if (!apiKey && salonData.settings?.googlePlacesApiKey) {
-            apiKey = salonData.settings.googlePlacesApiKey;
-          }
+    // Fetch from Supabase salon settings (API keys & custom reviews)
+    try {
+      const { data: dbRow } = await supabase
+        .from('salon_state')
+        .select('data')
+        .limit(1)
+        .single();
+
+      if (dbRow?.data) {
+        const salonData = dbRow.data as SalonData;
+        if (!placeId && salonData.settings?.googlePlaceId) {
+          placeId = salonData.settings.googlePlaceId;
         }
-      } catch (e) {
-        // Fall back gracefully
+        if (!apiKey && salonData.settings?.googlePlacesApiKey) {
+          apiKey = salonData.settings.googlePlacesApiKey;
+        }
+        if (Array.isArray(salonData.settings?.customGoogleReviews)) {
+          customReviews = salonData.settings.customGoogleReviews;
+        }
       }
+    } catch (e) {
+      // Fall back gracefully
     }
 
     let liveReviews: GoogleReviewItem[] = [];
@@ -210,7 +214,7 @@ export async function GET(req: NextRequest) {
           apiKey
         )}`;
 
-        const res = await fetch(url, { next: { revalidate: 86400 } }); // Cache 24 hours
+        const res = await fetch(url, { next: { revalidate: 60 } }); // Short cache for fresher checks
         if (res.ok) {
           const data = await res.json();
           if (data.status === 'OK' && data.result) {
@@ -252,15 +256,39 @@ export async function GET(req: NextRequest) {
                 relativeTime: r.relative_time_description,
                 authorUrl: r.author_url,
               }));
+          } else {
+            googleApiError = data.error_message || data.status || 'Google Places API request unfulfilled';
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        googleApiError = err?.message || 'Google Places API network error';
         console.warn('Google Places API fetch error:', err);
       }
     }
 
-    // Combine live reviews with curated fallback reviews to ensure a full two-row marquee
-    const combinedReviews = [...liveReviews, ...FALLBACK_REVIEWS];
+    // Helper to calculate fresh relative time string
+    const formatRelativeTime = (timeSec?: number, originalStr?: string) => {
+      if (!timeSec) return originalStr || 'Recent';
+      const sec = timeSec > 10000000000 ? Math.floor(timeSec / 1000) : timeSec;
+      const currentSec = Math.floor(Date.now() / 1000);
+      const diffSec = Math.max(0, currentSec - sec);
+      if (diffSec < 3600) return 'Just now';
+      if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+      const days = Math.floor(diffSec / 86400);
+      if (days === 1) return 'Yesterday';
+      if (days < 7) return `${days} days ago`;
+      if (days < 14) return '1 week ago';
+      if (days < 30) return `${Math.floor(days / 7)} weeks ago`;
+      if (days < 60) return '1 month ago';
+      return `${Math.floor(days / 30)} months ago`;
+    };
+
+    // Combine custom database reviews, live reviews from API, and curated fallback reviews
+    const combinedReviews = [...customReviews, ...liveReviews, ...FALLBACK_REVIEWS].map((item) => ({
+      ...item,
+      relativeTime: formatRelativeTime(item.time, item.relativeTime),
+    }));
+
     // Deduplicate by name + first 20 chars of text
     const seen = new Set<string>();
     const uniqueReviews = combinedReviews.filter((item) => {
@@ -272,8 +300,9 @@ export async function GET(req: NextRequest) {
 
     // Sort strictly by timestamp descending (Most Recent Reviews First)
     uniqueReviews.sort((a, b) => {
-      const tA = a.time ? (a.time > 10000000000 ? Math.floor(a.time / 1000) : a.time) : 0;
-      const tB = b.time ? (b.time > 10000000000 ? Math.floor(b.time / 1000) : b.time) : 0;
+      const currentSec = Math.floor(Date.now() / 1000);
+      const tA = a.time ? (a.time > 10000000000 ? Math.floor(a.time / 1000) : a.time) : (currentSec - 60 * 86400);
+      const tB = b.time ? (b.time > 10000000000 ? Math.floor(b.time / 1000) : b.time) : (currentSec - 60 * 86400);
       return tB - tA; // Newest first
     });
 
@@ -288,7 +317,9 @@ export async function GET(req: NextRequest) {
         source,
         rating,
         totalReviews,
+        googleApiError,
         liveCount: liveReviews.length,
+        customCount: customReviews.length,
         totalCount: uniqueReviews.length,
         row1,
         row2,
@@ -296,7 +327,7 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=43200',
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
         },
       }
     );
