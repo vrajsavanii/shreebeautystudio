@@ -115,6 +115,24 @@ export async function POST(req: NextRequest) {
     let creationId = '';
     const cleanUser = collaborator ? collaborator.replace(/^@/, '').trim() : '';
 
+    // ── SANITIZE CAPTION (Instagram API limit: max 2,200 chars and max 30 hashtags) ──
+    let safeCaption = (caption || '').trim();
+
+    // Limit hashtags to max 25 to guarantee Instagram acceptance
+    const hashtagMatches = safeCaption.match(/#[a-zA-Z0-9_\u0900-\u0D7F]+/g) || [];
+    if (hashtagMatches.length > 25) {
+      let tagCount = 0;
+      safeCaption = safeCaption.replace(/#[a-zA-Z0-9_\u0900-\u0D7F]+/g, (match) => {
+        tagCount++;
+        return tagCount <= 25 ? match : '';
+      });
+    }
+
+    // Limit length to safe 2000 chars (well under 2200 limit)
+    if (safeCaption.length > 2000) {
+      safeCaption = safeCaption.substring(0, 1990) + '...';
+    }
+
     // ── HELPER: ROBUST CONTAINER CREATION WITH SELF-HEALING RETRIES ──
     const createContainerWithFallback = async (params: Record<string, string>): Promise<{ success: boolean; id?: string; error?: string }> => {
       // Attempt 1: Standard params
@@ -129,11 +147,28 @@ export async function POST(req: NextRequest) {
         return { success: true, id: data.id };
       }
 
-      // Attempt 2: If failed with user_tags or optional fields, strip and retry
+      // Attempt 2: If failed with user_tags or location_id, strip and retry
       if (params.user_tags || params.location_id) {
         const fallback = { ...params };
         delete fallback.location_id;
         delete fallback.user_tags;
+        res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(fallback).toString(),
+        });
+        data = await res.json();
+        if (res.ok && data.id) {
+          return { success: true, id: data.id };
+        }
+      }
+
+      // Attempt 3: If failed due to caption length or format, shorten caption and retry
+      if (params.caption && (data?.error?.message?.toLowerCase().includes('caption') || data?.error?.message?.toLowerCase().includes('too long'))) {
+        const fallback = { ...params };
+        delete fallback.location_id;
+        delete fallback.user_tags;
+        fallback.caption = fallback.caption.substring(0, 1000);
         res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -188,7 +223,7 @@ export async function POST(req: NextRequest) {
         access_token: token,
         media_type: 'CAROUSEL',
         children: childContainerIds.join(','),
-        caption: caption,
+        caption: safeCaption,
       };
 
       const parentResult = await createContainerWithFallback(parentParams);
@@ -208,7 +243,7 @@ export async function POST(req: NextRequest) {
         media_type: 'REELS',
         video_url: mediaUrls[0],
         share_to_feed: 'true',
-        caption: caption,
+        caption: safeCaption,
       };
 
       const reelResult = await createContainerWithFallback(reelParams);
@@ -245,7 +280,7 @@ export async function POST(req: NextRequest) {
       const photoParams: Record<string, string> = {
         access_token: token,
         image_url: mediaUrls[0],
-        caption: caption,
+        caption: safeCaption,
       };
       if (cleanUser) {
         photoParams.user_tags = JSON.stringify([{ username: cleanUser, x: 0.5, y: 0.5 }]);

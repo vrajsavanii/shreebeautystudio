@@ -942,10 +942,10 @@ export default function InstagramHubPage() {
     const chosenBody = pickRandom(bodiesList);
     const chosenTrigger = pickRandom(triggersList);
     
-    // Always guarantee permanent brand hashtags: #ShreeBeautyStudiobride #ShreeBeautyStudio + 48 viral tags = 50 total
+    // Guarantee permanent brand hashtags + 23 viral category hashtags = 25 total (strictly under IG 30 limit)
     const permanentTags = ['#ShreeBeautyStudiobride', '#ShreeBeautyStudio'];
     const filteredCatTags = catData.hashtags.filter((t) => !permanentTags.includes(t));
-    const finalTags = [...filteredCatTags.slice(0, 48), ...permanentTags];
+    const finalTags = [...permanentTags, ...filteredCatTags.slice(0, 23)];
     const chosenHashtags = finalTags.join(' ');
 
     const ctas = [
@@ -954,8 +954,8 @@ export default function InstagramHubPage() {
     ];
     const chosenCta = pickRandom(ctas);
 
-    const viralMentions = `@wedmegood @weddingsutra @shaadisaga @theweddingbrigade @zo_wed @dulhaniyaa @gujaratibrides @indianweddingbuzz @witty_wedding @weddingwireindia @shaadiwish @surat_weddings @thebridesofindia @popxo.wedding @shreebeauty.studio`;
-    const seoLine = catData.seoKeywords || 'Surat Bridal Makeup • Best Makeup Artist Surat • Katargam Salon • Gujarati Bride Makeover • HD Airbrush Bridal • Wedding Makeup Surat';
+    const viralMentions = `@wedmegood @weddingsutra @gujaratibrides @surat_weddings @shreebeauty.studio`;
+    const seoLine = catData.seoKeywords || 'Surat Bridal Makeup • Katargam Salon • Gujarati Bride Makeover';
 
     return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n${viralMentions}\n\n${seoLine}\n\n${chosenHashtags}`;
   }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes, settings, lastHookUsed]);
