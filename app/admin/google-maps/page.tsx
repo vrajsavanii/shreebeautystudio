@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   MapPin,
@@ -34,7 +35,15 @@ import {
   Trash2,
   Calendar,
   Clock,
-  RotateCcw
+  RotateCcw,
+  Share2,
+  Image as ImageIcon,
+  Camera,
+  UploadCloud,
+  ChevronRight,
+  Instagram,
+  PhoneCall,
+  Globe
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -43,7 +52,7 @@ import { openWAWeb, openWAApp } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { GoogleReviewItem } from '@/app/api/google-reviews/route';
 
-type ActiveTab = 'reviews' | 'booster' | 'settings' | 'keywords' | 'qr';
+type ActiveTab = 'reviews' | 'post' | 'booster' | 'keywords' | 'settings' | 'qr';
 
 // Curated High-Value SEO Keywords for Katargam & Surat
 const SEO_KEYWORDS = [
@@ -121,6 +130,16 @@ export default function GoogleMapAutoHubPage() {
   const [selectedService, setSelectedService] = useState<string>('bridal');
   const [customKeywordInput, setCustomKeywordInput] = useState<string>('');
 
+  // ── GOOGLE MAPS LOCAL SEO UPDATE / POST CREATOR STATE ──
+  const [postCategory, setPostCategory] = useState<'bridal' | 'sagai' | 'hairbotox' | 'facial' | 'offer' | 'general'>('bridal');
+  const [postTitle, setPostTitle] = useState('👑 Royal HD Bridal Makeover in Katargam, Surat');
+  const [postDetails, setPostDetails] = useState('');
+  const [postCta, setPostCta] = useState<'book' | 'call' | 'whatsapp' | 'offer'>('book');
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const postFileInputRef = useRef<HTMLInputElement>(null);
+  const postCameraInputRef = useRef<HTMLInputElement>(null);
+
   const googleMapsUrl = settings?.googleMapsUrl || 'https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8';
   const salonName = settings?.salon || 'Shree Beauty Studio & Bridal Parlour';
   const salonAddress = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat';
@@ -147,13 +166,69 @@ export default function GoogleMapAutoHubPage() {
     fetchGoogleReviews();
   }, [fetchGoogleReviews]);
 
-  // Copy helper
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    toast('📋 Copied to clipboard!', 'success');
-    setTimeout(() => setCopiedId(null), 2000);
-  };
+  // Robust Mobile Clipboard Copy (Supports iOS Safari, Android Chrome & WebViews)
+  const safeCopy = useCallback(
+    async (text: string, id: string) => {
+      let copied = false;
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+        }
+      } catch (err) {
+        console.warn('Navigator clipboard error, trying textarea fallback:', err);
+      }
+
+      if (!copied && typeof document !== 'undefined') {
+        try {
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.left = '-9999px';
+          textarea.style.top = '-9999px';
+          textarea.setAttribute('readonly', '');
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+          copied = true;
+        } catch (fallbackErr) {
+          console.error('Fallback copy failed:', fallbackErr);
+        }
+      }
+
+      setCopiedId(id);
+      toast('📋 Copied to clipboard!', 'success');
+      setTimeout(() => setCopiedId(null), 2200);
+    },
+    [toast]
+  );
+
+  // Native Web Share API for iPhone & Android
+  const nativeShare = useCallback(
+    async (title: string, text: string, url?: string) => {
+      if (typeof navigator !== 'undefined' && (navigator as any).share) {
+        try {
+          await (navigator as any).share({
+            title,
+            text,
+            url: url || googleMapsUrl,
+          });
+          toast('🚀 Shared successfully!', 'success');
+          return true;
+        } catch (e: any) {
+          if (e.name !== 'AbortError') {
+            console.warn('Share error:', e);
+          }
+        }
+      }
+      // If Web Share not supported or cancelled, fallback to safeCopy
+      safeCopy(text, 'share-fallback');
+      return false;
+    },
+    [googleMapsUrl, safeCopy, toast]
+  );
 
   // 2. AI Service-Only Response Generator (Strictly mentions ONLY services written in review)
   const generateAiReply = useCallback(
@@ -361,11 +436,11 @@ export default function GoogleMapAutoHubPage() {
       },
     });
     scheduleSave();
-    navigator.clipboard.writeText(replyText);
+    safeCopy(replyText, `reply-${reviewKey}`);
 
     if (openMaps) {
-      window.open(googleMapsUrl, '_blank');
-      toast(`📋 Reply Copied! Opening Google Maps... Just click "Reply" and paste (Ctrl+V)!`, 'success');
+      window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
+      toast(`📋 Reply Copied! Opening Google Maps... Just tap "Reply" and Paste!`, 'success');
     } else {
       toast(`📋 Reply copied to clipboard!`, 'success');
     }
@@ -537,6 +612,70 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
 — Warmly, ${salonName} Team`;
   }, [clientName, selectedService, customKeywordInput, salonName, googleMapsUrl]);
 
+  // 7. Format 5-Star Testimonial for Instagram Story / WhatsApp Status
+  const getReviewStoryQuote = (r: GoogleReviewItem) => {
+    return `⭐⭐⭐⭐⭐ 5-STAR VERIFIED GOOGLE REVIEW\n\n"${r.text}"\n\n— ${r.name} (${r.role || 'Surat Client'})\n\n👑 ${salonName}\n📍 ${salonAddress}\n🔗 Book: https://shreebeauty.studio/book\n💬 WhatsApp: +91 ${salonPhone}`;
+  };
+
+  // 8. Handle Image Upload for Google Maps Local Update Post
+  const handlePostImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPostImageFile(file);
+      const url = URL.createObjectURL(file);
+      setPostImagePreview(url);
+      toast('📸 Photo attached for Google Maps update!', 'success');
+    }
+  };
+
+  // 9. Generate Google Maps Local SEO Post Content
+  const generatedGooglePostContent = useMemo(() => {
+    let headline = '👑 Royal Bridal & Salon Artistry at Shree Beauty Studio, Katargam, Surat!';
+    let body = 'Experience 100% waterproof HD Airbrush bridal makeup, royal Panetar saree draping, and customized bridal glow crafted with international luxury cosmetics.';
+    let offer = 'Book your wedding or engagement makeover dates early to secure your exclusive bridal package slot.';
+
+    switch (postCategory) {
+      case 'bridal':
+        headline = '👑 Best Bridal Makeup Studio in Katargam, Surat — HD Airbrush Perfection';
+        body = 'Every bride deserves a flawless, royal transformation on her special day! Our signature bridal makeover features weightless 100% waterproof airbrush base, precision eye artistry, and royal jewelry & dupatta setting.';
+        offer = 'Special Bridal Packages available for upcoming wedding season. Call or WhatsApp +91 98241 83769 for dates.';
+        break;
+      case 'sagai':
+        headline = '💍 Engagement & Sagai Makeover in Surat — Dewy Glass Skin Glamour';
+        body = 'Get ready for your Ring Ceremony with our soft pastel glam, dewy glass skin finish, and romantic hairstyles tailored for modern Gujarati brides.';
+        offer = 'Consult our senior beauty artists for custom engagement & siders packages.';
+        break;
+      case 'hairbotox':
+        headline = '💇‍♀️ Silky Smooth Hair Botox & Nanoplastia Treatment in Katargam, Surat';
+        body = 'Transform frizzy, dull hair into mirror-shine, silky, and deeply nourished locks! 100% formaldehyde-free premium hair treatment that lasts for months.';
+        offer = 'Limited-time offer on Hair Botox & Nanoplastia treatments. Book your session today!';
+        break;
+      case 'facial':
+        headline = '✨ Hydra Facial & Deep Glass Skin Glow Treatment in Surat';
+        body = 'Say goodbye to dull skin, dark spots, and tanning! Experience our multi-step Hydra Facial for deep cleansing, blackhead extraction, and instant radiant glass-skin glow.';
+        offer = '100% Ladies Only hygienic parlour environment with imported luxury skincare serums.';
+        break;
+      case 'offer':
+        headline = '🎉 Exclusive Festive & Wedding Package Offers at Shree Beauty Studio!';
+        body = 'Get luxury salon pampering at special combo rates! Pre-bridal treatments, hair spa, organic waxing, and bridal packages with exciting festival benefits.';
+        offer = 'Special limited-time vouchers available for Surat residents.';
+        break;
+      default:
+        headline = '🌸 100% Ladies Only Luxury Salon in Katargam, Surat';
+        body = 'Visit Shree Beauty Studio & Bridal Parlour for top-rated beauty care, haircuts, hair treatments, waxing, manicures, and bridal services in Surat.';
+        offer = 'Over 210+ verified 5-Star reviews on Google Maps!';
+    }
+
+    let ctaText = '🔗 Book Online: https://shreebeauty.studio/book';
+    if (postCta === 'call') ctaText = `📞 Call Studio: +91 ${salonPhone}`;
+    if (postCta === 'whatsapp') ctaText = `💬 WhatsApp Direct: https://wa.me/91${salonPhone.replace(/\D/g, '').slice(-10)}`;
+    if (postCta === 'offer') ctaText = `🎁 View Packages & Book: https://shreebeauty.studio/book`;
+
+    const customText = postDetails.trim() ? `\n\n📌 Note: ${postDetails.trim()}` : '';
+
+    return `${headline}\n\n${body}${customText}\n\n${offer}\n\n${ctaText}\n\n📍 Visit Us: ${salonAddress}\n📍 Google Maps: ${googleMapsUrl}\n📸 Instagram: @shreebeauty.studio`;
+  }, [postCategory, postDetails, postCta, salonAddress, salonPhone, googleMapsUrl]);
+
   // Filtered Reviews list (Respects Date, Replied Status, and Hidden items)
   const filteredReviews = useMemo(() => {
     return reviews.filter((r) => {
@@ -655,7 +794,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 </span>
               </div>
               <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--muted-foreground)' }}>
-                Katargam, Surat Local SEO Booster • Live Google Reviews Sync, AI Keyword Auto-Reply &amp; 1-Click WhatsApp Review Requests.
+                Katargam, Surat Local SEO Booster • Live Google Reviews Sync, AI Keyword Auto-Reply, Google Local Posts &amp; 1-Click WhatsApp Review Requests.
               </p>
             </div>
           </div>
@@ -666,7 +805,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
               onClick={fetchGoogleReviews}
               disabled={loading}
               className="btn btn-secondary btn-sm"
-              style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minHeight: 40 }}
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
               Sync Reviews
@@ -685,6 +824,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
+                minHeight: 40,
               }}
             >
               <MapPin size={14} />
@@ -725,7 +865,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
         </div>
       </motion.div>
 
-      {/* ── Main Navigation Tabs ── */}
+      {/* ── Main Navigation Tabs (Touch-friendly Horizontal Scrolling on Mobile) ── */}
       <div
         style={{
           display: 'flex',
@@ -734,6 +874,8 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
           borderBottom: '1px solid var(--border)',
           paddingBottom: 10,
           overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
         }}
       >
         <button
@@ -744,13 +886,36 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
             alignItems: 'center',
             gap: 6,
             fontWeight: 800,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minHeight: 38,
             background: activeTab === 'reviews' ? 'linear-gradient(45deg, #4285F4 0%, #34A853 100%)' : undefined,
             color: activeTab === 'reviews' ? '#fff' : undefined,
             border: activeTab === 'reviews' ? 'none' : undefined,
           }}
         >
           <Star size={15} />
-          ⭐ Live Reviews &amp; AI Auto-Reply ({reviews.length})
+          ⭐ Live Reviews &amp; AI Replies ({reviews.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('post')}
+          className={`btn ${activeTab === 'post' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontWeight: 800,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minHeight: 38,
+            background: activeTab === 'post' ? 'linear-gradient(45deg, #EA4335, #FBBC05)' : undefined,
+            color: activeTab === 'post' ? '#fff' : undefined,
+            border: activeTab === 'post' ? 'none' : undefined,
+          }}
+        >
+          <Flame size={15} />
+          📢 Google Maps Local Update &amp; Cross-Post
         </button>
 
         <button
@@ -761,6 +926,9 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
             alignItems: 'center',
             gap: 6,
             fontWeight: 800,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minHeight: 38,
             background: activeTab === 'booster' ? 'linear-gradient(45deg, #25D366, #128C7E)' : undefined,
             color: activeTab === 'booster' ? '#fff' : undefined,
             border: activeTab === 'booster' ? 'none' : undefined,
@@ -773,7 +941,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
         <button
           onClick={() => setActiveTab('keywords')}
           className={`btn ${activeTab === 'keywords' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, minHeight: 38 }}
         >
           <TrendingUp size={15} color="#eab308" />
           🔍 Katargam SEO Keyword Bank ({keywordsList.length})
@@ -782,16 +950,16 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
         <button
           onClick={() => setActiveTab('settings')}
           className={`btn ${activeTab === 'settings' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, minHeight: 38 }}
         >
           <Sliders size={15} />
-          ⚙️ Auto-Reply Settings &amp; Safety
+          ⚙️ Auto-Reply Settings
         </button>
 
         <button
           onClick={() => setActiveTab('qr')}
           className={`btn ${activeTab === 'qr' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, minHeight: 38 }}
         >
           <QrCode size={15} />
           🖨️ Reception QR Code
@@ -1004,7 +1172,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 How to Post Your AI Reply to Google Maps:
               </div>
               <div style={{ fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.5 }}>
-                Click <b>"📋 Copy &amp; Open Google Maps to Paste ↗"</b> on any review. The AI reply is automatically copied to your clipboard and your Google Maps review page opens in a new tab — simply click <b>"Reply"</b> on Google Maps and press <b>Ctrl+V (Paste)</b>!
+                Click <b>"📋 Copy &amp; Open Google Maps to Paste ↗"</b> on any review. The AI reply is automatically copied to your clipboard and your Google Maps review page opens — simply click <b>"Reply"</b> and tap Paste!
               </div>
             </div>
           </div>
@@ -1025,7 +1193,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 )}
               </div>
             ) : (
-              filteredReviews.map((rev, idx) => {
+              filteredReviews.map((rev) => {
                 const key = `${rev.name}_${rev.text.slice(0, 15)}`;
                 const replyState = repliedMap[key];
                 const aiReply = generateAiReply(rev.text, rev.name, rev.rating);
@@ -1085,8 +1253,8 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                         </div>
                       </div>
 
-                      {/* Stars & Dismiss Action */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {/* Stars, Story Quote & Dismiss Action */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           {[...Array(5)].map((_, i) => (
                             <Star
@@ -1100,6 +1268,20 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                             {rev.rating}.0
                           </span>
                         </div>
+
+                        {/* Turn Review into Story / Status Quote */}
+                        {rev.rating === 5 && (
+                          <button
+                            type="button"
+                            onClick={() => safeCopy(getReviewStoryQuote(rev), `story-${key}`)}
+                            className="btn btn-secondary btn-xs"
+                            style={{ fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}
+                            title="Copy 5-Star Testimonial Quote for Instagram Story / WhatsApp Status"
+                          >
+                            <Sparkles size={11} color="#E1306C" />
+                            {copiedId === `story-${key}` ? <Check size={11} color="#16a34a" /> : 'Story Quote'}
+                          </button>
+                        )}
 
                         {/* Dismiss / Hide Old Review Button */}
                         <button
@@ -1153,7 +1335,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <button
                             type="button"
-                            onClick={() => copyToClipboard(replyState ? replyState.text : aiReply, `copy-${key}`)}
+                            onClick={() => safeCopy(replyState ? replyState.text : aiReply, `copy-${key}`)}
                             className="btn btn-secondary btn-xs"
                             style={{ fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 3 }}
                           >
@@ -1212,13 +1394,13 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                           <CheckCircle2 size={12} /> Exact Service-Only Reply
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {replyState ? (
                             <button
                               type="button"
                               onClick={() => {
-                                navigator.clipboard.writeText(replyState.text);
-                                window.open(googleMapsUrl, '_blank');
+                                safeCopy(replyState.text, `reply-${key}`);
+                                window.open(googleMapsUrl, '_blank', 'noopener,noreferrer');
                                 toast('📋 Copied! Opening Google Maps...', 'success');
                               }}
                               className="btn btn-xs"
@@ -1231,10 +1413,11 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 4,
-                                padding: '4px 10px',
+                                padding: '5px 10px',
+                                minHeight: 32,
                               }}
                             >
-                              <ExternalLink size={11} /> ↗ Open Google Maps to Paste (Ctrl+V)
+                              <ExternalLink size={11} /> ↗ Open Google Maps to Paste
                             </button>
                           ) : (
                             <button
@@ -1246,13 +1429,14 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                                 border: 'none',
                                 fontWeight: 800,
                                 fontSize: 11,
-                                padding: '5px 12px',
+                                padding: '6px 12px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 5,
+                                minHeight: 32,
                               }}
                             >
-                              <ExternalLink size={12} /> 📋 Copy &amp; Open Google Maps to Paste ↗
+                              <ExternalLink size={12} /> 📋 Copy &amp; Open Google Maps ↗
                             </button>
                           )}
 
@@ -1262,14 +1446,14 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                               const phone = customers.find((c) => c.name.toLowerCase() === rev.name.toLowerCase())?.mobile;
                               const thankYou = `Dear ${rev.name}, thank you so much for your wonderful 5-Star review for ${salonName}! We truly appreciate your feedback. 💖 — ${salonName} Team`;
                               if (phone) {
-                                openWAWeb(phone, thankYou);
+                                openWAApp(phone, thankYou);
                               } else {
-                                toast('Customer mobile not in records. Text copied!', 'info');
-                                navigator.clipboard.writeText(thankYou);
+                                safeCopy(thankYou, `thankyou-${key}`);
+                                toast('Customer mobile not in records. Thank you message copied!', 'info');
                               }
                             }}
                             className="btn btn-secondary btn-xs"
-                            style={{ fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                            style={{ fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, minHeight: 32 }}
                           >
                             <MessageCircle size={11} color="#25D366" /> WhatsApp Thank You
                           </button>
@@ -1284,7 +1468,266 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
         </motion.div>
       )}
 
-      {/* ── TAB 2: SMART 1-CLICK WHATSAPP REVIEW BOOSTER (PRE-FILLED SEO KEYWORDS) ── */}
+      {/* ── TAB 2: GOOGLE MAPS LOCAL SEO POST & CROSS-POST STUDIO ── */}
+      {activeTab === 'post' && (
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
+          
+          {/* Left: Setup Local Update / Offer Post */}
+          <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(234, 67, 53, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Flame size={18} color="#EA4335" />
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>1. Compose Google Maps Local Update</h3>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
+                Publish local SEO updates &amp; offers to Google Maps profile so local Katargam &amp; Surat searchers discover Shree Beauty Studio first!
+              </p>
+            </div>
+
+            {/* Attach Photo (Camera / Gallery for iPhone & Android) */}
+            <div>
+              <label className="label" style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>
+                📸 Attach Photo or Offer Banner:
+              </label>
+
+              {/* Hidden File Inputs */}
+              <input
+                ref={postFileInputRef}
+                type="file"
+                accept="image/*,image/heic,image/heif"
+                onChange={handlePostImageSelect}
+                style={{ display: 'none' }}
+              />
+              <input
+                ref={postCameraInputRef}
+                type="file"
+                capture="environment"
+                accept="image/*"
+                onChange={handlePostImageSelect}
+                style={{ display: 'none' }}
+              />
+
+              {postImagePreview ? (
+                <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', maxHeight: 220 }}>
+                  <img src={postImagePreview} alt="Attached Preview" style={{ width: '100%', height: 220, objectFit: 'cover' }} />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPostImagePreview(null);
+                      setPostImageFile(null);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      background: '#ef4444',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: 24,
+                      height: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => postFileInputRef.current?.click()}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, flex: 1, minHeight: 40 }}
+                  >
+                    <ImageIcon size={14} color="#4285F4" /> 🖼️ Gallery / Photos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => postCameraInputRef.current?.click()}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, flex: 1, minHeight: 40 }}
+                  >
+                    <Camera size={14} color="#EA4335" /> 📸 Take Camera Photo
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Post Category */}
+            <div>
+              <label className="label" style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 6 }}>
+                💄 Target Service / Local Offer Category:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6 }}>
+                {[
+                  { id: 'bridal', label: '👑 Royal Bridal HD' },
+                  { id: 'sagai', label: '💍 Sagai & Ring Ceremony' },
+                  { id: 'hairbotox', label: '💇‍♀️ Hair Botox & Nano' },
+                  { id: 'facial', label: '✨ Hydra Facial Glass Skin' },
+                  { id: 'offer', label: '🎉 Festival / Promo Offer' },
+                  { id: 'general', label: '🌸 100% Ladies Salon' },
+                ].map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setPostCategory(cat.id as any)}
+                    className={`btn btn-xs ${postCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: postCategory === cat.id ? 800 : 600,
+                      background: postCategory === cat.id ? 'linear-gradient(45deg, #4285F4, #34A853)' : undefined,
+                      color: postCategory === cat.id ? '#fff' : undefined,
+                      border: postCategory === cat.id ? 'none' : undefined,
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA Button Type */}
+            <div>
+              <label className="label" style={{ fontSize: 11.5, fontWeight: 700, marginBottom: 4 }}>
+                🔘 Call-to-Action (CTA) Button on Google Maps:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6 }}>
+                {[
+                  { id: 'book', label: '📅 Book Online' },
+                  { id: 'call', label: '📞 Call Studio' },
+                  { id: 'whatsapp', label: '💬 WhatsApp Us' },
+                  { id: 'offer', label: '🎁 View Offer' },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setPostCta(c.id as any)}
+                    className={`btn btn-xs ${postCta === c.id ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ fontSize: 10.5, fontWeight: postCta === c.id ? 800 : 500 }}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Notes / Offer terms */}
+            <div>
+              <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3 }}>
+                ✍️ Custom details or discount rate (Optional):
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. 20% off on Pre-Bridal package this month, free haircut..."
+                value={postDetails}
+                onChange={(e) => setPostDetails(e.target.value)}
+                className="input input-xs"
+              />
+            </div>
+          </div>
+
+          {/* Right: Live Google Local Post Preview & Actions */}
+          <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <MapPin size={16} color="#4285F4" />
+                <span style={{ fontSize: 14, fontWeight: 800 }}>2. Google Business Profile Post Preview</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => safeCopy(generatedGooglePostContent, 'copy-gpost-msg')}
+                className="btn btn-secondary btn-xs"
+                style={{ fontWeight: 700 }}
+              >
+                {copiedId === 'copy-gpost-msg' ? <Check size={12} color="#16a34a" /> : <Copy size={12} />}
+                Copy Post Text
+              </button>
+            </div>
+
+            {/* Google Post Card Mockup */}
+            <div
+              style={{
+                background: '#ffffff',
+                borderRadius: 14,
+                border: '1px solid rgba(66, 133, 244, 0.3)',
+                boxShadow: '0 4px 16px rgba(66, 133, 244, 0.08)',
+                overflow: 'hidden',
+              }}
+            >
+              {postImagePreview && (
+                <img src={postImagePreview} alt="Post Banner" style={{ width: '100%', height: 160, objectFit: 'cover' }} />
+              )}
+              <div style={{ padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#34A853' }} />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#4285F4' }}>Google Local Pack Update</span>
+                  <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>• Katargam, Surat</span>
+                </div>
+                <div style={{ fontSize: 12.5, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: '#1f2937' }}>
+                  {generatedGooglePostContent}
+                </div>
+              </div>
+            </div>
+
+            {/* 1-Click Publishing / Cross-Posting Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  safeCopy(generatedGooglePostContent, 'copy-gpost-and-open');
+                  window.open('https://business.google.com/locations', '_blank', 'noopener,noreferrer');
+                  toast('📋 Post text copied! Opening Google Business Profile...', 'success');
+                }}
+                className="btn btn-primary"
+                style={{
+                  background: 'linear-gradient(45deg, #4285F4, #34A853)',
+                  border: 'none',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '12px 16px',
+                  fontSize: 14,
+                  minHeight: 44,
+                }}
+              >
+                <ExternalLink size={16} /> 📋 Copy &amp; Open Google Business Profile ↗
+              </button>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <Link
+                  href="/admin/instagram"
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 40 }}
+                  title="Open Instagram Studio to auto-post this update"
+                >
+                  <Instagram size={14} color="#E1306C" />
+                  Cross-Post to Instagram
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => nativeShare('Shree Beauty Studio Offer', generatedGooglePostContent)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 40 }}
+                >
+                  <Share2 size={14} color="#25D366" />
+                  Share via Mobile
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB 3: SMART 1-CLICK WHATSAPP REVIEW BOOSTER (PRE-FILLED SEO KEYWORDS) ── */}
       {activeTab === 'booster' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
           
@@ -1311,7 +1754,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 value={selectedCustomerId}
                 onChange={(e) => handleSelectCustomer(e.target.value)}
                 className="input input-sm"
-                style={{ width: '100%' }}
+                style={{ width: '100%', minHeight: 38 }}
               >
                 <option value="">-- Choose Existing Customer --</option>
                 {customers.slice(0, 50).map((c) => (
@@ -1401,7 +1844,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
               </div>
               <button
                 type="button"
-                onClick={() => copyToClipboard(reviewBoosterMessage, 'copy-booster-msg')}
+                onClick={() => safeCopy(reviewBoosterMessage, 'copy-booster-msg')}
                 className="btn btn-secondary btn-xs"
                 style={{ fontWeight: 700 }}
               >
@@ -1439,7 +1882,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
               </div>
             </div>
 
-            {/* 1-Click Send Buttons */}
+            {/* 1-Click Send Buttons for iPhone & Android */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button
                 type="button"
@@ -1449,8 +1892,8 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                     toast('⚠️ Please enter client mobile number first!', 'error');
                     return;
                   }
-                  openWAWeb(mobile, reviewBoosterMessage);
-                  toast('🚀 Opened WhatsApp Web to send review request!', 'success');
+                  openWAApp(mobile, reviewBoosterMessage);
+                  toast('📱 Opened WhatsApp!', 'success');
                 }}
                 className="btn btn-primary"
                 style={{
@@ -1464,33 +1907,45 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                   gap: 8,
                   padding: '12px 16px',
                   fontSize: 14,
+                  minHeight: 44,
                 }}
               >
-                <MessageCircle size={16} /> Send via WhatsApp Web
+                <MessageCircle size={16} /> Send via WhatsApp (Instant 1-Click)
               </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const mobile = clientMobile.replace(/\D/g, '');
-                  if (!mobile) {
-                    toast('⚠️ Please enter client mobile number first!', 'error');
-                    return;
-                  }
-                  openWAApp(mobile, reviewBoosterMessage);
-                  toast('📱 Opened WhatsApp App!', 'success');
-                }}
-                className="btn btn-secondary btn-sm"
-                style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              >
-                <Smartphone size={14} /> Send via WhatsApp Mobile App
-              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const mobile = clientMobile.replace(/\D/g, '');
+                    if (!mobile) {
+                      toast('⚠️ Please enter client mobile number first!', 'error');
+                      return;
+                    }
+                    openWAWeb(mobile, reviewBoosterMessage);
+                    toast('🚀 Opened WhatsApp Web!', 'success');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38 }}
+                >
+                  <Globe size={14} /> WhatsApp Web
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => nativeShare(`Review Request for ${salonName}`, reviewBoosterMessage)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38 }}
+                >
+                  <Share2 size={14} color="#4285F4" /> Share via Mobile
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>
       )}
 
-      {/* ── TAB 3: KATARGAM LOCAL SEO KEYWORD BANK ── */}
+      {/* ── TAB 4: KATARGAM LOCAL SEO KEYWORD BANK ── */}
       {activeTab === 'keywords' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="card" style={{ borderRadius: 16, padding: 22 }}>
@@ -1505,7 +1960,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
             </div>
 
             {/* Add new keyword */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               <input
                 type="text"
                 placeholder="Type new target keyword (e.g. Panetar Makeover, Keratin Surat)..."
@@ -1513,13 +1968,13 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 onChange={(e) => setNewKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddKeyword()}
                 className="input input-sm"
-                style={{ flex: 1 }}
+                style={{ flex: 1, minWidth: 220 }}
               />
               <button
                 type="button"
                 onClick={handleAddKeyword}
                 className="btn btn-primary btn-sm"
-                style={{ fontWeight: 800 }}
+                style={{ fontWeight: 800, minHeight: 38 }}
               >
                 + Add Keyword
               </button>
@@ -1561,7 +2016,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
         </motion.div>
       )}
 
-      {/* ── TAB 4: SETTINGS & SAFETY FILTER ── */}
+      {/* ── TAB 5: SETTINGS & SAFETY FILTER ── */}
       {activeTab === 'settings' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 800 }}>
           <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -1610,7 +2065,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                     type="button"
                     onClick={() => setAutoReplyTone(t.id as any)}
                     className={`btn btn-sm ${autoReplyTone === t.id ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ fontSize: 11.5, fontWeight: autoReplyTone === t.id ? 800 : 500 }}
+                    style={{ fontSize: 11.5, fontWeight: autoReplyTone === t.id ? 800 : 500, minHeight: 38 }}
                   >
                     {t.label}
                   </button>
@@ -1627,7 +2082,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 value={minStars}
                 onChange={(e) => setMinStars(Number(e.target.value))}
                 className="input input-sm"
-                style={{ width: '100%' }}
+                style={{ width: '100%', minHeight: 38 }}
               >
                 <option value={5}>⭐⭐⭐⭐⭐ Only 5-Star Reviews (Recommended for 100% Safety)</option>
                 <option value={4}>⭐⭐⭐⭐ 4-Star &amp; 5-Star Reviews</option>
@@ -1647,7 +2102,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 value={replyDelay}
                 onChange={(e) => setReplyDelay(Number(e.target.value))}
                 className="input input-sm"
-                style={{ width: '100%' }}
+                style={{ width: '100%', minHeight: 38 }}
               >
                 <option value={0}>⚡ Instant (Under 10 seconds)</option>
                 <option value={120}>⏳ 2 Minutes Delay (Looks 100% natural)</option>
@@ -1665,6 +2120,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 background: 'linear-gradient(45deg, #4285F4, #34A853)',
                 border: 'none',
                 alignSelf: 'flex-start',
+                minHeight: 44,
               }}
             >
               💾 Save Google Map Settings
@@ -1673,7 +2129,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
         </motion.div>
       )}
 
-      {/* ── TAB 5: PRINTABLE RECEPTION QR CODE ── */}
+      {/* ── TAB 6: PRINTABLE RECEPTION QR CODE ── */}
       {activeTab === 'qr' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <div
@@ -1747,6 +2203,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
+                minHeight: 44,
               }}
             >
               <Printer size={16} /> Print Reception Desk Standee
