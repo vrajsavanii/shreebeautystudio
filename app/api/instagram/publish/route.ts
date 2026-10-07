@@ -126,14 +126,18 @@ async function createContainerWithFallback(
 async function waitForContainerReady(
   creationId: string,
   token: string,
-  maxWaitMs: number = 90000
+  maxWaitMs: number = 90000,
+  isSingleImage: boolean = false
 ): Promise<{ ready: boolean; error?: string }> {
   const startTime = Date.now();
-  let delay = 1500; // Start at 1.5s
+  let delay = isSingleImage ? 2000 : 3000;
+
+  // For single image, give Meta a brief initial window to fetch the public URL
+  if (isSingleImage) {
+    await sleep(2500);
+  }
 
   while (Date.now() - startTime < maxWaitMs) {
-    await sleep(delay);
-
     try {
       const statusRes = await fetch(
         `https://graph.facebook.com/${META_API_VERSION}/${creationId}?fields=status_code,status&access_token=${token}`
@@ -158,15 +162,25 @@ async function waitForContainerReady(
         };
       }
 
+      // For single image containers, Meta Graph API often does not return status_code (undefined/null)
+      // If status_code is undefined and there is no error in statusData, the container is ready for publish attempts
+      if (!statusData.status_code && statusData.id && !statusData.error) {
+        if (isSingleImage || Date.now() - startTime >= 3500) {
+          return { ready: true };
+        }
+      }
+
       // IN_PROGRESS or unknown — keep waiting with backoff
-      delay = Math.min(delay * 1.3, 5000); // Gradually increase to max 5s
+      delay = Math.min(delay * 1.25, 5000);
+      await sleep(delay);
     } catch {
       // Network hiccup — keep trying, don't fail yet
-      delay = Math.min(delay * 1.5, 5000);
+      delay = Math.min(delay * 1.3, 5000);
+      await sleep(delay);
     }
   }
 
-  return { ready: false, error: 'Media processing timed out after 90 seconds. Instagram is still processing — please try again in a moment.' };
+  return { ready: true };
 }
 
 // ── HELPER: Publish with retry (Meta can have transient failures) ──
@@ -174,7 +188,7 @@ async function publishWithRetry(
   accountId: string,
   creationId: string,
   token: string,
-  maxRetries: number = 3
+  maxRetries: number = 12 // Allow up to 12 progressive retries (~60s total) for Meta media processing
 ): Promise<{ success: boolean; postId?: string; error?: string }> {
   const publishUrl = `https://graph.facebook.com/${META_API_VERSION}/${accountId}/media_publish`;
 
@@ -192,33 +206,52 @@ async function publishWithRetry(
       return { success: false, error: 'Instagram Access Token has expired. Please reconnect Instagram in Settings.' };
     }
 
-    const errMsg = result.data?.error?.message || '';
+    const errObj = result.data?.error || {};
+    const errMsg = (errObj.message || '').toLowerCase();
+    const errCode = errObj.code;
+    const errSubcode = errObj.error_subcode;
+    const isTransient = errObj.is_transient === true;
 
-    // "Media ID is not available" — wait more and retry
-    if (errMsg.toLowerCase().includes('media id is not available') || errMsg.toLowerCase().includes('not available')) {
+    // "Media ID is not available" (error_subcode 2207027 / 2207001 / code 9007) — Meta is still ingesting/encoding the media
+    const isMediaNotReady =
+      errSubcode === 2207027 ||
+      errSubcode === 2207001 ||
+      errSubcode === 2207005 ||
+      errCode === 9007 ||
+      isTransient ||
+      errMsg.includes('media id is not available') ||
+      errMsg.includes('not available') ||
+      errMsg.includes('not ready') ||
+      errMsg.includes('being processed') ||
+      errMsg.includes('wait a moment') ||
+      errMsg.includes('wait a few minutes');
+
+    if (isMediaNotReady) {
       if (attempt < maxRetries) {
-        await sleep(5000 * attempt); // 5s, 10s backoff
+        const waitTime = Math.min(3000 + (attempt * 750), 6000);
+        console.log(`[Instagram Publish] Media ${creationId} still being processed by Meta (attempt ${attempt}/${maxRetries}). Waiting ${waitTime}ms...`);
+        await sleep(waitTime);
         continue;
       }
     }
 
     // Rate limit — back off aggressively
-    if (result.status === 429 || errMsg.toLowerCase().includes('rate limit')) {
+    if (result.status === 429 || errMsg.includes('rate limit')) {
       if (attempt < maxRetries) {
-        await sleep(10000 * attempt);
+        await sleep(8000);
         continue;
       }
     }
 
-    // Other errors — don't retry
-    if (attempt === maxRetries) {
-      return { success: false, error: errMsg || 'Instagram publishing failed after multiple attempts' };
+    // Other permanent errors — don't retry
+    if (!isMediaNotReady || attempt === maxRetries) {
+      return { success: false, error: errObj.message || 'Instagram publishing failed after multiple attempts' };
     }
 
-    await sleep(3000 * attempt);
+    await sleep(3500);
   }
 
-  return { success: false, error: 'Publishing failed after all retry attempts' };
+  return { success: false, error: 'Publishing timed out while waiting for Instagram media processing. Please try again in a moment.' };
 }
 
 // ── MAIN ROUTE HANDLER ──
@@ -399,7 +432,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Wait for each child carousel item to be ready
-        const childReady = await waitForContainerReady(childResult.id, token, 45000);
+        const childReady = await waitForContainerReady(childResult.id, token, 45000, !isVid);
         if (!childReady.ready) {
           return NextResponse.json(
             { success: false, error: `Carousel item processing failed: ${childReady.error || 'Please try again'}` },
@@ -488,7 +521,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── STEP 6: WAIT FOR CONTAINER TO BE READY (with exponential backoff) ──
-    const readyResult = await waitForContainerReady(creationId, token, 90000);
+    const readyResult = await waitForContainerReady(creationId, token, 90000, mediaType === 'photo');
     if (!readyResult.ready) {
       return NextResponse.json(
         { success: false, error: readyResult.error || 'Media processing timed out. Please try again.' },
@@ -496,8 +529,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── STEP 7: PUBLISH TO INSTAGRAM (with retry) ──
-    const publishResult = await publishWithRetry(accountId, creationId, token, 3);
+    // ── STEP 7: PUBLISH TO INSTAGRAM (with progressive retry for Media ID availability) ──
+    const publishResult = await publishWithRetry(accountId, creationId, token, 12);
     if (!publishResult.success || !publishResult.postId) {
       return NextResponse.json(
         { success: false, error: `Publish Error: ${publishResult.error || 'Publishing failed'}` },
