@@ -119,6 +119,8 @@ export default function GoogleMapAutoHubPage() {
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d' | 'recent'>(
     settings?.googleReviewsDateFilter || '30d'
   );
+  // Sort order (recent | rating | oldest) - Defaults to 'recent' (Most Recent Reviews First)
+  const [sortOrder, setSortOrder] = useState<'recent' | 'rating' | 'oldest'>('recent');
   const [editingReplyKey, setEditingReplyKey] = useState<string | null>(null);
   const [customReplyText, setCustomReplyText] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -676,57 +678,73 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
     return `${headline}\n\n${body}${customText}\n\n${offer}\n\n${ctaText}\n\n📍 Visit Us: ${salonAddress}\n📍 Google Maps: ${googleMapsUrl}\n📸 Instagram: @shreebeauty.studio`;
   }, [postCategory, postDetails, postCta, salonAddress, salonPhone, googleMapsUrl]);
 
-  // Filtered Reviews list (Respects Date, Replied Status, and Hidden items)
+  // Filtered & Sorted Reviews list (Most Recent Reviews First by default)
   const filteredReviews = useMemo(() => {
-    return reviews.filter((r) => {
-      const key = `${r.name}_${r.text.slice(0, 15)}`;
+    return reviews
+      .filter((r) => {
+        const key = `${r.name}_${r.text.slice(0, 15)}`;
 
-      // 1. Manually dismissed / hidden reviews
-      if (hiddenKeys.includes(key)) return false;
+        // 1. Manually dismissed / hidden reviews
+        if (hiddenKeys.includes(key)) return false;
 
-      // 2. Hide already replied reviews if toggle ON
-      const hasReplied = Boolean(repliedMap[key]);
-      if (hideReplied && hasReplied) return false;
+        // 2. Hide already replied reviews if toggle ON
+        const hasReplied = Boolean(repliedMap[key]);
+        if (hideReplied && hasReplied) return false;
 
-      // 3. Search query
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch =
-        !q ||
-        r.name.toLowerCase().includes(q) ||
-        r.text.toLowerCase().includes(q) ||
-        (r.role && r.role.toLowerCase().includes(q));
+        // 3. Search query
+        const q = searchQuery.toLowerCase().trim();
+        const matchSearch =
+          !q ||
+          r.name.toLowerCase().includes(q) ||
+          r.text.toLowerCase().includes(q) ||
+          (r.role && r.role.toLowerCase().includes(q));
 
-      if (!matchSearch) return false;
+        if (!matchSearch) return false;
 
-      // 4. Star & Status filter
-      if (starFilter === '5' && r.rating !== 5) return false;
-      if (starFilter === '4' && r.rating !== 4) return false;
-      if (starFilter === 'replied' && !hasReplied) return false;
-      if (starFilter === 'pending' && hasReplied) return false;
+        // 4. Star & Status filter
+        if (starFilter === '5' && r.rating !== 5) return false;
+        if (starFilter === '4' && r.rating !== 4) return false;
+        if (starFilter === 'replied' && !hasReplied) return false;
+        if (starFilter === 'pending' && hasReplied) return false;
 
-      // 5. Calculate age of review in days
-      const nowSec = Math.floor(Date.now() / 1000);
-      const reviewSec = r.time
-        ? r.time > 10000000000
-          ? Math.floor(r.time / 1000)
-          : r.time
-        : nowSec - 60 * 86400; // If no time stamp, treat as old
-      const diffDays = Math.max(0, (nowSec - reviewSec) / 86400);
+        // 5. Calculate age of review in days
+        const nowSec = Math.floor(Date.now() / 1000);
+        const reviewSec = r.time
+          ? r.time > 10000000000
+            ? Math.floor(r.time / 1000)
+            : r.time
+          : nowSec - 60 * 86400; // If no time stamp, treat as old
+        const diffDays = Math.max(0, (nowSec - reviewSec) / 86400);
 
-      // 6. Hide Old Reviews (> 30 days) if toggle ON
-      if (hideOldReviews && diffDays > 30) {
-        return false;
-      }
+        // 6. Hide Old Reviews (> 30 days) if toggle ON
+        if (hideOldReviews && diffDays > 30) {
+          return false;
+        }
 
-      // 7. Date range filter
-      if (dateFilter === '7d' && diffDays > 7) return false;
-      if (dateFilter === '30d' && diffDays > 30) return false;
-      if (dateFilter === '90d' && diffDays > 90) return false;
-      if (dateFilter === 'recent' && diffDays > 14) return false;
+        // 7. Date range filter
+        if (dateFilter === '7d' && diffDays > 7) return false;
+        if (dateFilter === '30d' && diffDays > 30) return false;
+        if (dateFilter === '90d' && diffDays > 90) return false;
+        if (dateFilter === 'recent' && diffDays > 14) return false;
 
-      return true;
-    });
-  }, [reviews, searchQuery, starFilter, hideReplied, hideOldReviews, dateFilter, hiddenKeys, repliedMap]);
+        return true;
+      })
+      .sort((a, b) => {
+        const nowSec = Math.floor(Date.now() / 1000);
+        const timeA = a.time ? (a.time > 10000000000 ? Math.floor(a.time / 1000) : a.time) : (nowSec - 60 * 86400);
+        const timeB = b.time ? (b.time > 10000000000 ? Math.floor(b.time / 1000) : b.time) : (nowSec - 60 * 86400);
+
+        if (sortOrder === 'oldest') {
+          return timeA - timeB;
+        }
+        if (sortOrder === 'rating') {
+          if (b.rating !== a.rating) return b.rating - a.rating;
+          return timeB - timeA;
+        }
+        // Default: 'recent' — most recent reviews first
+        return timeB - timeA;
+      });
+  }, [reviews, searchQuery, starFilter, hideReplied, hideOldReviews, dateFilter, sortOrder, hiddenKeys, repliedMap]);
 
   return (
     <div className="container-fluid" style={{ paddingBottom: 60 }}>
@@ -1148,6 +1166,50 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                     <span>Restore ({hiddenKeys.length}) Hidden</span>
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* Sort Order Selector (Recent First / Rating / Oldest) */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Clock size={13} /> Sort Reviews:
+                </span>
+                {[
+                  { id: 'recent', label: '⚡ Recent First (Newest)', icon: '🕒' },
+                  { id: 'rating', label: '⭐ Highest Rating (5-Star)', icon: '⭐' },
+                  { id: 'oldest', label: '⏳ Oldest First (Past)', icon: '⏳' },
+                ].map((s) => {
+                  const isActive = sortOrder === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSortOrder(s.id as any)}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: 6,
+                        border: isActive ? '1.5px solid #4285F4' : '1px solid var(--border)',
+                        background: isActive ? 'rgba(66, 133, 244, 0.15)' : '#ffffff',
+                        color: isActive ? '#1d4ed8' : 'var(--foreground)',
+                        fontSize: 11,
+                        fontWeight: isActive ? 800 : 500,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <span>{s.icon}</span>
+                      <span>{s.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <CheckCircle2 size={12} />
+                Showing {filteredReviews.length} reviews ({sortOrder === 'recent' ? '⚡ Recent First' : sortOrder === 'rating' ? '⭐ Highest Rating' : '⏳ Oldest First'})
               </div>
             </div>
           </div>

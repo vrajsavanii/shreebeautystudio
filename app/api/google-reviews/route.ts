@@ -270,6 +270,13 @@ export async function GET(req: NextRequest) {
       return true;
     });
 
+    // Sort strictly by timestamp descending (Most Recent Reviews First)
+    uniqueReviews.sort((a, b) => {
+      const tA = a.time ? (a.time > 10000000000 ? Math.floor(a.time / 1000) : a.time) : 0;
+      const tB = b.time ? (b.time > 10000000000 ? Math.floor(b.time / 1000) : b.time) : 0;
+      return tB - tA; // Newest first
+    });
+
     // Split evenly for Row 1 and Row 2
     const midpoint = Math.ceil(uniqueReviews.length / 2);
     const row1 = uniqueReviews.slice(0, midpoint);
