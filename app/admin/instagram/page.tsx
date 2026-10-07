@@ -1045,14 +1045,19 @@ export default function InstagramHubPage() {
 
       let res: Response;
 
+      // AbortController with generous timeout — server may poll Instagram for up to 120s
+      const controller = new AbortController();
+      const fetchTimeout = setTimeout(() => controller.abort(), 150000); // 150s total
+
+      try {
       // If all files successfully uploaded directly to storage CDN
       if (uploadedPublicUrls.length === processedFiles.length && uploadedPublicUrls.length > 0) {
         setPublishingStep(
           uploadedPublicUrls.length > 1
-            ? `3/4: Creating Instagram Carousel container with ${uploadedPublicUrls.length} photos...`
+            ? `3/4: Publishing ${uploadedPublicUrls.length}-photo Carousel to Instagram (processing & verifying)...`
             : mediaItems[0].type === 'video'
-            ? '3/4: Instagram Meta API encoding Reel video...'
-            : '3/4: Creating Instagram media container...'
+            ? '3/4: Publishing Reel to Instagram (encoding & verifying — may take up to 60s)...'
+            : '3/4: Publishing photo to Instagram (processing & verifying)...'
         );
 
         res = await fetch('/api/instagram/publish', {
@@ -1065,6 +1070,7 @@ export default function InstagramHubPage() {
             collaborator: collaborator,
             mediaType: processedFiles.length > 1 ? 'carousel' : (mediaItems[0].type === 'video' ? 'reel' : 'photo'),
           }),
+          signal: controller.signal,
         });
       } else {
         // Fallback to FormData multipart upload
@@ -1088,17 +1094,26 @@ export default function InstagramHubPage() {
 
         setPublishingStep(
           processedFiles.length > 1
-            ? `3/4: Creating Instagram Carousel container with ${processedFiles.length} photos...`
+            ? `3/4: Uploading & publishing ${processedFiles.length}-photo Carousel to Instagram...`
             : mediaItems[0].type === 'video'
-            ? '3/4: Instagram Meta API encoding Reel video...'
-            : '3/4: Creating Instagram media container...'
+            ? '3/4: Uploading & publishing Reel to Instagram (encoding may take up to 60s)...'
+            : '3/4: Uploading & publishing photo to Instagram...'
         );
 
         res = await fetch('/api/instagram/publish', {
           method: 'POST',
           body: formData,
+          signal: controller.signal,
         });
       }
+      } catch (fetchErr: any) {
+        clearTimeout(fetchTimeout);
+        if (fetchErr.name === 'AbortError') {
+          throw new Error('Publishing timed out. Instagram may still be processing — please wait a minute and check your Instagram profile.');
+        }
+        throw fetchErr;
+      }
+      clearTimeout(fetchTimeout);
 
       let json: any = {};
       try {

@@ -4,12 +4,224 @@ import { DEFAULT_DATA } from '@/lib/store';
 import { SalonData } from '@/types/salon';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 120; // Extend Vercel function timeout to 120 seconds
 
+const META_API_VERSION = 'v21.0';
 const DEFAULT_ACCOUNT_ID = '17841408494357129';
 const DEFAULT_TOKEN = 'EAAPI3xAR034BSnTH6MZBmQfFzkvdhBgjdUUspaC7u5XNMmc05ZCR7yoMvaXhk40IYl39MpIwgTROMaNQYbu2syGQQ5rvHUdj0SuttbB1FHIobn51XAxRRFgvABs8mPhorFhMS1rYW4u6pkTRzew4r0A3yGZBZB80e1AAPZCs7f6ijUAE958zOmcRvqourBgZDZD';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// ── HELPER: Make a Meta Graph API request with built-in error normalization ──
+async function metaPost(url: string, params: Record<string, string>): Promise<{ ok: boolean; data: any; status: number }> {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params).toString(),
+    });
+    const data = await res.json().catch(() => ({ error: { message: 'Invalid JSON response from Meta API' } }));
+    return { ok: res.ok && !!data.id, data, status: res.status };
+  } catch (err: any) {
+    return { ok: false, data: { error: { message: `Network error contacting Meta API: ${err.message}` } }, status: 0 };
+  }
+}
+
+// ── HELPER: Check if a token is expired/invalid ──
+function isTokenError(data: any): boolean {
+  const msg = data?.error?.message?.toLowerCase() || '';
+  const code = data?.error?.code;
+  const subcode = data?.error?.error_subcode;
+  return (
+    code === 190 || // OAuthException - invalid/expired token
+    subcode === 463 || // Token expired
+    subcode === 467 || // Invalid token
+    msg.includes('access token') ||
+    msg.includes('session has expired') ||
+    msg.includes('oauthexception')
+  );
+}
+
+// ── HELPER: Sanitize caption for Instagram limits ──
+function sanitizeCaption(rawCaption: string): string {
+  let safe = (rawCaption || '').trim();
+
+  // Remove invisible unicode, zero-width chars, etc.
+  safe = safe.replace(/[\u200B-\u200D\uFEFF\u2060]/g, '');
+
+  // Limit hashtags to max 25 (Instagram allows 30, we keep margin)
+  const hashtagMatches = safe.match(/#[a-zA-Z0-9_\u0900-\u0D7F]+/g) || [];
+  if (hashtagMatches.length > 25) {
+    let tagCount = 0;
+    safe = safe.replace(/#[a-zA-Z0-9_\u0900-\u0D7F]+/g, (match) => {
+      tagCount++;
+      return tagCount <= 25 ? match : '';
+    });
+  }
+
+  // Collapse multiple blank lines to max 2
+  safe = safe.replace(/\n{4,}/g, '\n\n\n');
+
+  // Limit to safe 2000 chars (well under 2200 IG limit)
+  if (safe.length > 2000) {
+    safe = safe.substring(0, 1990) + '...';
+  }
+
+  return safe;
+}
+
+// ── HELPER: Create container with self-healing fallback retries ──
+async function createContainerWithFallback(
+  accountId: string,
+  token: string,
+  params: Record<string, string>
+): Promise<{ success: boolean; id?: string; error?: string; tokenExpired?: boolean }> {
+  const baseUrl = `https://graph.facebook.com/${META_API_VERSION}/${accountId}/media`;
+
+  // Attempt 1: Full params
+  let result = await metaPost(baseUrl, params);
+  if (result.ok && result.data.id) return { success: true, id: result.data.id };
+  if (isTokenError(result.data)) return { success: false, error: 'Instagram Access Token has expired. Please reconnect Instagram in Settings.', tokenExpired: true };
+
+  // Attempt 2: Strip user_tags + location_id (common failure sources)
+  if (params.user_tags || params.location_id) {
+    const fallback1 = { ...params };
+    delete fallback1.location_id;
+    delete fallback1.user_tags;
+    result = await metaPost(baseUrl, fallback1);
+    if (result.ok && result.data.id) return { success: true, id: result.data.id };
+    if (isTokenError(result.data)) return { success: false, error: 'Instagram Access Token has expired. Please reconnect Instagram in Settings.', tokenExpired: true };
+  }
+
+  // Attempt 3: Shorten caption if length/format related
+  const errMsg = result.data?.error?.message?.toLowerCase() || '';
+  if (params.caption && (errMsg.includes('caption') || errMsg.includes('too long') || errMsg.includes('param'))) {
+    const fallback2 = { ...params };
+    delete fallback2.location_id;
+    delete fallback2.user_tags;
+    fallback2.caption = fallback2.caption.substring(0, 800);
+    result = await metaPost(baseUrl, fallback2);
+    if (result.ok && result.data.id) return { success: true, id: result.data.id };
+  }
+
+  // Attempt 4: Absolute minimum — just media + token, no caption at all
+  const minimal: Record<string, string> = { access_token: params.access_token };
+  if (params.image_url) minimal.image_url = params.image_url;
+  if (params.video_url) minimal.video_url = params.video_url;
+  if (params.media_type) minimal.media_type = params.media_type;
+  if (params.is_carousel_item) minimal.is_carousel_item = params.is_carousel_item;
+  if (params.share_to_feed) minimal.share_to_feed = params.share_to_feed;
+  if (params.children) minimal.children = params.children;
+
+  result = await metaPost(baseUrl, minimal);
+  if (result.ok && result.data.id) return { success: true, id: result.data.id };
+
+  return {
+    success: false,
+    error: result.data?.error?.message || 'Failed to create Instagram media container after 4 attempts',
+  };
+}
+
+// ── HELPER: Wait for container to be ready with exponential backoff ──
+async function waitForContainerReady(
+  creationId: string,
+  token: string,
+  maxWaitMs: number = 90000
+): Promise<{ ready: boolean; error?: string }> {
+  const startTime = Date.now();
+  let delay = 1500; // Start at 1.5s
+
+  while (Date.now() - startTime < maxWaitMs) {
+    await sleep(delay);
+
+    try {
+      const statusRes = await fetch(
+        `https://graph.facebook.com/${META_API_VERSION}/${creationId}?fields=status_code,status&access_token=${token}`
+      );
+      const statusData = await statusRes.json().catch(() => ({}));
+
+      if (statusData.status_code === 'FINISHED') {
+        return { ready: true };
+      }
+
+      if (statusData.status_code === 'ERROR') {
+        return {
+          ready: false,
+          error: `Instagram media processing failed: ${statusData.status || 'The uploaded media could not be processed. Please try a different photo/video.'}`,
+        };
+      }
+
+      if (statusData.status_code === 'EXPIRED') {
+        return {
+          ready: false,
+          error: 'The media container expired before it could be published. Please try again.',
+        };
+      }
+
+      // IN_PROGRESS or unknown — keep waiting with backoff
+      delay = Math.min(delay * 1.3, 5000); // Gradually increase to max 5s
+    } catch {
+      // Network hiccup — keep trying, don't fail yet
+      delay = Math.min(delay * 1.5, 5000);
+    }
+  }
+
+  return { ready: false, error: 'Media processing timed out after 90 seconds. Instagram is still processing — please try again in a moment.' };
+}
+
+// ── HELPER: Publish with retry (Meta can have transient failures) ──
+async function publishWithRetry(
+  accountId: string,
+  creationId: string,
+  token: string,
+  maxRetries: number = 3
+): Promise<{ success: boolean; postId?: string; error?: string }> {
+  const publishUrl = `https://graph.facebook.com/${META_API_VERSION}/${accountId}/media_publish`;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const result = await metaPost(publishUrl, {
+      creation_id: creationId,
+      access_token: token,
+    });
+
+    if (result.ok && result.data.id) {
+      return { success: true, postId: result.data.id };
+    }
+
+    if (isTokenError(result.data)) {
+      return { success: false, error: 'Instagram Access Token has expired. Please reconnect Instagram in Settings.' };
+    }
+
+    const errMsg = result.data?.error?.message || '';
+
+    // "Media ID is not available" — wait more and retry
+    if (errMsg.toLowerCase().includes('media id is not available') || errMsg.toLowerCase().includes('not available')) {
+      if (attempt < maxRetries) {
+        await sleep(5000 * attempt); // 5s, 10s backoff
+        continue;
+      }
+    }
+
+    // Rate limit — back off aggressively
+    if (result.status === 429 || errMsg.toLowerCase().includes('rate limit')) {
+      if (attempt < maxRetries) {
+        await sleep(10000 * attempt);
+        continue;
+      }
+    }
+
+    // Other errors — don't retry
+    if (attempt === maxRetries) {
+      return { success: false, error: errMsg || 'Instagram publishing failed after multiple attempts' };
+    }
+
+    await sleep(3000 * attempt);
+  }
+
+  return { success: false, error: 'Publishing failed after all retry attempts' };
+}
+
+// ── MAIN ROUTE HANDLER ──
 export async function POST(req: NextRequest) {
   try {
     const reqContentType = req.headers.get('content-type') || '';
@@ -21,6 +233,7 @@ export async function POST(req: NextRequest) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://eqwfbcouxozwfwkzqano.supabase.co';
 
+    // ── STEP 1: PARSE INPUT (multipart form or JSON) ──
     if (reqContentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       caption = (formData.get('caption') as string) || '';
@@ -94,7 +307,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch latest token & account ID
+    // ── STEP 2: VALIDATE MEDIA URLS ARE ACCESSIBLE ──
+    for (const url of mediaUrls) {
+      try {
+        const headRes = await fetch(url, { method: 'HEAD' });
+        if (!headRes.ok) {
+          return NextResponse.json(
+            { success: false, error: `Media file is not accessible (HTTP ${headRes.status}). The image may have failed to upload. Please try again.` },
+            { status: 400 }
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { success: false, error: `Cannot reach media file at storage. Please check your connection and try again.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ── STEP 3: FETCH LATEST TOKEN & ACCOUNT ID ──
     let settings = DEFAULT_DATA.settings;
     try {
       const supabase = getSupabaseAdmin();
@@ -112,86 +343,30 @@ export async function POST(req: NextRequest) {
     const accountId = settings?.instagramAccountId?.trim() || DEFAULT_ACCOUNT_ID;
     const token = settings?.instagramAccessToken?.trim() || DEFAULT_TOKEN;
 
+    // ── STEP 4: VALIDATE TOKEN BEFORE PROCEEDING ──
+    try {
+      const tokenCheck = await fetch(`https://graph.facebook.com/${META_API_VERSION}/me?access_token=${token}`);
+      const tokenData = await tokenCheck.json().catch(() => ({}));
+      if (!tokenCheck.ok || tokenData?.error) {
+        return NextResponse.json(
+          { success: false, error: `Instagram token is invalid or expired: ${tokenData?.error?.message || 'Please reconnect Instagram in Settings.'}` },
+          { status: 401 }
+        );
+      }
+    } catch {}
+
     let creationId = '';
     const cleanUser = collaborator ? collaborator.replace(/^@/, '').trim() : '';
+    const safeCaption = sanitizeCaption(caption);
 
-    // ── SANITIZE CAPTION (Instagram API limit: max 2,200 chars and max 30 hashtags) ──
-    let safeCaption = (caption || '').trim();
+    // ── STEP 5: CREATE MEDIA CONTAINER(S) ──
 
-    // Limit hashtags to max 25 to guarantee Instagram acceptance
-    const hashtagMatches = safeCaption.match(/#[a-zA-Z0-9_\u0900-\u0D7F]+/g) || [];
-    if (hashtagMatches.length > 25) {
-      let tagCount = 0;
-      safeCaption = safeCaption.replace(/#[a-zA-Z0-9_\u0900-\u0D7F]+/g, (match) => {
-        tagCount++;
-        return tagCount <= 25 ? match : '';
-      });
-    }
-
-    // Limit length to safe 2000 chars (well under 2200 limit)
-    if (safeCaption.length > 2000) {
-      safeCaption = safeCaption.substring(0, 1990) + '...';
-    }
-
-    // ── HELPER: ROBUST CONTAINER CREATION WITH SELF-HEALING RETRIES ──
-    const createContainerWithFallback = async (params: Record<string, string>): Promise<{ success: boolean; id?: string; error?: string }> => {
-      // Attempt 1: Standard params
-      let res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(params).toString(),
-      });
-      let data = await res.json();
-
-      if (res.ok && data.id) {
-        return { success: true, id: data.id };
-      }
-
-      // Attempt 2: If failed with user_tags or location_id, strip and retry
-      if (params.user_tags || params.location_id) {
-        const fallback = { ...params };
-        delete fallback.location_id;
-        delete fallback.user_tags;
-        res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(fallback).toString(),
-        });
-        data = await res.json();
-        if (res.ok && data.id) {
-          return { success: true, id: data.id };
-        }
-      }
-
-      // Attempt 3: If failed due to caption length or format, shorten caption and retry
-      if (params.caption && (data?.error?.message?.toLowerCase().includes('caption') || data?.error?.message?.toLowerCase().includes('too long'))) {
-        const fallback = { ...params };
-        delete fallback.location_id;
-        delete fallback.user_tags;
-        fallback.caption = fallback.caption.substring(0, 1000);
-        res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(fallback).toString(),
-        });
-        data = await res.json();
-        if (res.ok && data.id) {
-          return { success: true, id: data.id };
-        }
-      }
-
-      return {
-        success: false,
-        error: data?.error?.message || 'Failed to create Instagram container',
-      };
-    };
-
-    // ── CASE 1: MULTI-PHOTO CAROUSEL ──
+    // CASE 1: CAROUSEL (multiple media)
     if (mediaType === 'carousel' || mediaUrls.length > 1) {
       const childContainerIds: string[] = [];
 
       for (const itemUrl of mediaUrls) {
-        const isVid = itemUrl.includes('.mp4') || itemUrl.includes('.mov');
+        const isVid = /\.(mp4|mov|avi|webm)(\?|$)/i.test(itemUrl);
         const childParams: Record<string, string> = {
           access_token: token,
           is_carousel_item: 'true',
@@ -207,15 +382,27 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const childResult = await createContainerWithFallback(childParams);
-        if (childResult.success && childResult.id) {
-          childContainerIds.push(childResult.id);
-        } else {
+        const childResult = await createContainerWithFallback(accountId, token, childParams);
+        if (childResult.tokenExpired) {
+          return NextResponse.json({ success: false, error: childResult.error }, { status: 401 });
+        }
+        if (!childResult.success || !childResult.id) {
           return NextResponse.json(
-            { success: false, error: `Carousel item error: ${childResult.error || 'Failed item container'}` },
+            { success: false, error: `Carousel item error: ${childResult.error || 'Failed to create media item container'}` },
             { status: 400 }
           );
         }
+
+        // Wait for each child carousel item to be ready
+        const childReady = await waitForContainerReady(childResult.id, token, 45000);
+        if (!childReady.ready) {
+          return NextResponse.json(
+            { success: false, error: `Carousel item processing failed: ${childReady.error || 'Please try again'}` },
+            { status: 400 }
+          );
+        }
+
+        childContainerIds.push(childResult.id);
       }
 
       // Create Parent Carousel Container
@@ -226,17 +413,20 @@ export async function POST(req: NextRequest) {
         caption: safeCaption,
       };
 
-      const parentResult = await createContainerWithFallback(parentParams);
+      const parentResult = await createContainerWithFallback(accountId, token, parentParams);
+      if (parentResult.tokenExpired) {
+        return NextResponse.json({ success: false, error: parentResult.error }, { status: 401 });
+      }
       if (!parentResult.success || !parentResult.id) {
         return NextResponse.json(
-          { success: false, error: `Carousel creation error: ${parentResult.error || 'Failed parent container'}` },
+          { success: false, error: `Carousel creation error: ${parentResult.error || 'Failed to create carousel container'}` },
           { status: 400 }
         );
       }
 
       creationId = parentResult.id;
     }
-    // ── CASE 2: SINGLE REEL VIDEO ──
+    // CASE 2: REEL (single video)
     else if (mediaType === 'reel') {
       const reelParams: Record<string, string> = {
         access_token: token,
@@ -246,18 +436,20 @@ export async function POST(req: NextRequest) {
         caption: safeCaption,
       };
 
-      const reelResult = await createContainerWithFallback(reelParams);
+      const reelResult = await createContainerWithFallback(accountId, token, reelParams);
+      if (reelResult.tokenExpired) {
+        return NextResponse.json({ success: false, error: reelResult.error }, { status: 401 });
+      }
       if (!reelResult.success || !reelResult.id) {
         return NextResponse.json(
-          { success: false, error: `Reel creation error: ${reelResult.error || 'Failed'}` },
+          { success: false, error: `Reel creation error: ${reelResult.error || 'Failed to create reel container'}` },
           { status: 400 }
         );
       }
 
-
       creationId = reelResult.id;
     }
-    // ── CASE 3: SINGLE PHOTO ──
+    // CASE 3: SINGLE PHOTO
     else {
       const photoParams: Record<string, string> = {
         access_token: token,
@@ -268,10 +460,13 @@ export async function POST(req: NextRequest) {
         photoParams.user_tags = JSON.stringify([{ username: cleanUser, x: 0.5, y: 0.5 }]);
       }
 
-      const photoResult = await createContainerWithFallback(photoParams);
+      const photoResult = await createContainerWithFallback(accountId, token, photoParams);
+      if (photoResult.tokenExpired) {
+        return NextResponse.json({ success: false, error: photoResult.error }, { status: 401 });
+      }
       if (!photoResult.success || !photoResult.id) {
         return NextResponse.json(
-          { success: false, error: `Photo container error: ${photoResult.error || 'Failed'}` },
+          { success: false, error: `Photo container error: ${photoResult.error || 'Failed to create photo container'}` },
           { status: 400 }
         );
       }
@@ -279,58 +474,28 @@ export async function POST(req: NextRequest) {
       creationId = photoResult.id;
     }
 
-    // ── STEP 3: WAIT FOR CONTAINER TO BE READY (POLL STATUS) ──
-    // The Meta API needs time to process the uploaded media before it can be published.
-    // Without this check, you get "Media ID is not available" errors.
-    let containerReady = false;
-    let pollAttempts = 0;
-    const maxPollAttempts = 30; // up to ~60 seconds
-    while (!containerReady && pollAttempts < maxPollAttempts) {
-      await sleep(2000);
-      pollAttempts++;
-      try {
-        const statusRes = await fetch(
-          `https://graph.facebook.com/v19.0/${creationId}?fields=status_code,status&access_token=${token}`
-        );
-        const statusData = await statusRes.json().catch(() => ({}));
-        
-        if (statusData.status_code === 'FINISHED') {
-          containerReady = true;
-          break;
-        } else if (statusData.status_code === 'ERROR') {
-          return NextResponse.json(
-            { success: false, error: `Media processing error: ${statusData.status || 'Instagram could not process the media'}` },
-            { status: 400 }
-          );
-        }
-        // If status_code is 'IN_PROGRESS' or undefined, keep polling
-      } catch {
-        // Network hiccup, keep trying
-      }
+    // ── SAFETY CHECK: Ensure we actually have a creation ID ──
+    if (!creationId) {
+      return NextResponse.json(
+        { success: false, error: 'Internal error: No media container ID was created. Please try again.' },
+        { status: 500 }
+      );
     }
 
-    if (!containerReady) {
+    // ── STEP 6: WAIT FOR CONTAINER TO BE READY (with exponential backoff) ──
+    const readyResult = await waitForContainerReady(creationId, token, 90000);
+    if (!readyResult.ready) {
       return NextResponse.json(
-        { success: false, error: 'Media processing timed out. Please try again — Instagram is still processing the media.' },
+        { success: false, error: readyResult.error || 'Media processing timed out. Please try again.' },
         { status: 408 }
       );
     }
 
-    // ── STEP 4: PUBLISH CONTAINER TO INSTAGRAM ──
-    const publishRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media_publish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        creation_id: creationId,
-        access_token: token,
-      }).toString(),
-    });
-
-    const publishData = await publishRes.json();
-
-    if (!publishRes.ok || !publishData.id) {
+    // ── STEP 7: PUBLISH TO INSTAGRAM (with retry) ──
+    const publishResult = await publishWithRetry(accountId, creationId, token, 3);
+    if (!publishResult.success || !publishResult.postId) {
       return NextResponse.json(
-        { success: false, error: `Publish Error: ${publishData?.error?.message || 'Publishing failed'}` },
+        { success: false, error: `Publish Error: ${publishResult.error || 'Publishing failed'}` },
         { status: 400 }
       );
     }
@@ -338,8 +503,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       published: true,
-      postId: publishData.id,
-      message: `🎉 Successfully published live to Instagram @shreebeauty.studio! (Post ID: ${publishData.id})`,
+      postId: publishResult.postId,
+      message: `🎉 Successfully published live to Instagram @shreebeauty.studio! (Post ID: ${publishResult.postId})`,
       permalink: `https://www.instagram.com/shreebeauty.studio/`,
       mediaCount: mediaUrls.length,
       mediaUrls,
