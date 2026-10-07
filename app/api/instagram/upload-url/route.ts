@@ -7,7 +7,20 @@ export async function POST(req: NextRequest) {
   try {
     const { fileName, contentType } = await req.json();
 
-    const ext = fileName?.split('.').pop() || (contentType?.startsWith('video/') ? 'mp4' : 'jpg');
+    const isVid = contentType?.startsWith('video/') || /\.(mp4|mov|m4v|3gp|webm|avi|mkv)$/i.test(fileName || '');
+    let ext = fileName?.split('.').pop()?.toLowerCase();
+    
+    // Normalize extensions for Meta Instagram Graph API compatibility
+    if (isVid) {
+      if (!ext || ext === 'blob' || !['mp4', 'mov', 'm4v', 'webm'].includes(ext)) {
+        ext = 'mp4';
+      }
+    } else {
+      if (!ext || ext === 'heic' || ext === 'heif' || ext === 'blob') {
+        ext = 'jpg';
+      }
+    }
+
     const safeName = `ig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
 
     const supabase = getSupabaseAdmin();

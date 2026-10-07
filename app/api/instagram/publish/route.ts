@@ -259,12 +259,17 @@ export async function POST(req: NextRequest) {
         const supabase = getSupabaseAdmin();
 
         for (const file of uploadList) {
-          const isVid = file.type.startsWith('video/');
-          const ext = file.name.split('.').pop() || (isVid ? 'mp4' : 'jpg');
+          const isVid = file.type?.startsWith('video/') || /\.(mp4|mov|m4v|3gp|webm|avi|mkv)$/i.test(file.name || '');
+          let ext = file.name.split('.').pop()?.toLowerCase();
+          if (isVid) {
+            if (!ext || ext === 'blob' || !['mp4', 'mov', 'm4v', 'webm'].includes(ext)) ext = 'mp4';
+          } else {
+            if (!ext || ext === 'heic' || ext === 'heif' || ext === 'blob') ext = 'jpg';
+          }
           const fileName = `ig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
           const buffer = Buffer.from(await file.arrayBuffer());
 
-          const fileMime = file.type || (isVid ? 'video/mp4' : 'image/jpeg');
+          const fileMime = file.type || (isVid ? (ext === 'mov' ? 'video/quicktime' : 'video/mp4') : 'image/jpeg');
 
           const { error: uploadErr } = await supabase.storage
             .from('salon_media')
@@ -366,7 +371,7 @@ export async function POST(req: NextRequest) {
       const childContainerIds: string[] = [];
 
       for (const itemUrl of mediaUrls) {
-        const isVid = /\.(mp4|mov|avi|webm)(\?|$)/i.test(itemUrl);
+        const isVid = /\.(mp4|mov|m4v|3gp|webm|avi|mkv)(\?|$)/i.test(itemUrl);
         const childParams: Record<string, string> = {
           access_token: token,
           is_carousel_item: 'true',

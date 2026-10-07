@@ -163,6 +163,11 @@ export default function InstagramHubPage() {
 
   // ── MULTI-PHOTO & CROP / ZOOM STATE ──
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const pinchDistanceRef = useRef<number | null>(null);
+  const pinchStartZoomRef = useRef<number>(1);
+  const wakeLockRef = useRef<any>(null);
+
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
   const [globalAspectRatio, setGlobalAspectRatio] = useState<AspectRatio>('original');
@@ -330,7 +335,7 @@ export default function InstagramHubPage() {
   // Active Media Item
   const currentItem = mediaItems[activeMediaIndex] || null;
 
-  // ── MULTI-FILE SELECTION HANDLER ──
+  // ── MULTI-FILE SELECTION HANDLER (SUPPORTS IPHONE / ANDROID / CAMERA / GALLERY) ──
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -338,7 +343,7 @@ export default function InstagramHubPage() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const isVid = file.type.startsWith('video/');
+        const isVid = file.type?.startsWith('video/') || /\.(mp4|mov|m4v|3gp|webm|avi|mkv)$/i.test(file.name || '');
         const previewUrl = URL.createObjectURL(file);
         const id = `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -364,6 +369,20 @@ export default function InstagramHubPage() {
               )
             );
           };
+          img.onerror = () => {
+            // Mobile fallback if direct Image decode fails
+            if (typeof createImageBitmap === 'function') {
+              createImageBitmap(file)
+                .then((bmp) => {
+                  setMediaItems((prev) =>
+                    prev.map((m) =>
+                      m.id === id ? { ...m, naturalWidth: bmp.width, naturalHeight: bmp.height } : m
+                    )
+                  );
+                })
+                .catch(() => {});
+            }
+          };
           img.src = previewUrl;
         }
 
@@ -378,6 +397,11 @@ export default function InstagramHubPage() {
       setPublishSuccess(null);
       setPublishMessage('');
       toast(`📁 Added ${files.length} item(s)! Total: ${mediaItems.length + files.length}`, 'success');
+      
+      // Reset input value so re-selecting same file works
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
@@ -423,14 +447,15 @@ export default function InstagramHubPage() {
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => {
+
+      const renderCanvas = (imageSource: HTMLImageElement | ImageBitmap, naturalW: number, naturalH: number) => {
         let targetW = 1080;
         let targetH = 1080;
 
         switch (item.aspectRatio) {
           case 'original': {
-            const rawW = img.naturalWidth || 1080;
-            const rawH = img.naturalHeight || 1080;
+            const rawW = naturalW || 1080;
+            const rawH = naturalH || 1080;
             const maxDim = 1920;
             if (rawW > maxDim || rawH > maxDim) {
               if (rawW >= rawH) {
@@ -485,7 +510,7 @@ export default function InstagramHubPage() {
           ctx.rotate((item.rotation * Math.PI) / 180);
         }
 
-        const imgRatio = img.naturalWidth / img.naturalHeight;
+        const imgRatio = naturalW / naturalH;
         const targetRatio = targetW / targetH;
         let baseW = targetW;
         let baseH = targetH;
@@ -519,13 +544,14 @@ export default function InstagramHubPage() {
         const offsetX = (item.panX || 0) * panScale;
         const offsetY = (item.panY || 0) * panScale;
 
-        ctx.drawImage(img, -drawW / 2 + offsetX, -drawH / 2 + offsetY, drawW, drawH);
+        ctx.drawImage(imageSource, -drawW / 2 + offsetX, -drawH / 2 + offsetY, drawW, drawH);
         ctx.restore();
 
         canvas.toBlob(
           (blob) => {
             if (blob) {
-              const safeName = item.file.name.replace(/\.[^/.]+$/, '') + '_instagram_crop.jpg';
+              const baseName = (item.file.name || 'photo').replace(/\.[^/.]+$/, '');
+              const safeName = `${baseName}_crop_${Date.now()}.jpg`;
               const processedFile = new File([blob], safeName, { type: 'image/jpeg' });
               resolve(processedFile);
             } else {
@@ -537,7 +563,23 @@ export default function InstagramHubPage() {
         );
       };
 
-      img.onerror = () => resolve(item.file);
+      img.onload = () => {
+        renderCanvas(img, img.naturalWidth || 1080, img.naturalHeight || 1080);
+      };
+
+      img.onerror = async () => {
+        try {
+          if (typeof createImageBitmap === 'function') {
+            const bitmap = await createImageBitmap(item.file);
+            renderCanvas(bitmap, bitmap.width || 1080, bitmap.height || 1080);
+            return;
+          }
+        } catch (bitmapErr) {
+          console.warn('ImageBitmap fallback failed:', bitmapErr);
+        }
+        resolve(item.file);
+      };
+
       img.src = item.previewUrl;
     });
   };
@@ -990,10 +1032,19 @@ export default function InstagramHubPage() {
       return;
     }
 
+    // 📱 Acquire Screen WakeLock on mobile to prevent phone from going to sleep while publishing
+    try {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+      }
+    } catch {
+      // Wake lock not supported or user denied — safe to continue
+    }
+
     setIsPublishing(true);
     setPublishSuccess(null);
     setPublishMessage('');
-    setPublishingStep(`1/4: Processing & cropping ${mediaItems.length} media file(s) with exact framing...`);
+    setPublishingStep(`1/4: Processing & optimizing ${mediaItems.length} media file(s) for mobile...`);
 
     try {
       // 1. Process all photos through canvas for exact crop / zoom / pan / rotation
@@ -1008,38 +1059,44 @@ export default function InstagramHubPage() {
         }
       }
 
-      setPublishingStep(`2/4: Uploading ${processedFiles.length} file(s) to cloud storage...`);
+      setPublishingStep(`2/4: Uploading ${processedFiles.length} file(s) to cloud storage CDN...`);
 
       const hasPhotos = mediaItems.some((m) => m.type === 'photo');
       const uploadedPublicUrls: string[] = [];
 
-      // Try direct signed URL upload to bypass any Vercel request body limits
+      // Try direct signed URL upload to bypass any Vercel request body limits (with mobile retry)
       for (let i = 0; i < processedFiles.length; i++) {
         const file = processedFiles[i];
-        setPublishingStep(`2/4: Uploading file ${i + 1}/${processedFiles.length} to cloud storage...`);
+        const isVid = file.type?.startsWith('video/') || /\.(mp4|mov|m4v|3gp|webm|avi|mkv)$/i.test(file.name || '');
+        setPublishingStep(`2/4: Uploading media ${i + 1}/${processedFiles.length} to cloud storage CDN...`);
 
-        try {
-          const urlRes = await fetch('/api/instagram/upload-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileName: file.name,
-              contentType: file.type || 'image/jpeg',
-            }),
-          });
-          const urlData = await urlRes.json();
-          if (urlData.success && urlData.signedUrl && urlData.publicUrl) {
-            const putRes = await fetch(urlData.signedUrl, {
-              method: 'PUT',
-              headers: { 'Content-Type': file.type || 'image/jpeg' },
-              body: file,
+        let uploaded = false;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            const urlRes = await fetch('/api/instagram/upload-url', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fileName: file.name,
+                contentType: file.type || (isVid ? 'video/mp4' : 'image/jpeg'),
+              }),
             });
-            if (putRes.ok) {
-              uploadedPublicUrls.push(urlData.publicUrl);
+            const urlData = await urlRes.json();
+            if (urlData.success && urlData.signedUrl && urlData.publicUrl) {
+              const putRes = await fetch(urlData.signedUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': file.type || (isVid ? 'video/mp4' : 'image/jpeg') },
+                body: file,
+              });
+              if (putRes.ok) {
+                uploadedPublicUrls.push(urlData.publicUrl);
+                uploaded = true;
+                break;
+              }
             }
+          } catch (uploadErr) {
+            console.warn(`Direct upload attempt ${attempt} failed:`, uploadErr);
           }
-        } catch (uploadErr) {
-          console.warn('Direct signed upload failed, will fallback to multipart:', uploadErr);
         }
       }
 
@@ -1050,62 +1107,62 @@ export default function InstagramHubPage() {
       const fetchTimeout = setTimeout(() => controller.abort(), 150000); // 150s total
 
       try {
-      // If all files successfully uploaded directly to storage CDN
-      if (uploadedPublicUrls.length === processedFiles.length && uploadedPublicUrls.length > 0) {
-        setPublishingStep(
-          uploadedPublicUrls.length > 1
-            ? `3/4: Publishing ${uploadedPublicUrls.length}-photo Carousel to Instagram (processing & verifying)...`
-            : mediaItems[0].type === 'video'
-            ? '3/4: Publishing Reel to Instagram (encoding & verifying — may take up to 60s)...'
-            : '3/4: Publishing photo to Instagram (processing & verifying)...'
-        );
+        // If all files successfully uploaded directly to storage CDN
+        if (uploadedPublicUrls.length === processedFiles.length && uploadedPublicUrls.length > 0) {
+          setPublishingStep(
+            uploadedPublicUrls.length > 1
+              ? `3/4: Publishing ${uploadedPublicUrls.length}-photo Carousel to Instagram (processing & verifying)...`
+              : mediaItems[0].type === 'video'
+              ? '3/4: Publishing Reel to Instagram (Meta API video encoding & verifying — may take up to 60s)...'
+              : '3/4: Publishing photo to Instagram (processing & verifying)...'
+          );
 
-        res = await fetch('/api/instagram/publish', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mediaUrls: uploadedPublicUrls,
-            caption: generatedCaption,
-            location: postLocation,
-            collaborator: collaborator,
-            mediaType: processedFiles.length > 1 ? 'carousel' : (mediaItems[0].type === 'video' ? 'reel' : 'photo'),
-          }),
-          signal: controller.signal,
-        });
-      } else {
-        // Fallback to FormData multipart upload
-        const formData = new FormData();
-        formData.append('caption', generatedCaption);
-        formData.append('location', postLocation);
-        formData.append('collaborator', collaborator);
-        formData.append('shareThreads', String(shareThreads));
-        formData.append('shareFacebook', String(shareFacebook));
-        formData.append('shareGoogleMaps', String(shareGoogleMaps && hasPhotos));
-
-        if (processedFiles.length === 1) {
-          formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
-          formData.append('file', processedFiles[0]);
+          res = await fetch('/api/instagram/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mediaUrls: uploadedPublicUrls,
+              caption: generatedCaption,
+              location: postLocation,
+              collaborator: collaborator,
+              mediaType: processedFiles.length > 1 ? 'carousel' : (mediaItems[0].type === 'video' ? 'reel' : 'photo'),
+            }),
+            signal: controller.signal,
+          });
         } else {
-          formData.append('mediaType', 'carousel');
-          processedFiles.forEach((f) => {
-            formData.append('files', f);
+          // Fallback to FormData multipart upload
+          const formData = new FormData();
+          formData.append('caption', generatedCaption);
+          formData.append('location', postLocation);
+          formData.append('collaborator', collaborator);
+          formData.append('shareThreads', String(shareThreads));
+          formData.append('shareFacebook', String(shareFacebook));
+          formData.append('shareGoogleMaps', String(shareGoogleMaps && hasPhotos));
+
+          if (processedFiles.length === 1) {
+            formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
+            formData.append('file', processedFiles[0]);
+          } else {
+            formData.append('mediaType', 'carousel');
+            processedFiles.forEach((f) => {
+              formData.append('files', f);
+            });
+          }
+
+          setPublishingStep(
+            processedFiles.length > 1
+              ? `3/4: Uploading & publishing ${processedFiles.length}-photo Carousel to Instagram...`
+              : mediaItems[0].type === 'video'
+              ? '3/4: Uploading & publishing Reel to Instagram (encoding may take up to 60s)...'
+              : '3/4: Uploading & publishing photo to Instagram...'
+          );
+
+          res = await fetch('/api/instagram/publish', {
+            method: 'POST',
+            body: formData,
+            signal: controller.signal,
           });
         }
-
-        setPublishingStep(
-          processedFiles.length > 1
-            ? `3/4: Uploading & publishing ${processedFiles.length}-photo Carousel to Instagram...`
-            : mediaItems[0].type === 'video'
-            ? '3/4: Uploading & publishing Reel to Instagram (encoding may take up to 60s)...'
-            : '3/4: Uploading & publishing photo to Instagram...'
-        );
-
-        res = await fetch('/api/instagram/publish', {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal,
-        });
-      }
       } catch (fetchErr: any) {
         clearTimeout(fetchTimeout);
         if (fetchErr.name === 'AbortError') {
@@ -1115,10 +1172,12 @@ export default function InstagramHubPage() {
       }
       clearTimeout(fetchTimeout);
 
+      setPublishingStep('4/4: Confirming live Instagram post verification...');
+
       let json: any = {};
       try {
         json = await res.json();
-      } catch (parseErr) {
+      } catch {
         const text = await res.text().catch(() => '');
         json = {
           success: false,
@@ -1214,6 +1273,13 @@ export default function InstagramHubPage() {
       setPublishMessage(`Upload Error: ${err.message || 'Network request failed'}`);
       toast(`Upload Error: ${err.message || 'Please check your connection and try again'}`, 'error');
     } finally {
+      // Release mobile wake lock
+      try {
+        if (wakeLockRef.current) {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+        }
+      } catch {}
       setIsPublishing(false);
       setPublishingStep('');
     }
@@ -1615,47 +1681,74 @@ export default function InstagramHubPage() {
 
       {/* ── PRIMARY VIEW: MULTI-PHOTO UPLOAD + CROP + ZOOM + AUTO-POST ── */}
       {activeTab === 'upload' && (
-        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 20 }}>
+        <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: 20 }}>
           
           {/* Left Column: Multi-File Uploader, Crop Size & Zoom Controls */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             
             {/* Card 1: Multi-File Selector & Thumbnail Strip */}
             <div className="card" style={{ borderRadius: 16, padding: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(225, 48, 108, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <UploadCloud size={18} color="#E1306C" />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>1. Select Multiple Photos or Reel Video</h3>
-                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Select up to 10 photos for Instagram Carousel / Album</p>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>1. Select Photos or Video Reel</h3>
+                    <p style={{ fontSize: 11.5, color: 'var(--muted-foreground)', margin: 0 }}>Select 1 to 10 photos for Carousel or 1 Reel Video</p>
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="btn btn-primary btn-xs"
-                  style={{
-                    background: 'linear-gradient(45deg, #f09433, #dc2743)',
-                    border: 'none',
-                    fontWeight: 800,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  <PlusCircle size={13} /> Add Photos / Reel
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="btn btn-secondary btn-xs"
+                    style={{
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      border: '1px solid rgba(225, 48, 108, 0.3)',
+                    }}
+                    title="Take Photo or Video directly using phone camera"
+                  >
+                    📸 Camera
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-primary btn-xs"
+                    style={{
+                      background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                      border: 'none',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                    title="Choose photos or video from phone gallery / files"
+                  >
+                    <PlusCircle size={13} /> 🖼️ Gallery
+                  </button>
+                </div>
               </div>
 
-              {/* Hidden Multi-file input */}
+              {/* Hidden File & Camera inputs */}
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/mov"
+                accept="image/*,video/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.mov,.mp4"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                capture="environment"
+                accept="image/*,video/*"
                 onChange={handleFileSelect}
                 style={{ display: 'none' }}
               />
@@ -1663,13 +1756,11 @@ export default function InstagramHubPage() {
               {/* Empty state dropzone */}
               {mediaItems.length === 0 ? (
                 <div
-                  onClick={() => fileInputRef.current?.click()}
                   style={{
                     border: '2px dashed rgba(225, 48, 108, 0.4)',
                     borderRadius: 14,
-                    padding: '36px 20px',
+                    padding: '30px 16px',
                     textAlign: 'center',
-                    cursor: 'pointer',
                     background: 'rgba(225, 48, 108, 0.02)',
                     transition: 'all 0.2s ease',
                   }}
@@ -1688,12 +1779,48 @@ export default function InstagramHubPage() {
                   >
                     <ImageIcon size={24} color="#E1306C" />
                   </div>
-                  <h4 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 4px', color: 'var(--foreground)' }}>
-                    Tap to Choose Multiple Photos or Video Reel
+                  <h4 style={{ fontSize: 14.5, fontWeight: 800, margin: '0 0 4px', color: 'var(--foreground)' }}>
+                    Choose Photos or Video Reel to Publish
                   </h4>
-                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>
-                    Select 1 to 10 bridal / makeover photos for an Instagram Carousel Album
+                  <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: '0 0 16px' }}>
+                    Select 1 to 10 bridal / makeover photos (Carousel) or video (Reel)
                   </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                        border: 'none',
+                        fontWeight: 800,
+                        padding: '10px 18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        boxShadow: '0 4px 14px rgba(220, 39, 67, 0.3)',
+                      }}
+                    >
+                      🖼️ Open Gallery / Photos
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        fontWeight: 800,
+                        padding: '10px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        border: '1.5px solid rgba(225, 48, 108, 0.3)',
+                      }}
+                    >
+                      📸 Open Camera
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -1937,7 +2064,7 @@ export default function InstagramHubPage() {
                   </div>
                 </div>
 
-                {/* Interactive Drag-to-Pan Canvas / Crop Preview Area */}
+                {/* Interactive Drag-to-Pan Canvas / Crop Preview Area (Pinch-to-zoom + Drag-to-pan) */}
                 <div
                   onMouseDown={(e) => {
                     setIsDragging(true);
@@ -1958,15 +2085,35 @@ export default function InstagramHubPage() {
                         x: e.touches[0].clientX - (currentItem.panX || 0),
                         y: e.touches[0].clientY - (currentItem.panY || 0),
                       });
+                    } else if (e.touches.length === 2) {
+                      setIsDragging(false);
+                      const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                      );
+                      pinchDistanceRef.current = dist;
+                      pinchStartZoomRef.current = currentItem.zoom || 1;
                     }
                   }}
                   onTouchMove={(e) => {
-                    if (!isDragging || e.touches.length !== 1) return;
-                    const newPanX = e.touches[0].clientX - dragStart.x;
-                    const newPanY = e.touches[0].clientY - dragStart.y;
-                    updateCurrentItem({ panX: newPanX, panY: newPanY });
+                    if (e.touches.length === 1 && isDragging) {
+                      const newPanX = e.touches[0].clientX - dragStart.x;
+                      const newPanY = e.touches[0].clientY - dragStart.y;
+                      updateCurrentItem({ panX: newPanX, panY: newPanY });
+                    } else if (e.touches.length === 2 && pinchDistanceRef.current !== null) {
+                      const dist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                      );
+                      const scale = dist / pinchDistanceRef.current;
+                      const newZoom = Math.min(3, Math.max(1, pinchStartZoomRef.current * scale));
+                      updateCurrentItem({ zoom: parseFloat(newZoom.toFixed(2)) });
+                    }
                   }}
-                  onTouchEnd={() => setIsDragging(false)}
+                  onTouchEnd={() => {
+                    setIsDragging(false);
+                    pinchDistanceRef.current = null;
+                  }}
                   onWheel={(e) => {
                     e.preventDefault();
                     const delta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -2016,6 +2163,7 @@ export default function InstagramHubPage() {
                       autoPlay
                       muted
                       loop
+                      playsInline
                       style={{
                         position: 'absolute',
                         inset: 0,
@@ -2064,13 +2212,13 @@ export default function InstagramHubPage() {
                     </div>
                   )}
 
-                  {/* Top-Right Drag Hint */}
+                  {/* Top-Right Drag & Pinch Hint */}
                   <div
                     style={{
                       position: 'absolute',
                       top: 8,
                       right: 8,
-                      background: 'rgba(0,0,0,0.7)',
+                      background: 'rgba(0,0,0,0.75)',
                       color: '#fff',
                       fontSize: 9.5,
                       fontWeight: 700,
@@ -2084,7 +2232,7 @@ export default function InstagramHubPage() {
                       zIndex: 3,
                     }}
                   >
-                    <Move size={10} /> Drag to Pan / Scroll Wheel Zoom
+                    <Move size={10} /> Pinch / Drag to Adjust
                   </div>
 
                   {/* Current Aspect Ratio Tag */}
@@ -2160,6 +2308,35 @@ export default function InstagramHubPage() {
                     onChange={(e) => updateCurrentItem({ zoom: parseFloat(e.target.value) })}
                     style={{ width: '100%', accentColor: '#E1306C' }}
                   />
+
+                  {/* Quick Zoom Preset Buttons for Mobile */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 10.5, color: 'var(--muted-foreground)', fontWeight: 600 }}>Quick Zoom:</span>
+                    {[
+                      { label: '1x Fit', val: 1 },
+                      { label: '1.25x', val: 1.25 },
+                      { label: '1.5x', val: 1.5 },
+                      { label: '2x Close-up', val: 2 },
+                    ].map((z) => (
+                      <button
+                        key={z.val}
+                        type="button"
+                        onClick={() => updateCurrentItem({ zoom: z.val })}
+                        className={`btn btn-xs ${Math.abs(currentItem.zoom - z.val) < 0.05 ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{
+                          fontSize: 10,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          border: '1px solid var(--border)',
+                          fontWeight: 700,
+                          background: Math.abs(currentItem.zoom - z.val) < 0.05 ? 'linear-gradient(45deg, #f09433, #dc2743)' : undefined,
+                          color: Math.abs(currentItem.zoom - z.val) < 0.05 ? '#fff' : undefined,
+                        }}
+                      >
+                        {z.label}
+                      </button>
+                    ))}
+                  </div>
 
                   {/* 4-way Directional Pan Buttons */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
@@ -3124,8 +3301,143 @@ export default function InstagramHubPage() {
                 </div>
               </div>
 
-              {/* Master 1-Click Publishing Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Master 1-Click Publishing Buttons & Mobile Live Feedback */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                
+                {/* Real-Time Mobile Progress Banner during publishing */}
+                {isPublishing && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(225, 48, 108, 0.12) 0%, rgba(240, 148, 51, 0.12) 100%)',
+                      border: '1.5px solid rgba(225, 48, 108, 0.4)',
+                      borderRadius: 12,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <RefreshCw size={16} className="animate-spin" color="#E1306C" />
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#E1306C' }}>
+                          Publishing to Instagram...
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          background: 'rgba(34, 197, 94, 0.15)',
+                          color: '#16a34a',
+                          padding: '2px 7px',
+                          borderRadius: 999,
+                          border: '1px solid rgba(34, 197, 94, 0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        📱 Screen Kept Awake
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--foreground)' }}>
+                      {publishingStep || 'Processing media & contacting Instagram Meta API...'}
+                    </div>
+
+                    <div style={{ width: '100%', height: 4, background: 'rgba(0,0,0,0.08)', borderRadius: 999, overflow: 'hidden' }}>
+                      <motion.div
+                        initial={{ x: '-100%' }}
+                        animate={{ x: '100%' }}
+                        transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+                        style={{
+                          width: '40%',
+                          height: '100%',
+                          background: 'linear-gradient(90deg, #f09433, #dc2743, #bc1888)',
+                          borderRadius: 999,
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Success Card with Direct Instagram Profile Link */}
+                {publishSuccess === true && !isPublishing && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    style={{
+                      background: 'rgba(34, 197, 94, 0.1)',
+                      border: '1.5px solid #22c55e',
+                      borderRadius: 12,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <CheckCircle2 size={18} color="#16a34a" />
+                      <span style={{ fontSize: 13.5, fontWeight: 800, color: '#16a34a' }}>
+                        100% Published Live to Instagram!
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, margin: 0, color: 'var(--foreground)' }}>
+                      {publishMessage || 'Your post is now live on @shreebeauty.studio!'}
+                    </p>
+                    <a
+                      href="https://www.instagram.com/shreebeauty.studio/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-sm"
+                      style={{
+                        background: 'linear-gradient(45deg, #f09433, #dc2743, #bc1888)',
+                        color: '#fff',
+                        fontWeight: 800,
+                        border: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        marginTop: 4,
+                      }}
+                    >
+                      <Instagram size={14} />
+                      👉 View Live on Instagram (@shreebeauty.studio) ↗
+                    </a>
+                  </motion.div>
+                )}
+
+                {/* Error Card with Helpful Action */}
+                {publishSuccess === false && !isPublishing && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1.5px solid #ef4444',
+                      borderRadius: 12,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <X size={18} color="#ef4444" />
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#ef4444' }}>
+                        Publishing Notice
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, margin: 0, color: 'var(--foreground)' }}>
+                      {publishMessage || 'Failed to publish to Instagram. Please check your connection and retry.'}
+                    </p>
+                  </motion.div>
+                )}
+
                 <button
                   type="button"
                   onClick={handlePublishToInstagram}
@@ -3150,7 +3462,9 @@ export default function InstagramHubPage() {
                     ? 'PUBLISHING TO INSTAGRAM...'
                     : mediaItems.length > 1
                     ? `🚀 DIRECT PUBLISH ${mediaItems.length} PHOTOS (CAROUSEL)`
-                    : '🚀 DIRECT PUBLISH TO INSTAGRAM / REELS'}
+                    : mediaItems.length === 1 && mediaItems[0].type === 'video'
+                    ? '🚀 DIRECT PUBLISH REEL VIDEO'
+                    : '🚀 DIRECT PUBLISH TO INSTAGRAM'}
                 </button>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -3166,22 +3480,22 @@ export default function InstagramHubPage() {
                     style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     <Globe size={14} color="#0084FF" />
-                    Meta Creator Studio ↗
+                    Meta Studio ↗
                   </a>
 
                   <a
-                    href="https://www.instagram.com/"
+                    href="https://www.instagram.com/shreebeauty.studio/"
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => {
                       navigator.clipboard.writeText(generatedCaption);
-                      toast('📋 Caption copied! Opening Instagram Web...', 'success');
+                      toast('📋 Caption copied! Opening Instagram...', 'success');
                     }}
                     className="btn btn-secondary btn-sm"
                     style={{ fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                   >
                     <ExternalLink size={14} />
-                    Open Instagram Web ↗
+                    Open Instagram ↗
                   </a>
                 </div>
               </div>
