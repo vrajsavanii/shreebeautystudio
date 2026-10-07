@@ -131,6 +131,57 @@ export async function POST(req: NextRequest) {
 
     const cleanUser = collaborator ? collaborator.replace(/^@/, '').trim() : '';
 
+    // ── HELPER: ROBUST CONTAINER CREATION WITH SELF-HEALING RETRIES ──
+    const createContainerWithFallback = async (params: Record<string, string>): Promise<{ success: boolean; id?: string; error?: string }> => {
+      // Attempt 1: Full params
+      let res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(params).toString(),
+      });
+      let data = await res.json();
+
+      if (res.ok && data.id) {
+        return { success: true, id: data.id };
+      }
+
+      // Attempt 2: If failed with location_id, strip location_id and retry
+      if (params.location_id) {
+        const fallback = { ...params };
+        delete fallback.location_id;
+        res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(fallback).toString(),
+        });
+        data = await res.json();
+        if (res.ok && data.id) {
+          return { success: true, id: data.id };
+        }
+      }
+
+      // Attempt 3: If failed with user_tags, strip user_tags and retry
+      if (params.user_tags || params.location_id) {
+        const fallback = { ...params };
+        delete fallback.location_id;
+        delete fallback.user_tags;
+        res = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams(fallback).toString(),
+        });
+        data = await res.json();
+        if (res.ok && data.id) {
+          return { success: true, id: data.id };
+        }
+      }
+
+      return {
+        success: false,
+        error: data?.error?.message || 'Failed to create Instagram container',
+      };
+    }
+
     // ── CASE 1: MULTI-PHOTO CAROUSEL ──
     if (mediaType === 'carousel' || mediaUrls.length > 1) {
       const childContainerIds: string[] = [];
@@ -152,18 +203,12 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const childRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams(childParams).toString(),
-        });
-
-        const childData = await childRes.json();
-        if (childRes.ok && childData.id) {
-          childContainerIds.push(childData.id);
+        const childResult = await createContainerWithFallback(childParams);
+        if (childResult.success && childResult.id) {
+          childContainerIds.push(childResult.id);
         } else {
           return NextResponse.json(
-            { success: false, error: `Carousel item error: ${childData?.error?.message || 'Failed item container'}` },
+            { success: false, error: `Carousel item error: ${childResult.error || 'Failed item container'}` },
             { status: 400 }
           );
         }
@@ -180,21 +225,15 @@ export async function POST(req: NextRequest) {
         parentParams.location_id = matchedLocId;
       }
 
-      const carouselRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(parentParams).toString(),
-      });
-
-      const carouselData = await carouselRes.json();
-      if (!carouselRes.ok || !carouselData.id) {
+      const parentResult = await createContainerWithFallback(parentParams);
+      if (!parentResult.success || !parentResult.id) {
         return NextResponse.json(
-          { success: false, error: `Carousel creation error: ${carouselData?.error?.message || 'Failed'}` },
+          { success: false, error: `Carousel creation error: ${parentResult.error || 'Failed parent container'}` },
           { status: 400 }
         );
       }
 
-      creationId = carouselData.id;
+      creationId = parentResult.id;
     }
     // ── CASE 2: SINGLE REEL VIDEO ──
     else if (mediaType === 'reel') {
@@ -209,21 +248,15 @@ export async function POST(req: NextRequest) {
         reelParams.location_id = matchedLocId;
       }
 
-      const createRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(reelParams).toString(),
-      });
-
-      const createData = await createRes.json();
-      if (!createRes.ok || !createData.id) {
+      const reelResult = await createContainerWithFallback(reelParams);
+      if (!reelResult.success || !reelResult.id) {
         return NextResponse.json(
-          { success: false, error: `Reel creation error: ${createData?.error?.message || 'Failed'}` },
+          { success: false, error: `Reel creation error: ${reelResult.error || 'Failed'}` },
           { status: 400 }
         );
       }
 
-      creationId = createData.id;
+      creationId = reelResult.id;
 
       // Poll Reel encoding
       let isReady = false;
@@ -258,21 +291,15 @@ export async function POST(req: NextRequest) {
         photoParams.user_tags = JSON.stringify([{ username: cleanUser, x: 0.5, y: 0.5 }]);
       }
 
-      const createRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(photoParams).toString(),
-      });
-
-      const createData = await createRes.json();
-      if (!createRes.ok || !createData.id) {
+      const photoResult = await createContainerWithFallback(photoParams);
+      if (!photoResult.success || !photoResult.id) {
         return NextResponse.json(
-          { success: false, error: `Photo container error: ${createData?.error?.message || 'Failed'}` },
+          { success: false, error: `Photo container error: ${photoResult.error || 'Failed'}` },
           { status: 400 }
         );
       }
 
-      creationId = createData.id;
+      creationId = photoResult.id;
     }
 
     // ── STEP 3: PUBLISH CONTAINER TO INSTAGRAM ──
