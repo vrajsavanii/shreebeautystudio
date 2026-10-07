@@ -254,26 +254,8 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      creationId = reelResult.id;
 
-      // Poll Reel encoding
-      let isReady = false;
-      let attempts = 0;
-      while (!isReady && attempts < 15) {
-        await sleep(2000);
-        attempts++;
-        const statusRes = await fetch(`https://graph.facebook.com/v19.0/${creationId}?fields=status_code,status&access_token=${token}`);
-        const statusData = await statusRes.json().catch(() => ({}));
-        if (statusData.status_code === 'FINISHED') {
-          isReady = true;
-          break;
-        } else if (statusData.status_code === 'ERROR') {
-          return NextResponse.json(
-            { success: false, error: `Video processing error on Instagram: ${statusData.status || 'Format invalid'}` },
-            { status: 400 }
-          );
-        }
-      }
+      creationId = reelResult.id;
     }
     // ── CASE 3: SINGLE PHOTO ──
     else {
@@ -297,7 +279,44 @@ export async function POST(req: NextRequest) {
       creationId = photoResult.id;
     }
 
-    // ── STEP 3: PUBLISH CONTAINER TO INSTAGRAM ──
+    // ── STEP 3: WAIT FOR CONTAINER TO BE READY (POLL STATUS) ──
+    // The Meta API needs time to process the uploaded media before it can be published.
+    // Without this check, you get "Media ID is not available" errors.
+    let containerReady = false;
+    let pollAttempts = 0;
+    const maxPollAttempts = 30; // up to ~60 seconds
+    while (!containerReady && pollAttempts < maxPollAttempts) {
+      await sleep(2000);
+      pollAttempts++;
+      try {
+        const statusRes = await fetch(
+          `https://graph.facebook.com/v19.0/${creationId}?fields=status_code,status&access_token=${token}`
+        );
+        const statusData = await statusRes.json().catch(() => ({}));
+        
+        if (statusData.status_code === 'FINISHED') {
+          containerReady = true;
+          break;
+        } else if (statusData.status_code === 'ERROR') {
+          return NextResponse.json(
+            { success: false, error: `Media processing error: ${statusData.status || 'Instagram could not process the media'}` },
+            { status: 400 }
+          );
+        }
+        // If status_code is 'IN_PROGRESS' or undefined, keep polling
+      } catch {
+        // Network hiccup, keep trying
+      }
+    }
+
+    if (!containerReady) {
+      return NextResponse.json(
+        { success: false, error: 'Media processing timed out. Please try again — Instagram is still processing the media.' },
+        { status: 408 }
+      );
+    }
+
+    // ── STEP 4: PUBLISH CONTAINER TO INSTAGRAM ──
     const publishRes = await fetch(`https://graph.facebook.com/v19.0/${accountId}/media_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
