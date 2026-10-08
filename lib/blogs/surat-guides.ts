@@ -12,7 +12,7 @@ export const SURAT_GUIDES_BLOGS: BlogPost[] = [
     publishedAt: "2026-03-01",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=1200&q=80&auto=format&fit=crop",
+    image: "/salon-bg/product-wall.jpg",
     tags: [
           "Ladies Salon Surat",
           "Katargam Beauty Parlour",

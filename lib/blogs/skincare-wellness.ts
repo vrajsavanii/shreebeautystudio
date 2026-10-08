@@ -154,7 +154,7 @@ Ready to achieve that lit-from-within glow? [Book a consultation](/book) at Shre
     publishedAt: "2026-04-20",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1576426863848-c21f53c60b19?w=1200&q=80&auto=format&fit=crop",
+    image: "/services/infinite_youth_facial.webp",
     tags: [
       "sunscreen guide", "SPF protection",
       "Surat beauty salon",
@@ -230,7 +230,7 @@ Protect your skin today for a flawless tomorrow. Need expert advice on choosing 
     publishedAt: "2026-07-05",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=1200&q=80&auto=format&fit=crop",
+    image: "/services/instant_glow_facial.webp",
     tags: [
       "face packs", "glowing skin",
       "Surat beauty salon",
@@ -367,7 +367,7 @@ Don't let dark circles and puffy eyes weigh you down. [Book a specialized facial
     publishedAt: "2026-04-15",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80&auto=format&fit=crop",
+    image: "/services/herbal_cleanup.webp",
     tags: [
       "skin detox", "body cleansing",
       "Surat beauty salon",
@@ -430,7 +430,7 @@ Give your body the care it deserves this summer. [Book your body detox treatment
     publishedAt: "2026-07-25",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/acne-facial-cleanup.jpg",
+    image: "/services/shine_control_acne.webp",
     tags: [
       "acne scars", "post acne treatment",
       "Surat beauty salon",

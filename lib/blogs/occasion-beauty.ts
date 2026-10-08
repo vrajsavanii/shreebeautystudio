@@ -70,7 +70,7 @@ Ready to secure your spot for the perfect engagement look? [Book your appointmen
     publishedAt: "2026-05-15",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=1200&q=80&auto=format&fit=crop",
+    image: "/studio-photos/0U3A2568.webp",
     tags: [
       "sangeet makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio", "party makeup"
     ],
@@ -252,7 +252,7 @@ Ensure your skin looks its absolute best on your wedding day. [Explore our brida
     publishedAt: "2026-07-10",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=1200&q=80&auto=format&fit=crop",
+    image: "/studio-photos/0U3A2568.webp",
     tags: [
       "date night makeup", "anniversary makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],
@@ -310,7 +310,7 @@ Make your anniversary or date night truly memorable. [Book an appointment](/book
     publishedAt: "2026-07-25",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=80&auto=format&fit=crop",
+    image: "/studio-photos/0U3A2553.webp",
     tags: [
       "bridesmaid makeup", "wedding guest makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],
@@ -366,7 +366,7 @@ Be the best-dressed guest at your next event. [Book your party makeup session](/
     publishedAt: "2026-08-15",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=1200&q=80&auto=format&fit=crop",
+    image: "/studio-photos/0U3A2574.webp",
     tags: [
       "diwali makeup", "festive makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],
@@ -425,7 +425,7 @@ Don't wait until the last minute—our festive slots fill up fast! [Book your ap
     publishedAt: "2026-08-25",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1200&q=80&auto=format&fit=crop",
+    image: "/studio-photos/0U3A2567.webp",
     tags: [
       "eid makeup", "party glam", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],

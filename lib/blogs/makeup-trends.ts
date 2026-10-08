@@ -12,7 +12,7 @@ export const MAKEUP_TRENDS_BLOGS: BlogPost[] = [
     publishedAt: "2026-04-05",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1200&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "Natural Makeup",
       "Everyday Makeup",
@@ -291,7 +291,7 @@ Book a professional contouring and highlighting makeup session at Shree Beauty S
     publishedAt: "2026-05-20",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1200&q=80&auto=format&fit=crop",
+    image: "/studio-photos/0U3A2574.webp",
     tags: [
       "Navratri Makeup Surat",
       "Garba Makeup Look",
@@ -709,7 +709,7 @@ For a professional colour consultation and makeup application, [visit Shree Beau
     publishedAt: "2026-07-20",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1583001931096-959e9a1a6223?w=1200&q=80&auto=format&fit=crop",
+    image: "/services/eyebrow_threading.webp",
     tags: [
       "Eyebrow Threading Surat",
       "Eyebrow Shaping Guide",
@@ -797,7 +797,7 @@ We also offer **brow lamination** (brushing brows upward and setting them in pla
     publishedAt: "2026-07-28",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=1200&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "Makeup with Glasses",
       "Spectacles Makeup Guide",

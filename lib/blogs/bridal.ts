@@ -953,7 +953,7 @@ Our studio is centrally situated at **22, Radhika Society, Opp. Cancer Hospital,
     publishedAt: "2026-03-07",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=1200&q=80&auto=format&fit=crop",
+    image: "/services/royal_bridal_makeup.webp",
     tags: [
           "Bridal Tips",
           "Makeup Dos and Donts",

@@ -97,7 +97,7 @@ Book online directly on our website to lock in seasonal offers without waiting i
     publishedAt: "2026-08-05",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/scalp-trichology-treatment.jpg",
+    image: "/services/hair_spa_wash.webp",
     tags: [
       "korean hair spa surat",
       "korean hair spa in surat price list",
@@ -255,7 +255,7 @@ Enjoy a tranquil head spa treatment in a 100% ladies-only sanctuary. [Book an ap
     publishedAt: "2026-08-15",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/hair-botox-treatment.jpg",
+    image: "https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "hair botox treatment price in surat",
       "hair botox surat",
@@ -336,7 +336,7 @@ Reclaim silky, frizz-free hair. [Schedule your Hair Botox consultation at Shree 
     publishedAt: "2026-08-20",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/nanoplastia-hair-treatment.jpg",
+    image: "/services/keratin_smooth.webp",
     tags: [
       "hair botox vs nanoplastia vs keratin",
       "hair botox vs nanoplastia",
@@ -415,7 +415,7 @@ Still unsure? Visit **Shree Beauty Studio** in Katargam for a complimentary hair
     publishedAt: "2026-08-25",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/hydra-facial-treatment.jpg",
+    image: "/services/hydra_boost_facial.webp",
     tags: [
       "hydra facial price in surat",
       "best hydra facial in surat",
@@ -490,7 +490,7 @@ Experience poreless, hydrated glass skin. [Book your Hydra Facial at Shree Beaut
     publishedAt: "2026-09-01",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/gujarati-bride-makeover.jpg",
+    image: "/services/royal_bridal_makeup.webp",
     tags: [
       "gujarati bride look in saree",
       "panetar saree for bride surat",
@@ -574,7 +574,7 @@ Book your dream Gujarati wedding makeover at **Shree Beauty Studio**. [Check bri
     publishedAt: "2026-09-05",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/painless-waxing-treatment.jpg",
+    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "rica wax price in parlour",
       "rica full body wax price in parlour",
@@ -646,7 +646,7 @@ Experience hygienic, painless waxing in our private, sanitized cabins. [Book you
     publishedAt: "2026-09-10",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1200&q=80&auto=format&fit=crop",
+    image: "/salon-bg/bridal-suite.jpg",
     tags: [
       "bridal makeup artist in surat",
       "bridal makeup price in surat",
@@ -710,7 +710,7 @@ Review real bridal transformations and secure your date. [Visit our Bridal Galle
     publishedAt: "2026-09-15",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=1200&q=80&auto=format&fit=crop",
+    image: "/studio-photos/0U3A2566.webp",
     tags: [
       "nail extensions price in surat",
       "nail extension price list",
@@ -777,7 +777,7 @@ Treat your hands to runway-worthy nails. [Book your nail extension appointment a
     publishedAt: "2026-09-20",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=1200&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "lip pigmentation treatment in surat",
       "lip pigmentation treatment cost",
@@ -839,7 +839,7 @@ Restore natural pink, baby-soft lips. [Book a facial & lip therapy combo at Shre
     publishedAt: "2026-09-22",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=1200&q=80&auto=format&fit=crop",
+    image: "/services/keratin_smooth.webp",
     tags: [
       "hair smoothening price in surat",
       "hair straightening price in surat",
@@ -969,7 +969,7 @@ Begin your pre-wedding transformation with Surat's trusted bridal specialists. [
     publishedAt: "2026-09-28",
     author: 'Shree Beauty Studio Team',
     authorRole: 'Senior Beauty Specialists',
-    image: "/images/blogs/painless-waxing-treatment.jpg",
+    image: "https://images.unsplash.com/photo-1560750588-73207b1ef5b8?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "laser hair removal surat price list",
       "permanent laser hair removal surat price",
