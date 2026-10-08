@@ -10,8 +10,8 @@ export const OCCASION_BEAUTY_BLOGS: BlogPost[] = [
     category: "Wedding & Occasion Beauty",
     readTime: "6 min read",
     publishedAt: "2026-05-01",
-    author: "Shree Makeup Team",
-    authorRole: "Senior Bridal Stylist",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
     image: "https://images.unsplash.com/photo-1595959183082-7b570b7e08e2?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "engagement makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio", "bridal styling"
@@ -68,9 +68,9 @@ Ready to secure your spot for the perfect engagement look? [Book your appointmen
     category: "Wedding & Occasion Beauty",
     readTime: "7 min read",
     publishedAt: "2026-05-15",
-    author: "Shree Makeup Team",
-    authorRole: "Bridal & Occasion Specialist",
-    image: "https://images.unsplash.com/photo-1596450514735-11003b0d1e37?w=1200&q=80&auto=format&fit=crop",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
+    image: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "sangeet makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio", "party makeup"
     ],
@@ -127,9 +127,9 @@ Don't leave your Sangeet look to chance. [Contact us](/contact) today to discuss
     category: "Wedding & Occasion Beauty",
     readTime: "6 min read",
     publishedAt: "2026-06-05",
-    author: "Shree Makeup Team",
-    authorRole: "Bridal Consultant",
-    image: "https://images.unsplash.com/photo-1621013488730-a8ce5c73fc14?w=1200&q=80&auto=format&fit=crop",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
+    image: "https://images.unsplash.com/photo-1583939003579-730e3918a45a?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "mehendi makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio", "natural makeup"
     ],
@@ -189,8 +189,8 @@ Ready to achieve that perfect Mehendi glow? [Book your appointment](/book) with 
     category: "Wedding & Occasion Beauty",
     readTime: "5 min read",
     publishedAt: "2026-06-20",
-    author: "Shree Skin Experts",
-    authorRole: "Lead Esthetician",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
     image: "https://images.unsplash.com/photo-1599839619722-39751411ea63?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "haldi ceremony", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio", "bridal skincare"
@@ -250,9 +250,9 @@ Ensure your skin looks its absolute best on your wedding day. [Explore our brida
     category: "Wedding & Occasion Beauty",
     readTime: "5 min read",
     publishedAt: "2026-07-10",
-    author: "Shree Makeup Team",
-    authorRole: "Occasion Makeup Specialist",
-    image: "https://images.unsplash.com/photo-1512413914686-cb8237c54178?w=1200&q=80&auto=format&fit=crop",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
+    image: "https://images.unsplash.com/photo-1526045612212-70caf35c14df?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "date night makeup", "anniversary makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],
@@ -308,9 +308,9 @@ Make your anniversary or date night truly memorable. [Book an appointment](/book
     category: "Wedding & Occasion Beauty",
     readTime: "6 min read",
     publishedAt: "2026-07-25",
-    author: "Shree Makeup Team",
-    authorRole: "Senior Stylist",
-    image: "https://images.unsplash.com/photo-1543130732-4b8b6035fc04?w=1200&q=80&auto=format&fit=crop",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
+    image: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "bridesmaid makeup", "wedding guest makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],
@@ -364,9 +364,9 @@ Be the best-dressed guest at your next event. [Book your party makeup session](/
     category: "Wedding & Occasion Beauty",
     readTime: "5 min read",
     publishedAt: "2026-08-15",
-    author: "Shree Makeup Team",
-    authorRole: "Festive Makeup Expert",
-    image: "https://images.unsplash.com/photo-1574880579738-46639c017dfc?w=1200&q=80&auto=format&fit=crop",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
+    image: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "diwali makeup", "festive makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],
@@ -423,9 +423,9 @@ Don't wait until the last minute—our festive slots fill up fast! [Book your ap
     category: "Wedding & Occasion Beauty",
     readTime: "6 min read",
     publishedAt: "2026-08-25",
-    author: "Shree Makeup Team",
-    authorRole: "Special Occasion Stylist",
-    image: "https://images.unsplash.com/photo-1542317132-7576579fc264?w=1200&q=80&auto=format&fit=crop",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
+    image: "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "eid makeup", "party glam", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
     ],
@@ -481,8 +481,8 @@ Make this Eid extra special. [Book your glam session](/book) today, or visit our
     category: "Wedding & Occasion Beauty",
     readTime: "6 min read",
     publishedAt: "2026-09-05",
-    author: "Shree Makeup Team",
-    authorRole: "Maternity Beauty Consultant",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
     image: "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "baby shower makeup", "maternity beauty", "pregnancy safe makeup", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat"
@@ -543,8 +543,8 @@ Look effortlessly glowing on your special day. [Contact us](/contact) to discuss
     category: "Wedding & Occasion Beauty",
     readTime: "5 min read",
     publishedAt: "2026-09-15",
-    author: "Shree Makeup Team",
-    authorRole: "Professional Styling Expert",
+    author: 'Shree Beauty Studio Team',
+    authorRole: 'Senior Beauty Specialists',
     image: "https://images.unsplash.com/photo-1573164713988-8665fc963095?w=1200&q=80&auto=format&fit=crop",
     tags: [
       "corporate makeup", "office party look", "Surat beauty salon", "Katargam parlour", "best salon in Surat", "ladies parlour Katargam", "ladies only salon Surat", "Gujarat beauty studio"
