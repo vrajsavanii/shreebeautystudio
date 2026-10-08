@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Calendar, User, ChevronDown, LogOut, MapPin, Lock, Sparkles, CheckCircle2, Phone } from 'lucide-react';
+import { Menu, X, Calendar, User, ChevronDown, LogOut, MapPin, Lock, Sparkles, CheckCircle2, Phone, Search } from 'lucide-react';
+import HeaderServiceSearchModal from '@/components/customer/HeaderServiceSearchModal';
 
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
@@ -23,6 +24,7 @@ export default function CustomerNavbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { data } = useSalonStore();
@@ -164,6 +166,38 @@ export default function CustomerNavbar() {
                 </Link>
               );
             })}
+          
+            {/* Desktop Quick Search Pill */}
+            <button
+              type="button"
+              onClick={() => setSearchModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(234, 186, 56, 0.35)',
+                color: '#EABA38',
+                fontSize: 12.5,
+                fontWeight: 700,
+                padding: '4px 12px',
+                borderRadius: 99,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(234, 186, 56, 0.18)';
+                e.currentTarget.style.borderColor = '#EABA38';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(234, 186, 56, 0.35)';
+              }}
+            >
+              <Search size={13} />
+              <span>Search</span>
+              <kbd style={{ fontSize: 9, background: 'rgba(0,0,0,0.25)', padding: '1px 4px', borderRadius: 3, opacity: 0.8 }}>⌘K</kbd>
+            </button>
           </div>
 
           {/* Actions: Customer Profile / Login & Book Button & Mobile Toggle */}
@@ -669,6 +703,13 @@ export default function CustomerNavbar() {
             </div>
           </div>
         )}
+      {/* Header Service Search & Details Modal */}
+        <HeaderServiceSearchModal
+          isOpen={searchModalOpen}
+          onClose={() => setSearchModalOpen(false)}
+          services={data?.services || []}
+          settings={settings}
+        />
       </nav>
   );
 }

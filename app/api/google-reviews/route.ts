@@ -234,62 +234,125 @@ export async function GET(req: NextRequest) {
 
     // If API Key and Place ID are provided, fetch directly from Google Places API
     if (apiKey && placeId) {
+      // 1. First attempt: Places API (New v1)
       try {
-        const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
-          placeId
-        )}&fields=name,rating,reviews,user_ratings_total,url&reviews_sort=newest&key=${encodeURIComponent(
-          apiKey
-        )}`;
+        const v1Url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`;
+        const v1Res = await fetch(v1Url, {
+          headers: {
+            'X-Goog-Api-Key': apiKey,
+            'X-Goog-FieldMask': 'id,displayName,rating,userRatingCount,reviews',
+          },
+          next: { revalidate: 60 },
+        });
 
-        const res = await fetch(url, { next: { revalidate: 60 } }); // Short cache for fresher checks
-        if (res.ok) {
-          const data = await res.json();
-          if (data.status === 'OK' && data.result) {
+        if (v1Res.ok) {
+          const v1Data = await v1Res.json();
+          if (v1Data && (v1Data.displayName || v1Data.rating || v1Data.reviews)) {
             source = 'google_places_api';
-            if (typeof data.result.rating === 'number') {
-              rating = data.result.rating;
-            }
-            if (typeof data.result.user_ratings_total === 'number') {
-              totalReviews = data.result.user_ratings_total;
-            }
+            if (typeof v1Data.rating === 'number') rating = v1Data.rating;
+            if (typeof v1Data.userRatingCount === 'number') totalReviews = v1Data.userRatingCount;
 
-            const rawReviews = (data.result.reviews || []) as Array<{
-              author_name?: string;
-              author_url?: string;
-              profile_photo_url?: string;
+            const rawV1Reviews = (v1Data.reviews || []) as Array<{
+              name?: string;
+              relativePublishTimeDescription?: string;
               rating?: number;
-              relative_time_description?: string;
-              text?: string;
-              time?: number;
+              text?: { text?: string };
+              originalText?: { text?: string };
+              authorAttribution?: {
+                displayName?: string;
+                uri?: string;
+                photoUri?: string;
+              };
+              publishTime?: string;
             }>;
 
-            liveReviews = rawReviews
-              .filter(
-                (r) =>
-                  (r.rating || 0) >= minRating &&
-                  (r.text || '').trim().length > 10
-              )
-              .map((r) => ({
-                text: (r.text || '').trim(),
-                name: r.author_name || 'Surat Client',
-                role: `Google Verified Review · ${r.relative_time_description || 'Recent'}`,
-                avatar:
-                  r.profile_photo_url ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    r.author_name || 'SC'
-                  )}&background=05424A&color=EABA38&bold=true`,
-                rating: r.rating || 5,
-                time: r.time,
-                relativeTime: r.relative_time_description,
-                authorUrl: r.author_url,
-              }));
-          } else {
-            googleApiError = data.error_message || data.status || 'Google Places API request unfulfilled';
+            liveReviews = rawV1Reviews
+              .filter((r) => {
+                const reviewText = r.text?.text || r.originalText?.text || '';
+                return (r.rating || 0) >= minRating && reviewText.trim().length > 10;
+              })
+              .map((r) => {
+                const reviewText = (r.text?.text || r.originalText?.text || '').trim();
+                const authorName = r.authorAttribution?.displayName || 'Surat Client';
+                const timeSec = r.publishTime ? Math.floor(new Date(r.publishTime).getTime() / 1000) : undefined;
+                return {
+                  text: reviewText,
+                  name: authorName,
+                  role: `Google Verified Review · ${r.relativePublishTimeDescription || 'Recent'}`,
+                  avatar:
+                    r.authorAttribution?.photoUri ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(authorName)}&background=05424A&color=EABA38&bold=true`,
+                  rating: r.rating || 5,
+                  time: timeSec,
+                  relativeTime: r.relativePublishTimeDescription,
+                  authorUrl: r.authorAttribution?.uri,
+                };
+              });
           }
         }
       } catch (err: any) {
-        googleApiError = err?.message || 'Google Places API network error';
-        console.warn('Google Places API fetch error:', err);
+        console.warn('Places API (New) fetch error, trying legacy fallback:', err);
+      }
+
+      // 2. Second attempt if v1 didn't return reviews: Legacy Places API
+      if (liveReviews.length === 0 && source !== 'google_places_api') {
+        try {
+          const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
+            placeId
+          )}&fields=name,rating,reviews,user_ratings_total,url&reviews_sort=newest&key=${encodeURIComponent(
+            apiKey
+          )}`;
+
+          const res = await fetch(url, { next: { revalidate: 60 } }); // Short cache for fresher checks
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'OK' && data.result) {
+              source = 'google_places_api';
+              if (typeof data.result.rating === 'number') {
+                rating = data.result.rating;
+              }
+              if (typeof data.result.user_ratings_total === 'number') {
+                totalReviews = data.result.user_ratings_total;
+              }
+
+              const rawReviews = (data.result.reviews || []) as Array<{
+                author_name?: string;
+                author_url?: string;
+                profile_photo_url?: string;
+                rating?: number;
+                relative_time_description?: string;
+                text?: string;
+                time?: number;
+              }>;
+
+              liveReviews = rawReviews
+                .filter(
+                  (r) =>
+                    (r.rating || 0) >= minRating &&
+                    (r.text || '').trim().length > 10
+                )
+                .map((r) => ({
+                  text: (r.text || '').trim(),
+                  name: r.author_name || 'Surat Client',
+                  role: `Google Verified Review · ${r.relative_time_description || 'Recent'}`,
+                  avatar:
+                    r.profile_photo_url ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      r.author_name || 'SC'
+                    )}&background=05424A&color=EABA38&bold=true`,
+                  rating: r.rating || 5,
+                  time: r.time,
+                  relativeTime: r.relative_time_description,
+                  authorUrl: r.author_url,
+                }));
+            } else {
+              googleApiError = data.error_message || data.status || 'Google Places API request unfulfilled';
+            }
+          }
+        } catch (err: any) {
+          googleApiError = err?.message || 'Google Places API network error';
+          console.warn('Google Places API fetch error:', err);
+        }
       }
     }
 

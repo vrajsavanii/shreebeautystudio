@@ -166,7 +166,7 @@ export default function GoogleMapAutoHubPage() {
   const salonPhone = settings?.phone2 || settings?.whatsapp || '9824183769';
 
   // 1. Fetch Live Google Reviews
-  const fetchGoogleReviews = useCallback(async () => {
+  const fetchGoogleReviews = useCallback(async (isManualClick = false) => {
     setLoading(true);
     try {
       const res = await fetch('/api/google-reviews');
@@ -175,8 +175,21 @@ export default function GoogleMapAutoHubPage() {
         if (Array.isArray(json.reviews)) setReviews(json.reviews);
         if (json.rating) setRating(json.rating);
         if (json.totalReviews) setTotalReviews(json.totalReviews);
-        if (json.googleApiError) setGoogleApiError(json.googleApiError);
-        else setGoogleApiError(null);
+        if (json.googleApiError) {
+          setGoogleApiError(json.googleApiError);
+          if (isManualClick) {
+            if (json.googleApiError.toLowerCase().includes('billing')) {
+              toast('⚠️ Google Cloud Billing is required for automatic Places API sync. Use "+ Add New Review" to add your new review instantly!', 'warning');
+            } else {
+              toast(`ℹ️ Google API: ${json.googleApiError}`, 'info');
+            }
+          }
+        } else {
+          setGoogleApiError(null);
+          if (isManualClick) {
+            toast(`✅ Reviews synced successfully from Google! (${json.reviews?.length || 0} reviews)`, 'success');
+          }
+        }
       }
     } catch {
       toast('Could not fetch live reviews from Google API', 'error');
@@ -1068,7 +1081,7 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
 
             <button
               type="button"
-              onClick={fetchGoogleReviews}
+              onClick={() => fetchGoogleReviews(true)}
               disabled={loading}
               className="btn btn-secondary btn-sm"
               style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, minHeight: 40 }}
@@ -1236,6 +1249,57 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
       {activeTab === 'reviews' && (
         <motion.div variants={staggerContainer} initial="hidden" animate="visible" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           
+          {/* Google Places API Sync Status Alert */}
+          {googleApiError && (
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(234, 179, 8, 0.05) 100%)',
+                border: '1px solid rgba(245, 158, 11, 0.35)',
+                borderRadius: 14,
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, flex: 1, minWidth: 260 }}>
+                <AlertCircle size={18} color="#d97706" style={{ marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#92400e', marginBottom: 2 }}>
+                    Google Live Auto-Sync Status
+                  </div>
+                  <div style={{ fontSize: 12, color: '#b45309', lineHeight: 1.4 }}>
+                    {googleApiError.toLowerCase().includes('billing')
+                      ? 'Google Cloud Places API requires Billing/Credit to be linked in Google Cloud Console for automatic live syncing. You can add any latest review in 5 seconds using "➕ Add New Review".'
+                      : `Google API Notice: ${googleApiError}`}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setAddReviewModalOpen(true)}
+                  className="btn btn-xs"
+                  style={{
+                    background: '#16a34a',
+                    color: '#fff',
+                    fontWeight: 800,
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Plus size={13} /> ➕ Add Latest Review
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Search & Filter Toolbar */}
           <div className="card" style={{ padding: 14, borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>

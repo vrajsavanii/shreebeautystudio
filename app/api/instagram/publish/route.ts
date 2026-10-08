@@ -259,7 +259,7 @@ export async function POST(req: NextRequest) {
   try {
     const reqContentType = req.headers.get('content-type') || '';
     let mediaUrls: string[] = [];
-    let mediaType: 'photo' | 'reel' | 'carousel' = 'photo';
+    let mediaType: 'photo' | 'reel' | 'carousel' | 'story' = 'photo';
     let caption = '';
     let location = '';
     let collaborator = '';
@@ -284,7 +284,7 @@ export async function POST(req: NextRequest) {
         uploadList.push(singleFile);
       }
 
-      if (uploadList.length > 1) {
+      if (uploadList.length > 1 && mediaType !== 'story') {
         mediaType = 'carousel';
       }
 
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
       } else if (json.mediaUrl) {
         mediaUrls = [json.mediaUrl];
       }
-      if (mediaUrls.length > 1) {
+      if (mediaUrls.length > 1 && mediaType !== 'story') {
         mediaType = 'carousel';
       }
     }
@@ -399,8 +399,34 @@ export async function POST(req: NextRequest) {
 
     // ── STEP 5: CREATE MEDIA CONTAINER(S) ──
 
+    // CASE 0: STORY (Instagram Stories 24h)
+    if (mediaType === 'story') {
+      const isVid = /\.(mp4|mov|m4v|3gp|webm|avi|mkv)(\?|$)/i.test(mediaUrls[0]);
+      const storyParams: Record<string, string> = {
+        access_token: token,
+        media_type: 'STORIES',
+      };
+      if (isVid) {
+        storyParams.video_url = mediaUrls[0];
+      } else {
+        storyParams.image_url = mediaUrls[0];
+      }
+
+      const storyResult = await createContainerWithFallback(accountId, token, storyParams);
+      if (storyResult.tokenExpired) {
+        return NextResponse.json({ success: false, error: storyResult.error }, { status: 401 });
+      }
+      if (!storyResult.success || !storyResult.id) {
+        return NextResponse.json(
+          { success: false, error: `Story creation error: ${storyResult.error || 'Failed to create Instagram story container'}` },
+          { status: 400 }
+        );
+      }
+
+      creationId = storyResult.id;
+    }
     // CASE 1: CAROUSEL (multiple media)
-    if (mediaType === 'carousel' || mediaUrls.length > 1) {
+    else if (mediaType === 'carousel' || mediaUrls.length > 1) {
       const childContainerIds: string[] = [];
 
       for (const itemUrl of mediaUrls) {

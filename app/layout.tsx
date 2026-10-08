@@ -66,14 +66,15 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/favicon-48x48.png', type: 'image/png', sizes: '48x48' },
-      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
-      { url: '/icon-512.png', type: 'image/png', sizes: '512x512' },
+      { url: '/favicon.ico?v=round3', sizes: 'any' },
+      { url: '/favicon-32x32.png?v=round3', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-48x48.png?v=round3', type: 'image/png', sizes: '48x48' },
+      { url: '/icon-192.png?v=round3', type: 'image/png', sizes: '192x192' },
+      { url: '/icon-512.png?v=round3', type: 'image/png', sizes: '512x512' },
     ],
-    shortcut: '/favicon.ico',
+    shortcut: '/favicon.ico?v=round3',
     apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/apple-touch-icon.png?v=round3', sizes: '180x180', type: 'image/png' },
     ],
   },
 };
@@ -110,13 +111,14 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Shree Beauty" />
         <meta name="application-name" content="Shree Beauty" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Google Search & Browser Favicons */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="shortcut icon" href="/favicon.ico" />
+        {/* Google Search & Browser Favicons (with Cache-Buster) */}
+        <link rel="icon" href="/favicon.ico?v=round3" sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=round3" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png?v=round3" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=round3" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=round3" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=round3" />
+        <link rel="shortcut icon" href="/favicon.ico?v=round3" />
         <link rel="manifest" href="/manifest.json" />
         <script
           dangerouslySetInnerHTML={{
