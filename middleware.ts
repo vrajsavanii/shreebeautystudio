@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const REDIRECT_MAP: Record<string, string> = {
+  '/ContactUs': '/contact',
+  '/contactus': '/contact',
   '/billing': '/admin/billing',
   '/expenses': '/admin/expenses',
   '/appointments': '/admin/appointments',
@@ -29,13 +31,20 @@ const SALESPERSON_ALLOWED_ROUTES = [
 ];
 
 export function middleware(request: NextRequest) {
+  const host = request.headers.get('host') || '';
   const { pathname } = request.nextUrl;
 
-  // 1. Check legacy admin redirects
+  // 1. Permanent 301 Redirect www -> non-www for clean canonical domain
+  if (host.startsWith('www.')) {
+    const cleanUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://shreebeauty.studio');
+    return NextResponse.redirect(cleanUrl, 301);
+  }
+
+  // 2. Check legacy admin & public route redirects
   if (REDIRECT_MAP[pathname]) {
     const url = request.nextUrl.clone();
     url.pathname = REDIRECT_MAP[pathname];
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 301);
   }
 
   const adminToken = request.cookies.get('shree_admin_token')?.value;
