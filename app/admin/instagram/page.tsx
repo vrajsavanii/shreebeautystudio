@@ -1696,6 +1696,22 @@ export default function InstagramHubPage() {
     }
   };
 
+  const handleTvRemoteControl = async (action: 'next' | 'prev' | 'current') => {
+    try {
+      toast(`Sending ${action === 'next' ? 'Next Photo ⏭️' : action === 'prev' ? 'Previous Photo ⏮️' : 'Refresh'} command to TV...`, 'info');
+      const res = await fetch(`/api/tv-frame/control?action=${action}&url=${encodeURIComponent(tvFrameUrl)}`);
+      const json = await res.json();
+      if (json.success) {
+        setTvFrameOnline(true);
+        toast(`✅ TV Remote: ${action === 'next' ? 'Switched to Next Photo ⏭️' : action === 'prev' ? 'Switched to Previous Photo ⏮️' : 'TV Connected 🟢'}`, 'success');
+      } else {
+        toast(`⚠️ Could not reach TV at ${tvFrameUrl}`, 'error');
+      }
+    } catch {
+      toast('Failed to send command to TV', 'error');
+    }
+  };
+
   const handleDownloadAll4k = async () => {
     if (tvSlides.length === 0) return;
     setIsDownloading4k(true);
