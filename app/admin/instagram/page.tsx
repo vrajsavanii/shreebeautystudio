@@ -1352,15 +1352,82 @@ export default function InstagramHubPage() {
     setPublishingStep(`1/4: Processing & optimizing ${mediaItems.length} media file(s) for mobile...`);
 
     try {
-      // 1. Process all photos through canvas for exact crop / zoom / pan / rotation
+      // 1. Check if user selected Music / Audio to merge into a Video Reel / Story
+      let audioBuf: AudioBuffer | null = null;
+      let hasMusicToMerge = false;
+
+      if (selectedAudioTrackId === 'searched_song' && selectedSong?.previewUrl) {
+        setPublishingStep('1/4: Downloading & preparing selected song audio...');
+        try {
+          audioBuf = await fetchAndDecodeRemoteSongUrl(selectedSong.previewUrl);
+          if (audioBuf) hasMusicToMerge = true;
+        } catch (songErr) {
+          console.warn('Could not decode searched song for publishing:', songErr);
+        }
+      } else if (selectedAudioTrackId === 'custom_audio' && customAudioBuffer) {
+        audioBuf = customAudioBuffer;
+        hasMusicToMerge = true;
+      } else if (
+        selectedAudioTrackId &&
+        selectedAudioTrackId !== 'none' &&
+        selectedAudioTrackId !== 'searched_song' &&
+        selectedAudioTrackId !== 'custom_audio'
+      ) {
+        setPublishingStep('1/4: Synthesizing wedding instrumental audio track...');
+        try {
+          audioBuf = await synthesizeWeddingAudioBuffer(selectedAudioTrackId, audioDurationSec || 7);
+          if (audioBuf) hasMusicToMerge = true;
+        } catch (synthErr) {
+          console.warn('Could not synthesize wedding audio for publishing:', synthErr);
+        }
+      }
+
       const processedFiles: File[] = [];
-      for (let i = 0; i < mediaItems.length; i++) {
-        const item = mediaItems[i];
-        if (item.type === 'photo') {
-          const cropped = await processPhotoCrop(item);
-          processedFiles.push(cropped);
-        } else {
-          processedFiles.push(item.file);
+      let isStoryOrReelWithMusic = false;
+
+      // If user selected music and has a single photo or story: MERGE INTO 1080x1920 VIDEO WITH MUSIC!
+      if (hasMusicToMerge && audioBuf && mediaItems.length === 1 && mediaItems[0].type === 'photo') {
+        setPublishingStep('1/4: Combining Photo + Music into High-Definition Reel/Story Video...');
+        const processedPhoto = await processPhotoCrop(mediaItems[0]);
+        const bannerTitle = '👑 SHREE BEAUTY STUDIO • KATARGAM';
+        const bannerSubtitle = (storyCustomTitle.trim() || generatedCaption.split('\n')[0] || 'Royal Bridal Makeover in Katargam, Surat').substring(0, 48);
+        const bannerPhone = settings?.phone2 || settings?.whatsapp || '9824183769';
+
+        const videoFile = await composePhotoAndAudioToVideo({
+          imageFile: processedPhoto,
+          audioBuffer: audioBuf,
+          durationSeconds: audioDurationSec || 7,
+          startOffsetSeconds: audioStartOffsetSec || 0,
+          width: 1080,
+          height: 1920,
+          stickerTheme,
+          stickerLayout,
+          bannerTitle,
+          bannerSubtitle,
+          bannerPhone,
+          locationTag: storyShowLocationTag ? storyLocationTag : '',
+          brideHandle: storyShowMentions ? storyBrideHandle : '',
+          photographerHandle: storyShowMentions ? storyPhotographerHandle : '',
+          whatsappCtaText: storyShowWhatsAppCta ? (storyWhatsAppCtaText || `💬 WhatsApp: +91 ${bannerPhone} • Tap to Book`) : '',
+          showLocationTag: storyShowLocationTag,
+          showMentions: storyShowMentions,
+          showWhatsAppCta: storyShowWhatsAppCta,
+          showBanner: storyOverlayEnabled && postFormat === 'story',
+          onProgress: (step) => setPublishingStep(`1/4: ${step}`),
+        });
+
+        processedFiles.push(videoFile);
+        isStoryOrReelWithMusic = true;
+      } else {
+        // Standard multi-photo or video processing
+        for (let i = 0; i < mediaItems.length; i++) {
+          const item = mediaItems[i];
+          if (item.type === 'photo') {
+            const cropped = await processPhotoCrop(item);
+            processedFiles.push(cropped);
+          } else {
+            processedFiles.push(item.file);
+          }
         }
       }
 
@@ -1430,7 +1497,7 @@ export default function InstagramHubPage() {
               caption: generatedCaption,
               location: postLocation,
               collaborator: collaborator,
-              mediaType: processedFiles.length > 1 ? 'carousel' : (mediaItems[0].type === 'video' ? 'reel' : 'photo'),
+              mediaType: postFormat === 'story' ? 'story' : (processedFiles.length > 1 ? 'carousel' : (mediaItems[0].type === 'video' || isStoryOrReelWithMusic ? 'reel' : 'photo')),
             }),
             signal: controller.signal,
           });
@@ -1445,7 +1512,7 @@ export default function InstagramHubPage() {
           formData.append('shareGoogleMaps', String(shareGoogleMaps && hasPhotos));
 
           if (processedFiles.length === 1) {
-            formData.append('mediaType', mediaItems[0].type === 'video' ? 'reel' : 'photo');
+            formData.append('mediaType', postFormat === 'story' ? 'story' : (mediaItems[0].type === 'video' || isStoryOrReelWithMusic ? 'reel' : 'photo'));
             formData.append('file', processedFiles[0]);
           } else {
             formData.append('mediaType', 'carousel');
