@@ -518,8 +518,13 @@ export default function WhatsAppHubPage() {
   };
 
   const insertVariableTag = (tag: string) => {
-    setManualText((prev) => prev + tag);
+    setManualText((prev) => {
+      const base = prev !== undefined && prev !== '' ? prev : (generatedMessage || '');
+      const separator = base.length === 0 || base.endsWith(' ') || base.endsWith('\n') ? '' : ' ';
+      return base + separator + tag + ' ';
+    });
     setIsManualEdited(true);
+    toast(`🏷️ Added ${tag} tag to message!`, 'info');
   };
 
   // Web WhatsApp Auto Computed Datasets
@@ -2178,28 +2183,38 @@ export default function WhatsAppHubPage() {
                 >
                   {/* Dynamic Tags Chip Row */}
                   <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#64748b' }}>Insert tag:</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#64748b' }}>Insert shortcut tag:</span>
                     {[
-                      { tag: '{name}', label: '👤 {name}' },
-                      { tag: '{date}', label: '📅 {date}' },
-                      { tag: '{time}', label: '⏰ {time}' },
-                      { tag: '{service}', label: '💇 {service}' },
-                      { tag: '{amount}', label: '💰 {amount}' },
-                      { tag: '{balance}', label: '⚠️ {balance}' },
+                      { tag: '{name}', label: '👤 {name}', title: 'Customer Name' },
+                      { tag: '{salon}', label: '👑 {salon}', title: 'Studio Name' },
+                      { tag: '{date}', label: '📅 {date}', title: 'Appointment/Bill Date' },
+                      { tag: '{time}', label: '⏰ {time}', title: 'Appointment Time' },
+                      { tag: '{service}', label: '💇 {service}', title: 'Service Name' },
+                      { tag: '{amount}', label: '💰 {amount}', title: 'Total Bill Amount' },
+                      { tag: '{paid}', label: '💵 {paid}', title: 'Paid Amount' },
+                      { tag: '{balance}', label: '⚠️ {balance}', title: 'Due Balance' },
+                      { tag: '{points}', label: '⭐ {points}', title: 'Loyalty Points' },
+                      { tag: '{wallet}', label: '💳 {wallet}', title: 'Wallet Balance' },
+                      { tag: '{address}', label: '📍 {address}', title: 'Studio Address' },
+                      { tag: '{link}', label: '🔗 {link}', title: 'Google Review Link' },
+                      { tag: '{offer}', label: '🎉 {offer}', title: 'Festival Promo Offer' },
                     ].map((v) => (
                       <button
                         key={v.tag}
                         type="button"
                         onClick={() => insertVariableTag(v.tag)}
+                        title={`Click to insert ${v.tag} (${v.title})`}
                         style={{
                           background: '#ffffff',
                           border: '1px solid #cbd5e1',
-                          borderRadius: 4,
-                          padding: '1px 6px',
-                          fontSize: 10.5,
+                          borderRadius: 6,
+                          padding: '2px 8px',
+                          fontSize: 11,
                           fontWeight: 700,
                           cursor: 'pointer',
                           color: '#0f172a',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                          transition: 'all 0.15s ease',
                         }}
                       >
                         {v.label}
@@ -2479,6 +2494,47 @@ export default function WhatsAppHubPage() {
                     <Save size={13} /> 💾 Save Template
                   </button>
                 </div>
+              </div>
+
+              {/* Dynamic Shortcut Tags Chip Bar */}
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center', marginBottom: 8, padding: '6px 8px', background: '#f1f5f9', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)' }}>⚡ Insert Shortcut Tag:</span>
+                {[
+                  { tag: '{name}', label: '👤 {name}', title: 'Customer Name' },
+                  { tag: '{salon}', label: '👑 {salon}', title: 'Studio Name' },
+                  { tag: '{date}', label: '📅 {date}', title: 'Appointment/Bill Date' },
+                  { tag: '{time}', label: '⏰ {time}', title: 'Appointment Time' },
+                  { tag: '{service}', label: '💇 {service}', title: 'Service Name' },
+                  { tag: '{amount}', label: '💰 {amount}', title: 'Total Bill Amount' },
+                  { tag: '{paid}', label: '💵 {paid}', title: 'Paid Amount' },
+                  { tag: '{balance}', label: '⚠️ {balance}', title: 'Due Balance' },
+                  { tag: '{points}', label: '⭐ {points}', title: 'Loyalty Points' },
+                  { tag: '{wallet}', label: '💳 {wallet}', title: 'Wallet Balance' },
+                  { tag: '{address}', label: '📍 {address}', title: 'Studio Address' },
+                  { tag: '{link}', label: '🔗 {link}', title: 'Google Review Link' },
+                  { tag: '{offer}', label: '🎉 {offer}', title: 'Festival Promo Offer' },
+                ].map((v) => (
+                  <button
+                    key={v.tag}
+                    type="button"
+                    onClick={() => insertVariableTag(v.tag)}
+                    title={`Click to insert ${v.tag} (${v.title})`}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 6,
+                      padding: '3px 8px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      color: '#0f172a',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {v.label}
+                  </button>
+                ))}
               </div>
 
               <textarea
