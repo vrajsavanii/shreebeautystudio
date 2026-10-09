@@ -3203,102 +3203,202 @@ export default function InstagramHubPage() {
                     </div>
                   </div>
                 ) : (
-                  /* ── FEED / REEL CAPTION & METADATA CONTROLS ── */
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {/* Category & Language Chips */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                      {[
-                        { id: 'bridal', label: '👑 Wedding' },
-                        { id: 'sagai', label: '💍 Sagai' },
-                        { id: 'reception', label: '✨ Reception' },
-                        { id: 'haldi_mehndi', label: '🪔 Haldi' },
-                        { id: 'prebridal', label: '💧 Glow' },
-                      ].map((cat) => (
+                  /* ── FEED / REEL CAPTION & METADATA CONTROLS (LUXURY CLEAN LAYOUT) ── */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {/* 1. Category & Language Header Bar */}
+                    <div style={{ background: 'var(--muted)', borderRadius: 12, padding: '10px 12px', border: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--foreground)' }}>
+                          ✨ Caption Category &amp; Style:
+                        </span>
+                        {/* Language Selector */}
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {[
+                            { id: 'hinglish', label: '🇮🇳 Hinglish' },
+                            { id: 'gujarati', label: '🇬🇯 ગુજરાતી' },
+                            { id: 'english', label: '🇬🇧 English' },
+                          ].map((lang) => (
+                            <button
+                              key={lang.id}
+                              type="button"
+                              onClick={() => setCaptionLanguage(lang.id as any)}
+                              style={{
+                                fontSize: 9.5,
+                                fontWeight: captionLanguage === lang.id ? 800 : 600,
+                                padding: '2px 7px',
+                                borderRadius: 6,
+                                border: captionLanguage === lang.id ? '1.5px solid #E1306C' : '1px solid var(--border)',
+                                background: captionLanguage === lang.id ? 'rgba(225, 48, 108, 0.15)' : 'var(--card)',
+                                color: captionLanguage === lang.id ? '#E1306C' : 'var(--foreground)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {lang.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Category Chips */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(85px, 1fr))', gap: 5 }}>
+                        {[
+                          { id: 'bridal', label: '👑 Wedding', sub: 'Bridal' },
+                          { id: 'sagai', label: '💍 Sagai', sub: 'Engagement' },
+                          { id: 'reception', label: '✨ Reception', sub: 'Party Glam' },
+                          { id: 'haldi_mehndi', label: '🪔 Haldi', sub: 'Sunshine' },
+                          { id: 'prebridal', label: '💧 Glow', sub: 'Facial/Skin' },
+                        ].map((cat) => {
+                          const isSel = captionCategory === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setCaptionCategory(cat.id as any)}
+                              style={{
+                                padding: '5px 6px',
+                                borderRadius: 8,
+                                border: isSel ? '2px solid #E1306C' : '1px solid var(--border)',
+                                background: isSel ? 'linear-gradient(135deg, rgba(240, 148, 51, 0.15), rgba(220, 39, 67, 0.15))' : 'var(--card)',
+                                color: isSel ? '#E1306C' : 'var(--foreground)',
+                                fontWeight: isSel ? 800 : 600,
+                                fontSize: 10,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <span>{cat.label}</span>
+                              <span style={{ fontSize: 7.5, opacity: 0.7 }}>{cat.sub}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 2. Compact Post Metadata Inputs (2x2 Grid) */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                      <div>
+                        <label style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--muted-foreground)', display: 'block', marginBottom: 2 }}>
+                          👰 Bride / Client:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Kinjal Patel"
+                          value={clientName}
+                          onChange={(e) => setClientName(e.target.value)}
+                          className="input input-xs"
+                          style={{ fontWeight: 600 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--muted-foreground)', display: 'block', marginBottom: 2 }}>
+                          🏷️ Special Offer:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 20% OFF Early Booking"
+                          value={specialOffer}
+                          onChange={(e) => setSpecialOffer(e.target.value)}
+                          className="input input-xs"
+                          style={{ fontWeight: 600 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--muted-foreground)', display: 'block', marginBottom: 2 }}>
+                          📍 Location Tag:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Katargam, Surat"
+                          value={postLocation}
+                          onChange={(e) => setPostLocation(e.target.value)}
+                          className="input input-xs"
+                          style={{ fontWeight: 600 }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--muted-foreground)', display: 'block', marginBottom: 2 }}>
+                          🤝 Collaborator:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="@photographer"
+                          value={collaborator}
+                          onChange={(e) => setCollaborator(e.target.value)}
+                          className="input input-xs"
+                          style={{ fontWeight: 600 }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* 3. Luxury Formatted Caption Editor */}
+                    <div style={{ background: 'var(--card)', borderRadius: 12, border: '1.5px solid rgba(225, 48, 108, 0.3)', padding: 10, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          📝 AI Viral Caption Preview:
+                        </span>
                         <button
-                          key={cat.id}
                           type="button"
-                          onClick={() => setCaptionCategory(cat.id as any)}
-                          className={`btn btn-xs ${captionCategory === cat.id ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ fontSize: 10, fontWeight: captionCategory === cat.id ? 800 : 500 }}
+                          onClick={handleGenerateFresh}
+                          disabled={isGenerating}
+                          className="btn btn-secondary btn-xs"
+                          style={{ fontSize: 10, fontWeight: 800, color: '#E1306C', padding: '2px 8px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4 }}
                         >
-                          {cat.label}
+                          <RefreshCw size={11} className={isGenerating ? 'animate-spin' : ''} />
+                          <span>⚡ Regenerate</span>
                         </button>
-                      ))}
-                    </div>
+                      </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                      <input
-                        type="text"
-                        placeholder="Bride Name: Kinjal"
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        className="input input-xs"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Offer: 20% OFF"
-                        value={specialOffer}
-                        onChange={(e) => setSpecialOffer(e.target.value)}
-                        className="input input-xs"
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                      <input
-                        type="text"
-                        placeholder="📍 Katargam, Surat"
-                        value={postLocation}
-                        onChange={(e) => setPostLocation(e.target.value)}
-                        className="input input-xs"
-                      />
-                      <input
-                        type="text"
-                        placeholder="🤝 Collab: @username"
-                        value={collaborator}
-                        onChange={(e) => setCollaborator(e.target.value)}
-                        className="input input-xs"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleGenerateFresh}
-                      disabled={isGenerating}
-                      className="btn btn-secondary btn-xs"
-                      style={{ fontWeight: 800, color: '#E1306C', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
-                    >
-                      <RefreshCw size={11} className={isGenerating ? 'animate-spin' : ''} />
-                      ⚡ Generate New AI Viral Caption
-                    </button>
-
-                    {/* Collapsible Caption Box */}
-                    <div>
                       <textarea
                         value={generatedCaption}
                         onChange={(e) => setGeneratedCaption(e.target.value)}
-                        rows={5}
+                        rows={7}
                         className="input"
-                        placeholder="Caption & hashtags..."
+                        placeholder="Write or edit caption..."
                         style={{
-                          fontFamily: 'monospace',
-                          fontSize: 11.5,
-                          lineHeight: 1.4,
-                          padding: 8,
+                          fontSize: 12,
+                          lineHeight: 1.5,
+                          padding: 10,
                           borderRadius: 8,
                           resize: 'vertical',
                           width: '100%',
+                          maxHeight: 200,
+                          overflowY: 'auto',
+                          fontFamily: 'system-ui, -apple-system, sans-serif',
+                          background: 'var(--muted)',
+                          border: '1px solid var(--border)',
                         }}
                       />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginTop: 4 }}>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(generatedCaption, 'copy-caption-step3')}
-                          className="btn btn-secondary btn-xs"
-                          style={{ fontSize: 10, fontWeight: 700 }}
-                        >
-                          {copiedId === 'copy-caption-step3' ? <Check size={10} color="#16a34a" /> : <Copy size={10} />}
-                          Copy Text
-                        </button>
+
+                      {/* Quick Action Buttons */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap', gap: 6 }}>
+                        <span style={{ fontSize: 9.5, color: 'var(--muted-foreground)', fontWeight: 600 }}>
+                          {generatedCaption.length} chars • {(generatedCaption.match(/#[a-zA-Z0-9_]+/g) || []).length} hashtags
+                        </span>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const tags = (generatedCaption.match(/#[a-zA-Z0-9_]+/g) || []).join(' ');
+                              copyToClipboard(tags || generatedCaption, 'copy-tags');
+                            }}
+                            className="btn btn-secondary btn-xs"
+                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}
+                          >
+                            {copiedId === 'copy-tags' ? <Check size={10} color="#16a34a" /> : <Tag size={10} />}
+                            <span>Copy Hashtags</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(generatedCaption, 'copy-full')}
+                            className="btn btn-primary btn-xs"
+                            style={{ fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 6, background: 'linear-gradient(45deg, #f09433, #dc2743)', border: 'none' }}
+                          >
+                            {copiedId === 'copy-full' ? <Check size={10} color="#fff" /> : <Copy size={10} />}
+                            <span>Copy Full Caption</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
