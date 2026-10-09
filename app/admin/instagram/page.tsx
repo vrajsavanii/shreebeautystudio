@@ -3350,26 +3350,30 @@ export default function InstagramHubPage() {
                         </button>
                       </div>
 
-                      <textarea
-                        value={generatedCaption}
-                        onChange={(e) => setGeneratedCaption(e.target.value)}
-                        rows={7}
-                        className="input"
-                        placeholder="Write or edit caption..."
-                        style={{
-                          fontSize: 12,
-                          lineHeight: 1.5,
-                          padding: 10,
-                          borderRadius: 8,
-                          resize: 'vertical',
-                          width: '100%',
-                          maxHeight: 200,
-                          overflowY: 'auto',
-                          fontFamily: 'system-ui, -apple-system, sans-serif',
-                          background: 'var(--muted)',
-                          border: '1px solid var(--border)',
-                        }}
-                      />
+                      <div style={{ position: 'relative' }}>
+                        <textarea
+                          value={generatedCaption}
+                          onChange={(e) => setGeneratedCaption(e.target.value)}
+                          rows={Math.max(16, (generatedCaption.split('\n').length || 16) + 1)}
+                          className="input"
+                          placeholder="Write or edit caption..."
+                          style={{
+                            fontSize: 12.5,
+                            lineHeight: 1.6,
+                            padding: '12px 14px',
+                            borderRadius: 10,
+                            resize: 'vertical',
+                            width: '100%',
+                            minHeight: 340,
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                            background: 'var(--muted)',
+                            border: '1.5px solid rgba(225, 48, 108, 0.25)',
+                            color: 'var(--foreground)',
+                            fontWeight: 500,
+                            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)',
+                          }}
+                        />
+                      </div>
 
                       {/* Quick Action Buttons */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap', gap: 6 }}>
