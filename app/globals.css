@@ -1710,6 +1710,9 @@ a, button, input, select, textarea {
   .cust-navbar-links {
     display: none !important;
   }
+  .cust-mobile-search-btn {
+    display: inline-flex !important;
+  }
   .cust-navbar-toggle {
     display: block !important;
   }

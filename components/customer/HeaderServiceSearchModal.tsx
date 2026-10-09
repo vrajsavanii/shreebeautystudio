@@ -13,16 +13,15 @@ import {
   ArrowRight,
   CheckCircle2,
   Info,
-  TrendingUp,
+  Flame,
+  Star,
   Tag,
   ChevronDown,
   ChevronUp,
-  Flame,
-  Star,
-  Check
+  MapPin,
+  Percent
 } from 'lucide-react';
 import { Service, SalonSettings } from '@/types/salon';
-import { SERVICES_SEO_DATA } from '@/lib/services-seo-data';
 import { openWAApp, openWAWeb } from '@/lib/whatsapp';
 
 interface HeaderServiceSearchModalProps {
@@ -32,25 +31,32 @@ interface HeaderServiceSearchModalProps {
   settings?: SalonSettings;
 }
 
-const CATEGORY_CHIPS = [
-  { id: 'all', label: '🌟 All Services' },
-  { id: 'Bridal & Makeup', label: '👑 Bridal & Makeup' },
-  { id: 'Skin Care & Facials', label: '💧 Skin & Facials' },
-  { id: 'Hair Care & Styling', label: '💇 Hair & Botox' },
-  { id: 'Hands, Feet & Nails', label: '💅 Hands & Nails' },
-  { id: 'Body Spa & Bleach', label: '🌸 Body Spa & Polish' },
-  { id: 'Waxing & Threading', label: '🌿 Waxing & Thread' },
+const CATEGORY_TABS = [
+  { id: 'all', label: '🌟 All Services', icon: '🌟' },
+  { id: 'Bridal & Makeup', label: 'Bridal & Makeup', icon: '👑' },
+  { id: 'Skin Care & Facials', label: 'Skin & Facials', icon: '💧' },
+  { id: 'Hair Care & Styling', label: 'Hair & Botox', icon: '💇' },
+  { id: 'Hands, Feet & Nails', label: 'Hands & Nails', icon: '💅' },
+  { id: 'Body Spa & Bleach', label: 'Body Spa & Polish', icon: '🌸' },
+  { id: 'Waxing & Threading', label: 'Waxing & Thread', icon: '🌿' },
 ];
 
-const TRENDING_QUICK_SEARCHES = [
-  'Hydra Facial',
+const TRENDING_TAGS = [
   'Bridal Makeup',
+  'Hydra Facial',
   'Hair Botox',
   'Nanoplastia',
-  'Body Spa',
-  'Underarms Wax',
-  'Keratin',
+  'Rica Waxing',
   'D-Tan Glow',
+  'Body Spa',
+  'Gel Nails',
+];
+
+const PRICE_FILTERS = [
+  { id: 'all', label: 'All Prices' },
+  { id: 'budget', label: 'Under ₹500' },
+  { id: 'mid', label: '₹500 - ₹2,000' },
+  { id: 'premium', label: 'Luxury (₹2,000+)' },
 ];
 
 export default function HeaderServiceSearchModal({
@@ -62,6 +68,7 @@ export default function HeaderServiceSearchModal({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedPriceFilter, setSelectedPriceFilter] = useState('all');
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -70,12 +77,13 @@ export default function HeaderServiceSearchModal({
     if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 100);
+      }, 80);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
       setSearchQuery('');
       setSelectedCategory('all');
+      setSelectedPriceFilter('all');
       setExpandedServiceId(null);
     }
     return () => {
@@ -110,56 +118,82 @@ export default function HeaderServiceSearchModal({
         }
       }
 
-      // 2. Query Filter
+      // 2. Price Filter
+      if (selectedPriceFilter === 'budget' && svc.price >= 500) return false;
+      if (selectedPriceFilter === 'mid' && (svc.price < 500 || svc.price > 2000)) return false;
+      if (selectedPriceFilter === 'premium' && svc.price <= 2000) return false;
+
+      // 3. Query Filter
       if (!q) return true;
 
       const nameMatch = svc.name.toLowerCase().includes(q);
       const catMatch = (svc.category || '').toLowerCase().includes(q);
       const descMatch = (svc.description || '').toLowerCase().includes(q);
 
-      // Smart synonyms
-      let synonymMatch = false;
-      if (q === 'facial' || q === 'glow' || q === 'face') {
-        synonymMatch = svc.name.toLowerCase().includes('facial') || svc.name.toLowerCase().includes('d-tan') || svc.name.toLowerCase().includes('bleach');
-      } else if (q === 'hair' || q === 'botox' || q === 'nanoplastia') {
-        synonymMatch = (svc.category || '').toLowerCase().includes('hair') || svc.name.toLowerCase().includes('botox') || svc.name.toLowerCase().includes('keratin') || svc.name.toLowerCase().includes('nanoplastia') || svc.name.toLowerCase().includes('spa');
-      } else if (q === 'wedding' || q === 'dulhan' || q === 'bride' || q === 'bridal') {
-        synonymMatch = (svc.category || '').toLowerCase().includes('bridal') || svc.name.toLowerCase().includes('bridal') || svc.name.toLowerCase().includes('sagai') || svc.name.toLowerCase().includes('makeup');
+      // Smart synonyms mapping
+      let synMatch = false;
+      if (q.includes('makeup') || q.includes('make up') || q.includes('bridal') || q.includes('dulhan')) {
+        synMatch = (svc.category || '').toLowerCase().includes('bridal') || svc.name.toLowerCase().includes('makeup');
+      } else if (q.includes('hair') || q.includes('botox') || q.includes('keratin') || q.includes('nanoplastia') || q.includes('smooth')) {
+        synMatch = (svc.category || '').toLowerCase().includes('hair') || svc.name.toLowerCase().includes('botox') || svc.name.toLowerCase().includes('keratin');
+      } else if (q.includes('skin') || q.includes('facial') || q.includes('glow') || q.includes('d-tan') || q.includes('cleanup')) {
+        synMatch = (svc.category || '').toLowerCase().includes('skin') || svc.name.toLowerCase().includes('facial') || svc.name.toLowerCase().includes('d-tan');
+      } else if (q.includes('wax') || q.includes('waxing') || q.includes('threading') || q.includes('eyebrow')) {
+        synMatch = (svc.category || '').toLowerCase().includes('wax') || svc.name.toLowerCase().includes('wax');
       }
 
-      return nameMatch || catMatch || descMatch || synonymMatch;
+      return nameMatch || catMatch || descMatch || synMatch;
     });
-  }, [services, searchQuery, selectedCategory]);
+  }, [services, searchQuery, selectedCategory, selectedPriceFilter]);
+
+  // Category counts
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: services.length };
+    services.forEach((s) => {
+      const cat = s.category || 'Other';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [services]);
+
+  // Quick WhatsApp Booking Handler
+  const handleWhatsAppInquire = (svc: Service) => {
+    const waPhone = settings?.whatsapp || '919824183769';
+    const text = `Hello Shree Beauty Studio! 👋 I would like to inquire about *${svc.name}* (Price: ₹${svc.price}, Duration: ${svc.duration} mins). Please share available slots.`;
+    const encoded = encodeURIComponent(text);
+    const webUrl = `https://web.whatsapp.com/send?phone=${waPhone}&text=${encoded}`;
+    const appUrl = `whatsapp://send?phone=${waPhone}&text=${encoded}`;
+    const fallbackUrl = `https://wa.me/${waPhone}?text=${encoded}`;
+
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      openWAApp(appUrl, fallbackUrl);
+    } else {
+      openWAWeb(webUrl, fallbackUrl);
+    }
+    onClose();
+  };
+
+  // Direct Book Service
+  const handleBookService = (svc: Service) => {
+    onClose();
+    router.push(`/book?service=${encodeURIComponent(svc.id)}`);
+  };
 
   if (!isOpen) return null;
-
-  const handleWhatsAppInquire = (service: Service) => {
-    const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
-    const text = `Namaste Shree Beauty Studio, I am interested in *${service.name}* (Price: ₹${service.price}, Duration: ${service.duration} mins). Please share booking availability!`;
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    const fullPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-    const url = `https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
-  };
-
-  const handleBookService = (service: Service) => {
-    onClose();
-    router.push(`/book?serviceId=${encodeURIComponent(service.id)}&serviceName=${encodeURIComponent(service.name)}`);
-  };
 
   return (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 9999,
+        zIndex: 99999,
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        padding: '24px 16px',
-        background: 'rgba(2, 26, 29, 0.78)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        padding: '16px',
+        background: 'rgba(2, 20, 22, 0.82)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         animation: 'fadeIn 0.2s ease-out',
         overflowY: 'auto',
       }}
@@ -171,65 +205,73 @@ export default function HeaderServiceSearchModal({
       <div
         style={{
           width: '100%',
-          maxWidth: 780,
-          background: 'linear-gradient(180deg, #032b30 0%, #021a1d 100%)',
+          maxWidth: 920,
+          background: 'linear-gradient(180deg, #04363d 0%, #021e21 100%)',
           borderRadius: 24,
-          border: '1.5px solid rgba(234, 186, 56, 0.4)',
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6), 0 0 30px rgba(234, 186, 56, 0.15)',
+          border: '1.5px solid rgba(234, 186, 56, 0.45)',
+          boxShadow: '0 25px 70px rgba(0, 0, 0, 0.75), 0 0 40px rgba(5, 66, 74, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          marginTop: '4vh',
+          marginTop: '2vh',
+          marginBottom: '2vh',
           color: '#ffffff',
+          animation: 'slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Bar */}
+        {/* Top Header & Search Bar Area */}
         <div
           style={{
             padding: '20px 24px 16px',
-            borderBottom: '1px solid rgba(234, 186, 56, 0.2)',
+            background: 'rgba(0, 0, 0, 0.25)',
+            borderBottom: '1px solid rgba(234, 186, 56, 0.25)',
             display: 'flex',
             flexDirection: 'column',
             gap: 14,
           }}
         >
-          {/* Top Title & Close */}
+          {/* Header Title Row */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 12,
                   background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#032B30',
+                  boxShadow: '0 2px 10px rgba(234, 186, 56, 0.3)',
                 }}
               >
-                <Sparkles size={16} />
+                <Sparkles size={18} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em' }}>
-                  Search Services &amp; Treatments
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#ffffff', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>Quick Treatment &amp; Service Finder</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(234, 186, 56, 0.2)', color: '#EABA38', border: '1px solid rgba(234, 186, 56, 0.4)' }}>
+                    Instant Search
+                  </span>
                 </h3>
-                <p style={{ margin: 0, fontSize: 11, color: 'rgba(255, 255, 255, 0.65)' }}>
-                  Browse prices, durations, and details for ladies salon &amp; bridal packages
+                <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Browse prices, durations &amp; packages with 1-click booking at Shree Beauty Studio Katargam
                 </p>
               </div>
             </div>
 
+            {/* Close Button */}
             <button
               type="button"
               onClick={onClose}
               style={{
-                width: 34,
-                height: 34,
+                width: 36,
+                height: 36,
                 borderRadius: '50%',
                 background: 'rgba(255, 255, 255, 0.08)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
                 color: '#ffffff',
                 display: 'flex',
                 alignItems: 'center',
@@ -237,8 +279,15 @@ export default function HeaderServiceSearchModal({
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                e.currentTarget.style.borderColor = '#ef4444';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+              }}
+              aria-label="Close search modal"
             >
               <X size={18} />
             </button>
@@ -247,386 +296,565 @@ export default function HeaderServiceSearchModal({
           {/* Search Input Box */}
           <div style={{ position: 'relative', width: '100%' }}>
             <Search
-              size={18}
+              size={20}
               style={{
                 position: 'absolute',
-                left: 14,
+                left: 16,
                 top: '50%',
                 transform: 'translateY(-50%)',
                 color: '#EABA38',
+                pointerEvents: 'none',
               }}
             />
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search by treatment (e.g. Hydra Facial, Nanoplastia, Bridal Makeup, Waxing)..."
+              placeholder="Search treatments (e.g. Bridal Makeup, Hydra Facial, Hair Botox, Nanoplastia, Waxing)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
-                padding: '13px 40px 13px 44px',
-                borderRadius: 14,
-                background: 'rgba(0, 0, 0, 0.35)',
-                border: '1.5px solid rgba(234, 186, 56, 0.45)',
+                padding: '14px 44px 14px 48px',
+                borderRadius: 16,
+                background: 'rgba(0, 0, 0, 0.45)',
+                border: '1.5px solid rgba(234, 186, 56, 0.55)',
                 color: '#ffffff',
-                fontSize: 14,
+                fontSize: 15,
+                fontWeight: 500,
                 outline: 'none',
-                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.3)',
+                boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 16px rgba(234, 186, 56, 0.15)',
+                transition: 'all 0.2s ease',
               }}
+              onFocus={(e) => (e.target.style.borderColor = '#EABA38')}
+              onBlur={(e) => (e.target.style.borderColor = 'rgba(234, 186, 56, 0.55)')}
             />
-            {searchQuery && (
+            {searchQuery ? (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  inputRef.current?.focus();
+                }}
                 style={{
                   position: 'absolute',
-                  right: 12,
+                  right: 14,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  background: 'rgba(255, 255, 255, 0.15)',
+                  background: 'rgba(255, 255, 255, 0.2)',
                   border: 'none',
                   borderRadius: '50%',
-                  width: 22,
-                  height: 22,
+                  width: 24,
+                  height: 24,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#ffffff',
                   cursor: 'pointer',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.4)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)')}
+              >
+                <X size={13} />
+              </button>
+            ) : (
+              <span
+                style={{
+                  position: 'absolute',
+                  right: 14,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.45)',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
                 }}
               >
-                <X size={12} />
-              </button>
+                ESC to close
+              </span>
             )}
           </div>
 
-          {/* Category Filter Chips */}
-          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-            {CATEGORY_CHIPS.map((cat) => {
+          {/* Quick Category Tabs Bar */}
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
+            {CATEGORY_TABS.map((cat) => {
               const isSelected = selectedCategory === cat.id;
+              const count = cat.id === 'all' ? services.length : categoryCounts[cat.id] || 0;
+
               return (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setSelectedCategory(cat.id)}
                   style={{
-                    padding: '5px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '7px 14px',
                     borderRadius: 99,
-                    fontSize: 11.5,
+                    fontSize: 12,
                     fontWeight: isSelected ? 800 : 600,
                     whiteSpace: 'nowrap',
                     cursor: 'pointer',
                     border: isSelected ? '1.5px solid #EABA38' : '1px solid rgba(255, 255, 255, 0.12)',
-                    background: isSelected ? 'linear-gradient(135deg, #EABA38 0%, #ca8a04 100%)' : 'rgba(255, 255, 255, 0.05)',
-                    color: isSelected ? '#031b1e' : 'rgba(255, 255, 255, 0.8)',
+                    background: isSelected ? 'linear-gradient(135deg, #EABA38 0%, #ca8a04 100%)' : 'rgba(255, 255, 255, 0.06)',
+                    color: isSelected ? '#031b1e' : 'rgba(255, 255, 255, 0.85)',
+                    boxShadow: isSelected ? '0 2px 10px rgba(234, 186, 56, 0.35)' : 'none',
                     transition: 'all 0.15s ease',
+                    flexShrink: 0,
                   }}
                 >
-                  {cat.label}
+                  <span>{cat.icon}</span>
+                  <span>{cat.label}</span>
+                  {count > 0 && (
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: 99,
+                        background: isSelected ? 'rgba(3, 27, 30, 0.25)' : 'rgba(255, 255, 255, 0.15)',
+                        color: isSelected ? '#031b1e' : '#EABA38',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+
+          {/* Quick Price Filters */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, paddingTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255, 255, 255, 0.65)' }}>
+              <Tag size={12} color="#EABA38" />
+              <span>Filter by Budget:</span>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {PRICE_FILTERS.map((pf) => {
+                  const isSel = selectedPriceFilter === pf.id;
+                  return (
+                    <button
+                      key={pf.id}
+                      type="button"
+                      onClick={() => setSelectedPriceFilter(pf.id)}
+                      style={{
+                        padding: '3px 9px',
+                        borderRadius: 6,
+                        fontSize: 10.5,
+                        fontWeight: isSel ? 800 : 500,
+                        background: isSel ? 'rgba(234, 186, 56, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                        border: isSel ? '1px solid #EABA38' : '1px solid rgba(255, 255, 255, 0.1)',
+                        color: isSel ? '#EABA38' : 'rgba(255, 255, 255, 0.75)',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {pf.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ fontSize: 11.5, color: 'rgba(255, 255, 255, 0.6)' }}>
+              <span>Found <strong style={{ color: '#EABA38' }}>{filteredServices.length}</strong> treatments</span>
+            </div>
+          </div>
         </div>
 
-        {/* Modal Body: Results or Trending Suggestions */}
-        <div style={{ maxHeight: '60vh', overflowY: 'auto', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Quick Trending Searches Pills (when query is empty) */}
-          {!searchQuery && selectedCategory === 'all' && (
-            <div style={{ marginBottom: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, color: '#EABA38', marginBottom: 8 }}>
-                <Flame size={14} color="#f97316" />
-                <span>Popular &amp; Trending Treatments in Katargam, Surat:</span>
+        {/* Modal Body: Results Grid */}
+        <div
+          style={{
+            maxHeight: '58vh',
+            overflowY: 'auto',
+            padding: '20px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+          }}
+        >
+          {/* Trending Suggestions When Search is Blank */}
+          {!searchQuery && selectedCategory === 'all' && selectedPriceFilter === 'all' && (
+            <div
+              style={{
+                background: 'rgba(234, 186, 56, 0.08)',
+                border: '1px solid rgba(234, 186, 56, 0.25)',
+                borderRadius: 16,
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#EABA38' }}>
+                <Flame size={15} color="#f97316" />
+                <span>Trending &amp; Most Booked Treatments in Surat:</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {TRENDING_QUICK_SEARCHES.map((term) => (
+                {TRENDING_TAGS.map((tag) => (
                   <button
-                    key={term}
+                    key={tag}
                     type="button"
-                    onClick={() => setSearchQuery(term)}
+                    onClick={() => setSearchQuery(tag)}
                     style={{
-                      padding: '4px 10px',
+                      padding: '5px 12px',
                       borderRadius: 8,
-                      background: 'rgba(234, 186, 56, 0.1)',
-                      border: '1px solid rgba(234, 186, 56, 0.25)',
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: '1px solid rgba(234, 186, 56, 0.3)',
                       color: '#ffffff',
-                      fontSize: 11,
+                      fontSize: 11.5,
                       fontWeight: 600,
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(234, 186, 56, 0.25)';
+                      e.currentTarget.style.borderColor = '#EABA38';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(0, 0, 0, 0.35)';
+                      e.currentTarget.style.borderColor = 'rgba(234, 186, 56, 0.3)';
                     }}
                   >
-                    ✨ {term}
+                    <span>✨</span>
+                    <span>{tag}</span>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Results Count Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11.5, color: 'rgba(255, 255, 255, 0.6)' }}>
-            <span>Showing <strong>{filteredServices.length}</strong> available treatments</span>
-            {searchQuery && (
-              <span>Filtered by: &ldquo;<strong style={{ color: '#EABA38' }}>{searchQuery}</strong>&rdquo;</span>
-            )}
-          </div>
-
           {/* Empty State */}
           {filteredServices.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
-                padding: '40px 20px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderRadius: 16,
-                border: '1px dashed rgba(255, 255, 255, 0.15)',
+                padding: '48px 24px',
+                background: 'rgba(0, 0, 0, 0.25)',
+                borderRadius: 20,
+                border: '1px dashed rgba(255, 255, 255, 0.2)',
               }}
             >
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(234, 186, 56, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', color: '#EABA38' }}>
-                <Search size={22} />
+              <div
+                style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: '50%',
+                  background: 'rgba(234, 186, 56, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 14px',
+                  color: '#EABA38',
+                }}
+              >
+                <Search size={26} />
               </div>
-              <h4 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 4px', color: '#ffffff' }}>No matching treatments found</h4>
-              <p style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', margin: '0 0 14px' }}>
-                Try searching for &quot;Facial&quot;, &quot;Bridal&quot;, &quot;Hair Botox&quot;, or &quot;Waxing&quot;
+              <h4 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 6px', color: '#ffffff' }}>
+                No treatments found matching &quot;{searchQuery}&quot;
+              </h4>
+              <p style={{ fontSize: 12.5, color: 'rgba(255, 255, 255, 0.65)', margin: '0 0 16px', maxWidth: 420, marginInline: 'auto' }}>
+                Try searching for broader terms like &quot;Bridal&quot;, &quot;Facial&quot;, &quot;Hair&quot;, &quot;Waxing&quot;, or browse all services below.
               </p>
               <button
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('all');
+                  setSelectedPriceFilter('all');
                 }}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: 8,
-                  background: 'rgba(234, 186, 56, 0.2)',
-                  border: '1px solid #EABA38',
-                  color: '#EABA38',
-                  fontSize: 12,
-                  fontWeight: 700,
+                  padding: '8px 18px',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
+                  border: 'none',
+                  color: '#031b1e',
+                  fontSize: 12.5,
+                  fontWeight: 800,
                   cursor: 'pointer',
+                  boxShadow: '0 2px 10px rgba(234, 186, 56, 0.3)',
                 }}
               >
-                View All Services
+                Reset &amp; View All Services
               </button>
             </div>
           ) : (
-            /* Service List Cards */
-            filteredServices.map((svc) => {
-              const isExpanded = expandedServiceId === svc.id;
-              const formattedPrice = svc.pricingType === 'starting' ? `Starting at ₹${svc.price}` : `₹${svc.price}`;
+            /* 2-Column Responsive Service Cards Grid */
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+                gap: 14,
+              }}
+            >
+              {filteredServices.map((svc) => {
+                const isExpanded = expandedServiceId === svc.id;
+                const formattedPrice = svc.pricingType === 'starting' ? `Starting at ₹${svc.price}` : `₹${svc.price}`;
 
-              return (
-                <div
-                  key={svc.id}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    border: isExpanded ? '1.5px solid #EABA38' : '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: 16,
-                    padding: '14px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    transition: 'all 0.2s ease',
-                    boxShadow: isExpanded ? '0 8px 24px rgba(0,0,0,0.4)' : 'none',
-                  }}
-                >
-                  {/* Top Row: Title, Category & Price */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                    <div style={{ flex: 1, minWidth: 200 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                        <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#ffffff' }}>
-                          {svc.name}
-                        </h4>
-                        {svc.category && (
+                return (
+                  <div
+                    key={svc.id}
+                    style={{
+                      background: 'linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%)',
+                      border: isExpanded ? '1.5px solid #EABA38' : '1px solid rgba(234, 186, 56, 0.2)',
+                      borderRadius: 18,
+                      padding: '16px 18px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      transition: 'all 0.2s ease',
+                      boxShadow: isExpanded
+                        ? '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(234, 186, 56, 0.2)'
+                        : '0 4px 14px rgba(0, 0, 0, 0.25)',
+                    }}
+                  >
+                    {/* Top Row: Service Title & Price Badge */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
                           <span
                             style={{
                               fontSize: 10,
-                              fontWeight: 700,
+                              fontWeight: 800,
                               padding: '2px 8px',
                               borderRadius: 99,
-                              background: 'rgba(234, 186, 56, 0.15)',
+                              background: 'rgba(234, 186, 56, 0.18)',
                               color: '#EABA38',
-                              border: '1px solid rgba(234, 186, 56, 0.3)',
+                              border: '1px solid rgba(234, 186, 56, 0.35)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.02em',
                             }}
                           >
-                            {svc.category}
+                            {svc.category || 'Special'}
                           </span>
-                        )}
+                        </div>
+                        <h4
+                          style={{
+                            margin: 0,
+                            fontSize: 15.5,
+                            fontWeight: 800,
+                            color: '#ffffff',
+                            lineHeight: 1.35,
+                            letterSpacing: '-0.01em',
+                          }}
+                        >
+                          {svc.name}
+                        </h4>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11.5, color: 'rgba(255, 255, 255, 0.7)' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Clock size={12} color="#EABA38" />
-                          <span>{svc.duration} mins</span>
-                        </span>
-                        <span>•</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <CheckCircle2 size={12} color="#4ade80" />
-                          <span>100% Genuine Luxury Brands</span>
-                        </span>
+                      {/* Golden Price Badge */}
+                      <div
+                        style={{
+                          textAlign: 'right',
+                          background: 'rgba(0, 0, 0, 0.35)',
+                          padding: '6px 12px',
+                          borderRadius: 12,
+                          border: '1px solid rgba(234, 186, 56, 0.3)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <div style={{ fontSize: 17, fontWeight: 900, color: '#EABA38', letterSpacing: '-0.02em' }}>
+                          {formattedPrice}
+                        </div>
+                        <div style={{ fontSize: 9.5, color: 'rgba(255, 255, 255, 0.55)', fontWeight: 600 }}>
+                          {svc.pricingType === 'hair_length'
+                            ? 'By Length'
+                            : svc.pricingType === 'skin_type'
+                            ? 'By Skin'
+                            : 'All Taxes Incl.'}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Price Badge */}
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 17, fontWeight: 900, color: '#EABA38', letterSpacing: '-0.01em' }}>
-                        {formattedPrice}
-                      </div>
-                      <div style={{ fontSize: 10, color: 'rgba(255, 255, 255, 0.5)' }}>
-                        {svc.pricingType === 'hair_length' ? 'By Hair Length' : svc.pricingType === 'skin_type' ? 'By Skin Type' : 'Inclusive of Taxes'}
-                      </div>
+                    {/* Meta Row: Duration & Verified Tags */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11.5, color: 'rgba(255, 255, 255, 0.75)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                        <Clock size={13} color="#EABA38" />
+                        <span>{svc.duration} mins</span>
+                      </span>
+                      <span style={{ opacity: 0.4 }}>•</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                        <CheckCircle2 size={13} color="#4ade80" />
+                        <span>Female Specialist</span>
+                      </span>
                     </div>
-                  </div>
 
-                  {/* Description / Highlights */}
-                  {svc.description && (
-                    <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: 'rgba(255, 255, 255, 0.8)' }}>
-                      {svc.description}
-                    </p>
-                  )}
+                    {/* Description Snippet */}
+                    {svc.description && (
+                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.45, color: 'rgba(255, 255, 255, 0.8)' }}>
+                        {svc.description}
+                      </p>
+                    )}
 
-                  {/* Expanded Treatment Details */}
-                  {isExpanded && (
+                    {/* Accordion Details */}
+                    {isExpanded && (
+                      <div
+                        style={{
+                          background: 'rgba(0, 0, 0, 0.4)',
+                          borderRadius: 12,
+                          padding: '12px 14px',
+                          border: '1px solid rgba(234, 186, 56, 0.25)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6,
+                          marginTop: 2,
+                        }}
+                      >
+                        <div style={{ fontSize: 11.5, fontWeight: 800, color: '#EABA38', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Info size={13} />
+                          <span>Treatment Inclusions &amp; Guarantee:</span>
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: 'rgba(255, 255, 255, 0.85)', lineHeight: 1.55 }}>
+                          <li>100% Genuine luxury beauty products &amp; disposable hygiene kits.</li>
+                          <li>Personalized consultation before treatment in private ladies cabin.</li>
+                          <li>Instant booking confirmation with WhatsApp appointment pass.</li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Action Buttons Row */}
                     <div
                       style={{
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        borderRadius: 12,
-                        padding: '12px 14px',
-                        border: '1px solid rgba(234, 186, 56, 0.2)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                        marginTop: 4,
-                      }}
-                    >
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#EABA38', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Info size={14} />
-                        <span>Service &amp; Consultation Details:</span>
-                      </div>
-                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 11.5, color: 'rgba(255, 255, 255, 0.85)', lineHeight: 1.6 }}>
-                        <li>Performed by certified female specialists in Katargam, Surat.</li>
-                        <li>High-frequency sanitization &amp; disposable hygiene kits used.</li>
-                        <li>Personalized skin &amp; hair strand patch consultation included.</li>
-                        <li>Instant booking confirmation via SMS &amp; WhatsApp.</li>
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Action Buttons Row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6, borderTop: '1px solid rgba(255, 255, 255, 0.08)', flexWrap: 'wrap', gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={() => setExpandedServiceId(isExpanded ? null : svc.id)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 4,
-                        padding: 0,
+                        justifyContent: 'space-between',
+                        paddingTop: 8,
+                        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                        gap: 8,
                       }}
                     >
-                      {isExpanded ? (
-                        <>
-                          <ChevronUp size={13} color="#EABA38" /> Hide Details
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown size={13} color="#EABA38" /> View Details &amp; Benefits
-                        </>
-                      )}
-                    </button>
-
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {/* WhatsApp Inquiry Button */}
                       <button
                         type="button"
-                        onClick={() => handleWhatsAppInquire(svc)}
+                        onClick={() => setExpandedServiceId(isExpanded ? null : svc.id)}
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          padding: '6px 12px',
-                          borderRadius: 8,
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid rgba(16, 185, 129, 0.4)',
-                          color: '#34d399',
-                          fontSize: 11.5,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <Phone size={12} />
-                        <span>WhatsApp</span>
-                      </button>
-
-                      {/* Direct Book Now Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleBookService(svc)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          padding: '6px 14px',
-                          borderRadius: 8,
-                          background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
+                          background: 'transparent',
                           border: 'none',
-                          color: '#031b1e',
-                          fontSize: 11.5,
-                          fontWeight: 800,
+                          color: 'rgba(255, 255, 255, 0.65)',
+                          fontSize: 11,
+                          fontWeight: 600,
                           cursor: 'pointer',
-                          boxShadow: '0 2px 8px rgba(234, 186, 56, 0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          padding: '4px 0',
                         }}
                       >
-                        <Calendar size={13} />
-                        <span>Book Online</span>
-                        <ArrowRight size={12} />
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp size={13} color="#EABA38" /> Less
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={13} color="#EABA38" /> Details
+                          </>
+                        )}
                       </button>
+
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {/* WhatsApp Inquire */}
+                        <button
+                          type="button"
+                          onClick={() => handleWhatsAppInquire(svc)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '7px 12px',
+                            borderRadius: 10,
+                            background: 'rgba(16, 185, 129, 0.18)',
+                            border: '1px solid rgba(16, 185, 129, 0.45)',
+                            color: '#34d399',
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.3)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(16, 185, 129, 0.18)')}
+                        >
+                          <Phone size={12} />
+                          <span>WhatsApp</span>
+                        </button>
+
+                        {/* Direct Book */}
+                        <button
+                          type="button"
+                          onClick={() => handleBookService(svc)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '7px 14px',
+                            borderRadius: 10,
+                            background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
+                            border: 'none',
+                            color: '#031b1e',
+                            fontSize: 12,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            boxShadow: '0 2px 10px rgba(234, 186, 56, 0.35)',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.transform = 'none')}
+                        >
+                          <Calendar size={13} />
+                          <span>Book Now</span>
+                          <ArrowRight size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
 
         {/* Footer Bar */}
         <div
           style={{
-            padding: '12px 24px',
-            background: 'rgba(0, 0, 0, 0.35)',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '14px 24px',
+            background: 'rgba(0, 0, 0, 0.4)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            fontSize: 11,
-            color: 'rgba(255, 255, 255, 0.6)',
+            fontSize: 11.5,
+            color: 'rgba(255, 255, 255, 0.7)',
             flexWrap: 'wrap',
-            gap: 8,
+            gap: 10,
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>📍 Katargam, Surat · 100% Ladies Only Salon</span>
+            <MapPin size={13} color="#EABA38" />
+            <span>Katargam, Surat · 25+ Years Excellence · 100% Ladies Only</span>
           </div>
 
-          <div style={{ display: 'flex', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Link
               href="/services"
               onClick={onClose}
-              style={{ color: '#EABA38', textDecoration: 'none', fontWeight: 700 }}
+              style={{ color: '#EABA38', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              Browse Full Rate Card →
+              <span>Full Rate Card</span>
+              <span>→</span>
             </Link>
             <Link
               href="/bridal"
               onClick={onClose}
-              style={{ color: '#EABA38', textDecoration: 'none', fontWeight: 700 }}
+              style={{ color: '#EABA38', textDecoration: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              Bridal Studio →
+              <span>Bridal Studio</span>
+              <span>→</span>
             </Link>
           </div>
         </div>
