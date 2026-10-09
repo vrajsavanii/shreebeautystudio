@@ -2456,6 +2456,157 @@ export default function InstagramHubPage() {
                         style={{ width: '100%', accentColor: '#E1306C', height: 6, cursor: 'pointer' }}
                       />
                     </div>
+
+                    {/* ── PHOTO POSITION & SIDE ALIGNMENT CONTROLS (ફોટો સાઇડ / પોઝિશન સેટિંગ) ── */}
+                    <div style={{ background: 'var(--muted)', borderRadius: 12, padding: '12px', border: '1.5px solid rgba(225, 48, 108, 0.25)', marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Move size={14} color="#E1306C" />
+                          <span style={{ fontSize: 12, fontWeight: 900, color: 'var(--foreground)' }}>
+                            🎯 Photo Side & Position (કઈ સાઇડ સેટ કરવી છે):
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentItem({ panX: 0, panY: 0, zoom: 1 })}
+                          className="btn btn-secondary btn-xs"
+                          style={{ fontSize: 9.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}
+                        >
+                          <RefreshCw size={10} /> Reset Center
+                        </button>
+                      </div>
+
+                      {/* Quick 1-Click Side Align Buttons */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentItem({ panX: 120, fitMode: 'cover' })}
+                          style={{
+                            padding: '8px 4px',
+                            borderRadius: 10,
+                            border: (currentItem?.panX || 0) > 40 ? '2px solid #E1306C' : '1px solid var(--border)',
+                            background: (currentItem?.panX || 0) > 40 ? 'rgba(225, 48, 108, 0.15)' : 'var(--card)',
+                            color: (currentItem?.panX || 0) > 40 ? '#E1306C' : 'var(--foreground)',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 2,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span style={{ fontSize: 14 }}>👈</span>
+                          <span>Left Side</span>
+                          <span style={{ fontSize: 8.5, opacity: 0.7 }}>ડાબી બાજુ</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentItem({ panX: 0, fitMode: 'cover' })}
+                          style={{
+                            padding: '8px 4px',
+                            borderRadius: 10,
+                            border: (currentItem?.panX || 0) === 0 && currentItem?.fitMode !== 'contain' ? '2px solid #E1306C' : '1px solid var(--border)',
+                            background: (currentItem?.panX || 0) === 0 && currentItem?.fitMode !== 'contain' ? 'rgba(225, 48, 108, 0.15)' : 'var(--card)',
+                            color: (currentItem?.panX || 0) === 0 && currentItem?.fitMode !== 'contain' ? '#E1306C' : 'var(--foreground)',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 2,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span style={{ fontSize: 14 }}>⏺</span>
+                          <span>Center</span>
+                          <span style={{ fontSize: 8.5, opacity: 0.7 }}>વચ્ચે</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentItem({ panX: -120, fitMode: 'cover' })}
+                          style={{
+                            padding: '8px 4px',
+                            borderRadius: 10,
+                            border: (currentItem?.panX || 0) < -40 ? '2px solid #E1306C' : '1px solid var(--border)',
+                            background: (currentItem?.panX || 0) < -40 ? 'rgba(225, 48, 108, 0.15)' : 'var(--card)',
+                            color: (currentItem?.panX || 0) < -40 ? '#E1306C' : 'var(--foreground)',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 2,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span style={{ fontSize: 14 }}>👉</span>
+                          <span>Right Side</span>
+                          <span style={{ fontSize: 8.5, opacity: 0.7 }}>જમણી બાજુ</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => updateCurrentItem({ fitMode: currentItem?.fitMode === 'contain' ? 'cover' : 'contain', panX: 0, panY: 0 })}
+                          style={{
+                            padding: '8px 4px',
+                            borderRadius: 10,
+                            border: currentItem?.fitMode === 'contain' ? '2px solid #22c55e' : '1px solid var(--border)',
+                            background: currentItem?.fitMode === 'contain' ? 'rgba(34, 197, 94, 0.15)' : 'var(--card)',
+                            color: currentItem?.fitMode === 'contain' ? '#22c55e' : 'var(--foreground)',
+                            fontWeight: 800,
+                            fontSize: 11,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 2,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <span style={{ fontSize: 14 }}>🖼</span>
+                          <span>{currentItem?.fitMode === 'contain' ? '↗ Fill' : 'Fit Full'}</span>
+                          <span style={{ fontSize: 8.5, opacity: 0.7 }}>આખો ફોટો</span>
+                        </button>
+                      </div>
+
+                      {/* Horizontal Pan Slider */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontWeight: 700, color: 'var(--muted-foreground)', marginBottom: 3 }}>
+                          <span>👈 Show Left Side</span>
+                          <span style={{ color: 'var(--foreground)', fontWeight: 800 }}>Horizontal Side: {currentItem?.panX || 0}px</span>
+                          <span>Show Right Side 👉</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-250"
+                          max="250"
+                          step="2"
+                          value={currentItem?.panX || 0}
+                          onChange={(e) => updateCurrentItem({ panX: parseInt(e.target.value, 10), fitMode: 'cover' })}
+                          style={{ width: '100%', accentColor: '#E1306C', height: 6, cursor: 'pointer' }}
+                        />
+                      </div>
+
+                      {/* Vertical Pan Slider */}
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontWeight: 700, color: 'var(--muted-foreground)', marginBottom: 3 }}>
+                          <span>👆 Show Top</span>
+                          <span style={{ color: 'var(--foreground)', fontWeight: 800 }}>Vertical: {currentItem?.panY || 0}px</span>
+                          <span>Show Bottom 👇</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-250"
+                          max="250"
+                          step="2"
+                          value={currentItem?.panY || 0}
+                          onChange={(e) => updateCurrentItem({ panY: parseInt(e.target.value, 10), fitMode: 'cover' })}
+                          style={{ width: '100%', accentColor: '#E1306C', height: 6, cursor: 'pointer' }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -3255,7 +3406,156 @@ export default function InstagramHubPage() {
 
                 {/* Media Canvas / Photo Render */}
                 {mediaItems.length > 0 && currentItem ? (
-                  <div style={{ position: 'relative', background: '#000', overflow: 'hidden', ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio, currentItem.naturalWidth, currentItem.naturalHeight), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div
+                    onMouseDown={(e) => {
+                      setIsDragging(true);
+                      setDragStart({ x: e.clientX - (currentItem?.panX || 0), y: e.clientY - (currentItem?.panY || 0) });
+                    }}
+                    onMouseMove={(e) => {
+                      if (isDragging) {
+                        updateCurrentItem({
+                          panX: Math.round(e.clientX - dragStart.x),
+                          panY: Math.round(e.clientY - dragStart.y),
+                          fitMode: 'cover',
+                        });
+                      }
+                    }}
+                    onMouseUp={() => setIsDragging(false)}
+                    onMouseLeave={() => setIsDragging(false)}
+                    onTouchStart={(e) => {
+                      if (e.touches.length === 1) {
+                        setIsDragging(true);
+                        setDragStart({ x: e.touches[0].clientX - (currentItem?.panX || 0), y: e.touches[0].clientY - (currentItem?.panY || 0) });
+                      }
+                    }}
+                    onTouchMove={(e) => {
+                      if (isDragging && e.touches.length === 1) {
+                        updateCurrentItem({
+                          panX: Math.round(e.touches[0].clientX - dragStart.x),
+                          panY: Math.round(e.touches[0].clientY - dragStart.y),
+                          fitMode: 'cover',
+                        });
+                      }
+                    }}
+                    onTouchEnd={() => setIsDragging(false)}
+                    style={{
+                      position: 'relative',
+                      background: '#000',
+                      overflow: 'hidden',
+                      ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio, currentItem.naturalWidth, currentItem.naturalHeight),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: isDragging ? 'grabbing' : 'grab',
+                    }}
+                  >
+                    {/* Quick Side & Position Alignment Floating Bar (કઈ સાઇડ સેટ કરવી છે) */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: postFormat === 'story' ? 52 : 46,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        background: 'rgba(0, 0, 0, 0.8)',
+                        padding: '3px 6px',
+                        borderRadius: 999,
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        zIndex: 16,
+                        backdropFilter: 'blur(8px)',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCurrentItem({ panX: 120, fitMode: 'cover' });
+                          toast('👈 Left side set', 'success');
+                        }}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: 999,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          border: (currentItem?.panX || 0) > 40 ? '1px solid #E1306C' : 'none',
+                          background: (currentItem?.panX || 0) > 40 ? '#E1306C' : 'transparent',
+                          color: '#fff',
+                          cursor: 'pointer',
+                        }}
+                        title="Show Left Side"
+                      >
+                        👈 Left
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCurrentItem({ panX: 0, panY: 0, fitMode: 'cover' });
+                          toast('⏺ Center set', 'success');
+                        }}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: 999,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          border: (currentItem?.panX || 0) === 0 && currentItem?.fitMode !== 'contain' ? '1px solid #E1306C' : 'none',
+                          background: (currentItem?.panX || 0) === 0 && currentItem?.fitMode !== 'contain' ? '#E1306C' : 'transparent',
+                          color: '#fff',
+                          cursor: 'pointer',
+                        }}
+                        title="Center"
+                      >
+                        ⏺ Center
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCurrentItem({ panX: -120, fitMode: 'cover' });
+                          toast('👉 Right side set (Bride visible)', 'success');
+                        }}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: 999,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          border: (currentItem?.panX || 0) < -40 ? '1px solid #E1306C' : 'none',
+                          background: (currentItem?.panX || 0) < -40 ? '#E1306C' : 'transparent',
+                          color: '#fff',
+                          cursor: 'pointer',
+                        }}
+                        title="Show Right Side (Bride)"
+                      >
+                        👉 Right
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCurrentItem({ fitMode: currentItem?.fitMode === 'contain' ? 'cover' : 'contain', panX: 0, panY: 0 });
+                          toast(currentItem?.fitMode === 'contain' ? '↗ Filled screen' : '🖼 Full photo fitted (No crop)', 'success');
+                        }}
+                        style={{
+                          padding: '2px 6px',
+                          borderRadius: 999,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          border: currentItem?.fitMode === 'contain' ? '1px solid #22c55e' : 'none',
+                          background: currentItem?.fitMode === 'contain' ? '#22c55e' : 'transparent',
+                          color: '#fff',
+                          cursor: 'pointer',
+                        }}
+                        title="Fit Full Photo"
+                      >
+                        {currentItem?.fitMode === 'contain' ? '↗ Fill' : '🖼 Fit Full'}
+                      </button>
+                    </div>
                     {/* Interactive Tap to Slide (Tap Left = Prev, Tap Right = Next) */}
                     {mediaItems.length > 1 && (
                       <>
