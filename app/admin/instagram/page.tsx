@@ -198,6 +198,8 @@ export default function InstagramHubPage() {
 
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
+  const [isAutoSliding, setIsAutoSliding] = useState(false);
+  const [slideProgress, setSlideProgress] = useState(0);
   const [globalAspectRatio, setGlobalAspectRatio] = useState<AspectRatio>('original');
   const [postFormat, setPostFormat] = useState<'feed' | 'story' | 'reel'>('story');
   const [previewPosition, setPreviewPosition] = useState<'left' | 'right'>('left');
@@ -398,6 +400,29 @@ export default function InstagramHubPage() {
 
   // Active Media Item
   const currentItem = mediaItems[activeMediaIndex] || null;
+
+  // Auto-slide slideshow effect for Story / Post preview
+  useEffect(() => {
+    if (!isAutoSliding || mediaItems.length <= 1) {
+      setSlideProgress(0);
+      return;
+    }
+    const intervalMs = 100;
+    const totalDurationMs = 5000;
+    const step = (intervalMs / totalDurationMs) * 100;
+
+    const timer = setInterval(() => {
+      setSlideProgress((prev) => {
+        if (prev >= 100) {
+          setActiveMediaIndex((curr) => (curr + 1) % mediaItems.length);
+          return 0;
+        }
+        return prev + step;
+      });
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [isAutoSliding, mediaItems.length, activeMediaIndex]);
 
   // ── MULTI-FILE SELECTION HANDLER (SUPPORTS IPHONE / ANDROID / CAMERA / GALLERY) ──
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -3127,10 +3152,45 @@ export default function InstagramHubPage() {
               >
                 {/* Story Top Progress & Profile Bar */}
                 {postFormat === 'story' ? (
-                  <div style={{ padding: '8px 10px 4px', background: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%)', zIndex: 10, position: 'relative' }}>
-                    <div style={{ width: '100%', height: 2, background: 'rgba(255,255,255,0.3)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
-                      <div style={{ width: '70%', height: '100%', background: '#ffffff', borderRadius: 2 }} />
+                  <div style={{ padding: '8px 10px 4px', background: 'linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%)', zIndex: 15, position: 'relative' }}>
+                    {/* Multi-Story Progress Segments */}
+                    <div style={{ display: 'flex', gap: 3, width: '100%', marginBottom: 6 }}>
+                      {mediaItems.length > 1 ? (
+                        mediaItems.map((_, idx) => (
+                          <div
+                            key={idx}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMediaIndex(idx);
+                              setSlideProgress(0);
+                            }}
+                            style={{
+                              flex: 1,
+                              height: 2.5,
+                              background: 'rgba(255,255,255,0.3)',
+                              borderRadius: 2,
+                              overflow: 'hidden',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: idx < activeMediaIndex ? '100%' : idx === activeMediaIndex ? (isAutoSliding ? `${slideProgress}%` : '100%') : '0%',
+                                height: '100%',
+                                background: '#ffffff',
+                                borderRadius: 2,
+                                transition: isAutoSliding && idx === activeMediaIndex ? 'width 0.1s linear' : 'none',
+                              }}
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ width: '100%', height: 2.5, background: 'rgba(255,255,255,0.3)', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ width: '100%', height: '100%', background: '#ffffff', borderRadius: 2 }} />
+                        </div>
+                      )}
                     </div>
+
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(45deg, #f09433, #dc2743)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 900 }}>
@@ -3142,9 +3202,36 @@ export default function InstagramHubPage() {
                           </div>
                         </div>
                       </div>
-                      <span style={{ fontSize: 8.5, fontWeight: 800, background: 'rgba(225, 48, 108, 0.4)', color: '#fff', padding: '1px 6px', borderRadius: 999, border: '1px solid rgba(225, 48, 108, 0.6)' }}>
-                        ⚡ STORY
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        {mediaItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsAutoSliding(!isAutoSliding);
+                            }}
+                            style={{
+                              background: isAutoSliding ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.2)',
+                              border: isAutoSliding ? '1px solid #22c55e' : '1px solid rgba(255, 255, 255, 0.35)',
+                              color: isAutoSliding ? '#22c55e' : '#ffffff',
+                              borderRadius: 999,
+                              padding: '2px 8px',
+                              fontSize: 8.5,
+                              fontWeight: 800,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isAutoSliding ? <Pause size={9} /> : <Play size={9} />}
+                            <span>{isAutoSliding ? 'Auto' : 'Play'}</span>
+                          </button>
+                        )}
+                        <span style={{ fontSize: 8.5, fontWeight: 800, background: 'rgba(225, 48, 108, 0.4)', color: '#fff', padding: '1px 6px', borderRadius: 999, border: '1px solid rgba(225, 48, 108, 0.6)' }}>
+                          ⚡ STORY {mediaItems.length > 1 ? `(${activeMediaIndex + 1}/${mediaItems.length})` : ''}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -3169,6 +3256,108 @@ export default function InstagramHubPage() {
                 {/* Media Canvas / Photo Render */}
                 {mediaItems.length > 0 && currentItem ? (
                   <div style={{ position: 'relative', background: '#000', overflow: 'hidden', ...getAspectRatioStyle(currentItem.aspectRatio || globalAspectRatio, currentItem.naturalWidth, currentItem.naturalHeight), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {/* Interactive Tap to Slide (Tap Left = Prev, Tap Right = Next) */}
+                    {mediaItems.length > 1 && (
+                      <>
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMediaIndex((prev) => (prev > 0 ? prev - 1 : mediaItems.length - 1));
+                            setSlideProgress(0);
+                          }}
+                          title="Tap left: Previous slide"
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            bottom: 0,
+                            left: 0,
+                            width: '35%',
+                            zIndex: 8,
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMediaIndex((prev) => (prev < mediaItems.length - 1 ? prev + 1 : 0));
+                            setSlideProgress(0);
+                          }}
+                          title="Tap right: Next slide"
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            bottom: 0,
+                            right: 0,
+                            width: '65%',
+                            zIndex: 8,
+                            cursor: 'pointer',
+                          }}
+                        />
+
+                        {/* Floating Left/Right Chevron Buttons */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMediaIndex((prev) => (prev > 0 ? prev - 1 : mediaItems.length - 1));
+                            setSlideProgress(0);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            left: 6,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: 26,
+                            height: 26,
+                            borderRadius: '50%',
+                            background: 'rgba(0, 0, 0, 0.65)',
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 14,
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(4px)',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+                          }}
+                          title="Previous Slide"
+                        >
+                          <ChevronLeft size={15} />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMediaIndex((prev) => (prev < mediaItems.length - 1 ? prev + 1 : 0));
+                            setSlideProgress(0);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            right: 6,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: 26,
+                            height: 26,
+                            borderRadius: '50%',
+                            background: 'rgba(0, 0, 0, 0.65)',
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 14,
+                            cursor: 'pointer',
+                            backdropFilter: 'blur(4px)',
+                            boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+                          }}
+                          title="Next Slide"
+                        >
+                          <ChevronRight size={15} />
+                        </button>
+                      </>
+                    )}
                     {/* Blurred Backdrop */}
                     {currentItem.fitMode === 'contain' && (
                       <div
@@ -3662,6 +3851,76 @@ export default function InstagramHubPage() {
             {/* MASTER PUBLISH & ACTIONS BAR */}
             <div className="card" style={{ borderRadius: 16, padding: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Multi-Photo Slide Controller Bar */}
+                {mediaItems.length > 1 && (
+                  <div
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 12,
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      marginBottom: 2,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveMediaIndex((prev) => (prev > 0 ? prev - 1 : mediaItems.length - 1));
+                          setSlideProgress(0);
+                        }}
+                        className="btn btn-secondary btn-xs"
+                        style={{ padding: '4px 8px', borderRadius: 8, fontWeight: 700, fontSize: 11 }}
+                        title="Previous slide"
+                      >
+                        <ChevronLeft size={13} /> Prev
+                      </button>
+
+                      <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--foreground)' }}>
+                        Slide {activeMediaIndex + 1} / {mediaItems.length}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveMediaIndex((prev) => (prev < mediaItems.length - 1 ? prev + 1 : 0));
+                          setSlideProgress(0);
+                        }}
+                        className="btn btn-secondary btn-xs"
+                        style={{ padding: '4px 8px', borderRadius: 8, fontWeight: 700, fontSize: 11 }}
+                        title="Next slide"
+                      >
+                        Next <ChevronRight size={13} />
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsAutoSliding(!isAutoSliding)}
+                      className="btn btn-xs"
+                      style={{
+                        background: isAutoSliding ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.08)',
+                        border: isAutoSliding ? '1px solid #22c55e' : '1px solid var(--border)',
+                        color: isAutoSliding ? '#22c55e' : 'var(--foreground)',
+                        fontWeight: 700,
+                        fontSize: 11,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '4px 10px',
+                        borderRadius: 8,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {isAutoSliding ? <Pause size={12} /> : <Play size={12} />}
+                      <span>{isAutoSliding ? 'Auto Playing' : 'Auto Play'}</span>
+                    </button>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handlePublishToInstagram}
