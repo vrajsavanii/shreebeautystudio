@@ -100,17 +100,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     description: 'Google Maps reviews sync, local SEO & automated 5-star replies',
   },
   {
-    id: 'tv-slideshow',
-    href: '/admin/instagram?tab=tv_slideshow',
-    label: 'TV Slideshow',
-    gujarati: 'ટીવી સ્લાઇડશો 4K',
-    icon: Tv,
-    iconName: 'Tv',
-    role: 'all',
-    description: 'Reception TV 4K slideshow player (2160×1440), offline local storage & auto-sync',
-    badge: '4K',
-  },
-  {
     id: 'finance',
     href: '/admin/finance',
     label: 'Finance & Rojmel',
