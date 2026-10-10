@@ -1189,7 +1189,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleApplyPreset(
-                    ['billing', 'appointments', 'bridal', 'customers', 'whatsapp', 'dashboard', 'finance', 'inventory', 'purchases', 'services', 'staff', 'reminders', 'reports', 'instagram', 'google-maps', 'suppliers', 'settings'],
+                    ['billing', 'appointments', 'bridal', 'customers', 'whatsapp', 'dashboard', 'finance', 'inventory', 'purchases', 'services', 'staff', 'reminders', 'reports', 'instagram', 'google-maps', 'ai-poster', 'suppliers', 'settings'],
                     'Fast Counter POS Priority'
                   )}
                   style={{
@@ -1208,7 +1208,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleApplyPreset(
-                    ['dashboard', 'finance', 'billing', 'appointments', 'reports', 'customers', 'bridal', 'staff', 'purchases', 'inventory', 'suppliers', 'services', 'reminders', 'whatsapp', 'instagram', 'google-maps', 'settings'],
+                    ['dashboard', 'finance', 'billing', 'appointments', 'reports', 'customers', 'bridal', 'staff', 'purchases', 'inventory', 'suppliers', 'services', 'reminders', 'whatsapp', 'instagram', 'google-maps', 'ai-poster', 'settings'],
                     'Owner Financials & Rojmel First'
                   )}
                   style={{
@@ -1227,7 +1227,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleApplyPreset(
-                    ['dashboard', 'whatsapp', 'instagram', 'google-maps', 'appointments', 'bridal', 'customers', 'billing', 'finance', 'services', 'inventory', 'purchases', 'suppliers', 'staff', 'reminders', 'reports', 'settings'],
+                    ['dashboard', 'whatsapp', 'instagram', 'google-maps', 'ai-poster', 'appointments', 'bridal', 'customers', 'billing', 'finance', 'services', 'inventory', 'purchases', 'suppliers', 'staff', 'reminders', 'reports', 'settings'],
                     'Marketing & Social Growth First'
                   )}
                   style={{

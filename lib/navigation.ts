@@ -2,7 +2,7 @@
 import {
   LayoutDashboard, Calendar, Users, Receipt, Package,
   ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings,
-  Sparkles, MessageCircle, BookOpen, Instagram, MapPin, Tv, LucideIcon
+  Sparkles, MessageCircle, BookOpen, Instagram, MapPin, Tv, Palette, LucideIcon
 } from 'lucide-react';
 
 export interface NavItem {
@@ -98,6 +98,17 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     iconName: 'MapPin',
     role: 'all',
     description: 'Google Maps reviews sync, local SEO & automated 5-star replies',
+  },
+  {
+    id: 'ai-poster',
+    href: '/admin/ai-poster',
+    label: 'AI Poster',
+    gujarati: 'એઆઈ પોસ્ટર',
+    icon: Palette,
+    iconName: 'Palette',
+    role: 'all',
+    description: 'Luxury salon posters, festive offer flyers, Instagram stories & HD banners',
+    badge: 'AI',
   },
   {
     id: 'finance',

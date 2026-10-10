@@ -55,8 +55,9 @@ import { useToast } from '@/components/ui/Toast';
 import { openWAWeb, openWAApp } from '@/lib/whatsapp';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import { GoogleReviewItem } from '@/app/api/google-reviews/route';
+import AIPosterStudio from '@/components/poster/AIPosterStudio';
 
-type ActiveTab = 'reviews' | 'post' | 'booster' | 'keywords' | 'settings' | 'qr';
+type ActiveTab = 'reviews' | 'post' | 'poster' | 'booster' | 'keywords' | 'settings' | 'qr';
 
 // Curated High-Value SEO Keywords for Katargam & Surat
 const SEO_KEYWORDS = [
@@ -1198,6 +1199,26 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
         </button>
 
         <button
+          onClick={() => setActiveTab('poster')}
+          className={`btn ${activeTab === 'poster' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontWeight: 800,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            minHeight: 38,
+            background: activeTab === 'poster' ? 'linear-gradient(45deg, #EABA38, #D49B20)' : undefined,
+            color: activeTab === 'poster' ? '#05424A' : undefined,
+            border: activeTab === 'poster' ? 'none' : undefined,
+          }}
+        >
+          <Sparkles size={15} color={activeTab === 'poster' ? '#05424A' : '#eab308'} />
+          🎨 AI Poster (એઆઈ પોસ્ટર)
+        </button>
+
+        <button
           onClick={() => setActiveTab('booster')}
           className={`btn ${activeTab === 'booster' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
           style={{
@@ -2162,6 +2183,13 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
               </div>
             </div>
           </div>
+        </motion.div>
+      )}
+
+      {/* ── TAB: AI POSTER STUDIO ── */}
+      {activeTab === 'poster' && (
+        <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
+          <AIPosterStudio />
         </motion.div>
       )}
 
