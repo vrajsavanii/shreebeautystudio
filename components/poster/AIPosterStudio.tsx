@@ -38,6 +38,8 @@ import {
   MicOff,
   Lightbulb,
   RefreshCw,
+  X,
+  Trash2,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { useToast } from '@/components/ui/Toast';
@@ -397,6 +399,51 @@ export default function AIPosterStudio() {
     setImagePreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
     toast('Removed uploaded image. Switched to luxury procedural gradient backdrop.', 'info');
+  };
+
+  // Clear Architect Prompt
+  const handleClearPrompt = () => {
+    setArchitectPrompt('');
+  };
+
+  // Clear All: prompt, strategy, and reset poster
+  const handleClearAll = () => {
+    setArchitectPrompt('');
+    setArchitectStrategy('Visual Architect ready. Enter any service, offer or campaign to generate an optimized luxury salon poster.');
+    const p = CATEGORY_PRESETS[category] || CATEGORY_PRESETS.bridal;
+    setHeadline(p.title);
+    setGujaratiSubtitle(p.gujaratiTitle);
+    setDetails(p.subtitle);
+    setTagline(p.tagline);
+    setBadgeText(p.badge);
+    setPriceTag(p.priceTag);
+    setFeatureList([...p.features]);
+    toast('🧹 Cleared all! Prompt and poster reset to clean state.', 'info');
+  };
+
+  // Clear all text content fields on the poster for blank slate
+  const handleClearAllText = () => {
+    setHeadline('');
+    setGujaratiSubtitle('');
+    setDetails('');
+    setTagline('');
+    setBadgeText('');
+    setPriceTag('');
+    setFeatureList([]);
+    toast('🧹 All poster text fields cleared! Ready for custom typing.', 'info');
+  };
+
+  // Reset text content to current category preset
+  const handleResetDefaults = () => {
+    const p = CATEGORY_PRESETS[category] || CATEGORY_PRESETS.bridal;
+    setHeadline(p.title);
+    setGujaratiSubtitle(p.gujaratiTitle);
+    setDetails(p.subtitle);
+    setTagline(p.tagline);
+    setBadgeText(p.badge);
+    setPriceTag(p.priceTag);
+    setFeatureList([...p.features]);
+    toast(`🔄 Reset to ${category.toUpperCase()} defaults!`, 'info');
   };
 
   // Dimensions Map
@@ -1030,6 +1077,31 @@ Instagram: ${instagramHandle}
             }}
           />
 
+          {/* Quick Clear (X) icon when prompt has text */}
+          {architectPrompt && (
+            <button
+              type="button"
+              onClick={handleClearPrompt}
+              title="Clear Prompt (લખાણ ભૂંસો)"
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.15)',
+                border: 'none',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
+            >
+              <X size={15} />
+            </button>
+          )}
+
           {/* Voice Input Button */}
           <button
             type="button"
@@ -1047,9 +1119,36 @@ Instagram: ${instagramHandle}
               justifyContent: 'center',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
+              flexShrink: 0,
             }}
           >
             {isListening ? <MicOff size={17} /> : <Mic size={17} />}
+          </button>
+
+          {/* Clear All Button */}
+          <button
+            type="button"
+            onClick={handleClearAll}
+            title="Clear all (પ્રોમ્પ્ટ અને આર્કિટેક્ટ બધું સાફ કરો)"
+            style={{
+              background: 'rgba(239, 68, 68, 0.18)',
+              border: '1px solid rgba(239, 68, 68, 0.45)',
+              color: '#fca5a5',
+              fontWeight: 700,
+              padding: '10px 14px',
+              borderRadius: 10,
+              fontSize: 13,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+            }}
+          >
+            <RotateCcw size={14} />
+            Clear All
           </button>
 
           {/* Submit Button */}
@@ -1071,6 +1170,7 @@ Instagram: ${instagramHandle}
               cursor: isArchitectGenerating ? 'not-allowed' : 'pointer',
               boxShadow: '0 4px 14px rgba(234, 186, 56, 0.4)',
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             <Sparkles size={16} />
@@ -1083,6 +1183,29 @@ Instagram: ${instagramHandle}
           <span style={{ fontSize: 11, fontWeight: 800, color: '#EABA38', marginRight: 4, textTransform: 'uppercase' }}>
             Quick Prompts:
           </span>
+          <button
+            type="button"
+            onClick={handleClearAll}
+            title="Clear all prompt & reset (બધું સાફ કરો)"
+            style={{
+              background: 'rgba(239, 68, 68, 0.18)',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              color: '#fca5a5',
+              borderRadius: 20,
+              padding: '4px 12px',
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <RotateCcw size={11} />
+            Clear All
+          </button>
           {ARCHITECT_PROMPT_CHIPS.map((chip, idx) => (
             <button
               key={idx}
@@ -1368,10 +1491,56 @@ Instagram: ${instagramHandle}
 
           {/* 5. Poster Text & Offer Customization */}
           <div className="card" style={{ padding: 18, borderRadius: 16 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Tag size={16} color="#7c3aed" />
-              5. Edit Poster Text & Offer (લખાણ બદલો)
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, margin: '0 0 12px' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Tag size={16} color="#7c3aed" />
+                5. Edit Poster Text & Offer (લખાણ બદલો)
+              </h3>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={handleClearAllText}
+                  className="btn btn-ghost btn-xs"
+                  title="Clear all text fields on poster"
+                  style={{
+                    color: '#ef4444',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Trash2 size={12} />
+                  Clear All Text
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetDefaults}
+                  className="btn btn-ghost btn-xs"
+                  title="Reset to category preset defaults"
+                  style={{
+                    color: '#05424A',
+                    background: 'rgba(5, 66, 74, 0.08)',
+                    border: '1px solid rgba(5, 66, 74, 0.25)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <RotateCcw size={12} />
+                  Reset Defaults
+                </button>
+              </div>
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
