@@ -57,6 +57,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.75,
     },
+    {
+      url: `${BASE_URL}/price-list`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.95,
+    },
   ];
 
   const servicePages: MetadataRoute.Sitemap = ALL_SERVICE_SEO_SLUGS.map((slug) => ({
@@ -84,7 +90,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${BASE_URL}/locations/${slug}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
-      priority: slug === 'surat' || slug === 'katargam' ? 0.95 : 0.9,
+      priority: ['surat', 'katargam', 'varachha', 'adajan', 'mota-varachha', 'vesu', 'pal', 'amroli'].includes(slug) ? 0.95 : 0.9,
     })),
   ];
 

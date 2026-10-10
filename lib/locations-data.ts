@@ -645,6 +645,359 @@ export const LOCATIONS_DATA: Record<string, LocationData> = {
       'Specialized care for brides of all Indian traditions',
     ],
   },
+
+  varachha: {
+    slug: 'varachha',
+    cityName: 'Varachha, Surat',
+    stateName: 'Gujarat',
+    tagline: 'Surat’s Diamond Hub Ladies Salon & Premier Bridal Studio',
+    metaTitle: 'Best Beauty Parlour in Varachha Surat — Shree Beauty Studio | 4.9★',
+    metaDescription: 'Looking for the best ladies beauty parlour in Varachha, Surat? Located 10-15 mins from Mini Bazar & Hirabaug in Katargam. 25+ years expertise in HD bridal makeup, Hair Botox, Nanoplastia & facials.',
+    keywords: [
+      'beauty parlour varachha surat',
+      'ladies parlour varachha surat',
+      'best salon in varachha',
+      'bridal makeup varachha surat',
+      'hair botox varachha',
+      'hydra facial varachha',
+      'shree beauty studio varachha',
+      'diamond city bridal parlour surat',
+      'painless waxing varachha',
+    ],
+    heroBadge: 'Serving Varachha Families · 10 Mins via AK Road',
+    headline: 'Varachha’s Most Recommended Ladies Beauty & Bridal Sanctuary',
+    subheadline: 'For over 25 years, diamond manufacturing families, business leaders, and brides across Varachha (Mini Bazar, Hirabaug, Kapodra, Baroda Pristine) have trusted Shree Beauty Studio in neighboring Katargam for unmatched craftsmanship and 100% ladies-only privacy.',
+    localities: ['Mini Bazar', 'Hirabaug', 'Baroda Pristine', 'Matavadi', 'Kargil Chowk', 'Kapodra', 'Sita Nagar', 'L.H. Road', 'AK Road'],
+    serviceHighlights: [
+      {
+        title: 'Couture Gujarati Bridal Artistry',
+        description: 'Complete 3-session bridal glam, Panetar saree pleating, heavy dupatta setting, and tear-proof HD makeup for Varachha brides.',
+        badge: 'Bridal Authority',
+      },
+      {
+        title: 'Hard Water Hair Recovery & Botox',
+        description: 'Deep formaldehyde-free Botox and Nanoplastia treatments that reverse frizz and damage caused by Surat municipal borewell water.',
+        badge: 'Hair Science',
+      },
+      {
+        title: 'Medical-Grade Medi-Facials',
+        description: '7-step vacuum vortex Hydra Facials and O3+ brightening protocols designed for oily, pigmented, and sun-tanned skin.',
+        badge: 'Clinical Glow',
+      },
+    ],
+    faqs: [
+      {
+        question: 'How far is Shree Beauty Studio from Varachha?',
+        answer: 'Shree Beauty Studio is located at 22, Radhika Society, Opp. Cancer Hospital in Katargam — just 10 to 15 minutes drive from Mini Bazar, Hirabaug, and Kapodra via AK Road or Katargam-Varachha Link Road.',
+      },
+      {
+        question: 'Why do women from Varachha travel to Katargam for salon services?',
+        answer: 'Clients from Varachha appreciate our 100% strict ladies-only privacy policy, hospital-grade single-use sanitation, transparent 2026 pricing, and 25+ years of verified expertise with 210+ 4.9★ reviews.',
+      },
+      {
+        question: 'Do you offer bridal makeup packages for Varachha weddings?',
+        answer: 'Yes! We offer both in-studio VIP bridal suites in Katargam and on-location bridal team travel to banquet halls and homes throughout Varachha, Punagam, and Sarthana.',
+      },
+    ],
+    destinationHighlights: [
+      'Just 10 minutes drive from Mini Bazar, Hirabaug & Kargil Chowk',
+      'Dedicated private bridal dressing suite with 360-degree vanity lighting',
+      'Free parking and peaceful residential ambiance in Radhika Society',
+      '100% genuine luxury products opened right in front of clients',
+    ],
+  },
+
+  adajan: {
+    slug: 'adajan',
+    cityName: 'Adajan, Surat',
+    stateName: 'Gujarat',
+    tagline: 'Exclusive Ladies Beauty Sanctuary & Luxury Bridal Studio Serving Adajan',
+    metaTitle: 'Best Beauty Parlour & Salon for Adajan Surat — Shree Beauty Studio | 4.9★',
+    metaDescription: 'Searching for the best ladies beauty parlour in Adajan, Surat? Women from Anand Mahal Road, Honey Park & Pal choose Shree Beauty Studio for high-end HD bridal, Botox & Hydra facials.',
+    keywords: [
+      'beauty parlour adajan surat',
+      'ladies salon adajan',
+      'bridal makeup adajan surat',
+      'best parlour near adajan',
+      'hair botox adajan surat',
+      'hydra facial adajan',
+      'shree beauty studio adajan',
+      'pre bridal packages adajan surat',
+    ],
+    heroBadge: 'Serving Western Surat · Adajan & Pal Corridor',
+    headline: 'Adajan’s Trusted Sanctuary for Couture Bridal & Skin Artistry',
+    subheadline: 'Women living along Anand Mahal Road, Honey Park, LP Savani, and Prime Arcade regularly visit Shree Beauty Studio in Katargam for refined bridal styling, painless Rica waxing, and transformative hair care.',
+    localities: ['Anand Mahal Road', 'Honey Park Road', 'LP Savani Road', 'Prime Arcade', 'TGB Circle', 'Chhatrapati Shivaji Marg', 'Navyug College Area'],
+    serviceHighlights: [
+      {
+        title: 'HD & Airbrush Bridal Mastery',
+        description: '16-hour sweat-proof makeup for western Surat brides, featuring Charlotte Tilbury, Dior, NARS, and Huda Beauty.',
+        badge: 'Bridal Heritage',
+      },
+      {
+        title: 'Nanoplastia & Hair Botox',
+        description: 'Organic amino acid smoothing that tames humidity-induced frizz while preserving natural bounce and volume.',
+        badge: 'Smooth Hair',
+      },
+      {
+        title: 'Painless Waxing & Russian Manicures',
+        description: 'Italian Rica liposoluble wax with zero skin stripping, paired with medical cutical cleanups for flawless hands and legs.',
+        badge: 'Gentle Care',
+      },
+    ],
+    faqs: [
+      {
+        question: 'How do clients travel from Adajan to Shree Beauty Studio?',
+        answer: 'From Adajan, take the Tapi River bridge (Chandra Shekhar Azad Bridge or Cable Bridge) into Katargam. We are situated at 22, Radhika Society, Opp. Cancer Hospital — approximately 15 to 18 minutes by car or auto.',
+      },
+      {
+        question: 'Do you offer on-venue bridal services in Adajan?',
+        answer: 'Yes! Our mobile bridal squad travels with professional studio vanity mirrors and lighting to venues and luxury apartments across Adajan, Pal, and Hazira Road.',
+      },
+      {
+        question: 'How can I book an appointment from Adajan?',
+        answer: 'You can book in 1-click via WhatsApp at +91 98241 83769 or directly on our real-time calendar at shreebeauty.studio/book.',
+      },
+    ],
+    destinationHighlights: [
+      'Quick 15-minute commute via Cable Stayed Bridge or Causeway',
+      'Complete pre-bridal skin and hair timelines customized for wedding dates',
+      'Strictly zero male staff or visitors for total modesty and comfort',
+    ],
+  },
+
+  'mota-varachha': {
+    slug: 'mota-varachha',
+    cityName: 'Mota Varachha, Surat',
+    stateName: 'Gujarat',
+    tagline: 'Premier 100% Ladies Salon & Bridal Studio Serving Mota Varachha & Utran',
+    metaTitle: 'Best Beauty Parlour in Mota Varachha Surat — Shree Beauty Studio | 4.9★',
+    metaDescription: 'Looking for a premier beauty parlour near Mota Varachha or Utran? Located just 8-10 mins via Amroli Bridge. 25+ years expertise in bridal makeup, Nanoplastia & Hydra facials.',
+    keywords: [
+      'beauty parlour mota varachha',
+      'ladies salon mota varachha',
+      'bridal makeup mota varachha',
+      'parlour near utran surat',
+      'hair botox mota varachha',
+      'hydra facial mota varachha',
+      'best beauty studio mota varachha',
+    ],
+    heroBadge: 'Neighborhood Neighbor · 8 Mins via Amroli Bridge',
+    headline: 'Mota Varachha’s Preferred Destination for Bridal & Beauty Excellence',
+    subheadline: 'Situated just across the bridge from Utran and Mota Varachha, Shree Beauty Studio provides modern families in Sudama Chowk, VIP Circle, and Laja Mani Chowk with world-class beauty services without high-street commercial markups.',
+    localities: ['VIP Circle', 'Sudama Chowk', 'Laja Mani Chowk', 'Utran', 'Savlia Circle', 'Abrama Road', 'Valak Patiya'],
+    serviceHighlights: [
+      {
+        title: 'Authentic Gujarati Bride Styling',
+        description: 'Exquisite Panetar and Gharchola draping, mathapatti alignment, and bridal makeup that endures 14+ hours of Vidhi and Mandap ceremonies.',
+        badge: 'Bridal Royalty',
+      },
+      {
+        title: 'Japanese Head Spa & Trichology',
+        description: 'Micro-mist hair steaming, scalp exfoliation, and high-frequency therapy to halt seasonal hair thinning.',
+        badge: 'Scalp Care',
+      },
+      {
+        title: 'D-Tan & Melasma Lightening',
+        description: 'Safe botanical and medical peel therapies that erase sun damage, hyperpigmentation, and bridal tan lines.',
+        badge: 'Radiant Skin',
+      },
+    ],
+    faqs: [
+      {
+        question: 'How close is Shree Beauty Studio to Mota Varachha?',
+        answer: 'We are just 8 to 10 minutes away from Sudama Chowk and VIP Circle via the Amroli-Katargam bridge. It is one of the closest and most established luxury studios for Mota Varachha residents.',
+      },
+      {
+        question: 'Are walk-ins accepted or is booking required?',
+        answer: 'To guarantee immediate service without waiting in our private lounge, we encourage booking online at shreebeauty.studio/book or messaging +91 98241 83769 on WhatsApp.',
+      },
+      {
+        question: 'What hair smoothening treatments do you recommend for Mota Varachha water?',
+        answer: 'Because northern Surat tap water can be hard, our formaldehyde-free Nanoplastia or Hair Botox treatments provide optimal protection, sealing hair cuticles for 4 to 6 months of sleek shine.',
+      },
+    ],
+    destinationHighlights: [
+      'Effortless 8-minute commute across the Tapi river bridge',
+      'Spacious, serene salon away from noisy commercial market traffic',
+      'Special discounted family packages for Sangeet, Haldi & Reception guests',
+    ],
+  },
+
+  vesu: {
+    slug: 'vesu',
+    cityName: 'Vesu, Surat',
+    stateName: 'Gujarat',
+    tagline: 'High-End Bridal Makeovers & Aesthetic Hair Sanctuary for Vesu Brides',
+    metaTitle: 'Luxury Bridal Makeup Studio & Salon for Vesu Surat — Shree Beauty Studio',
+    metaDescription: 'VIP bridal makeup studio & ladies salon serving brides from Vesu, VIP Road, and University Area. 25+ years heritage, 100% genuine Dior, MAC & Huda Beauty products.',
+    keywords: [
+      'bridal makeup vesu surat',
+      'best salon vesu surat',
+      'ladies parlour vesu',
+      'hair botox vesu',
+      'luxury beauty studio vesu',
+      'hydra facial vesu surat',
+      'hd makeup artist vesu',
+    ],
+    heroBadge: 'Couture Bridal Craftsmanship · Serving Vesu Brides',
+    headline: 'Surat’s Heritage Bridal Artistry for Discerning Vesu Weddings',
+    subheadline: 'Brides and families living in Vesu, Althan, and along VIP Road frequently choose Shree Beauty Studio for our unmatched 25-year reputation in bridal perfection, bespoke jewelry matching, and international beauty cosmetics.',
+    localities: ['VIP Road', 'Someshwara Enclave', 'University Road', 'Canal Corridor', 'Althan', 'Bhimrad', 'Dumas Road'],
+    serviceHighlights: [
+      {
+        title: 'Editorial 4K HD & Airbrush',
+        description: 'Flawless camera-ready finishes designed to look imperceptible under intense cinematic lighting and flash photography.',
+        badge: 'Celebrity Finish',
+      },
+      {
+        title: 'Bespoke Saree Architecture',
+        description: 'Architectural pleating and pinning of heavy Sabyasachi, Rimple & Harpreet, and traditional Panetar silk ensembles.',
+        badge: 'Draping Art',
+      },
+      {
+        title: 'Korean Glass Skin Facials',
+        description: 'Multi-step infusion facials delivering high-intensity dermal hydration and a lasting glass-like mirror sheen.',
+        badge: 'Glass Skin',
+      },
+    ],
+    faqs: [
+      {
+        question: 'Do brides from Vesu travel to Katargam for their makeup?',
+        answer: 'Yes! Many brides from Vesu book our private bridal suites in Katargam for complete pre-wedding preparations and bridal day styling, while others book our senior mobile bridal squad to come directly to their wedding venue or hotel in Vesu.',
+      },
+      {
+        question: 'What premium makeup brands are used?',
+        answer: 'We strictly use genuine, sealed international formulations from Charlotte Tilbury, Dior Backstage, NARS, Huda Beauty, Make Up For Ever, and Estée Lauder.',
+      },
+      {
+        question: 'Can you handle simultaneous styling for the bride and family?',
+        answer: 'Absolutely. We have a team of trained senior artists and draping specialists capable of managing the bride, mother of the bride, and bridesmaids seamlessly within tight timelines.',
+      },
+    ],
+    destinationHighlights: [
+      'On-location venue styling available at luxury venues across Vesu & Dumas',
+      'Tailored pre-bridal skincare timelines 30 to 90 days before your wedding',
+      'Complete transparency with no hidden costs on products or lashes',
+    ],
+  },
+
+  pal: {
+    slug: 'pal',
+    cityName: 'Pal & Palanpur, Surat',
+    stateName: 'Gujarat',
+    tagline: '100% Ladies Beauty Parlour & Skin Aesthetic Studio Serving Pal',
+    metaTitle: 'Best Ladies Beauty Parlour for Pal Surat — Shree Beauty Studio | 4.9★',
+    metaDescription: 'Looking for a trusted ladies beauty parlour near Pal or Palanpur Canal Road? Women across Pal choose Shree Beauty Studio for painless Rica waxing, Hydra Facials & bridal makeovers.',
+    keywords: [
+      'beauty parlour pal surat',
+      'ladies salon palanpur surat',
+      'bridal makeup pal surat',
+      'best parlour pal rander road',
+      'hair botox pal surat',
+      'hydra facial palanpur',
+      'shree beauty studio pal',
+    ],
+    heroBadge: 'Serving Pal & Palanpur · Canal Road Corridor',
+    headline: 'Pal & Palanpur’s Favorite 100% Women-Only Beauty Studio',
+    subheadline: 'For women living in Pal, Palanpur Canal Road, and Rander, Shree Beauty Studio in Katargam represents the ideal balance of luxury aesthetic services, immaculate hygiene, and pocket-friendly transparent rates.',
+    localities: ['Pal Canal Road', 'Gaurav Path', 'Palanpur Patia', 'Palanpur Jakatnaka', 'Rajhans Cinema Area', 'Morabhagal', 'Rander Road'],
+    serviceHighlights: [
+      {
+        title: 'Gentle Waxing & Threading',
+        description: 'Soothing organic aloe vera and white chocolate Rica wax for sensitive skin with zero redness or bumps.',
+        badge: 'Pain Relief',
+      },
+      {
+        title: 'Anti-Frizz Hair Spa & Keratin',
+        description: 'Moisture-rebalancing spas and keratin therapy that safeguard your strands against coastal Tapi humidity.',
+        badge: 'Silky Strands',
+      },
+      {
+        title: 'Express Glow & Cleanup Sessions',
+        description: '30-minute express cleanups and fruit facials for college students, homemakers, and working professionals.',
+        badge: 'Express Pampering',
+      },
+    ],
+    faqs: [
+      {
+        question: 'How can I reach Shree Beauty Studio from Pal?',
+        answer: 'From Pal Canal Road, drive via Causeway or Chandra Shekhar Azad Bridge directly into Katargam. We are situated at 22, Radhika Society, Opp. Cancer Hospital (approx. 12 to 15 mins).',
+      },
+      {
+        question: 'What are your salon timings for working women in Pal?',
+        answer: 'We are open 7 days a week from 10:00 AM to 7:00 PM, with early morning bridal slots available upon advance request.',
+      },
+      {
+        question: 'Is parking available at the salon?',
+        answer: 'Yes! Because our studio is located in a quiet, upscale residential society (Radhika Society), convenient and secure parking is always available.',
+      },
+    ],
+    destinationHighlights: [
+      'Direct drive via the scenic Tapi Causeway corridor',
+      'Hygiene verified with single-use bedsheets, gowns, and spatulas',
+      'Loyalty benefits and transparent prices with no hidden taxes',
+    ],
+  },
+
+  amroli: {
+    slug: 'amroli',
+    cityName: 'Amroli, Surat',
+    stateName: 'Gujarat',
+    tagline: 'Neighborhood Ladies Beauty Studio & Hair Care Destination in Amroli',
+    metaTitle: 'Best Beauty Parlour in Amroli Surat — Shree Beauty Studio | 4.9★',
+    metaDescription: 'Top-rated ladies beauty parlour near Amroli, Surat. Located just 5 minutes across Tapi bridge in Radhika Society, Katargam. 25+ years experience, 4.9★ rating.',
+    keywords: [
+      'beauty parlour amroli surat',
+      'ladies parlour amroli',
+      'bridal makeup amroli',
+      'hair spa amroli surat',
+      'hair botox amroli',
+      'hydra facial amroli',
+      'shree beauty studio amroli',
+    ],
+    heroBadge: 'Hyperlocal · 5 Minutes from Amroli Char Rasta',
+    headline: 'Amroli’s Closest Top-Rated Ladies Beauty & Bridal Sanctuary',
+    subheadline: 'Residents of Amroli Char Rasta, Chhapra Bhatha, and Kosad have trusted Shree Beauty Studio in neighboring Radhika Society, Katargam as their primary beauty parlour for over two decades.',
+    localities: ['Amroli Char Rasta', 'Chhapra Bhatha', 'Kosad', 'Tapi Riverfront Amroli', 'Gothan', 'Sayan Road'],
+    serviceHighlights: [
+      {
+        title: 'Neighborhood Bridal Makeup Hub',
+        description: 'Complete bridal, Sagan, and Garba makeup with genuine MAC & Huda Beauty at transparent, pocket-friendly package rates.',
+        badge: 'Bridal Heritage',
+      },
+      {
+        title: 'Hair Fall & Dandruff Relief',
+        description: 'Targeted scalp exfoliation, anti-dandruff deep conditioning, and split-end repair treatments.',
+        badge: 'Healthy Hair',
+      },
+      {
+        title: 'Full Body Polishing & De-Tan',
+        description: 'Botanical scrub, herbal steam, and de-tanning packs that restore natural skin glow.',
+        badge: 'Full Body Glow',
+      },
+    ],
+    faqs: [
+      {
+        question: 'How far is Shree Beauty Studio from Amroli Char Rasta?',
+        answer: 'We are literally 5 minutes away! Cross the Amroli Bridge into Katargam and turn towards Radhika Society, Opp. Cancer Hospital.',
+      },
+      {
+        question: 'Do you offer monthly salon packages for Amroli clients?',
+        answer: 'Yes! We have monthly essential care packages (threading, waxing, cleanup, manicure/pedicure) starting at very affordable rates.',
+      },
+      {
+        question: 'Are the products used safe for sensitive skin?',
+        answer: 'Yes, all our skin and hair formulations are dermatologically tested, ammonia-free, and applied following strict hygiene protocols.',
+      },
+    ],
+    destinationHighlights: [
+      'Just a 5-minute hop across the bridge into Katargam',
+      '100% female staff and total privacy for local women',
+      'High-quality luxury salon experience at genuine local rates',
+    ],
+  },
 };
 
 export const ALL_LOCATION_SLUGS = Object.keys(LOCATIONS_DATA);
+

@@ -1,6 +1,7 @@
 https://shreebeauty.studio
 https://shreebeauty.studio/bridal
 https://shreebeauty.studio/services
+https://shreebeauty.studio/price-list
 https://shreebeauty.studio/contact
 https://shreebeauty.studio/about
 https://shreebeauty.studio/book
@@ -17,6 +18,12 @@ https://shreebeauty.studio/services/hair-spa-surat
 https://shreebeauty.studio/services/hair-color-surat
 https://shreebeauty.studio/locations/surat
 https://shreebeauty.studio/locations/katargam
+https://shreebeauty.studio/locations/varachha
+https://shreebeauty.studio/locations/adajan
+https://shreebeauty.studio/locations/mota-varachha
+https://shreebeauty.studio/locations/vesu
+https://shreebeauty.studio/locations/pal
+https://shreebeauty.studio/locations/amroli
 https://shreebeauty.studio/locations/ahmedabad
 https://shreebeauty.studio/locations/vadodara
 https://shreebeauty.studio/locations/rajkot
@@ -123,6 +130,9 @@ https://shreebeauty.studio/blog/seasonal-beauty-calendar-for-women
 https://shreebeauty.studio/blog/indias-first-cloud-based-ladies-beauty-studio-surat
 https://shreebeauty.studio/blog/best-beauty-salon-in-surat-2026-honest-comparison
 https://shreebeauty.studio/blog/complete-guide-bridal-makeup-prices-in-surat-2026
+https://shreebeauty.studio/blog/top-10-best-ladies-beauty-parlours-katargam-surat
+https://shreebeauty.studio/blog/bridal-makeup-cost-in-surat-2026-price-breakdown
+https://shreebeauty.studio/blog/pre-bridal-packages-surat-timeline-price-comparison
 https://shreebeauty.studio/blog/best-salon-in-surat-complete-guide
 https://shreebeauty.studio/blog/top-ladies-beauty-parlour-katargam-surat
 https://shreebeauty.studio/blog/surat-hard-water-hair-fall-solutions
