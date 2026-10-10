@@ -97,6 +97,11 @@ const nextConfig = {
         destination: '/contact',
         permanent: true,
       },
+      {
+        source: '/admin/ai-poster',
+        destination: '/admin',
+        permanent: false,
+      },
     ];
   },
   // Compress output
