@@ -23,6 +23,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# credentials & service accounts
+*service_account*.json
+*service-account*.json
+*google*.json
+*helical-cursor*.json
+
 # local env files (SECRETS & API KEYS)
 .env
 .env*.local
