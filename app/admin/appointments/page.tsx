@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Calendar, Play, CheckCircle2, ReceiptText, Eye, FileText, Download, Printer, CalendarOff, AlertTriangle, ExternalLink, Copy, RefreshCw, Mail, Zap, Volume2, VolumeX, Bell } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, fmtDate, money, formatCustomerContactName, isPastTimeForDate, getCurrentRoundedTimeHHMM, FIFTEEN_MIN_TIME_SLOTS, getServicePricingBasis } from '@/lib/utils';
+import { uid, todayISO, fmtDate, money, formatCustomerContactName, autoCapitalizeName, isPastTimeForDate, getCurrentRoundedTimeHHMM, FIFTEEN_MIN_TIME_SLOTS, getServicePricingBasis } from '@/lib/utils';
 import { Appointment, AppointmentStatus, WorkStatus, Invoice, StudioHoliday, HolidayType } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -459,7 +459,8 @@ export default function AppointmentsPage() {
   };
 
   const handleCustomerSelect = (val: string) => {
-    const trimmed = val.trim();
+    const capitalized = autoCapitalizeName(val);
+    const trimmed = capitalized.trim();
     if (!trimmed) {
       setValue('customer', '', { shouldValidate: true });
       return;
@@ -468,7 +469,7 @@ export default function AppointmentsPage() {
     // 1. Check if chosen from datalist format "Name (Mobile)" or "Name — Mobile"
     const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(\d{10})\)?$/);
     if (match) {
-      const extractedName = match[1].trim();
+      const extractedName = autoCapitalizeName(match[1].trim());
       const extractedMob = match[2].trim();
       setValue('customer', extractedName, { shouldValidate: true });
       setValue('mobile', extractedMob, { shouldValidate: true });
@@ -487,7 +488,7 @@ export default function AppointmentsPage() {
         `${formatCustomerContactName(c.name)} — 📞 ${c.mobile}`.toLowerCase() === trimmed.toLowerCase()
     );
     if (foundByCombined) {
-      setValue('customer', foundByCombined.name, { shouldValidate: true });
+      setValue('customer', autoCapitalizeName(foundByCombined.name), { shouldValidate: true });
       setValue('mobile', foundByCombined.mobile, { shouldValidate: true });
       if (foundByCombined.email) {
         setValue('email', foundByCombined.email, { shouldValidate: true });
@@ -496,7 +497,7 @@ export default function AppointmentsPage() {
     }
 
     // 3. User is simply typing a name -> update name only, NEVER overwrite mobile number!
-    setValue('customer', val, { shouldValidate: true });
+    setValue('customer', capitalized, { shouldValidate: true });
   };
 
   const handleMobileSelect = (val: string) => {
@@ -510,7 +511,7 @@ export default function AppointmentsPage() {
     const match = trimmed.match(/^(\d{10})\s*[\(—\-]\s*(.*?)\)?$/);
     if (match) {
       const extractedMob = match[1].trim();
-      const extractedName = match[2].trim();
+      const extractedName = autoCapitalizeName(match[2].trim());
       setValue('mobile', extractedMob, { shouldValidate: true });
       setValue('customer', extractedName, { shouldValidate: true });
       const found = (data?.customers || []).find((c) => c.mobile === extractedMob);
@@ -529,7 +530,7 @@ export default function AppointmentsPage() {
       const c = (data?.customers || []).find((x) => x.mobile === cleanNum);
       if (c) {
         if (!watch('customer')) {
-          setValue('customer', c.name, { shouldValidate: true });
+          setValue('customer', autoCapitalizeName(c.name), { shouldValidate: true });
         }
         if (c.email && !watch('email')) {
           setValue('email', c.email, { shouldValidate: true });
@@ -576,7 +577,7 @@ export default function AppointmentsPage() {
           ...d,
           customers: [...d.customers, {
             id: uid(),
-            name: formatCustomerContactName(form.customer),
+            name: autoCapitalizeName(formatCustomerContactName(form.customer)),
             mobile: form.mobile,
             email: cleanEmail,
             birthday: '',
@@ -587,7 +588,7 @@ export default function AppointmentsPage() {
       }
 
       const initialWorkStatus: WorkStatus = form.status === 'Cancelled' ? 'Cancelled' : (form.workStatus || 'Booked');
-      const updatedItem = { ...form, id, email: cleanEmail, workStatus: initialWorkStatus };
+      const updatedItem = { ...form, customer: autoCapitalizeName(form.customer), id, email: cleanEmail, workStatus: initialWorkStatus };
 
       if (editId) {
         return {
@@ -1635,7 +1636,8 @@ export default function AppointmentsPage() {
             autoComplete="off"
             placeholder="Start typing customer name or contact..."
             value={watchCustomer}
-            onChange={(e) => handleCustomerSelect(e.target.value)}
+            onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
+            style={{ textTransform: 'capitalize' }}
           />
           <datalist id="appt-cust-name-list">
             {(data?.customers || []).map((c) => (

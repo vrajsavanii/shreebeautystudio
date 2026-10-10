@@ -58,6 +58,17 @@ export const formatCustomerContactName = (name: string): string => {
 };
 
 /**
+ * Capitalizes the first character of each word (Title Case) as user types a name.
+ * e.g. "priya" -> "Priya"
+ *      "priya patel" -> "Priya Patel"
+ * Preserves trailing spaces during typing.
+ */
+export const autoCapitalizeName = (input: string): string => {
+  if (!input) return '';
+  return input.replace(/(^|[\s\.\-])([a-z])/g, (_, boundary, char) => `${boundary}${char.toUpperCase()}`);
+};
+
+/**
  * Converts a 12-hour (e.g. "10:30 AM", "02:00 PM") or 24-hour ("14:30") time string to minutes from midnight (0-1439).
  */
 export const timeToMinutes = (timeStr: string): number => {

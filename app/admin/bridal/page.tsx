@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate, formatCustomerContactName, FIFTEEN_MIN_TIME_SLOTS } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, formatCustomerContactName, autoCapitalizeName, FIFTEEN_MIN_TIME_SLOTS } from '@/lib/utils';
 import { BridalBooking, BridalPackage, Invoice, InvoiceLine } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -197,7 +197,8 @@ const OTHER_EVENT_OPTIONS = [
 
   // Customer Autocomplete: auto-fills Birthday, Sagai Date, and Wedding Date
   const handleSelectCustomerName = (query: string) => {
-    const trimmed = query.trim();
+    const capitalizedQuery = autoCapitalizeName(query);
+    const trimmed = capitalizedQuery.trim();
     if (!trimmed) {
       set('name', '');
       return;
@@ -233,7 +234,7 @@ const OTHER_EVENT_OPTIONS = [
 
         return {
           ...prev,
-          name: found.name,
+          name: autoCapitalizeName(found.name),
           mobile: found.mobile,
           email: found.email || prev.email || '',
           birthday: found.birthday || prev.birthday || '',
@@ -249,7 +250,7 @@ const OTHER_EVENT_OPTIONS = [
       return;
     }
 
-    set('name', query);
+    set('name', capitalizedQuery);
   };
 
   const handleSelectCustomerMobile = (mob: string) => {
@@ -278,7 +279,7 @@ const OTHER_EVENT_OPTIONS = [
 
           return {
             ...prev,
-            name: found.name,
+            name: autoCapitalizeName(found.name),
             mobile: found.mobile,
             email: found.email || prev.email || '',
             birthday: found.birthday || prev.birthday || '',
@@ -430,7 +431,7 @@ const OTHER_EVENT_OPTIONS = [
 
     const booking: BridalBooking = {
       id,
-      name: form.name || '',
+      name: autoCapitalizeName(form.name || ''),
       mobile: form.mobile || '',
       email: cleanEmail,
       birthday: form.birthday || '',
@@ -485,7 +486,7 @@ const OTHER_EVENT_OPTIONS = [
       } else if (form.name) {
         customers.push({
           id: uid(),
-          name: form.name,
+          name: autoCapitalizeName(form.name),
           mobile: form.mobile || '',
           email: cleanEmail,
           birthday: form.birthday || '',
@@ -1568,9 +1569,10 @@ const OTHER_EVENT_OPTIONS = [
                   list="bridal-cust-name-list"
                   autoComplete="off"
                   value={form.name || ''}
-                  onChange={(e) => handleSelectCustomerName(e.target.value)}
+                  onChange={(e) => handleSelectCustomerName(autoCapitalizeName(e.target.value))}
                   placeholder="Start typing name or contact..."
                   autoFocus
+                  style={{ textTransform: 'capitalize' }}
                 />
                 <datalist id="bridal-cust-name-list">
                   {(data?.customers || []).map((c) => (

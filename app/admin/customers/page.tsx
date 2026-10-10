@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Plus, Pencil, Trash2, MessageCircle, Search, Users, Wallet, Star, Gift, X, PlusCircle, Download, Mail } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, fmtDate, money, todayISO, formatCustomerContactName } from '@/lib/utils';
+import { uid, fmtDate, money, todayISO, formatCustomerContactName, autoCapitalizeName } from '@/lib/utils';
 import { Customer, WalletTransaction } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -127,7 +127,8 @@ export default function CustomersPage() {
   };
 
   const handleCustomerSelect = (val: string) => {
-    const trimmed = val.trim();
+    const capitalized = autoCapitalizeName(val);
+    const trimmed = capitalized.trim();
     if (!trimmed) {
       setValue('name', '');
       return;
@@ -149,7 +150,7 @@ export default function CustomersPage() {
 
     if (found) {
       setEditId(found.id);
-      setValue('name', found.name);
+      setValue('name', autoCapitalizeName(found.name));
       setValue('mobile', found.mobile);
       setValue('birthday', found.birthday || '');
       setValue('sagaiDate', found.sagaiDate || found.engagementDate || '');
@@ -159,7 +160,7 @@ export default function CustomersPage() {
       return;
     }
 
-    setValue('name', val);
+    setValue('name', capitalized);
   };
 
   const handleMobileSelect = (val: string) => {
@@ -175,7 +176,7 @@ export default function CustomersPage() {
       const found = (data?.customers || []).find((c) => c.mobile === extractedMob);
       if (found) {
         setEditId(found.id);
-        setValue('name', found.name);
+        setValue('name', autoCapitalizeName(found.name));
         setValue('mobile', found.mobile);
         setValue('birthday', found.birthday || '');
         setValue('sagaiDate', found.sagaiDate || found.engagementDate || '');
@@ -196,7 +197,7 @@ export default function CustomersPage() {
         const contacts = await (navigator as any).contacts.select(['name', 'tel'], { multiple: false });
         if (contacts && contacts[0]) {
           const c = contacts[0];
-          const name = c.name?.[0] || '';
+          const name = autoCapitalizeName(c.name?.[0] || '');
           const tel = c.tel?.[0]?.replace(/\D/g, '').slice(-10) || '';
           if (name) handleCustomerSelect(name);
           if (tel) handleMobileSelect(tel);
@@ -222,7 +223,7 @@ export default function CustomersPage() {
       return;
     }
 
-    const formattedName = formatCustomerContactName(form.name);
+    const formattedName = autoCapitalizeName(formatCustomerContactName(form.name));
     const updatedForm = { ...form, name: formattedName };
 
     updateData((d) => {
@@ -536,8 +537,9 @@ export default function CustomersPage() {
               list="add-cust-name-list"
               autoComplete="off"
               placeholder="Start typing name or contact..."
+              style={{ textTransform: 'capitalize' }}
               {...register('name', { required: 'Name is required' })}
-              onChange={(e) => handleCustomerSelect(e.target.value)}
+              onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
               autoFocus
             />
             <datalist id="add-cust-name-list">

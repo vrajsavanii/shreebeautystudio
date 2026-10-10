@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate, formatCustomerContactName, getServicePricingBasis } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, formatCustomerContactName, autoCapitalizeName, getServicePricingBasis } from '@/lib/utils';
 import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransaction, BridalBooking } from '@/types/salon';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -626,7 +626,7 @@ function BillingContent() {
     // 1. Check if chosen from datalist format "Name (Mobile)"
     const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(\d{10})\)?$/);
     if (match) {
-      const extractedName = match[1].trim();
+      const extractedName = autoCapitalizeName(match[1].trim());
       const extractedMob = match[2].trim();
       const c = (data?.customers || []).find((x) => x.mobile === extractedMob) || null;
       setCustomer(extractedName);
@@ -644,7 +644,7 @@ function BillingContent() {
         `${formatCustomerContactName(c.name)} — 📞 ${c.mobile}`.toLowerCase() === trimmed.toLowerCase()
     );
     if (foundByCombined) {
-      setCustomer(foundByCombined.name);
+      setCustomer(autoCapitalizeName(foundByCombined.name));
       setMobile(foundByCombined.mobile);
       setSelectedCustomerObj(foundByCombined);
       setRedeemPoints(0);
@@ -653,7 +653,7 @@ function BillingContent() {
     }
 
     // 2. User is just typing name -> update customer name only
-    setCustomer(val);
+    setCustomer(autoCapitalizeName(val));
     setSelectedCustomerObj(null);
   };
 
@@ -1480,13 +1480,14 @@ function BillingContent() {
                     autoComplete="off"
                     placeholder="Start typing name or contact…"
                     value={customer}
-                    onChange={(e) => handleCustomerSelect(e.target.value)}
+                    onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
                     style={{
                       height: 34,
                       fontSize: 12,
                       borderRadius: 7,
                       padding: '0 9px',
                       border: '1px solid #cbd5e1',
+                      textTransform: 'capitalize',
                     }}
                   />
                   <datalist id="billing-cust-name-list">
