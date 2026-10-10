@@ -75,7 +75,6 @@ import {
   stopAudioPreview,
   composePhotoAndAudioToVideo,
 } from '@/lib/photo-audio-video-builder';
-import AIPosterStudio from '@/components/poster/AIPosterStudio';
 
 interface InstagramPost {
   id: string;
@@ -91,7 +90,7 @@ interface InstagramPost {
   timestamp: string;
 }
 
-type TabType = 'upload' | 'poster' | 'studio' | 'feed' | 'crosspost' | 'settings';
+type TabType = 'upload' | 'studio' | 'feed' | 'crosspost' | 'settings';
 type AspectRatio = '1:1' | '4:5' | '9:16' | '16:9' | 'original';
 
 interface MediaItem {
@@ -222,7 +221,7 @@ export default function InstagramHubPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      if (tabParam === 'poster' || tabParam === 'studio' || tabParam === 'feed' || tabParam === 'crosspost' || tabParam === 'settings') {
+      if (tabParam === 'studio' || tabParam === 'feed' || tabParam === 'crosspost' || tabParam === 'settings') {
         setActiveTab(tabParam as TabType);
       }
     }
@@ -1577,23 +1576,6 @@ export default function InstagramHubPage() {
         >
           <UploadCloud size={16} />
           🚀 Multi-Photo & Reel Auto-Post
-        </button>
-
-        <button
-          onClick={() => setActiveTab('poster')}
-          className={`btn ${activeTab === 'poster' ? 'btn-primary' : 'btn-secondary'} btn-sm`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontWeight: 800,
-            background: activeTab === 'poster' ? 'linear-gradient(45deg, #EABA38 0%, #D49B20 100%)' : undefined,
-            color: activeTab === 'poster' ? '#05424A' : undefined,
-            border: activeTab === 'poster' ? 'none' : undefined,
-          }}
-        >
-          <Sparkles size={15} color={activeTab === 'poster' ? '#05424A' : '#eab308'} />
-          🎨 AI Poster (એઆઈ પોસ્ટર)
         </button>
 
         <button
@@ -4018,13 +4000,6 @@ export default function InstagramHubPage() {
           </motion.div>
         );
       })()}
-
-      {/* ── TAB: AI POSTER STUDIO ── */}
-      {activeTab === 'poster' && (
-        <motion.div variants={fadeSlideUp} initial="hidden" animate="visible">
-          <AIPosterStudio />
-        </motion.div>
-      )}
 
       {/* ── TAB 2: AI CAPTION STUDIO ── */}
       {activeTab === 'studio' && (

@@ -2,7 +2,7 @@
 import {
   LayoutDashboard, Calendar, Users, Receipt, Package,
   ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings,
-  Sparkles, MessageCircle, BookOpen, Instagram, MapPin, Tv, Palette, LucideIcon
+  Sparkles, MessageCircle, BookOpen, Instagram, MapPin, Tv, LucideIcon
 } from 'lucide-react';
 
 export interface NavItem {
@@ -98,17 +98,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     iconName: 'MapPin',
     role: 'all',
     description: 'Google Maps reviews sync, local SEO & automated 5-star replies',
-  },
-  {
-    id: 'ai-poster',
-    href: '/admin/ai-poster',
-    label: 'AI Poster',
-    gujarati: 'એઆઈ પોસ્ટર',
-    icon: Palette,
-    iconName: 'Palette',
-    role: 'all',
-    description: 'Luxury salon posters, festive offer flyers, Instagram stories & HD banners',
-    badge: 'AI',
   },
   {
     id: 'finance',
@@ -227,15 +216,6 @@ export function getSortedNavItems(customOrder?: string[]): NavItem[] {
     if (item && !visited.has(id)) {
       sorted.push(item);
       visited.add(id);
-
-      // Ensure AI Poster is placed right after Google Maps / Instagram even if user has an old customOrder saved
-      if ((id === 'google-maps' || id === 'instagram') && !customOrder.includes('ai-poster')) {
-        const posterItem = itemMap.get('ai-poster');
-        if (posterItem && !visited.has('ai-poster')) {
-          sorted.push(posterItem);
-          visited.add('ai-poster');
-        }
-      }
     }
   }
 
