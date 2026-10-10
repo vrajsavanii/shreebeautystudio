@@ -57,12 +57,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 0.75,
     },
-    {
-      url: `${BASE_URL}/my-appointments`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
   ];
 
   const servicePages: MetadataRoute.Sitemap = ALL_SERVICE_SEO_SLUGS.map((slug) => ({
