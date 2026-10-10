@@ -169,38 +169,14 @@ export function getAppointmentGoogleCalendarUrl(
   address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
 ): string {
   const cleanDate = toStandardYYYYMMDD(a.date);
-  const time24 = parseTimeTo24(a.time || '10:00');
-  const dtStart = formatICSDate(cleanDate, time24);
-  const dtEnd = addMinutes(cleanDate, time24, 60);
-
-  const details = [
-    `💅 SHREE BEAUTY STUDIO — APPOINTMENT`,
-    `─────────────────────────────────`,
-    `👤 Customer: ${a.customer}`,
-    `📞 Mobile: +91 ${a.mobile || ''}`,
-    `💄 Service: ${a.service}`,
-    `📅 Date: ${cleanDate}`,
-    `⏰ Time: ${a.time || '10:00 AM'}`,
-    a.staff ? `👩‍💼 Specialist: ${a.staff}` : '',
-    a.price ? `💵 Price: ₹${a.price}` : '',
-    a.advance ? `💵 Advance Paid: ₹${a.advance}` : '',
-    a.notes ? `📝 Notes: ${a.notes}` : '',
-    `📍 Studio Address: ${address}`,
-    `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
-    `📸 Instagram: @shreebeauty.studio (https://www.instagram.com/shreebeauty.studio/)`,
-    `📞 Contact: +91 98241 83769`,
-  ].filter(Boolean).join('\n');
-
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: `💅 ${a.customer} — ${a.service}`,
-    dates: `${dtStart}/${dtEnd}`,
-    details: details,
-    location: address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
-    ctz: 'Asia/Kolkata',
+  const time = a.time || '10:00';
+  const query = new URLSearchParams({
+    c: a.customer || 'Client',
+    s: a.service || 'Salon Service',
+    d: cleanDate,
+    t: time,
   });
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  return `https://shreebeauty.studio/cal?${query.toString()}`;
 }
 
 /**
@@ -269,16 +245,14 @@ export function getBridalGoogleCalendarUrl(
     `📞 Studio Contact: +91 98241 83769`,
   ].filter(Boolean).join('\n');
 
-  const params = new URLSearchParams({
-    action: 'TEMPLATE',
-    text: `👑 ${b.name} — ${pkgName}`,
-    dates: `${dtStart}/${dtEnd}`,
-    details: details,
-    location: b.venue || address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat',
-    ctz: 'Asia/Kolkata',
+  const query = new URLSearchParams({
+    c: b.name || 'Bride',
+    s: pkgName,
+    d: primaryDate,
+    t: primaryTime,
+    dur: '180',
   });
-
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  return `https://shreebeauty.studio/cal?${query.toString()}`;
 }
 
 /**

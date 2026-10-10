@@ -344,6 +344,9 @@ export default function WhatsAppHubPage() {
       wallet: money(wallet),
       link: reviewUrl,
       offer: promoOffer,
+      calendar: `https://shreebeauty.studio/cal?c=${encodeURIComponent(clientName)}&s=${encodeURIComponent((appt as any).service || 'Salon Service')}&d=${encodeURIComponent((appt as any).date || todayISO())}&t=${encodeURIComponent((appt as any).time || '10:00')}`,
+      cal_link: `https://shreebeauty.studio/cal?c=${encodeURIComponent(clientName)}&s=${encodeURIComponent((appt as any).service || 'Salon Service')}&d=${encodeURIComponent((appt as any).date || todayISO())}&t=${encodeURIComponent((appt as any).time || '10:00')}`,
+      calendar_link: `https://shreebeauty.studio/cal?c=${encodeURIComponent(clientName)}&s=${encodeURIComponent((appt as any).service || 'Salon Service')}&d=${encodeURIComponent((appt as any).date || todayISO())}&t=${encodeURIComponent((appt as any).time || '10:00')}`,
     };
   }, [
     targetName,
@@ -376,6 +379,7 @@ export default function WhatsAppHubPage() {
     text = text.replace(/\{wallet\}/gi, ctx.wallet);
     text = text.replace(/\{link\}/gi, ctx.link);
     text = text.replace(/\{offer\}/gi, ctx.offer);
+    text = text.replace(/\{calendar\}|\{cal_link\}|\{calendar_link\}|\{gcal\}/gi, ctx.calendar || '');
     return text;
   };
 
@@ -2196,6 +2200,7 @@ export default function WhatsAppHubPage() {
                       { tag: '{points}', label: '⭐ {points}', title: 'Loyalty Points' },
                       { tag: '{wallet}', label: '💳 {wallet}', title: 'Wallet Balance' },
                       { tag: '{address}', label: '📍 {address}', title: 'Studio Address' },
+                      { tag: '{calendar}', label: '📅 {calendar}', title: 'Google Calendar Event Short Link' },
                       { tag: '{link}', label: '🔗 {link}', title: 'Google Review Link' },
                       { tag: '{offer}', label: '🎉 {offer}', title: 'Festival Promo Offer' },
                     ].map((v) => (
@@ -2511,6 +2516,7 @@ export default function WhatsAppHubPage() {
                   { tag: '{points}', label: '⭐ {points}', title: 'Loyalty Points' },
                   { tag: '{wallet}', label: '💳 {wallet}', title: 'Wallet Balance' },
                   { tag: '{address}', label: '📍 {address}', title: 'Studio Address' },
+                  { tag: '{calendar}', label: '📅 {calendar}', title: 'Google Calendar Event Short Link' },
                   { tag: '{link}', label: '🔗 {link}', title: 'Google Review Link' },
                   { tag: '{offer}', label: '🎉 {offer}', title: 'Festival Promo Offer' },
                 ].map((v) => (
