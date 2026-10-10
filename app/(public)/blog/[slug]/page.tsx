@@ -1,8 +1,29 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import BlogPostClient from './BlogPostClient';
 import { ALL_BLOG_POSTS, getBlogPostBySlug, getRelatedPosts } from '@/lib/blog-data';
 import { getBreadcrumbSchema, getFAQSchema, getLocalBusinessSchema } from '@/lib/seo';
+
+function findBestMatchingSlug(slug: string): string | null {
+  const queryWords = slug.toLowerCase().split(/[-_]+/).filter((w) => w.length > 2);
+  let bestSlug: string | null = null;
+  let maxScore = 0;
+
+  for (const post of ALL_BLOG_POSTS) {
+    const postWords = post.slug.toLowerCase().split(/[-_]+/);
+    let matchCount = 0;
+    for (const w of queryWords) {
+      if (postWords.includes(w)) matchCount++;
+    }
+    const score = matchCount / queryWords.length;
+    if (score > maxScore && matchCount >= 2) {
+      maxScore = score;
+      bestSlug = post.slug;
+    }
+  }
+
+  return maxScore >= 0.4 ? bestSlug : null;
+}
 
 interface Props {
   params: {
@@ -17,7 +38,11 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = getBlogPostBySlug(params.slug);
+  let post = getBlogPostBySlug(params.slug);
+  if (!post) {
+    const matched = findBestMatchingSlug(params.slug);
+    if (matched) post = getBlogPostBySlug(matched);
+  }
   if (!post) return { title: 'Article Not Found' };
 
   const cleanTitle = (post.metaTitle || post.title)
@@ -85,8 +110,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default function BlogPostPage({ params }: Props) {
-  const post = getBlogPostBySlug(params.slug);
-  if (!post) notFound();
+  let post = getBlogPostBySlug(params.slug);
+  if (!post) {
+    const matchedSlug = findBestMatchingSlug(params.slug);
+    if (matchedSlug) {
+      redirect(`/blog/${matchedSlug}`);
+    }
+    notFound();
+  }
 
   const relatedPosts = getRelatedPosts(post.slug, post.category, 3);
 

@@ -102,6 +102,11 @@ const nextConfig = {
         destination: '/admin',
         permanent: false,
       },
+      {
+        source: '/blog/bridal-hair-styling-trends-2026',
+        destination: '/blog/how-to-choose-bridal-hairstyle-face-shape',
+        permanent: true,
+      },
     ];
   },
   // Compress output
