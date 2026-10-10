@@ -34,6 +34,7 @@ export default function BridalPage() {
   const [prevBridal, setPrevBridal] = useState<BridalBooking | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [tab, setTab] = useState(0);
+  const [catalogCategory, setCatalogCategory] = useState<'Bridal Package' | 'Siders Package' | 'Makeup Package'>('Bridal Package');
   const [receiptModalInv, setReceiptModalInv] = useState<Invoice | null>(null);
   const [bulkSyncing, setBulkSyncing] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -324,6 +325,7 @@ const OTHER_EVENT_OPTIONS = [
     setEditId(null);
     setPrevBridal(null);
     setTab(0);
+    setCatalogCategory('Bridal Package');
     const defaultPkg = bridalPackages.find((p) => p.type === 'Bridal Package') || bridalPackages[0];
     const today = todayISO();
     let prev = today;
@@ -357,6 +359,7 @@ const OTHER_EVENT_OPTIONS = [
       otherTime: '11:00',
       packageType: 'Bridal Package',
       packageName: defaultPkg ? defaultPkg.name : '',
+      selectedPackages: defaultPkg ? [defaultPkg] : [],
       package: defaultPkg ? defaultPkg.price : 0,
       advance: 0,
       advanceAccount: data?.settings?.payments?.[0] || 'Cash',
@@ -379,8 +382,21 @@ const OTHER_EVENT_OPTIONS = [
     setEditId(b.id);
     setPrevBridal(b);
     setTab(0);
+    if (b.packageType === 'Bridal Package' || b.packageType === 'Siders Package' || b.packageType === 'Makeup Package') {
+      setCatalogCategory(b.packageType);
+    } else {
+      setCatalogCategory('Bridal Package');
+    }
+    let initialSelected = (b.selectedPackages as BridalPackage[]) || [];
+    if (initialSelected.length === 0 && b.packageName) {
+      const names = b.packageName.split(/\s*\+\s*|\s*,\s*/);
+      initialSelected = names
+        .map((n) => bridalPackages.find((p) => p.name.trim().toLowerCase() === n.trim().toLowerCase()))
+        .filter(Boolean) as BridalPackage[];
+    }
     setForm({
       ...b,
+      selectedPackages: initialSelected,
       email: b.email || '',
       status: b.status || 'Confirmed',
       includeWedding: b.includeWedding !== undefined ? b.includeWedding : !!b.weddingDate,
@@ -392,19 +408,43 @@ const OTHER_EVENT_OPTIONS = [
     setModalOpen(true);
   };
 
-  const selectPackage = (pkg: BridalPackage) => {
+  const togglePackage = (pkg: BridalPackage) => {
     setForm((prev) => {
-      const pPrice = Number(pkg.price);
+      let currentList: BridalPackage[] = (prev.selectedPackages as BridalPackage[]) || [];
+      if (currentList.length === 0 && prev.packageName) {
+        const found = bridalPackages.find((p) => p.name === prev.packageName);
+        if (found) currentList = [found];
+      }
+
+      const existingIdx = currentList.findIndex((p) => p.name === pkg.name || (p.id && p.id === pkg.id));
+      let updatedList: BridalPackage[];
+      if (existingIdx >= 0) {
+        // Deselect it
+        updatedList = currentList.filter((_, i) => i !== existingIdx);
+      } else {
+        // Add it
+        updatedList = [...currentList, pkg];
+      }
+
+      const totalCalculated = updatedList.reduce((sum, p) => sum + Number(p.price || 0), 0);
+      const combinedNames = updatedList.map((p) => p.name).join(' + ');
       const adv = Number(prev.advance || 0);
+
+      const types = Array.from(new Set(updatedList.map((p) => p.type)));
+      const derivedType = types.length === 1 ? types[0] : (types.length > 1 ? 'Combo / Multi-Package' : prev.packageType || 'Bridal Package');
+
       return {
         ...prev,
-        packageName: pkg.name,
-        packageType: pkg.type,
-        package: pPrice,
-        balance: Math.max(0, pPrice - adv),
+        selectedPackages: updatedList,
+        packageName: combinedNames,
+        packageType: derivedType,
+        package: totalCalculated,
+        balance: Math.max(0, totalCalculated - adv),
       };
     });
   };
+
+  const selectPackage = togglePackage;
 
   const handleSave = (saveMode: 'web' | 'api' | 'none' = 'web') => {
     if (!form.name) { toast('Please enter the customer / bride name.', 'error'); setTab(0); return; }
@@ -456,6 +496,7 @@ const OTHER_EVENT_OPTIONS = [
       date: form.weddingDate || form.sagaiDate || form.date || todayISO(),
       packageType: form.packageType || 'Bridal Package',
       packageName: form.packageName || '',
+      selectedPackages: form.selectedPackages || [],
       package: Number(form.package || 0),
       advance: Number(form.advance || 0),
       advanceAccount: form.advanceAccount || 'Cash',
@@ -504,23 +545,32 @@ const OTHER_EVENT_OPTIONS = [
       // Reconcile and sync linked invoice if present
       invoices = invoices.map((inv) => {
         if (inv.bridalBookingId === booking.id || (inv.mobile === booking.mobile && inv.customer === booking.name)) {
-          const pkgName = booking.packageName
-            ? `${booking.packageName}${booking.packageType && !booking.packageName.toLowerCase().includes('package') ? ` (${booking.packageType})` : ''}`
-            : (booking.packageType || 'Bridal & Makeup Package');
+          const invLines: InvoiceLine[] = (booking.selectedPackages && booking.selectedPackages.length > 0)
+            ? booking.selectedPackages.map((p) => ({
+                type: 'S',
+                name: p.name,
+                qty: 1,
+                price: Number(p.price || 0),
+                discount: 0,
+                discountType: '₹',
+              }))
+            : [
+                {
+                  type: 'S',
+                  name: booking.packageName
+                    ? `${booking.packageName}${booking.packageType && !booking.packageName.toLowerCase().includes('package') ? ` (${booking.packageType})` : ''}`
+                    : (booking.packageType || 'Bridal & Makeup Package'),
+                  qty: 1,
+                  price: booking.package,
+                  discount: 0,
+                  discountType: '₹',
+                },
+              ];
           return {
             ...inv,
             customer: booking.name,
             mobile: booking.mobile,
-            lines: [
-              {
-                type: 'S',
-                name: pkgName,
-                qty: 1,
-                price: booking.package,
-                discount: 0,
-                discountType: '₹',
-              },
-            ],
+            lines: invLines,
             subtotal: booking.package,
             total: booking.package,
             advance: booking.advance,
@@ -847,23 +897,30 @@ const OTHER_EVENT_OPTIONS = [
     toast(`📲 Opened WhatsApp App / Web for ${b.name}`);
   };
 
-  // Generate an official Invoice with ONLY the package name mentioned as line item
+  // Generate an official Invoice with package line items
   const handleGenerateInvoice = (b: BridalBooking) => {
     const totalPkg = Number(b.package || 0);
-    const pkgName = b.packageName 
-      ? `${b.packageName}${b.packageType && !b.packageName.toLowerCase().includes('package') ? ` (${b.packageType})` : ''}`
-      : (b.packageType || 'Bridal & Makeup Package');
-
-    const lines: InvoiceLine[] = [
-      {
-        type: 'S',
-        name: pkgName,
-        qty: 1,
-        price: totalPkg,
-        discount: 0,
-        discountType: '₹',
-      },
-    ];
+    const lines: InvoiceLine[] = (b.selectedPackages && b.selectedPackages.length > 0)
+      ? b.selectedPackages.map((p) => ({
+          type: 'S',
+          name: p.name,
+          qty: 1,
+          price: Number(p.price || 0),
+          discount: 0,
+          discountType: '₹',
+        }))
+      : [
+          {
+            type: 'S',
+            name: b.packageName 
+              ? `${b.packageName}${b.packageType && !b.packageName.toLowerCase().includes('package') ? ` (${b.packageType})` : ''}`
+              : (b.packageType || 'Bridal & Makeup Package'),
+            qty: 1,
+            price: totalPkg,
+            discount: 0,
+            discountType: '₹',
+          },
+        ];
 
     const existingInv = (data?.invoices || []).find(
       (i) => i.bridalBookingId === b.id || (i.mobile === b.mobile && i.customer === b.name)
@@ -926,7 +983,7 @@ const OTHER_EVENT_OPTIONS = [
     { label: 'Notes & Finalize', icon: FileText },
   ];
 
-  const packagesForType = bridalPackages.filter((p) => p.type === (form.packageType || 'Bridal Package'));
+  const packagesForType = bridalPackages.filter((p) => p.type === catalogCategory);
 
   const sidersPackages = bridalPackages.filter((p) => p.type === 'Siders Package');
   const bridalFullPackages = bridalPackages.filter((p) => p.type === 'Bridal Package');
@@ -1973,48 +2030,167 @@ const OTHER_EVENT_OPTIONS = [
         {/* Step 2: Package Catalog & Advance */}
         {tab === 2 && (
           <div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
               <button
                 type="button"
-                className={`btn btn-sm ${form.packageType === 'Bridal Package' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => set('packageType', 'Bridal Package')}
+                className={`btn btn-sm ${catalogCategory === 'Bridal Package' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setCatalogCategory('Bridal Package')}
               >
                 👰 Bridal Packages (3 Sessions)
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${form.packageType === 'Siders Package' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => set('packageType', 'Siders Package')}
+                className={`btn btn-sm ${catalogCategory === 'Siders Package' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setCatalogCategory('Siders Package')}
               >
                 ✨ Siders Packages (1 Session)
               </button>
               <button
                 type="button"
-                className={`btn btn-sm ${form.packageType === 'Makeup Package' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => set('packageType', 'Makeup Package')}
+                className={`btn btn-sm ${catalogCategory === 'Makeup Package' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setCatalogCategory('Makeup Package')}
               >
                 💄 Makeup Packages (Custom Sessions)
               </button>
             </div>
 
+            {/* Selected Packages Summary Chips Bar */}
+            {(form.selectedPackages || []).length > 0 && (
+              <div
+                style={{
+                  marginBottom: 12,
+                  padding: '10px 12px',
+                  background: 'linear-gradient(135deg, #f0fdfa 0%, #e6fffa 100%)',
+                  borderRadius: 10,
+                  border: '1.5px solid #99f6e4',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#0f766e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>✨ Selected Packages ({(form.selectedPackages || []).length}):</span>
+                    <span style={{ fontSize: 13, color: '#0d9488', fontWeight: 900 }}>
+                      Total: {money((form.selectedPackages || []).reduce((s, p) => s + Number(p.price || 0), 0))}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        selectedPackages: [],
+                        packageName: '',
+                        package: 0,
+                        balance: 0,
+                      }));
+                    }}
+                    style={{ fontSize: 11, color: '#e11d48', padding: '2px 8px', height: 'auto', fontWeight: 700 }}
+                  >
+                    Clear All
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {(form.selectedPackages || []).map((pkg, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: '#ffffff',
+                        border: '1.5px solid #0d9488',
+                        color: '#0f766e',
+                        borderRadius: 999,
+                        padding: '3px 10px',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                      }}
+                    >
+                      <span>{pkg.name} ({money(pkg.price)})</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePackage(pkg as BridalPackage);
+                        }}
+                        style={{
+                          background: '#f1f5f9',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: 16,
+                          height: 16,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: '#64748b',
+                          fontSize: 10,
+                          fontWeight: 900,
+                          padding: 0,
+                        }}
+                        title="Remove package"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Package Cards Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10, maxHeight: 220, overflowY: 'auto', padding: 4, marginBottom: 14 }}>
               {packagesForType.map((pkg) => {
-                const isSelected = form.packageName === pkg.name;
+                const isSelected = (form.selectedPackages || []).some(
+                  (p) => p.name.trim().toLowerCase() === pkg.name.trim().toLowerCase() || (p.id && pkg.id && p.id === pkg.id)
+                );
                 return (
                   <div
-                    key={pkg.name}
+                    key={pkg.id || pkg.name}
                     className={`package-card ${isSelected ? 'selected' : ''}`}
-                    onClick={() => selectPackage(pkg)}
-                    style={{ padding: 12, borderRadius: 10, cursor: 'pointer' }}
+                    onClick={() => togglePackage(pkg)}
+                    style={{
+                      padding: 12,
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      position: 'relative',
+                      border: isSelected ? '2px solid var(--teal)' : '1px solid var(--border)',
+                      background: isSelected ? 'rgba(13, 148, 136, 0.06)' : '#ffffff',
+                      boxShadow: isSelected ? '0 0 0 2px rgba(13, 148, 136, 0.15)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: 13, color: isSelected ? 'var(--teal)' : 'var(--text)' }}>
-                      {pkg.name}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: isSelected ? 'var(--teal)' : 'var(--text)' }}>
+                        {pkg.name}
+                      </div>
+                      <div
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 4,
+                          border: isSelected ? '2px solid var(--teal)' : '1.5px solid #cbd5e1',
+                          background: isSelected ? 'var(--teal)' : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                          marginTop: 1,
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {isSelected && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                      </div>
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? 'var(--teal)' : 'var(--text)', margin: '4px 0' }}>
                       {money(pkg.price)}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{pkg.includes}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.35 }}>{pkg.includes}</div>
                   </div>
                 );
               })}
@@ -2022,6 +2198,16 @@ const OTHER_EVENT_OPTIONS = [
 
             {/* Advance & Payment Account */}
             <div className="form-grid" style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid var(--border)' }}>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label className="label">Package Name / Combined Package Details</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="e.g. Airbrush HD Bridal Makeup + Make-up (Bridal & Mandap Muhurat)"
+                  value={form.packageName || ''}
+                  onChange={(e) => set('packageName', e.target.value)}
+                />
+              </div>
               <div className="form-group">
                 <label className="label">Total Package Price (₹)</label>
                 <input

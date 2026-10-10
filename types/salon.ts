@@ -471,6 +471,7 @@ export interface BridalBooking {
   packageType?: string;
   packageId?: string;
   packageName?: string;
+  selectedPackages?: Array<{ id?: string; name: string; type: string; price: number; includes?: string; qty?: number }>;
   packageSessions?: number;
   packageIncludes?: string;
   package: number;
