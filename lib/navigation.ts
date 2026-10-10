@@ -227,6 +227,15 @@ export function getSortedNavItems(customOrder?: string[]): NavItem[] {
     if (item && !visited.has(id)) {
       sorted.push(item);
       visited.add(id);
+
+      // Ensure AI Poster is placed right after Google Maps / Instagram even if user has an old customOrder saved
+      if ((id === 'google-maps' || id === 'instagram') && !customOrder.includes('ai-poster')) {
+        const posterItem = itemMap.get('ai-poster');
+        if (posterItem && !visited.has('ai-poster')) {
+          sorted.push(posterItem);
+          visited.add('ai-poster');
+        }
+      }
     }
   }
 
