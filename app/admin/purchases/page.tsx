@@ -316,6 +316,7 @@ export default function PurchasesPage() {
     setScanningBill(true);
     try {
       const base64 = await compressImage(file);
+      setBillImage(base64); // Auto-attach bill photo directly to purchase record
       const res = await fetch('/api/purchases/scan-bill', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -323,12 +324,13 @@ export default function PurchasesPage() {
       });
       const result = await res.json();
       if (!result.success || !result.data) {
-        toast(result.error || 'Failed to scan bill. Please try again.', 'error');
+        toast(result.error || 'Failed to scan bill. (Photo is still attached to purchase)', 'error');
         setScanningBill(false);
         return;
       }
 
       const bill = result.data;
+      bill.image = base64; // Retain photo on parsed bill
       setPendingBillData(bill);
 
       const existingInv = data?.inventory || [];
@@ -447,6 +449,11 @@ export default function PurchasesPage() {
     latestInventory: InventoryItem[]
   ) => {
     if (!bill) return;
+
+    // Auto-save & attach the scanned bill photo
+    if (bill.image) {
+      setBillImage(bill.image);
+    }
 
     // 1. Match or create Supplier
     const existingSuppliers = data?.suppliers || [];
@@ -1685,6 +1692,27 @@ export default function PurchasesPage() {
             >
               <Upload size={13} /> 🧾 Scan / Upload Bill Image
             </button>
+            {billImage && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => setPreviewImageModal(billImage)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: '#15803d',
+                  background: '#dcfce7',
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  fontWeight: 700,
+                  fontSize: 11.5,
+                }}
+                title="View attached bill photo"
+              >
+                ✓ Bill Photo Attached
+              </button>
+            )}
             <button
               className="btn btn-ghost btn-sm"
               type="button"
