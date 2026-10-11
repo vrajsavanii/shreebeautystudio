@@ -391,7 +391,23 @@ const OTHER_EVENT_OPTIONS = [
     if (initialSelected.length === 0 && b.packageName) {
       const names = b.packageName.split(/\s*\+\s*|\s*,\s*/);
       initialSelected = names
-        .map((n) => bridalPackages.find((p) => p.name.trim().toLowerCase() === n.trim().toLowerCase()))
+        .map((entry) => {
+          const match = entry.match(/^(.*?)\s*\((.*?)\)$/);
+          const rawName = match ? match[1].trim() : entry.trim();
+          const custName = match ? match[2].trim() : '';
+          const found = bridalPackages.find((p) => p.name.trim().toLowerCase() === rawName.toLowerCase());
+          if (found) {
+            return { ...found, customerName: custName || b.name || '' };
+          }
+          return {
+            id: uid(),
+            name: rawName,
+            type: b.packageType || 'Bridal Package',
+            price: Number(b.package || 0),
+            includes: '',
+            customerName: custName || b.name || '',
+          };
+        })
         .filter(Boolean) as BridalPackage[];
     }
     setForm({
@@ -410,24 +426,31 @@ const OTHER_EVENT_OPTIONS = [
 
   const togglePackage = (pkg: BridalPackage) => {
     setForm((prev) => {
-      let currentList: BridalPackage[] = (prev.selectedPackages as BridalPackage[]) || [];
+      let currentList: any[] = (prev.selectedPackages as any[]) || [];
       if (currentList.length === 0 && prev.packageName) {
         const found = bridalPackages.find((p) => p.name === prev.packageName);
-        if (found) currentList = [found];
+        if (found) currentList = [{ ...found, customerName: prev.name || '' }];
       }
 
-      const existingIdx = currentList.findIndex((p) => p.name === pkg.name || (p.id && p.id === pkg.id));
-      let updatedList: BridalPackage[];
+      const existingIdx = currentList.findIndex(
+        (p) => p.name.trim().toLowerCase() === pkg.name.trim().toLowerCase() || (p.id && pkg.id && p.id === pkg.id)
+      );
+      let updatedList: any[];
       if (existingIdx >= 0) {
         // Deselect it
-        updatedList = currentList.filter((_, i) => i !== existingIdx);
+        updatedList = currentList.filter(
+          (p) => !(p.name.trim().toLowerCase() === pkg.name.trim().toLowerCase() || (p.id && pkg.id && p.id === pkg.id))
+        );
       } else {
         // Add it
-        updatedList = [...currentList, pkg];
+        const defaultCustomer = currentList.length === 0 ? (prev.name || '') : '';
+        updatedList = [...currentList, { ...pkg, customerName: defaultCustomer }];
       }
 
       const totalCalculated = updatedList.reduce((sum, p) => sum + Number(p.price || 0), 0);
-      const combinedNames = updatedList.map((p) => p.name).join(' + ');
+      const combinedNames = updatedList
+        .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
+        .join(' + ');
       const adv = Number(prev.advance || 0);
 
       const types = Array.from(new Set(updatedList.map((p) => p.type)));
@@ -440,6 +463,70 @@ const OTHER_EVENT_OPTIONS = [
         packageType: derivedType,
         package: totalCalculated,
         balance: Math.max(0, totalCalculated - adv),
+      };
+    });
+  };
+
+  const addPackageInstance = (pkg: BridalPackage) => {
+    setForm((prev) => {
+      const currentList: any[] = (prev.selectedPackages as any[]) || [];
+      const updatedList = [...currentList, { ...pkg, customerName: '' }];
+      const totalCalculated = updatedList.reduce((sum, p) => sum + Number(p.price || 0), 0);
+      const combinedNames = updatedList
+        .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
+        .join(' + ');
+      const adv = Number(prev.advance || 0);
+
+      const types = Array.from(new Set(updatedList.map((p) => p.type)));
+      const derivedType = types.length === 1 ? types[0] : (types.length > 1 ? 'Combo / Multi-Package' : prev.packageType || 'Bridal Package');
+
+      return {
+        ...prev,
+        selectedPackages: updatedList,
+        packageName: combinedNames,
+        packageType: derivedType,
+        package: totalCalculated,
+        balance: Math.max(0, totalCalculated - adv),
+      };
+    });
+  };
+
+  const removePackageInstance = (index: number) => {
+    setForm((prev) => {
+      const currentList: any[] = (prev.selectedPackages as any[]) || [];
+      const updatedList = currentList.filter((_, i) => i !== index);
+      const totalCalculated = updatedList.reduce((sum, p) => sum + Number(p.price || 0), 0);
+      const combinedNames = updatedList
+        .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
+        .join(' + ');
+      const adv = Number(prev.advance || 0);
+
+      const types = Array.from(new Set(updatedList.map((p) => p.type)));
+      const derivedType = types.length === 1 ? types[0] : (types.length > 1 ? 'Combo / Multi-Package' : prev.packageType || 'Bridal Package');
+
+      return {
+        ...prev,
+        selectedPackages: updatedList,
+        packageName: combinedNames,
+        packageType: derivedType,
+        package: totalCalculated,
+        balance: Math.max(0, totalCalculated - adv),
+      };
+    });
+  };
+
+  const updatePackageCustomerName = (index: number, customerName: string) => {
+    setForm((prev) => {
+      const currentList: any[] = [...((prev.selectedPackages as any[]) || [])];
+      if (!currentList[index]) return prev;
+      currentList[index] = { ...currentList[index], customerName };
+      const combinedNames = currentList
+        .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
+        .join(' + ');
+      return {
+        ...prev,
+        selectedPackages: currentList,
+        packageName: combinedNames,
       };
     });
   };
@@ -548,7 +635,7 @@ const OTHER_EVENT_OPTIONS = [
           const invLines: InvoiceLine[] = (booking.selectedPackages && booking.selectedPackages.length > 0)
             ? booking.selectedPackages.map((p) => ({
                 type: 'S',
-                name: p.name,
+                name: p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
                 qty: 1,
                 price: Number(p.price || 0),
                 discount: 0,
@@ -903,7 +990,7 @@ const OTHER_EVENT_OPTIONS = [
     const lines: InvoiceLine[] = (b.selectedPackages && b.selectedPackages.length > 0)
       ? b.selectedPackages.map((p) => ({
           type: 'S',
-          name: p.name,
+          name: p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
           qty: 1,
           price: Number(p.price || 0),
           discount: 0,
@@ -2054,24 +2141,24 @@ const OTHER_EVENT_OPTIONS = [
               </button>
             </div>
 
-            {/* Selected Packages Summary Chips Bar */}
+            {/* Selected Packages & Customer Assignment Bar / Table */}
             {(form.selectedPackages || []).length > 0 && (
               <div
                 style={{
-                  marginBottom: 12,
-                  padding: '10px 12px',
+                  marginBottom: 16,
+                  padding: '12px 14px',
                   background: 'linear-gradient(135deg, #f0fdfa 0%, #e6fffa 100%)',
-                  borderRadius: 10,
+                  borderRadius: 12,
                   border: '1.5px solid #99f6e4',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
+                  boxShadow: '0 2px 8px rgba(13, 148, 136, 0.08)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#0f766e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>✨ Selected Packages ({(form.selectedPackages || []).length}):</span>
-                    <span style={{ fontSize: 13, color: '#0d9488', fontWeight: 900 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#0f766e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>✨ Selected Packages ({(form.selectedPackages || []).length}) &amp; Clients:</span>
+                    </span>
+                    <span style={{ fontSize: 13, color: '#0d9488', fontWeight: 900, background: '#ffffff', padding: '2px 8px', borderRadius: 99, border: '1px solid #99f6e4' }}>
                       Total: {money((form.selectedPackages || []).reduce((s, p) => s + Number(p.price || 0), 0))}
                     </span>
                   </div>
@@ -2093,52 +2180,108 @@ const OTHER_EVENT_OPTIONS = [
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {(form.selectedPackages || []).map((pkg, idx) => (
-                    <span
-                      key={idx}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: '#ffffff',
-                        border: '1.5px solid #0d9488',
-                        color: '#0f766e',
-                        borderRadius: 999,
-                        padding: '3px 10px',
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                      }}
-                    >
-                      <span>{pkg.name} ({money(pkg.price)})</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          togglePackage(pkg as BridalPackage);
-                        }}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
+                  {(form.selectedPackages || []).map((pkg, idx) => {
+                    const isBridal = pkg.type === 'Bridal Package';
+                    return (
+                      <div
+                        key={idx}
                         style={{
-                          background: '#f1f5f9',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: 16,
-                          height: 16,
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          color: '#64748b',
-                          fontSize: 10,
-                          fontWeight: 900,
-                          padding: 0,
+                          gap: 10,
+                          background: '#ffffff',
+                          border: '1.5px solid #ccfbf1',
+                          borderRadius: 8,
+                          padding: '8px 12px',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                          flexWrap: 'wrap',
                         }}
-                        title="Remove package"
                       >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
+                        {/* Package Info */}
+                        <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                background: isBridal ? '#fef3c7' : '#f1f5f9',
+                                color: isBridal ? '#92400e' : '#475569',
+                              }}
+                            >
+                              {pkg.type || 'Package'}
+                            </span>
+                            <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>
+                              {pkg.name}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 11.5, color: '#0d9488', fontWeight: 800, marginTop: 2 }}>
+                            {money(pkg.price)}
+                          </div>
+                        </div>
+
+                        {/* Customer / Person Name Input */}
+                        <div style={{ flex: '2 1 240px', minWidth: 200, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#0f766e', whiteSpace: 'nowrap' }}>
+                            👤 Customer Name:
+                          </span>
+                          <input
+                            type="text"
+                            className="input"
+                            style={{ padding: '4px 8px', fontSize: 12, height: 32 }}
+                            placeholder={`e.g. ${idx === 0 ? (form.name || 'Bride Name') : 'Sister, Mother, Friend name'}`}
+                            value={pkg.customerName || ''}
+                            onChange={(e) => updatePackageCustomerName(idx, e.target.value)}
+                          />
+                        </div>
+
+                        {/* Actions: Add Another Person / Remove */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => addPackageInstance(pkg as BridalPackage)}
+                            title="Add another person for this same package"
+                            style={{
+                              fontSize: 11,
+                              padding: '3px 8px',
+                              height: 30,
+                              color: '#0284c7',
+                              background: '#f0f9ff',
+                              borderColor: '#bae6fd',
+                              fontWeight: 700,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            + Add Person
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removePackageInstance(idx)}
+                            style={{
+                              background: '#fee2e2',
+                              border: '1px solid #fca5a5',
+                              borderRadius: 6,
+                              width: 28,
+                              height: 28,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              color: '#dc2626',
+                              fontSize: 12,
+                              fontWeight: 900,
+                            }}
+                            title="Remove this package"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -2146,9 +2289,10 @@ const OTHER_EVENT_OPTIONS = [
             {/* Package Cards Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10, maxHeight: 220, overflowY: 'auto', padding: 4, marginBottom: 14 }}>
               {packagesForType.map((pkg) => {
-                const isSelected = (form.selectedPackages || []).some(
+                const matchingCount = (form.selectedPackages || []).filter(
                   (p) => p.name.trim().toLowerCase() === pkg.name.trim().toLowerCase() || (p.id && pkg.id && p.id === pkg.id)
-                );
+                ).length;
+                const isSelected = matchingCount > 0;
                 return (
                   <div
                     key={pkg.id || pkg.name}
@@ -2169,28 +2313,50 @@ const OTHER_EVENT_OPTIONS = [
                       <div style={{ fontWeight: 700, fontSize: 13, color: isSelected ? 'var(--teal)' : 'var(--text)' }}>
                         {pkg.name}
                       </div>
-                      <div
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 4,
-                          border: isSelected ? '2px solid var(--teal)' : '1.5px solid #cbd5e1',
-                          background: isSelected ? 'var(--teal)' : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          marginTop: 1,
-                          transition: 'all 0.15s ease',
-                        }}
-                      >
-                        {isSelected && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {matchingCount > 1 && (
+                          <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--teal)', color: '#ffffff', borderRadius: 99, padding: '1px 6px' }}>
+                            ×{matchingCount}
+                          </span>
+                        )}
+                        <div
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 4,
+                            border: isSelected ? '2px solid var(--teal)' : '1.5px solid #cbd5e1',
+                            background: isSelected ? 'var(--teal)' : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {isSelected && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                        </div>
                       </div>
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: isSelected ? 'var(--teal)' : 'var(--text)', margin: '4px 0' }}>
                       {money(pkg.price)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.35 }}>{pkg.includes}</div>
+                    {isSelected && (
+                      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addPackageInstance(pkg);
+                          }}
+                          style={{ fontSize: 10.5, padding: '2px 6px', height: 'auto', color: 'var(--teal)', fontWeight: 700, border: '1px solid var(--teal)' }}
+                          title="Add another person for this package"
+                        >
+                          + Add Person
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
