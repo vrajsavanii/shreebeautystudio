@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, fmtExpiry } from '@/lib/utils';
 import {
   Invoice,
   InvoiceLine,
@@ -96,6 +96,7 @@ interface UnifiedTransaction {
   status: 'Paid' | 'Partial' | 'Unpaid' | 'Completed';
   category?: string;
   notes?: string;
+  itemsCount?: number;
   rawItem: any;
 }
 
@@ -137,6 +138,7 @@ export default function FinanceAccountingPage() {
 
   // Receipt Modal
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
+  const [viewPurchase, setViewPurchase] = useState<any | null>(null);
 
   // Daily Cashbook Date & Filters
   const [rojmelDate, setRojmelDate] = useState(todayISO());
@@ -355,6 +357,7 @@ export default function FinanceAccountingPage() {
         balanceDue: effectiveBalance,
         paymentMode: inv.mode || 'Cash',
         status,
+        itemsCount: (inv.lines || []).length,
         notes: (inv.lines || []).map((i: InvoiceLine) => i.name).join(', '),
         rawItem: inv,
       });
@@ -380,6 +383,7 @@ export default function FinanceAccountingPage() {
         balanceDue: balance,
         paymentMode: pur.mode || 'Cash',
         status,
+        itemsCount: (pur.lines || []).length,
         notes: (pur.lines || []).map((l) => l.name).join(', '),
         rawItem: pur,
       });
@@ -2324,9 +2328,57 @@ export default function FinanceAccountingPage() {
                         <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
                           {tx.billNo}
                         </td>
-                        <td style={{ padding: '12px 16px' }}>
+                        <td style={{ padding: '12px 16px', maxWidth: 280 }}>
                           <div style={{ fontWeight: 700, color: '#1e293b' }}>{tx.partyName}</div>
-                          {tx.notes && <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{tx.notes}</div>}
+                          {tx.itemsCount ? (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                marginTop: 3,
+                                fontSize: 11,
+                                color: '#475569',
+                                background: '#f8fafc',
+                                padding: '2px 7px',
+                                borderRadius: 5,
+                                border: '1px solid #e2e8f0',
+                                maxWidth: '100%',
+                              }}
+                              title={tx.notes}
+                            >
+                              <span style={{ fontWeight: 700, color: '#0f766e', whiteSpace: 'nowrap' }}>
+                                📦 {tx.itemsCount} {tx.itemsCount === 1 ? 'item' : 'items'}
+                              </span>
+                              {tx.notes && (
+                                <span
+                                  style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    color: '#64748b',
+                                  }}
+                                >
+                                  · {tx.notes}
+                                </span>
+                              )}
+                            </div>
+                          ) : tx.notes ? (
+                            <div
+                              style={{
+                                fontSize: 11.5,
+                                color: '#94a3b8',
+                                maxWidth: 260,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                marginTop: 2,
+                              }}
+                              title={tx.notes}
+                            >
+                              {tx.notes}
+                            </div>
+                          ) : null}
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
                           {money(tx.totalAmount)}
@@ -2339,7 +2391,11 @@ export default function FinanceAccountingPage() {
                         </td>
                         <td style={{ padding: '12px 16px' }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: '#475569', background: '#f8fafc', padding: '3px 7px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                            {tx.paymentMode}
+                            {tx.paidAmount === 0 && tx.balanceDue > 0
+                              ? 'Credit / Due'
+                              : tx.paidAmount > 0 && tx.balanceDue > 0
+                              ? `${tx.paymentMode} (Partial)`
+                              : tx.paymentMode}
                           </span>
                         </td>
                         <td style={{ padding: '12px 16px' }}>
@@ -2364,6 +2420,22 @@ export default function FinanceAccountingPage() {
                               <button
                                 onClick={() => setViewInvoice(tx.rawItem)}
                                 title="View & Print Invoice Receipt"
+                                style={{
+                                  padding: '5px 8px',
+                                  borderRadius: 6,
+                                  background: '#f1f5f9',
+                                  border: '1px solid #cbd5e1',
+                                  color: '#334155',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <Eye size={13} />
+                              </button>
+                            )}
+                            {tx.type === 'Purchase' && (
+                              <button
+                                onClick={() => setViewPurchase(tx.rawItem)}
+                                title="View Purchase Bill Receipt"
                                 style={{
                                   padding: '5px 8px',
                                   borderRadius: 6,
@@ -4248,6 +4320,123 @@ export default function FinanceAccountingPage() {
           </div>
         </div>
       </Modal>
+
+      {/* ─── PURCHASE BILL RECEIPT MODAL ─── */}
+      {viewPurchase && (
+        <Modal
+          isOpen={!!viewPurchase}
+          onClose={() => setViewPurchase(null)}
+          title={`🛒 Purchase Bill — ${viewPurchase.no || 'Details'}`}
+          wide
+          footer={
+            <button className="btn btn-primary" onClick={() => setViewPurchase(null)}>
+              Close
+            </button>
+          }
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16, background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid var(--border)' }}>
+            <div>
+              <div><b>Supplier:</b> {viewPurchase.supplier}</div>
+              <div><b>Date:</b> {fmtDate(viewPurchase.date)}</div>
+              <div><b>Payment Account:</b> {viewPurchase.mode}</div>
+            </div>
+            <div>
+              <div><b>Invoice Ref:</b> {viewPurchase.supplierInvoice || '—'}</div>
+              <div><b>Due Date:</b> {fmtDate(viewPurchase.dueDate) || '—'}</div>
+              <div><b>Status:</b> {(viewPurchase.balance || 0) <= 0 ? '✓ Fully Paid' : `⚠️ Due ${money(viewPurchase.balance || 0)}`}</div>
+            </div>
+          </div>
+
+          <div className="table-wrap" style={{ marginBottom: 14 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Barcode</th>
+                  <th>Product</th>
+                  <th>Expiry Date</th>
+                  <th>Qty</th>
+                  <th>Buy Rate</th>
+                  <th>MRP</th>
+                  <th style={{ textAlign: 'center' }}>Margin %</th>
+                  <th>GST %</th>
+                  <th style={{ textAlign: 'right' }}>Item Order Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(viewPurchase.lines || []).map((l: any, i: number) => {
+                  const lineSub = Number(l.qty || 0) * Number(l.rate || 0);
+                  const lineGst = (lineSub * Number(l.gst || 0)) / 100;
+                  return (
+                    <tr key={i}>
+                      <td style={{ fontFamily: 'monospace', fontSize: 11.5 }}>{l.barcode || '—'}</td>
+                      <td style={{ fontWeight: 700 }}>{l.name}</td>
+                      <td style={{ fontSize: 12, color: 'var(--muted)' }}>
+                        {l.expiry ? fmtExpiry(l.expiry) : '—'}
+                      </td>
+                      <td style={{ fontWeight: 700, textAlign: 'center' }}>{l.qty}</td>
+                      <td>{money(l.rate)}</td>
+                      <td style={{ fontWeight: 600 }}>{l.mrp ? money(l.mrp) : '—'}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        {Number(l.mrp) > 0 && Number(l.rate) > 0 ? (
+                          (() => {
+                            const margin = ((Number(l.mrp) - Number(l.rate)) / Number(l.mrp)) * 100;
+                            const isHigh = margin >= 40;
+                            const isMed = margin >= 20;
+                            const isLow = margin > 0;
+                            const marginText = (Number.isInteger(margin) ? margin.toFixed(0) : margin.toFixed(1)) + "%";
+                            return (
+                              <span
+                                style={{
+                                  fontSize: 11.5,
+                                  fontWeight: 800,
+                                  padding: '2px 7px',
+                                  borderRadius: 4,
+                                  background: isHigh ? '#dcfce7' : isMed ? '#e0f2fe' : isLow ? '#fef3c7' : '#fee2e2',
+                                  color: isHigh ? '#15803d' : isMed ? '#0369a1' : isLow ? '#b45309' : '#b91c1c',
+                                }}
+                                title={"Margin: " + margin.toFixed(1) + "% | Profit: ₹" + (Number(l.mrp) - Number(l.rate)).toFixed(2) + " per unit"}
+                              >
+                                {marginText}
+                              </span>
+                            );
+                          })()
+                        ) : '—'}
+                      </td>
+                      <td>{l.gst || 0}%</td>
+                      <td style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'right' }}>{money(lineSub + lineGst)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+            <div style={{ minWidth: 260 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
+                <span style={{ color: '#64748b' }}>Order Subtotal</span>
+                <span>{money((viewPurchase.lines || []).reduce((s: number, l: any) => s + (l.qty || 0) * (l.rate || 0), 0))}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
+                <span style={{ color: '#64748b' }}>Total GST</span>
+                <span>{money((viewPurchase.lines || []).reduce((s: number, l: any) => s + ((l.qty || 0) * (l.rate || 0) * (l.gst || 0)) / 100, 0))}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 15, fontWeight: 800, borderTop: '1px solid #e2e8f0', marginTop: 4 }}>
+                <span>Grand Total</span>
+                <span style={{ color: 'var(--teal)' }}>{money(viewPurchase.total)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13, color: '#16a34a' }}>
+                <span>Paid Amount</span>
+                <span>{money(viewPurchase.paid)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13, fontWeight: 700, color: (viewPurchase.balance || 0) > 0 ? '#dc2626' : '#16a34a' }}>
+                <span>Balance Due</span>
+                <span>{money(viewPurchase.balance || 0)}</span>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {/* ─── INVOICE RECEIPT MODAL ─── */}
       <InvoiceReceiptModal
