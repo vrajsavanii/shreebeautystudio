@@ -618,11 +618,13 @@ export default function InventoryPage() {
     }
 
     const supplier = suppliers.find((s) => s.id === form.supplierId);
+    const existingBatches = editId ? inventory.find((x) => x.id === editId)?.batches : undefined;
     const updatedItem: InventoryItem = {
       ...form,
       id,
       barcode,
       supplierName: supplier ? supplier.name : form.supplierName || '',
+      batches: (form as any).batches || existingBatches,
     };
 
     updateData((d) => {
@@ -1221,6 +1223,30 @@ export default function InventoryPage() {
                                   <span style={{ color: 'var(--muted)', fontSize: 11.5 }}>No Expiry</span>
                                 )}
                               </div>
+                              {item.batches && item.batches.length > 1 && (
+                                <div style={{ marginTop: 3 }}>
+                                  <span
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      background: '#e0f2fe',
+                                      color: '#0369a1',
+                                      padding: '2px 6px',
+                                      borderRadius: 4,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      cursor: 'pointer',
+                                    }}
+                                    onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+                                    title={item.batches
+                                      .map((b) => `${b.batch ? `Batch ${b.batch}` : 'Batch'}: ${b.stock} pcs (Exp: ${fmtExpiry(b.expiry)})`)
+                                      .join('\n')}
+                                  >
+                                    📦 {item.batches.length} Batches (Earliest Exp: {fmtExpiry(item.expiry)})
+                                  </span>
+                                </div>
+                              )}
                               {item.buyDate && (
                                 <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 2 }}>
                                   Inward: {fmtDate(item.buyDate)}
@@ -1690,14 +1716,25 @@ export default function InventoryPage() {
           <div className="form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
               <label className="label" style={{ margin: 0 }}>Barcode (EAN-13 / Code128)</label>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: 11, padding: '2px 7px' }}
-                onClick={generateBarcode}
-              >
-                <Sparkles size={12} color="var(--teal)" /> Auto-Generate
-              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize: 11, padding: '2px 7px' }}
+                  onClick={() => setCameraModalOpen(true)}
+                  title="Scan using phone camera"
+                >
+                  <Camera size={12} color="var(--primary)" /> Scan Camera
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ fontSize: 11, padding: '2px 7px' }}
+                  onClick={generateBarcode}
+                >
+                  <Sparkles size={12} color="var(--teal)" /> Auto-Generate
+                </button>
+              </div>
             </div>
             <input
               type="text"
@@ -1861,6 +1898,70 @@ export default function InventoryPage() {
             <input type="month" className="input" {...register('expiry')} />
           </div>
         </div>
+
+        {/* Multi-Batch & Different Expiry Dates Breakdown */}
+        {editId && (() => {
+          const currentItem = inventory.find((x) => x.id === editId);
+          if (!currentItem?.batches || currentItem.batches.length === 0) return null;
+          return (
+            <div style={{
+              marginTop: 18,
+              padding: '14px 16px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 10,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  📦 Active Batches & Expiry Dates ({currentItem.batches.length})
+                </div>
+                <span style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 600 }}>
+                  Total Inward Stock: {currentItem.stock} {currentItem.unit || 'Pcs'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {currentItem.batches.map((b, bIdx) => (
+                  <div
+                    key={b.id || bIdx}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      background: '#ffffff',
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                      fontSize: 12,
+                    }}
+                  >
+                    <div>
+                      <strong>{b.batch ? `Batch: ${b.batch}` : `Batch #${bIdx + 1}`}</strong>
+                      {b.purchaseNo && (
+                        <span style={{ color: 'var(--muted)', marginLeft: 8, fontSize: 11 }}>
+                          (Purchase Order: {b.purchaseNo})
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{
+                        fontWeight: 700,
+                        color: b.expiry && b.expiry < todayISO() ? '#dc2626' : 'var(--teal)',
+                      }}>
+                        📅 Exp: {fmtExpiry(b.expiry)}
+                      </span>
+                      <span style={{ fontWeight: 800, background: '#f1f5f9', padding: '2px 8px', borderRadius: 4 }}>
+                        {b.stock} {currentItem.unit || 'Pcs'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
+                💡 <b>સૂચના:</b> આ પ્રોડક્ટના અલગ-અલગ બેચ અને Expiry Date પર્ચેઝ બિલ (Purchases) માંથી આપોઆપ ટ્રેક થાય છે. સૌથી વહેલી Expiry Date મુખ્ય લિસ્ટિંગમાં આગળ રહે છે (FEFO).
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* Quick Inward Stock Modal */}
@@ -2284,12 +2385,17 @@ export default function InventoryPage() {
         )}
       </Modal>
 
-      {/* Camera Barcode Scanner Modal */}
+      {/* Camera Barcode Scanner Modal (Android & iPhone Compatible) */}
       <CameraBarcodeScanner
         isOpen={cameraModalOpen}
         onClose={() => setCameraModalOpen(false)}
         onScan={(scannedBarcode) => {
-          handleBarcodeLookup(scannedBarcode);
+          if (modalOpen) {
+            setValue('barcode', scannedBarcode);
+            toast(`Scanned barcode: ${scannedBarcode}`);
+          } else {
+            handleBarcodeLookup(scannedBarcode);
+          }
         }}
       />
 

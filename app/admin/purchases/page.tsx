@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Plus, Search, Eye, Trash2, Calendar, FileText, CheckCircle,
   Barcode, PlusCircle, Building2, AlertTriangle, ArrowRight, UserPlus, Camera, Pencil,
-  Layers, ChevronDown, ChevronUp
+  Layers, ChevronDown, ChevronUp, Sparkles, Copy
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
@@ -119,8 +119,10 @@ export default function PurchasesPage() {
   const [mode, setMode] = useState(data?.settings?.payments?.[0] || 'Cash');
   const [notes, setNotes] = useState('');
 
-  // Fast Barcode Lookup for Purchases
+  // Fast Barcode Lookup & Mobile Camera Scan for Purchases
   const [barcodeInput, setBarcodeInput] = useState('');
+  const [targetLineIdx, setTargetLineIdx] = useState<number | null>(null);
+  const [scanMode, setScanMode] = useState<'qty' | 'new_batch'>('qty');
 
   // Quick Supplier Form State
   const [quickSupplierName, setQuickSupplierName] = useState('');
@@ -179,18 +181,84 @@ export default function PurchasesPage() {
     setLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...updates } : l)));
   };
 
-  const handleBarcodeFastLookup = (passedCode?: string) => {
+  const addBatchForLine = (idx: number) => {
+    const source = lines[idx];
+    if (!source || !source.name.trim()) {
+      toast('Please enter or select a product name first before adding a batch.', 'error');
+      return;
+    }
+    const newBatchLine: PurchaseLine = {
+      barcode: source.barcode || '',
+      name: source.name,
+      batch: '',
+      expiry: '',
+      qty: 1,
+      rate: source.rate || 0,
+      mrp: source.mrp || 0,
+      gst: source.gst !== undefined ? source.gst : defaultGst,
+      buyDate: source.buyDate || todayISO(),
+    };
+    const nextLines = [...lines];
+    nextLines.splice(idx + 1, 0, newBatchLine);
+    setLines(nextLines);
+    toast(`Added new batch line for "${source.name}". Enter its different Expiry Date & Qty!`);
+  };
+
+  const handleBarcodeFastLookup = (passedCode?: string, targetLine?: number) => {
     const code = (passedCode || barcodeInput).trim();
     if (!code) return;
     setBarcodeInput('');
 
+    // If scanning directly into a specific row via row camera icon
+    if (targetLine !== undefined && targetLine >= 0 && targetLine < lines.length) {
+      const existingProduct = inventory.find((p) => String(p.barcode || '').trim() === code);
+      if (existingProduct) {
+        setLine(targetLine, {
+          barcode: code,
+          name: existingProduct.name,
+          rate: existingProduct.buy || lines[targetLine].rate,
+          mrp: existingProduct.mrp || existingProduct.sell || lines[targetLine].mrp,
+          gst: existingProduct.taxRate !== undefined ? existingProduct.taxRate : defaultGst,
+        });
+        toast(`Scanned ${existingProduct.name} into line ${targetLine + 1}`);
+      } else {
+        setLine(targetLine, { barcode: code });
+        toast(`Barcode "${code}" set on line ${targetLine + 1}`);
+      }
+      return;
+    }
+
     const existingProduct = inventory.find((p) => String(p.barcode || '').trim() === code);
+
+    // If scanMode is 'new_batch', always add as a separate row for this product/barcode
+    if (scanMode === 'new_batch') {
+      const newLine: PurchaseLine = {
+        barcode: existingProduct?.barcode || code,
+        name: existingProduct?.name || '',
+        qty: 1,
+        rate: existingProduct?.buy || 0,
+        mrp: existingProduct?.mrp || existingProduct?.sell || 0,
+        buyDate: todayISO(),
+        batch: '',
+        expiry: '',
+        gst: existingProduct?.taxRate !== undefined ? existingProduct.taxRate : defaultGst,
+      };
+      if (lines.length === 1 && !lines[0].name && !lines[0].barcode) {
+        setLines([newLine]);
+      } else {
+        setLines((prev) => [...prev, newLine]);
+      }
+      toast(existingProduct ? `Added new batch line for ${existingProduct.name}! Enter Expiry date.` : `Barcode "${code}" added as new line.`);
+      return;
+    }
+
     if (existingProduct) {
       const existingLineIdx = lines.findIndex(
         (l) => (l.barcode && l.barcode === code) || l.name === existingProduct.name
       );
       if (existingLineIdx >= 0) {
         setLine(existingLineIdx, { qty: Number(lines[existingLineIdx].qty || 0) + 1 });
+        toast(`Incremented qty for ${existingProduct.name} (+1). Click "+ Batch" on line for different expiry date.`);
       } else {
         const newLine: PurchaseLine = {
           barcode: existingProduct.barcode || code,
@@ -208,8 +276,8 @@ export default function PurchasesPage() {
         } else {
           setLines((prev) => [...prev, newLine]);
         }
+        toast(`Added ${existingProduct.name} (${money(existingProduct.buy || 0)})`);
       }
-      toast(`Added ${existingProduct.name} (${money(existingProduct.buy || 0)})`);
     } else {
       if (lines.length === 1 && !lines[0].name) {
         setLines([{ ...EMPTY_LINE(defaultGst), barcode: code }]);
@@ -426,6 +494,46 @@ export default function PurchasesPage() {
           if (l.batch) p.batch = l.batch;
           if (l.expiry) p.expiry = l.expiry;
           if (l.gst !== undefined) p.taxRate = Number(l.gst);
+
+          // Multi-batch / multi-expiry support
+          if (!p.batches) p.batches = [];
+          if (l.expiry || l.batch) {
+            const bIdx = p.batches.findIndex(
+              (b) => (l.batch && b.batch === l.batch) || (l.expiry && b.expiry === l.expiry)
+            );
+            if (bIdx >= 0) {
+              p.batches[bIdx].stock = Number(p.batches[bIdx].stock || 0) + Number(l.qty);
+              if (l.rate) p.batches[bIdx].buyRate = Number(l.rate);
+              if (l.mrp) p.batches[bIdx].mrp = Number(l.mrp);
+            } else {
+              p.batches.push({
+                id: uid(),
+                batch: l.batch || '',
+                expiry: l.expiry || '',
+                stock: Number(l.qty),
+                buyRate: Number(l.rate || 0),
+                mrp: Number(l.mrp || 0),
+                buyDate: date,
+                purchaseNo: existingPur.no,
+              });
+            }
+          }
+
+          // Maintain primary expiry as earliest active expiry (FEFO)
+          if (p.batches && p.batches.length > 0) {
+            const activeBatches = p.batches.filter((b) => b.expiry && Number(b.stock) > 0);
+            if (activeBatches.length > 0) {
+              activeBatches.sort((a, b) => String(a.expiry || '').localeCompare(String(b.expiry || '')));
+              p.expiry = activeBatches[0].expiry || p.expiry;
+              p.batch = activeBatches[0].batch || p.batch;
+            } else if (l.expiry) {
+              p.expiry = l.expiry;
+              p.batch = l.batch || p.batch;
+            }
+          } else if (l.expiry) {
+            p.expiry = l.expiry;
+            p.batch = l.batch || p.batch;
+          }
         });
 
         // 3. Update purchases list
@@ -524,6 +632,46 @@ export default function PurchasesPage() {
         if (l.batch) p.batch = l.batch;
         if (l.expiry) p.expiry = l.expiry;
         if (l.gst !== undefined) p.taxRate = Number(l.gst);
+
+        // Multi-batch / multi-expiry support
+        if (!p.batches) p.batches = [];
+        if (l.expiry || l.batch) {
+          const bIdx = p.batches.findIndex(
+            (b) => (l.batch && b.batch === l.batch) || (l.expiry && b.expiry === l.expiry)
+          );
+          if (bIdx >= 0) {
+            p.batches[bIdx].stock = Number(p.batches[bIdx].stock || 0) + Number(l.qty);
+            if (l.rate) p.batches[bIdx].buyRate = Number(l.rate);
+            if (l.mrp) p.batches[bIdx].mrp = Number(l.mrp);
+          } else {
+            p.batches.push({
+              id: uid(),
+              batch: l.batch || '',
+              expiry: l.expiry || '',
+              stock: Number(l.qty),
+              buyRate: Number(l.rate || 0),
+              mrp: Number(l.mrp || 0),
+              buyDate: date,
+              purchaseNo: purNo,
+            });
+          }
+        }
+
+        // Maintain primary expiry as earliest active expiry (FEFO)
+        if (p.batches && p.batches.length > 0) {
+          const activeBatches = p.batches.filter((b) => b.expiry && Number(b.stock) > 0);
+          if (activeBatches.length > 0) {
+            activeBatches.sort((a, b) => String(a.expiry || '').localeCompare(String(b.expiry || '')));
+            p.expiry = activeBatches[0].expiry || p.expiry;
+            p.batch = activeBatches[0].batch || p.batch;
+          } else if (l.expiry) {
+            p.expiry = l.expiry;
+            p.batch = l.batch || p.batch;
+          }
+        } else if (l.expiry) {
+          p.expiry = l.expiry;
+          p.batch = l.batch || p.batch;
+        }
 
         newTxs.push({
           id: uid(),
@@ -1023,27 +1171,79 @@ export default function PurchasesPage() {
           </div>
         </div>
 
-        {/* Barcode Fast Lookup in Purchases */}
+        {/* Fast Barcode Scanner Input Bar with Mode Switch */}
         <div style={{
-          display: 'flex', gap: 8, alignItems: 'center', background: '#f8fafc',
-          border: '1.5px dashed var(--border)', borderRadius: 10, padding: '10px 12px', margin: '14px 0 16px'
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
+          background: '#f0fdfa',
+          border: '1px solid #ccfbf1',
+          padding: '8px 12px',
+          borderRadius: 10,
+          marginBottom: 12,
+          flexWrap: 'wrap',
         }}>
-          <Barcode size={20} color="var(--teal)" />
-          <input
-            type="text"
-            className="input"
-            style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px' }}
-            placeholder="Scan with USB laser scanner or type barcode & press Enter…"
-            value={barcodeInput}
-            onChange={(e) => setBarcodeInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleBarcodeFastLookup(); } }}
-          />
-          <button className="btn btn-primary btn-sm" type="button" onClick={() => handleBarcodeFastLookup()}>
-            Scan & Add
-          </button>
-          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setCameraModalOpen(true)}>
-            <Camera size={14} /> Camera Scan
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 260 }}>
+            <Barcode size={20} color="var(--teal)" />
+            <input
+              type="text"
+              className="input"
+              style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px' }}
+              placeholder="Scan with USB laser scanner or enter barcode & press Enter…"
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleBarcodeFastLookup(); } }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button className="btn btn-primary btn-sm" type="button" onClick={() => handleBarcodeFastLookup()}>
+              Scan & Add
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              onClick={() => {
+                setTargetLineIdx(null);
+                setCameraModalOpen(true);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--primary)', fontWeight: 700 }}
+            >
+              <Camera size={14} /> 📱 Phone / Camera Scan
+            </button>
+          </div>
+
+          {/* Scanner Mode Toggle (Same Batch vs New Expiry Batch) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#ffffff',
+            padding: '3px 8px',
+            borderRadius: 8,
+            border: '1px solid #99f6e4',
+            fontSize: 11.5,
+          }}>
+            <span style={{ color: '#0f766e', fontWeight: 700 }}>Scan Mode:</span>
+            <button
+              type="button"
+              className={`btn btn-xs ${scanMode === 'qty' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ padding: '2px 8px', fontSize: 11, height: 24 }}
+              onClick={() => setScanMode('qty')}
+              title="When scanning the same barcode, automatically increment quantity (+1)"
+            >
+              📦 +1 Qty (Same Batch)
+            </button>
+            <button
+              type="button"
+              className={`btn btn-xs ${scanMode === 'new_batch' ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ padding: '2px 8px', fontSize: 11, height: 24 }}
+              onClick={() => setScanMode('new_batch')}
+              title="When scanning the same barcode, add a new row for different Expiry Date"
+            >
+              📅 + New Expiry Batch
+            </button>
+          </div>
         </div>
 
         {/* Purchase Line Items */}
@@ -1063,7 +1263,7 @@ export default function PurchasesPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.05fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 28px',
+              gridTemplateColumns: '1.15fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 60px',
               gap: 6,
               padding: '6px 8px',
               background: '#e2e8f0',
@@ -1084,7 +1284,7 @@ export default function PurchasesPage() {
             <span style={{ textAlign: 'right' }}>MRP (₹)</span>
             <span style={{ textAlign: 'center' }}>GST</span>
             <span style={{ textAlign: 'right' }}>Item Total</span>
-            <span></span>
+            <span style={{ textAlign: 'center' }}>Actions</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
@@ -1093,7 +1293,7 @@ export default function PurchasesPage() {
                 key={idx}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.05fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 28px',
+                  gridTemplateColumns: '1.15fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 60px',
                   gap: 6,
                   alignItems: 'center',
                   background: '#f8fafc',
@@ -1102,14 +1302,35 @@ export default function PurchasesPage() {
                   border: '1px solid var(--border)',
                 }}
               >
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Barcode (e.g. 890...)"
-                  value={l.barcode || ''}
-                  onChange={(e) => setLine(idx, { barcode: e.target.value })}
-                  style={{ padding: '6px 8px', fontSize: 12 }}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Barcode…"
+                    value={l.barcode || ''}
+                    onChange={(e) => setLine(idx, { barcode: e.target.value })}
+                    style={{ padding: '6px 26px 6px 8px', fontSize: 12, width: '100%' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTargetLineIdx(idx);
+                      setCameraModalOpen(true);
+                    }}
+                    title="Scan barcode with phone camera into this row"
+                    style={{
+                      position: 'absolute',
+                      right: 4,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--primary)',
+                      padding: 2,
+                    }}
+                  >
+                    <Camera size={13} />
+                  </button>
+                </div>
                 <input
                   type="text"
                   className="input"
@@ -1196,16 +1417,48 @@ export default function PurchasesPage() {
                     </div>
                   )}
                 </div>
-                <button
-                  className="btn-icon danger"
-                  type="button"
-                  style={{ padding: 4 }}
-                  onClick={() => setLines((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev))}
-                >
-                  <Trash2 size={13} />
-                </button>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    style={{ color: 'var(--teal)', padding: 4 }}
+                    title="Add another batch/expiry date for this product"
+                    onClick={() => addBatchForLine(idx)}
+                  >
+                    <Plus size={13} />
+                  </button>
+                  <button
+                    className="btn-icon danger"
+                    type="button"
+                    style={{ padding: 4 }}
+                    title="Remove line"
+                    onClick={() => setLines((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== idx) : prev))}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
             ))}
+          </div>
+
+          {/* Gujarati & English Multi-Expiry Guidance Banner */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: 11.5,
+            color: '#475569',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            padding: '7px 12px',
+            borderRadius: 6,
+            marginTop: 8,
+          }}>
+            <Sparkles size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
+            <span>
+              <strong>💡 એક જ બારકોડમાં અલગ Expiry Date ઉમેરવા માટે:</strong>{' '}
+              તે રો પર <strong>[+]</strong> બટન દબાવો જેથી એ જ બારકોડની નવી રો બનશે અને તમે અલગ Expiry Date નાખી શકશો. અથવા ઉપર <strong>&quot;📅 + New Expiry Batch&quot;</strong> મોડ ચાલુ રાખીને સ્કેન કરો.
+            </span>
           </div>
         </div>
 
@@ -1380,11 +1633,21 @@ export default function PurchasesPage() {
         </Modal>
       )}
 
-      {/* Camera Barcode Scanner */}
+      {/* Live Camera Barcode Scanner (Android & iPhone Compatible) */}
       <CameraBarcodeScanner
         isOpen={cameraModalOpen}
-        onClose={() => setCameraModalOpen(false)}
-        onScan={(code) => handleBarcodeFastLookup(code)}
+        onClose={() => {
+          setCameraModalOpen(false);
+          setTargetLineIdx(null);
+        }}
+        onScan={(code) => {
+          if (targetLineIdx !== null && targetLineIdx >= 0) {
+            handleBarcodeFastLookup(code, targetLineIdx);
+            setTargetLineIdx(null);
+          } else {
+            handleBarcodeFastLookup(code);
+          }
+        }}
       />
     </div>
   );

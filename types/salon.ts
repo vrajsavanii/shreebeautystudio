@@ -284,6 +284,17 @@ export interface Invoice {
   notes?: string;
 }
 
+export interface ProductBatch {
+  id: string;
+  batch?: string;
+  expiry?: string;
+  stock: number;
+  buyRate?: number;
+  mrp?: number;
+  buyDate?: string;
+  purchaseNo?: string;
+}
+
 export interface InventoryItem {
   id: string;
   barcode?: string;
@@ -304,6 +315,7 @@ export interface InventoryItem {
   batch?: string;
   hsnCode?: string;
   taxRate?: number;
+  batches?: ProductBatch[];
 }
 
 export interface InventoryTx {
