@@ -1492,6 +1492,21 @@ export default function PurchasesPage() {
               </div>
             ))}
           </div>
+
+          {/* Subtle small 1-line guidance tip */}
+          <div style={{
+            fontSize: 11,
+            color: '#64748b',
+            marginTop: 6,
+            padding: '4px 8px',
+            borderRadius: 4,
+            background: '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}>
+            <span>💡 <strong>Tip:</strong> એક જ બારકોડમાં અલગ Expiry Date માટે રો પર <strong>[+]</strong> દબાવો અથવા ઉપર <strong>&quot;📅 + New Expiry Batch&quot;</strong> મોડ વાપરો.</span>
+          </div>
         </div>
 
         {/* Totals Calculation Card */}
