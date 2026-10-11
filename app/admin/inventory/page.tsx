@@ -28,6 +28,12 @@ import {
   CheckSquare,
   Square,
   List,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Filter,
+  X,
+  RotateCcw,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
@@ -124,6 +130,29 @@ const ADJUSTMENT_REASONS: AdjustmentReason[] = [
   'Expired',
 ];
 
+// Column Widths, Sorting & Excel Filtering Constants
+const DEFAULT_INV_COL_WIDTHS = [290, 200, 130, 210, 160, 110];
+const MIN_INV_COL_WIDTHS = [160, 120, 85, 140, 110, 80];
+
+type InvSortCol = 'product' | 'category' | 'stock' | 'pricing' | 'expiry';
+type InvSortDir = 'asc' | 'desc';
+
+interface InvColHeaderDef {
+  id: InvSortCol | 'actions';
+  label: string;
+  canSort: boolean;
+  canFilter: boolean;
+}
+
+const INV_COL_DEFS: InvColHeaderDef[] = [
+  { id: 'product', label: 'Product & Barcode', canSort: true, canFilter: true },
+  { id: 'category', label: 'Category & Supplier', canSort: true, canFilter: true },
+  { id: 'stock', label: 'Stock Level', canSort: true, canFilter: true },
+  { id: 'pricing', label: 'Pricing (Sell / MRP / Buy)', canSort: true, canFilter: true },
+  { id: 'expiry', label: 'Expiry & Buy Date', canSort: true, canFilter: true },
+  { id: 'actions', label: 'Actions', canSort: false, canFilter: false },
+];
+
 export default function InventoryPage() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
@@ -138,6 +167,176 @@ export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<InventoryTab>('products');
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
+
+  // ─── Column Resizing (Mouse & Touch Swipe) ───
+  const [colWidths, setColWidths] = useState<number[]>(DEFAULT_INV_COL_WIDTHS);
+  const [resizingColIdx, setResizingColIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('shree_inv_col_widths');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === DEFAULT_INV_COL_WIDTHS.length) {
+          setColWidths(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const resetColWidths = () => {
+    setColWidths(DEFAULT_INV_COL_WIDTHS);
+    try {
+      localStorage.removeItem('shree_inv_col_widths');
+    } catch {
+      // ignore
+    }
+  };
+
+  const startColResize = (colIdx: number, e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColIdx(colIdx);
+
+    const startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const startW = colWidths[colIdx];
+    const minW = MIN_INV_COL_WIDTHS[colIdx] || 60;
+
+    let currentW = startW;
+
+    const onMove = (moveEvt: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in moveEvt ? moveEvt.touches[0].clientX : moveEvt.clientX;
+      const diff = clientX - startX;
+      currentW = Math.max(minW, Math.round(startW + diff));
+
+      setColWidths((prev) => {
+        const next = [...prev];
+        next[colIdx] = currentW;
+        return next;
+      });
+    };
+
+    const onEnd = () => {
+      setResizingColIdx(null);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      setColWidths((latest) => {
+        try {
+          localStorage.setItem('shree_inv_col_widths', JSON.stringify(latest));
+        } catch {
+          // ignore
+        }
+        return latest;
+      });
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    document.addEventListener('mousemove', onMove, { passive: false });
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  };
+
+  // ─── Column Sorting (▲ / ▼ / ↕) ───
+  const [sortConfig, setSortConfig] = useState<{ col: InvSortCol | null; dir: InvSortDir | null }>({
+    col: null,
+    dir: null,
+  });
+
+  const handleToggleSort = (colId: InvSortCol) => {
+    setSortConfig((prev) => {
+      if (prev.col !== colId) return { col: colId, dir: 'asc' };
+      if (prev.dir === 'asc') return { col: colId, dir: 'desc' };
+      return { col: null, dir: null };
+    });
+  };
+
+  // ─── Excel-Style Column Filters (▽) ───
+  const [colFilters, setColFilters] = useState<{
+    product: string[];
+    category: string[];
+    stock: string[];
+    pricing: string[];
+    expiry: string[];
+  }>({
+    product: [],
+    category: [],
+    stock: [],
+    pricing: [],
+    expiry: [],
+  });
+
+  const [activeFilterPopover, setActiveFilterPopover] = useState<InvSortCol | null>(null);
+  const [popoverSearch, setPopoverSearch] = useState('');
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setActiveFilterPopover(null);
+      }
+    };
+    if (activeFilterPopover) {
+      document.addEventListener('mousedown', onDocClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+    };
+  }, [activeFilterPopover]);
+
+  const toggleFilterVal = (col: keyof typeof colFilters, val: string) => {
+    setColFilters((prev) => {
+      const exists = prev[col].includes(val);
+      const nextArr = exists ? prev[col].filter((x) => x !== val) : [...prev[col], val];
+      return { ...prev, [col]: nextArr };
+    });
+  };
+
+  const toggleSelectAll = (col: keyof typeof colFilters, allVals: string[]) => {
+    setColFilters((prev) => {
+      const allSelected = allVals.every((v) => prev[col].includes(v));
+      return { ...prev, [col]: allSelected ? [] : [...allVals] };
+    });
+  };
+
+  const clearColFilter = (col: keyof typeof colFilters) => {
+    setColFilters((prev) => ({ ...prev, [col]: [] }));
+  };
+
+  const clearAllFilters = () => {
+    setColFilters({
+      product: [],
+      category: [],
+      stock: [],
+      pricing: [],
+      expiry: [],
+    });
+    setSortConfig({ col: null, dir: null });
+    setSearch('');
+    setCategoryFilter('');
+    setBrandFilter('');
+  };
+
+  const hasAnyFilterActive = useMemo(() => {
+    return (
+      colFilters.product.length > 0 ||
+      colFilters.category.length > 0 ||
+      colFilters.stock.length > 0 ||
+      colFilters.pricing.length > 0 ||
+      colFilters.expiry.length > 0 ||
+      sortConfig.col !== null
+    );
+  }, [colFilters, sortConfig]);
+
   const [categoryFilter, setCategoryFilter] = useState('');
 
   // Modals
@@ -419,10 +618,106 @@ export default function InventoryPage() {
     },
   });
 
-  // Filtered Products
+  // Column Filter Distinct Options with Counts
+  const filterOptionsMap = useMemo(() => {
+    const todayStr = todayISO();
+
+    // 1. Product (Brands & Barcode presence)
+    const brandCounts: Record<string, number> = {};
+    inventory.forEach((i) => {
+      const b = i.brand || 'Unbranded';
+      brandCounts[b] = (brandCounts[b] || 0) + 1;
+    });
+    const productOptions = Object.entries(brandCounts)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // 2. Category & Supplier
+    const catCounts: Record<string, number> = {};
+    inventory.forEach((i) => {
+      const c = i.category || 'General';
+      catCounts[c] = (catCounts[c] || 0) + 1;
+    });
+    const categoryOptions = Object.entries(catCounts)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // 3. Stock Status
+    let inStock = 0;
+    let lowStock = 0;
+    let outStock = 0;
+    inventory.forEach((i) => {
+      const s = Number(i.stock || 0);
+      const low = Number(i.low || 2);
+      if (s === 0) outStock++;
+      else if (s <= low) lowStock++;
+      else inStock++;
+    });
+    const stockOptions = [
+      { label: 'In Stock (> 0)', count: inStock },
+      { label: 'Low Stock (<= Min)', count: lowStock },
+      { label: 'Out of Stock (0)', count: outStock },
+    ].filter((o) => o.count > 0);
+
+    // 4. Pricing Brackets
+    let under500 = 0;
+    let p500_1500 = 0;
+    let p1500_3000 = 0;
+    let above3000 = 0;
+    inventory.forEach((i) => {
+      const price = Number(i.sell || i.mrp || 0);
+      if (price < 500) under500++;
+      else if (price <= 1500) p500_1500++;
+      else if (price <= 3000) p1500_3000++;
+      else above3000++;
+    });
+    const pricingOptions = [
+      { label: 'Under ₹500', count: under500 },
+      { label: '₹500 – ₹1,500', count: p500_1500 },
+      { label: '₹1,500 – ₹3,000', count: p1500_3000 },
+      { label: 'Above ₹3,000', count: above3000 },
+    ].filter((o) => o.count > 0);
+
+    // 5. Expiry Status
+    let validExp = 0;
+    let expiringSoon = 0;
+    let expired = 0;
+    let noExp = 0;
+    inventory.forEach((i) => {
+      if (!i.expiry) {
+        noExp++;
+      } else if (i.expiry < todayStr) {
+        expired++;
+      } else {
+        const expDate = new Date(i.expiry).getTime();
+        const diffDays = (expDate - Date.now()) / (1000 * 3600 * 24);
+        if (diffDays <= 45) expiringSoon++;
+        else validExp++;
+      }
+    });
+    const expiryOptions = [
+      { label: 'Valid / Active', count: validExp },
+      { label: 'Expiring Soon (< 45 Days)', count: expiringSoon },
+      { label: 'Expired', count: expired },
+      { label: 'No Expiry Set', count: noExp },
+    ].filter((o) => o.count > 0);
+
+    return {
+      product: productOptions,
+      category: categoryOptions,
+      stock: stockOptions,
+      pricing: pricingOptions,
+      expiry: expiryOptions,
+    };
+  }, [inventory]);
+
+  // Filtered & Sorted Products
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return inventory.filter((p) => {
+    const todayStr = todayISO();
+
+    let result = inventory.filter((p) => {
+      // 1. Text Search
       const matchQuery =
         !q ||
         p.name.toLowerCase().includes(q) ||
@@ -431,12 +726,98 @@ export default function InventoryPage() {
         (p.category && p.category.toLowerCase().includes(q)) ||
         (p.supplierName && p.supplierName.toLowerCase().includes(q));
 
-      const matchBrand = !brandFilter || p.brand === brandFilter;
-      const matchCategory = !categoryFilter || p.category === categoryFilter;
+      if (!matchQuery) return false;
 
-      return matchQuery && matchBrand && matchCategory;
+      // 2. Toolbar legacy filters
+      if (brandFilter && p.brand !== brandFilter) return false;
+      if (categoryFilter && p.category !== categoryFilter) return false;
+
+      // 3. Column Filter: Product (Brand)
+      if (colFilters.product.length > 0) {
+        const b = p.brand || 'Unbranded';
+        if (!colFilters.product.includes(b)) return false;
+      }
+
+      // 4. Column Filter: Category
+      if (colFilters.category.length > 0) {
+        const c = p.category || 'General';
+        if (!colFilters.category.includes(c)) return false;
+      }
+
+      // 5. Column Filter: Stock
+      if (colFilters.stock.length > 0) {
+        const s = Number(p.stock || 0);
+        const low = Number(p.low || 2);
+        const matched = colFilters.stock.some((opt) => {
+          if (opt === 'In Stock (> 0)') return s > low;
+          if (opt === 'Low Stock (<= Min)') return s > 0 && s <= low;
+          if (opt === 'Out of Stock (0)') return s === 0;
+          return false;
+        });
+        if (!matched) return false;
+      }
+
+      // 6. Column Filter: Pricing
+      if (colFilters.pricing.length > 0) {
+        const price = Number(p.sell || p.mrp || 0);
+        const matched = colFilters.pricing.some((opt) => {
+          if (opt === 'Under ₹500') return price < 500;
+          if (opt === '₹500 – ₹1,500') return price >= 500 && price <= 1500;
+          if (opt === '₹1,500 – ₹3,000') return price > 1500 && price <= 3000;
+          if (opt === 'Above ₹3,000') return price > 3000;
+          return false;
+        });
+        if (!matched) return false;
+      }
+
+      // 7. Column Filter: Expiry
+      if (colFilters.expiry.length > 0) {
+        const matched = colFilters.expiry.some((opt) => {
+          if (opt === 'No Expiry Set') return !p.expiry;
+          if (opt === 'Expired') return p.expiry && p.expiry < todayStr;
+          if (opt === 'Expiring Soon (< 45 Days)') {
+            if (!p.expiry || p.expiry < todayStr) return false;
+            const diffDays = (new Date(p.expiry).getTime() - Date.now()) / (1000 * 3600 * 24);
+            return diffDays <= 45;
+          }
+          if (opt === 'Valid / Active') {
+            if (!p.expiry || p.expiry < todayStr) return false;
+            const diffDays = (new Date(p.expiry).getTime() - Date.now()) / (1000 * 3600 * 24);
+            return diffDays > 45;
+          }
+          return false;
+        });
+        if (!matched) return false;
+      }
+
+      return true;
     });
-  }, [inventory, search, brandFilter, categoryFilter]);
+
+    // 8. Sorting (▲ / ▼)
+    if (sortConfig.col && sortConfig.dir) {
+      const dirMult = sortConfig.dir === 'asc' ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        switch (sortConfig.col) {
+          case 'product':
+            return (a.name || '').localeCompare(b.name || '') * dirMult;
+          case 'category':
+            return ((a.category || '') + (a.supplierName || '')).localeCompare(
+              (b.category || '') + (b.supplierName || '')
+            ) * dirMult;
+          case 'stock':
+            return (Number(a.stock || 0) - Number(b.stock || 0)) * dirMult;
+          case 'pricing':
+            return (Number(a.sell || a.mrp || 0) - Number(b.sell || b.mrp || 0)) * dirMult;
+          case 'expiry':
+            return ((a.expiry || '9999').localeCompare(b.expiry || '9999')) * dirMult;
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return result;
+  }, [inventory, search, brandFilter, categoryFilter, colFilters, sortConfig]);
 
   const lowStockItems = useMemo(
     () => filtered.filter((i) => Number(i.stock) <= Number(i.low)),
@@ -1130,15 +1511,354 @@ export default function InventoryPage() {
                 </div>
               ) : (
                 <div className="table-wrap">
-                  <table>
+                  {/* Filter / Sort / Resize Status Bar */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 12px',
+                    background: '#f8fafc',
+                    borderBottom: '1px solid #e2e8f0',
+                    fontSize: 11.5,
+                    flexWrap: 'wrap',
+                    gap: 8,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ color: '#0f766e', fontWeight: 700 }}>
+                        ↔ હેડર વર્ટિકલ લાઈન ડ્રેગ/સ્વાઈપ કરીને કોલમ નાની (Small) કે મોટી (Big) કરી શકો છો
+                      </span>
+                      {sortConfig.col && (
+                        <span style={{
+                          background: '#ccfbf1',
+                          color: '#0f766e',
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          fontWeight: 700,
+                        }}>
+                          Sort: {INV_COL_DEFS.find((c) => c.id === sortConfig.col)?.label} ({sortConfig.dir === 'asc' ? '▲ Ascending' : '▼ Descending'})
+                        </span>
+                      )}
+                      {Object.entries(colFilters).some(([_, arr]) => arr.length > 0) && (
+                        <span style={{
+                          background: '#dcfce7',
+                          color: '#15803d',
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          fontWeight: 700,
+                        }}>
+                          Filtered: {Object.values(colFilters).reduce((sum, a) => sum + a.length, 0)} Filters Active
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {hasAnyFilterActive && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-xs"
+                          onClick={clearAllFilters}
+                          style={{ color: '#ef4444', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <X size={12} /> Clear Filters & Sorting
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        onClick={resetColWidths}
+                        style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}
+                        title="Reset column widths to default"
+                      >
+                        <RotateCcw size={12} /> Reset Widths
+                      </button>
+                    </div>
+                  </div>
+
+                  <table style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0), minWidth: '100%' }}>
+                    <colgroup>
+                      {colWidths.map((w, idx) => (
+                        <col key={idx} style={{ width: w }} />
+                      ))}
+                    </colgroup>
                     <thead>
                       <tr>
-                        <th>Product & Barcode</th>
-                        <th>Category & Supplier</th>
-                        <th>Stock Level</th>
-                        <th>Pricing (Sell / MRP / Buy)</th>
-                        <th>Expiry & Buy Date</th>
-                        <th>Actions</th>
+                        {INV_COL_DEFS.map((col, idx) => {
+                          const colKey = col.id as InvSortCol;
+                          const hasFilter = col.canFilter && (colFilters[colKey]?.length || 0) > 0;
+                          const isSorted = sortConfig.col === col.id;
+                          const filterOptions = (filterOptionsMap as any)[colKey] || [];
+                          const filteredSearchOptions = filterOptions.filter((opt: any) =>
+                            opt.label.toLowerCase().includes(popoverSearch.toLowerCase())
+                          );
+
+                          return (
+                            <th
+                              key={col.id}
+                              style={{
+                                width: colWidths[idx],
+                                position: 'relative',
+                                userSelect: resizingColIdx !== null ? 'none' : 'auto',
+                                padding: '8px 10px',
+                                background: isSorted ? '#f0fdfa' : undefined,
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                                {/* 1. Sort Title & Arrows (▲ / ▼ / ↕) */}
+                                {col.canSort ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleSort(colKey)}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 5,
+                                      background: 'none',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      padding: 0,
+                                      fontWeight: 800,
+                                      fontSize: 11.5,
+                                      color: isSorted ? 'var(--teal)' : 'var(--text)',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.04em',
+                                      textAlign: 'left',
+                                    }}
+                                    title={`Sort by ${col.label} (▲ Ascending / ▼ Descending / ↕ Neutral)`}
+                                  >
+                                    <span>{col.label}</span>
+                                    {isSorted ? (
+                                      sortConfig.dir === 'asc' ? (
+                                        <ArrowUp size={13} color="var(--teal)" strokeWidth={2.8} />
+                                      ) : (
+                                        <ArrowDown size={13} color="var(--teal)" strokeWidth={2.8} />
+                                      )
+                                    ) : (
+                                      <ArrowUpDown size={11} color="#94a3b8" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span style={{ fontWeight: 800, fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    {col.label}
+                                  </span>
+                                )}
+
+                                {/* 2. Excel-Style Filter Funnel (▽ / ColumnFilterPopover) */}
+                                {col.canFilter && (
+                                  <div style={{ position: 'relative' }}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPopoverSearch('');
+                                        setActiveFilterPopover(activeFilterPopover === col.id ? null : colKey);
+                                      }}
+                                      style={{
+                                        background: hasFilter ? '#dcfce7' : 'transparent',
+                                        border: hasFilter ? '1.5px solid #86efac' : '1px solid transparent',
+                                        borderRadius: 5,
+                                        padding: '2px 4px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        color: hasFilter ? '#15803d' : '#94a3b8',
+                                      }}
+                                      title={`Filter ${col.label} (Excel Funnel ▽)`}
+                                    >
+                                      <Filter size={12} strokeWidth={hasFilter ? 2.5 : 1.8} />
+                                      {hasFilter && (
+                                        <span style={{ fontSize: 9.5, fontWeight: 900 }}>
+                                          {colFilters[colKey].length}
+                                        </span>
+                                      )}
+                                    </button>
+
+                                    {/* Excel Column Filter Popover */}
+                                    {activeFilterPopover === col.id && (
+                                      <div
+                                        ref={popoverRef}
+                                        style={{
+                                          position: 'absolute',
+                                          top: 'calc(100% + 6px)',
+                                          right: idx >= 3 ? 0 : 'auto',
+                                          left: idx < 3 ? 0 : 'auto',
+                                          width: 260,
+                                          background: '#ffffff',
+                                          borderRadius: 10,
+                                          border: '1.5px solid #cbd5e1',
+                                          boxShadow: '0 15px 35px rgba(0,0,0,0.18)',
+                                          zIndex: 9999,
+                                          padding: 10,
+                                          textAlign: 'left',
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {/* Popover Header */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                          <div style={{ fontSize: 12, fontWeight: 800, color: '#0f172a' }}>
+                                            Filter {col.label}
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => setActiveFilterPopover(null)}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+                                          >
+                                            <X size={13} />
+                                          </button>
+                                        </div>
+
+                                        {/* Search Box inside Popover */}
+                                        <div style={{ marginBottom: 8 }}>
+                                          <input
+                                            type="text"
+                                            className="input"
+                                            placeholder="Search options…"
+                                            value={popoverSearch}
+                                            onChange={(e) => setPopoverSearch(e.target.value)}
+                                            style={{ width: '100%', fontSize: 11.5, padding: '4px 8px' }}
+                                            autoFocus
+                                          />
+                                        </div>
+
+                                        {/* Select All Checkbox */}
+                                        <div style={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          padding: '4px 6px',
+                                          background: '#f8fafc',
+                                          borderRadius: 6,
+                                          marginBottom: 6,
+                                          fontSize: 11.5,
+                                        }}>
+                                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontWeight: 700, color: '#334155' }}>
+                                            <input
+                                              type="checkbox"
+                                              checked={
+                                                filterOptions.length > 0 &&
+                                                filterOptions.every((opt: any) => colFilters[colKey].includes(opt.label))
+                                              }
+                                              onChange={() =>
+                                                toggleSelectAll(
+                                                  colKey,
+                                                  filterOptions.map((o: any) => o.label)
+                                                )
+                                              }
+                                            />
+                                            <span>(Select All)</span>
+                                          </label>
+                                          <span style={{ fontSize: 10.5, color: '#94a3b8' }}>
+                                            {filterOptions.length} values
+                                          </span>
+                                        </div>
+
+                                        {/* Distinct Checkboxes List */}
+                                        <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3, paddingRight: 4 }}>
+                                          {filteredSearchOptions.length === 0 ? (
+                                            <div style={{ fontSize: 11, color: '#94a3b8', padding: '10px 0', textAlign: 'center' }}>
+                                              No options found
+                                            </div>
+                                          ) : (
+                                            filteredSearchOptions.map((opt: any) => {
+                                              const isChecked = colFilters[colKey].includes(opt.label);
+                                              return (
+                                                <label
+                                                  key={opt.label}
+                                                  style={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    padding: '3px 6px',
+                                                    borderRadius: 4,
+                                                    cursor: 'pointer',
+                                                    fontSize: 11.5,
+                                                    background: isChecked ? '#f0fdf4' : 'transparent',
+                                                    color: isChecked ? '#166534' : '#1e293b',
+                                                  }}
+                                                >
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                                                    <input
+                                                      type="checkbox"
+                                                      checked={isChecked}
+                                                      onChange={() => toggleFilterVal(colKey, opt.label)}
+                                                    />
+                                                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                                      {opt.label}
+                                                    </span>
+                                                  </div>
+                                                  <span style={{ fontSize: 10.5, color: '#94a3b8', fontWeight: 600, marginLeft: 6 }}>
+                                                    ({opt.count})
+                                                  </span>
+                                                </label>
+                                              );
+                                            })
+                                          )}
+                                        </div>
+
+                                        {/* Popover Footer Buttons */}
+                                        <div style={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          borderTop: '1px solid #f1f5f9',
+                                          paddingTop: 8,
+                                          marginTop: 8,
+                                        }}>
+                                          <button
+                                            type="button"
+                                            className="btn btn-ghost btn-xs"
+                                            onClick={() => clearColFilter(colKey)}
+                                            style={{ color: '#ef4444', fontSize: 11 }}
+                                          >
+                                            Reset Filter
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="btn btn-primary btn-xs"
+                                            onClick={() => setActiveFilterPopover(null)}
+                                            style={{ fontSize: 11, fontWeight: 700 }}
+                                          >
+                                            OK / Apply
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* 3. Vertical Separator & Swipe Resizer (|) */}
+                              {idx < colWidths.length - 1 && (
+                                <div
+                                  onMouseDown={(e) => startColResize(idx, e)}
+                                  onTouchStart={(e) => startColResize(idx, e)}
+                                  style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: 12,
+                                    cursor: 'col-resize',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 10,
+                                  }}
+                                  title="↔ Drag or swipe vertical line to resize column"
+                                >
+                                  <div
+                                    style={{
+                                      width: resizingColIdx === idx ? 2.5 : 1.5,
+                                      height: resizingColIdx === idx ? '100%' : '60%',
+                                      background: resizingColIdx === idx ? 'var(--teal)' : '#cbd5e1',
+                                      boxShadow: resizingColIdx === idx ? '0 0 6px rgba(13,148,136,0.7)' : 'none',
+                                      borderRadius: 1,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
