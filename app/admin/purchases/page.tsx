@@ -961,7 +961,7 @@ export default function PurchasesPage() {
                                     <th style={{ padding: '6px 10px', textAlign: 'left', width: 32 }}>#</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'left' }}>Item / Product Name</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'left', width: 130 }}>Barcode</th>
-                                    <th style={{ padding: '6px 10px', textAlign: 'left', width: 140 }}>Batch / Expiry</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left', width: 130 }}>Expiry Date</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'center', width: 60 }}>Qty</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'right', width: 95 }}>Buy Rate</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'right', width: 95 }}>MRP</th>
@@ -987,8 +987,7 @@ export default function PurchasesPage() {
                                           {line.barcode || '—'}
                                         </td>
                                         <td style={{ padding: '6px 10px', fontSize: 11, color: '#64748b' }}>
-                                          {line.batch ? `B: ${line.batch} ` : ''}
-                                          {line.expiry ? `(Exp: ${fmtExpiry(line.expiry)})` : '—'}
+                                          {line.expiry ? fmtExpiry(line.expiry) : '—'}
                                         </td>
                                         <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>
                                           {line.qty}
@@ -1290,7 +1289,7 @@ export default function PurchasesPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.15fr 1.35fr 0.65fr 0.75fr 48px 68px 68px 68px 50px 88px 58px',
+              gridTemplateColumns: '1.2fr 1.6fr 0.85fr 50px 72px 72px 70px 52px 90px 58px',
               gap: 6,
               padding: '6px 8px',
               background: '#e2e8f0',
@@ -1304,7 +1303,6 @@ export default function PurchasesPage() {
           >
             <span>Barcode</span>
             <span>Product Name *</span>
-            <span>Batch No</span>
             <span>Expiry (MM/YY)</span>
             <span style={{ textAlign: 'center' }}>Qty</span>
             <span style={{ textAlign: 'right' }}>Buy Rate</span>
@@ -1321,7 +1319,7 @@ export default function PurchasesPage() {
                 key={idx}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.15fr 1.35fr 0.65fr 0.75fr 48px 68px 68px 68px 50px 88px 58px',
+                  gridTemplateColumns: '1.2fr 1.6fr 0.85fr 50px 72px 72px 70px 52px 90px 58px',
                   gap: 6,
                   alignItems: 'center',
                   background: '#f8fafc',
@@ -1367,14 +1365,6 @@ export default function PurchasesPage() {
                   value={l.name}
                   onChange={(e) => handleProductSelect(idx, e.target.value)}
                   style={{ padding: '6px 8px', fontSize: 12.5 }}
-                />
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Batch (e.g. B-01)"
-                  value={l.batch || ''}
-                  onChange={(e) => setLine(idx, { batch: e.target.value })}
-                  style={{ padding: '6px 8px', fontSize: 11.5 }}
                 />
                 <input
                   type="month"
@@ -1630,7 +1620,7 @@ export default function PurchasesPage() {
                 <tr>
                   <th>Barcode</th>
                   <th>Product</th>
-                  <th>Batch / Expiry</th>
+                  <th>Expiry Date</th>
                   <th>Qty</th>
                   <th>Buy Rate</th>
                   <th>MRP</th>
@@ -1648,7 +1638,7 @@ export default function PurchasesPage() {
                       <td style={{ fontFamily: 'monospace', fontSize: 11.5 }}>{l.barcode || '—'}</td>
                       <td style={{ fontWeight: 700 }}>{l.name}</td>
                       <td style={{ fontSize: 12, color: 'var(--muted)' }}>
-                        {l.batch || l.expiry ? `${l.batch ? `Batch: ${l.batch} ` : ''}${l.expiry ? `(Exp: ${fmtExpiry(l.expiry)})` : ''}` : '—'}
+                        {l.expiry ? fmtExpiry(l.expiry) : '—'}
                       </td>
                       <td style={{ fontWeight: 700, textAlign: 'center' }}>{l.qty}</td>
                       <td>{money(l.rate)}</td>
