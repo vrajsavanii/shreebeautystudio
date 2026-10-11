@@ -1173,31 +1173,15 @@ export default function InventoryPage() {
                               </div>
                             </td>
                             <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span
-                                  style={{
-                                    fontWeight: 800,
-                                    fontSize: 13.5,
-                                    color: '#0f172a',
-                                  }}
-                                >
-                                  {item.stock} {item.unit || 'Pcs'}
-                                </span>
-                                {isLow && (
-                                  <span
-                                    style={{
-                                      fontSize: 10,
-                                      fontWeight: 700,
-                                      background: '#fee2e2',
-                                      color: '#b91c1c',
-                                      padding: '1px 5px',
-                                      borderRadius: 4,
-                                    }}
-                                  >
-                                    LOW
-                                  </span>
-                                )}
-                              </div>
+                              <span
+                                style={{
+                                  fontWeight: 800,
+                                  fontSize: 13.5,
+                                  color: '#0f172a',
+                                }}
+                              >
+                                {item.stock} {item.unit || 'Pcs'}
+                              </span>
                             </td>
                             <td>
                               <div style={{ fontWeight: 700, color: 'var(--teal)', fontSize: 13 }}>
