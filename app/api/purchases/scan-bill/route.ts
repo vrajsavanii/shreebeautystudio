@@ -3,23 +3,30 @@ import { NextRequest, NextResponse } from 'next/server';
 const SYSTEM_INSTRUCTION = `You are an expert Indian GST Tax Invoice & Purchase Bill OCR Parser.
 Carefully read the purchase bill / invoice image and extract structured JSON data.
 
-Rules:
-1. Extract the Vendor/Seller name (the party issuing the bill) into "supplier". Look at header, top right, or bottom seal/stamp (e.g. "MARKWELL SERVICES").
-2. Extract the Seller's GSTIN if visible into "supplierGstin".
-3. Extract the Seller's phone/mobile into "supplierPhone".
-4. Extract the Seller's city into "supplierCity" (e.g. "Surat").
-5. Extract the Invoice Number / Bill No into "supplierInvoice" (e.g. "JC 88", "INV-1024").
-6. Extract the Bill Date into "date" formatted as YYYY-MM-DD.
-7. Read EVERY product row in the table into the "lines" array without omitting any rows:
-   - "name": Clean, full product name / description.
-   - "qty": Quantity (number). Default 1 if missing.
-   - "rate": Unit purchase price / buy rate (number).
-   - "mrp": Maximum Retail Price (number). If MRP is not given, set mrp = rate or calculate reasonable MRP.
-   - "gst": Combined GST % (e.g. 18 if 9% CGST + 9% SGST, or 5, 12, 28, 0).
-   - "total": Row total amount (number).
-8. Calculate or extract "grandTotal".
+ORIENTATION & ROTATION:
+Notice the image orientation: if the bill image is rotated or sideways, orient your reading direction to match the printed text along rows and columns.
 
-Return strictly valid JSON only:
+TABLE COLUMN LAYOUT (Indian Tax Invoice Format):
+Examine the table headers across each column carefully:
+Typical order: [Sr / Sr. No] [HSN/SAC] [Description / Product Name] [MRP] [Qty / Quantity] [Rate] [Sub Total] [Disc %] [Sch Disc] [Taxable] [SGST] [CGST] [TOTAL]
+
+RULES FOR EACH LINE ITEM:
+1. "name": The clean product name from Description column (e.g. "JC-INSTANT HYDRATING CREAM(HBL)", "JC-INTENSE FIRMING AMPOULE").
+2. "mrp": The Maximum Retail Price printed in the "MRP" column immediately following Description (e.g. 1790, 2490, 1950, 1280, 1340, 1490, 1790).
+3. "qty": CRITICAL! Extract the true quantity number from the "Qty" / "Quantity" column (e.g. 15, 3, 3, 3, 3, 10, 5).
+   - NEVER default qty to 1 if there is a number printed in the Qty column!
+   - Look at the row math to confirm: Sub Total / Rate = Qty (e.g. 21480 / 1432 = 15).
+4. "rate": The unit purchase price printed in the "Rate" column (e.g. 1432.00, 1992.00, 1560.00, 1024.00, 1072.00, 1192.00, 1432.00). DO NOT put the Sub Total (e.g. 21480) as rate! Rate is the single unit price.
+5. "gst": Combined GST percentage (e.g. 18 if 9% SGST + 9% CGST).
+6. "total": Line total amount after discounts + tax.
+
+GENERAL INVOICE DETAILS:
+- "supplier": The vendor / distributor issuing the bill (e.g. "MARKWELL SERVICES").
+- "supplierInvoice": Invoice reference number (e.g. "JC 88").
+- "date": Invoice date in YYYY-MM-DD or DD/MM/YYYY.
+- "grandTotal": Final invoice total.
+
+Return strictly raw valid JSON only:
 {
   "supplier": "string",
   "supplierGstin": "string",
@@ -37,7 +44,7 @@ Return strictly valid JSON only:
       "total": 118
     }
   ],
-  "grandTotal": 100
+  "grandTotal": 0
 }`;
 
 export async function POST(req: NextRequest) {
@@ -75,7 +82,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: 'Please scan and extract every single product row and invoice details from this purchase bill into JSON.',
+              text: 'Please scan and extract every single product row with exact Qty, Rate, MRP, and invoice details from this purchase bill into JSON.',
             },
             {
               type: 'image_url',
@@ -110,29 +117,61 @@ export async function POST(req: NextRequest) {
     const jsonRes = await apiRes.json();
     const rawContent = jsonRes?.choices?.[0]?.message?.content || '';
 
-    // Extract JSON substring
-    const startIdx = rawContent.indexOf('{');
-    const endIdx = rawContent.lastIndexOf('}');
+    let parsedData: any = null;
+    const objStart = rawContent.indexOf('{');
+    const objEnd = rawContent.lastIndexOf('}');
+    const arrStart = rawContent.indexOf('[');
+    const arrEnd = rawContent.lastIndexOf(']');
 
-    if (startIdx === -1 || endIdx === -1) {
+    if (objStart !== -1 && objEnd !== -1 && (arrStart === -1 || objStart < arrStart)) {
+      try {
+        parsedData = JSON.parse(rawContent.slice(objStart, objEnd + 1));
+      } catch (e) {
+        console.error('JSON parse error (obj):', e);
+      }
+    } else if (arrStart !== -1 && arrEnd !== -1) {
+      try {
+        const arr = JSON.parse(rawContent.slice(arrStart, arrEnd + 1));
+        parsedData = { lines: arr };
+      } catch (e) {
+        console.error('JSON parse error (arr):', e);
+      }
+    }
+
+    if (!parsedData) {
       return NextResponse.json(
         { success: false, error: 'AI could not find structured invoice data in this image. Please ensure the bill is well-lit and clearly visible.' },
         { status: 422 }
       );
     }
 
-    const jsonString = rawContent.slice(startIdx, endIdx + 1);
-    const parsedData = JSON.parse(jsonString);
+    const rawLines = Array.isArray(parsedData)
+      ? parsedData
+      : (Array.isArray(parsedData.lines) ? parsedData.lines : []);
 
-    // Sanitize lines
-    const sanitizedLines = (parsedData.lines || []).map((l: any) => ({
-      name: String(l.name || 'Product').trim(),
-      qty: Math.max(1, Number(l.qty) || 1),
-      rate: Math.max(0, Number(l.rate) || 0),
-      mrp: Number(l.mrp) > 0 ? Number(l.mrp) : Number(l.rate) || 0,
-      gst: l.gst !== undefined ? Number(l.gst) : 18,
-      total: Number(l.total) || (Number(l.qty) || 1) * (Number(l.rate) || 0),
-    }));
+    // Sanitize and verify line items
+    const sanitizedLines = rawLines.map((l: any) => {
+      let qty = Number(l.qty) || 1;
+      let rate = Number(l.rate) || 0;
+      let mrp = Number(l.mrp) > 0 ? Number(l.mrp) : (rate > 0 ? rate : 0);
+      let total = Number(l.total) || qty * rate;
+
+      // Smart verification: If rate was mistakenly extracted as SubTotal (e.g. rate = 21480, mrp = 1790)
+      if (mrp > 0 && rate > mrp * 1.5 && qty > 1) {
+        rate = Number((rate / qty).toFixed(2));
+      } else if (mrp > 0 && rate > mrp * 2 && total > 0) {
+        rate = Number((total / Math.max(1, qty)).toFixed(2));
+      }
+
+      return {
+        name: String(l.name || 'Product').trim(),
+        qty: Math.max(1, qty),
+        rate: Math.max(0, rate),
+        mrp: Math.max(rate, mrp),
+        gst: l.gst !== undefined ? Number(l.gst) : 18,
+        total: total || qty * rate,
+      };
+    });
 
     return NextResponse.json({
       success: true,

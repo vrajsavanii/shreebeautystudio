@@ -2582,10 +2582,43 @@ export default function PurchasesPage() {
                         {item.billName}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#475569', background: '#f8fafc', padding: '4px 10px', borderRadius: 6, border: '1px solid #f1f5f9' }}>
-                      <span>Qty: <strong>{item.qty}</strong></span>
-                      <span>Buy Rate: <strong>₹{item.rate}</strong></span>
-                      <span>MRP: <strong>₹{item.mrp}</strong></span>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', background: '#f8fafc', padding: '6px 12px', borderRadius: 8, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>Qty:</span>
+                        <input
+                          type="number"
+                          className="input"
+                          min="1"
+                          value={item.qty}
+                          onChange={(e) => updateReviewItem(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
+                          style={{ width: 65, padding: '4px 6px', fontSize: 13, fontWeight: 800, textAlign: 'center', background: '#ffffff', color: '#0f172a', borderColor: '#94a3b8' }}
+                          title="Quantity from bill"
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>Buy Rate:</span>
+                        <input
+                          type="number"
+                          className="input"
+                          min="0"
+                          value={item.rate}
+                          onChange={(e) => updateReviewItem(idx, { rate: Number(e.target.value) || 0 })}
+                          style={{ width: 85, padding: '4px 6px', fontSize: 12.5, fontWeight: 700, textAlign: 'right', background: '#ffffff', borderColor: '#94a3b8' }}
+                          title="Unit Buy Rate (Rate)"
+                        />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>MRP:</span>
+                        <input
+                          type="number"
+                          className="input"
+                          min="0"
+                          value={item.mrp}
+                          onChange={(e) => updateReviewItem(idx, { mrp: Number(e.target.value) || 0 })}
+                          style={{ width: 85, padding: '4px 6px', fontSize: 12.5, fontWeight: 700, textAlign: 'right', background: '#ffffff', borderColor: '#94a3b8' }}
+                          title="MRP (Maximum Retail Price)"
+                        />
+                      </div>
                     </div>
                   </div>
 
