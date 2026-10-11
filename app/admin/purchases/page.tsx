@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo, useEffect, Fragment } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Plus, Search, Eye, Trash2, Calendar, FileText, CheckCircle,
   Barcode, PlusCircle, Building2, AlertTriangle, ArrowRight, UserPlus, Camera, Pencil,
-  Layers, ChevronDown, ChevronUp, Copy
+  Layers, ChevronDown, ChevronUp, Copy,
+  Upload, CheckCircle2, RefreshCw, Sparkles, FileUp
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
@@ -17,6 +18,40 @@ import { useToast } from '@/components/ui/Toast';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import Link from 'next/link';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
+
+// Client-side image compression for fast bill upload
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1600;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 const DEFAULT_LINE_COL_WIDTHS = [135, 195, 105, 52, 75, 75, 72, 54, 92, 58];
 const MIN_LINE_COL_WIDTHS = [85, 110, 80, 42, 55, 55, 52, 45, 68, 50];
@@ -226,6 +261,174 @@ export default function PurchasesPage() {
   // Fast Barcode Lookup & Mobile Camera Scan for Purchases
   const [barcodeInput, setBarcodeInput] = useState('');
   const [targetLineIdx, setTargetLineIdx] = useState<number | null>(null);
+
+  // AI Bill OCR Upload & New Product Detection State
+  const billFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [scanningBill, setScanningBill] = useState(false);
+  const [newProductsModalOpen, setNewProductsModalOpen] = useState(false);
+  const [detectedNewProducts, setDetectedNewProducts] = useState<Array<{ name: string; category: string; rate: number; mrp: number; qty: number; gst: number }>>([]);
+  const [pendingBillData, setPendingBillData] = useState<any | null>(null);
+
+  const handleBillFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setScanningBill(true);
+    try {
+      const base64 = await compressImage(file);
+      const res = await fetch('/api/purchases/scan-bill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64 }),
+      });
+      const result = await res.json();
+      if (!result.success || !result.data) {
+        toast(result.error || 'Failed to scan bill. Please try again.', 'error');
+        setScanningBill(false);
+        return;
+      }
+
+      const bill = result.data;
+      setPendingBillData(bill);
+
+      // Cross-reference products with current salon inventory
+      const existingInv = data?.inventory || [];
+      const newItems: any[] = [];
+
+      (bill.lines || []).forEach((line: any) => {
+        const cleanName = String(line.name || '').trim().toLowerCase();
+        const exists = existingInv.some(
+          (inv) => inv.name.trim().toLowerCase() === cleanName
+        );
+        if (!exists && cleanName) {
+          newItems.push({
+            name: line.name.trim(),
+            category: 'Skincare',
+            rate: Number(line.rate) || 0,
+            mrp: Number(line.mrp) || Number(line.rate) || 0,
+            qty: Number(line.qty) || 1,
+            gst: line.gst !== undefined ? Number(line.gst) : defaultGst,
+          });
+        }
+      });
+
+      if (newItems.length > 0) {
+        setDetectedNewProducts(newItems);
+        setNewProductsModalOpen(true);
+      } else {
+        applyBillToPurchaseOrder(bill);
+        toast(`✓ Bill scanned! Added ${bill.lines?.length || 0} products from ${bill.supplier || 'Vendor'}`, 'success');
+      }
+    } catch (err: any) {
+      toast('Error processing bill: ' + (err?.message || 'Unknown error'), 'error');
+    } finally {
+      setScanningBill(false);
+    }
+  };
+
+  const updateDetectedProduct = (idx: number, field: string, val: any) => {
+    setDetectedNewProducts((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], [field]: val };
+      return copy;
+    });
+  };
+
+  const handleConfirmAddProductsToInventory = () => {
+    updateData((prev) => {
+      const newInventoryList = [...(prev.inventory || [])];
+      detectedNewProducts.forEach((p) => {
+        const alreadyHas = newInventoryList.some(
+          (x) => x.name.trim().toLowerCase() === p.name.trim().toLowerCase()
+        );
+        if (!alreadyHas) {
+          newInventoryList.push({
+            id: uid(),
+            name: p.name.trim(),
+            category: p.category || 'Skincare',
+            brand: pendingBillData?.supplier || 'Markwell Services',
+            stock: 0,
+            buy: p.rate,
+            sell: p.mrp || p.rate,
+            mrp: p.mrp || p.rate,
+            low: 2,
+            expiry: '',
+            batches: [],
+          });
+        }
+      });
+      return { ...prev, inventory: newInventoryList };
+    });
+
+    toast(`✓ Added ${detectedNewProducts.length} new products to Inventory!`, 'success');
+    setNewProductsModalOpen(false);
+    applyBillToPurchaseOrder(pendingBillData);
+  };
+
+  const applyBillToPurchaseOrder = (bill: any) => {
+    if (!bill) return;
+
+    // 1. Match or create Supplier
+    const existingSuppliers = data?.suppliers || [];
+    let sId = '';
+    if (bill.supplier) {
+      const cleanSupp = bill.supplier.trim().toLowerCase();
+      const matched = existingSuppliers.find(
+        (s) => s.name.toLowerCase().includes(cleanSupp) || cleanSupp.includes(s.name.toLowerCase())
+      );
+      if (matched) {
+        sId = matched.id;
+      } else {
+        const newS: Supplier = {
+          id: uid(),
+          name: bill.supplier.trim(),
+          gstin: bill.supplierGstin || '',
+          city: bill.supplierCity || 'Surat',
+          mobile: bill.supplierPhone || '',
+          contact: '',
+          opening: 0,
+        };
+        updateData((prev) => ({
+          ...prev,
+          suppliers: [...(prev.suppliers || []), newS],
+        }));
+        sId = newS.id;
+      }
+    }
+
+    setSupplierId(sId);
+    setSupplierInvoice(bill.supplierInvoice || '');
+
+    if (bill.date) {
+      if (bill.date.includes('/')) {
+        const parts = bill.date.split('/');
+        if (parts.length === 3) {
+          setDate(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+        } else {
+          setDate(todayISO());
+        }
+      } else {
+        setDate(bill.date);
+      }
+    }
+
+    // 2. Map line items
+    const newLines: PurchaseLine[] = (bill.lines || []).map((l: any) => ({
+      barcode: '',
+      name: l.name,
+      expiry: '',
+      qty: Number(l.qty) || 1,
+      rate: Number(l.rate) || 0,
+      mrp: Number(l.mrp) || Number(l.rate) || 0,
+      gst: l.gst !== undefined ? Number(l.gst) : defaultGst,
+    }));
+
+    setLines(newLines.length > 0 ? newLines : [EMPTY_LINE(defaultGst)]);
+    setEditPurchaseId(null);
+    setModalOpen(true);
+  };
+
   const [scanMode, setScanMode] = useState<'qty' | 'new_batch'>('qty');
 
   // Quick Supplier Form State
@@ -858,7 +1061,32 @@ export default function PurchasesPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="file"
+            ref={billFileInputRef}
+            accept="image/*,application/pdf"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={handleBillFileSelect}
+          />
+          <motion.button
+            className="btn btn-secondary"
+            onClick={() => billFileInputRef.current?.click()}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#f0fdf4',
+              borderColor: '#86efac',
+              color: '#15803d',
+              fontWeight: 700,
+            }}
+            title="Upload vendor bill image / PDF to auto-create purchase order"
+          >
+            <Upload size={14} /> 🧾 Upload / Scan Bill (AI Auto-Fill)
+          </motion.button>
           <Link href="/admin/suppliers" className="btn btn-ghost">
             <Building2 size={14} /> Suppliers Directory ({suppliers.length})
           </Link>
@@ -1331,6 +1559,23 @@ export default function PurchasesPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button className="btn btn-primary btn-sm" type="button" onClick={() => handleBarcodeFastLookup()}>
               Scan & Add
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary"
+              onClick={() => billFileInputRef.current?.click()}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                color: '#15803d',
+                borderColor: '#86efac',
+                background: '#f0fdf4',
+                fontWeight: 700,
+              }}
+              title="Upload vendor bill image / PDF to auto-fill items and rates"
+            >
+              <Upload size={13} /> 🧾 Scan / Upload Bill Image
             </button>
             <button
               className="btn btn-ghost btn-sm"
@@ -1867,6 +2112,165 @@ export default function PurchasesPage() {
           <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>
             💡 All inwarded product quantities from this purchase order will be automatically deducted from your inventory.
           </p>
+        </Modal>
+      )}
+
+      {/* ─── AI BILL SCANNING OVERLAY ─── */}
+      {scanningBill && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            background: '#ffffff',
+            padding: '28px 36px',
+            borderRadius: 18,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            textAlign: 'center',
+            maxWidth: 440,
+            width: '90%',
+          }}>
+            <div style={{
+              width: 58,
+              height: 58,
+              borderRadius: 29,
+              background: '#f0fdf4',
+              color: '#15803d',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+            }}>
+              <RefreshCw size={28} className="spin" />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>
+              🔍 AI Bill Scanner Analyzing...
+            </h3>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 0 }}>
+              Extracting Supplier, Bill No, Dates, Product Names, Buy Rates & MRPs...
+            </p>
+            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 12, borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
+              સલૂન AI બિલમાંથી પ્રોડક્ટ્સ અને રેટ આપમેળે વાંચી રહ્યું છે...
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── NEW PRODUCTS DETECTED MODAL ─── */}
+      {newProductsModalOpen && (
+        <Modal
+          isOpen={newProductsModalOpen}
+          onClose={() => {
+            setNewProductsModalOpen(false);
+            applyBillToPurchaseOrder(pendingBillData);
+          }}
+          title={`✨ New Products Detected from Bill (${detectedNewProducts.length})`}
+          wide
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  setNewProductsModalOpen(false);
+                  applyBillToPurchaseOrder(pendingBillData);
+                }}
+              >
+                Skip (Purchase Order Only)
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleConfirmAddProductsToInventory}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <CheckCircle2 size={15} /> ✓ Add All to Inventory & Open Purchase
+              </button>
+            </div>
+          }
+        >
+          <div style={{
+            background: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: 8,
+            padding: '10px 14px',
+            marginBottom: 14,
+            fontSize: 12.5,
+            color: '#166534',
+          }}>
+            <strong>💡 આ પ્રોડક્ટ્સ તમારા Inventory માં નથી:</strong>
+            <div>શું તમે આ પ્રોડક્ટ્સને સીધી જ ઇન્વેન્ટરીમાં ઉમેરવા માંગો છો જેથી આગળ સ્ટોક અને સેલિંગ આપમેળે થઈ શકે?</div>
+          </div>
+
+          <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+            <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 10px', width: 32 }}>#</th>
+                  <th style={{ padding: '8px 10px' }}>Product Name</th>
+                  <th style={{ padding: '8px 10px', width: 150 }}>Category</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right', width: 95 }}>Buy Rate</th>
+                  <th style={{ padding: '8px 10px', textAlign: 'right', width: 95 }}>MRP (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detectedNewProducts.map((p, idx) => (
+                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '8px 10px', color: '#94a3b8' }}>{idx + 1}</td>
+                    <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>
+                      <input
+                        type="text"
+                        className="input"
+                        value={p.name}
+                        onChange={(e) => updateDetectedProduct(idx, 'name', e.target.value)}
+                        style={{ fontSize: 12, padding: '4px 8px', width: '100%' }}
+                      />
+                    </td>
+                    <td style={{ padding: '8px 10px' }}>
+                      <select
+                        className="input"
+                        value={p.category || 'Skincare'}
+                        onChange={(e) => updateDetectedProduct(idx, 'category', e.target.value)}
+                        style={{ fontSize: 12, padding: '4px 6px' }}
+                      >
+                        <option value="Skincare">Skincare</option>
+                        <option value="Haircare">Haircare</option>
+                        <option value="Beauty Products">Beauty Products</option>
+                        <option value="Creams & Serums">Creams & Serums</option>
+                        <option value="Makeup">Makeup</option>
+                        <option value="Salon Professional">Salon Professional</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                      <input
+                        type="number"
+                        className="input"
+                        value={p.rate}
+                        onChange={(e) => updateDetectedProduct(idx, 'rate', Number(e.target.value))}
+                        style={{ fontSize: 12, padding: '4px 6px', width: 85, textAlign: 'right' }}
+                      />
+                    </td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                      <input
+                        type="number"
+                        className="input"
+                        value={p.mrp}
+                        onChange={(e) => updateDetectedProduct(idx, 'mrp', Number(e.target.value))}
+                        style={{ fontSize: 12, padding: '4px 6px', width: 85, textAlign: 'right' }}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Modal>
       )}
 
