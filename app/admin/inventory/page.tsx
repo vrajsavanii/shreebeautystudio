@@ -54,6 +54,8 @@ const SAMPLE_CATEGORIES = [
 ];
 
 const SAMPLE_BRANDS = [
+  'Jeannot Professional',
+  'Jeannot',
   "L'Oreal Professionnel",
   'Matrix Biolage',
   'Schwarzkopf',

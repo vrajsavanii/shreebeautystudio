@@ -17,15 +17,23 @@ export function scheduleSave() {
 export function mergeSalonData(cloud: SalonData, local: SalonData): SalonData {
   const invMap = new Map<string, InventoryItem>();
   
+  const getItemKey = (i: InventoryItem): string => {
+    const barcode = String(i.barcode || '').trim().toLowerCase();
+    if (barcode) return `bc_${barcode}`;
+    const name = String(i.name || '').trim().toLowerCase();
+    if (name) return `name_${name}`;
+    return `id_${i.id || ''}`;
+  };
+
   // 0. Include all 56 default product catalog items first
   (DEFAULT_DATA.inventory || []).forEach((i) => {
-    const key = (i.barcode || i.name || i.id).toLowerCase().trim();
+    const key = getItemKey(i);
     if (key) invMap.set(key, i);
   });
 
   // 1. Add all cloud items (override defaults with saved cloud state)
   (cloud.inventory || []).forEach((i) => {
-    const key = (i.barcode || i.name || i.id).toLowerCase().trim();
+    const key = getItemKey(i);
     if (key) {
       const existing = invMap.get(key);
       invMap.set(key, { ...(existing || {}), ...i });
@@ -34,7 +42,7 @@ export function mergeSalonData(cloud: SalonData, local: SalonData): SalonData {
 
   // 2. Add local items (override with local modifications)
   (local.inventory || []).forEach((i) => {
-    const key = (i.barcode || i.name || i.id).toLowerCase().trim();
+    const key = getItemKey(i);
     if (key) {
       const existing = invMap.get(key);
       invMap.set(key, { ...(existing || {}), ...i });

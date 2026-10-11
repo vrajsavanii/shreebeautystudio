@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     }
     if (Array.isArray(data.inventory)) {
       data.inventory = data.inventory.filter((i: any) =>
-        i.id !== 'p1' && i.id !== 'p2' && i.id !== 'p3' && !String(i.barcode || '').startsWith('843')
+        i.id !== 'p1' && i.id !== 'p2' && i.id !== 'p3'
       );
     }
     if (Array.isArray(data.bridal)) {

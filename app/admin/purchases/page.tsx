@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Plus, Search, Eye, Trash2, Calendar, FileText, CheckCircle,
   Barcode, PlusCircle, Building2, AlertTriangle, ArrowRight, UserPlus, Camera, Pencil
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
-import { scheduleSave } from '@/lib/sync';
+import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
 import { uid, todayISO, money, fmtDate, toMonthInput, fmtExpiry } from '@/lib/utils';
-import { Purchase, PurchaseLine, Supplier } from '@/types/salon';
+import { Purchase, PurchaseLine, Supplier, InventoryItem } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import StatCard from '@/components/ui/StatCard';
 import { useToast } from '@/components/ui/Toast';
@@ -27,11 +27,66 @@ const EMPTY_LINE = (): PurchaseLine => ({
   gst: 0,
 });
 
+function inferBrandAndCategory(name: string): { brand: string; category: string } {
+  const lower = (name || '').toLowerCase();
+  let brand = 'General';
+  let category = 'Skin Care & Facials';
+
+  if (lower.includes('jeannot')) {
+    brand = 'Jeannot Professional';
+    category = 'Skin Care & Facials';
+  } else if (lower.includes("l'oreal") || lower.startsWith('lp ') || lower.includes('absolut repair') || lower.includes('vitamino')) {
+    brand = "L'Oreal Professionnel";
+    category = lower.includes('shampoo') || lower.includes('mask') || lower.includes('hair') ? 'Hair Care & Shampoo' : 'Salon Consumables';
+  } else if (lower.includes('matrix') || lower.includes('biolage')) {
+    brand = 'Matrix Biolage';
+    category = 'Hair Care & Shampoo';
+  } else if (lower.includes('schwarzkopf')) {
+    brand = 'Schwarzkopf';
+    category = 'Hair Care & Shampoo';
+  } else if (lower.includes('o3+')) {
+    brand = 'O3+ Professional';
+    category = 'Skin Care & Facials';
+  } else if (lower.includes('lotus')) {
+    brand = 'Lotus Herbals Professional';
+    category = 'Skin Care & Facials';
+  } else if (lower.includes('streax')) {
+    brand = 'Streax Professional';
+    category = 'Hair Serum & Oils';
+  } else if (lower.includes('vlcc')) {
+    brand = 'VLCC Professional';
+    category = 'Skin Care & Facials';
+  } else if (lower.includes('raaga')) {
+    brand = 'Raaga Professional';
+    category = 'Skin Care & Facials';
+  } else if (lower.includes('rica')) {
+    brand = 'Rica Professional';
+    category = 'Salon Consumables';
+  } else if (lower.includes('shampoo') || lower.includes('conditioner') || lower.includes('hair spa')) {
+    category = 'Hair Care & Shampoo';
+  } else if (lower.includes('serum') || lower.includes('oil')) {
+    category = 'Hair Serum & Oils';
+  } else if (lower.includes('facial') || lower.includes('bleach') || lower.includes('d-tan') || lower.includes('mask') || lower.includes('cream')) {
+    category = 'Skin Care & Facials';
+  } else if (lower.includes('lipstick') || lower.includes('foundation') || lower.includes('makeup')) {
+    category = 'Makeup & Cosmetics';
+  } else if (lower.includes('wax') || lower.includes('strip') || lower.includes('tissue') || lower.includes('cotton')) {
+    category = 'Salon Consumables';
+  }
+
+  return { brand, category };
+}
+
 type PurchaseTab = 'all' | 'dues' | 'settled';
 
 export default function PurchasesPage() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Reconcile purchases and inventory with live Supabase cloud
+    cloudSync().catch(() => {});
+  }, []);
 
   const [activeTab, setActiveTab] = useState<PurchaseTab>('all');
   const [search, setSearch] = useState('');
@@ -390,6 +445,7 @@ export default function PurchasesPage() {
       });
 
       scheduleSave();
+      cloudSave().catch(() => {});
       toast(`Purchase order ${existingPur.no} updated successfully!`);
       setEditPurchaseId(null);
       setModalOpen(false);
@@ -589,84 +645,84 @@ export default function PurchasesPage() {
           </div>
         ) : (
           <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Purchase Bill</th>
-                        <th>Supplier & Invoice Ref</th>
-                        <th>Items & Tax</th>
-                        <th>Bill Total</th>
-                        <th>Payment Status</th>
-                        <th>Account & Actions</th>
-                      </tr>
-                    </thead>
-                    <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
-                      {filtered.map((p) => (
-                        <motion.tr key={p.id} variants={fadeSlideUp}>
-                          <td>
-                            <div style={{ fontWeight: 700, color: 'var(--teal)', fontSize: 13 }}>{p.no}</div>
-                            <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{fmtDate(p.date)}</div>
-                          </td>
-                          <td>
-                            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.supplier}</div>
-                            {p.supplierInvoice && (
-                              <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>
-                                Ref: {p.supplierInvoice}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <div style={{ fontWeight: 600 }}>{(p.lines || []).length} items</div>
-                            <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                              Sub: {money(p.subtotal)} {p.gst > 0 ? `· GST: ${money(p.gst)}` : ''}
-                            </div>
-                          </td>
-                          <td>
-                            <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
-                              {money(p.total)}
-                            </div>
-                            {p.discount > 0 && (
-                              <div style={{ fontSize: 10.5, color: 'var(--green)' }}>
-                                Disc: −{money(p.discount)}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: 12 }}>
-                                Paid: {money(p.paid)}
-                              </span>
-                            </div>
-                            {p.balance > 0 ? (
-                              <div style={{ color: 'var(--red)', fontWeight: 800, fontSize: 12 }}>
-                                Due: {money(p.balance)}
-                              </div>
-                            ) : (
-                              <span className="badge badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>
-                                Fully Settled
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 45 }}>
-                                {p.mode}
-                              </span>
-                              <button className="btn-icon" onClick={() => setViewPurchase(p)} title="View Purchase Bill">
-                                <Eye size={13} />
-                              </button>
-                              <button className="btn-icon edit" onClick={() => openEditPurchase(p)} title="Edit Purchase Bill">
-                                <Pencil size={13} />
-                              </button>
-                              <button className="btn-icon danger" onClick={() => setDeletePurchaseId(p.id)} title="Delete Purchase Bill">
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </motion.tbody>
-                  </table>
+            <table>
+              <thead>
+                <tr>
+                  <th>Purchase Bill</th>
+                  <th>Supplier & Invoice Ref</th>
+                  <th>Items & Tax</th>
+                  <th>Bill Total</th>
+                  <th>Payment Status</th>
+                  <th>Account & Actions</th>
+                </tr>
+              </thead>
+              <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
+                {filtered.map((p) => (
+                  <motion.tr key={p.id} variants={fadeSlideUp}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--teal)', fontSize: 13 }}>{p.no}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{fmtDate(p.date)}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.supplier}</div>
+                      {p.supplierInvoice && (
+                        <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>
+                          Ref: {p.supplierInvoice}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{(p.lines || []).length} items</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>
+                        Sub: {money(p.subtotal)} {p.gst > 0 ? `· GST: ${money(p.gst)}` : ''}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
+                        {money(p.total)}
+                      </div>
+                      {p.discount > 0 && (
+                        <div style={{ fontSize: 10.5, color: 'var(--green)' }}>
+                          Disc: −{money(p.discount)}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: 12 }}>
+                          Paid: {money(p.paid)}
+                        </span>
+                      </div>
+                      {p.balance > 0 ? (
+                        <div style={{ color: 'var(--red)', fontWeight: 800, fontSize: 12 }}>
+                          Due: {money(p.balance)}
+                        </div>
+                      ) : (
+                        <span className="badge badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>
+                          Fully Settled
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 45 }}>
+                          {p.mode}
+                        </span>
+                        <button className="btn-icon" onClick={() => setViewPurchase(p)} title="View Purchase Bill">
+                          <Eye size={13} />
+                        </button>
+                        <button className="btn-icon edit" onClick={() => openEditPurchase(p)} title="Edit Purchase Bill">
+                          <Pencil size={13} />
+                        </button>
+                        <button className="btn-icon danger" onClick={() => setDeletePurchaseId(p.id)} title="Delete Purchase Bill">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </motion.tbody>
+            </table>
           </div>
         )}
       </div>
