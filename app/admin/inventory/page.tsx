@@ -341,6 +341,8 @@ export default function InventoryPage() {
 
   // Modals
   const [modalOpen, setModalOpen] = useState(false);
+  // Product Details Popup Modal
+  const [viewProduct, setViewProduct] = useState<InventoryItem | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -1922,7 +1924,19 @@ export default function InventoryPage() {
                         return (
                           <motion.tr key={item.id} variants={fadeSlideUp} className={isLow ? 'low-stock-row' : ''}>
                             <td>
-                              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--text)' }}>
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  fontSize: 13.5,
+                                  color: 'var(--text)',
+                                  cursor: 'pointer',
+                                  transition: 'color 0.15s ease',
+                                }}
+                                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--teal)'; }}
+                                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text)'; }}
+                                onClick={() => setViewProduct(item)}
+                                title="Click to view product details"
+                              >
                                 {item.name}
                               </div>
                               <div style={{ fontSize: 11, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
@@ -2241,9 +2255,17 @@ export default function InventoryPage() {
                       {lowStockItems.map((item) => (
                         <tr key={item.id}>
                           <td style={{ fontWeight: 700 }}>
-                            <div>{item.name}</div>
-                            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{item.brand}</div>
-                          </td>
+                              <div
+                                style={{ cursor: 'pointer', transition: 'color 0.15s ease' }}
+                                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--teal)'; }}
+                                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'inherit'; }}
+                                onClick={() => setViewProduct(item)}
+                                title="Click to view product details"
+                              >
+                                {item.name}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--muted)' }}>{item.brand}</div>
+                            </td>
                           <td>{item.supplierName || '—'}</td>
                           <td>
                             <span style={{ fontWeight: 800, color: '#0f172a', fontSize: 14 }}>
@@ -2303,7 +2325,15 @@ export default function InventoryPage() {
                           <tr key={item.id} className={isExpired ? 'low-stock-row' : ''}>
                             <td style={{ fontFamily: 'monospace', fontSize: 11.5 }}>{item.barcode || '—'}</td>
                             <td style={{ fontWeight: 700 }}>
-                              <div>{item.name}</div>
+                              <div
+                                style={{ cursor: 'pointer', transition: 'color 0.15s ease' }}
+                                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--teal)'; }}
+                                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'inherit'; }}
+                                onClick={() => setViewProduct(item)}
+                                title="Click to view product details"
+                              >
+                                {item.name}
+                              </div>
                               <div style={{ fontSize: 11, color: 'var(--muted)' }}>{item.brand}</div>
                             </td>
                             <td>{item.batch || '—'}</td>
@@ -3177,6 +3207,366 @@ export default function InventoryPage() {
           <p>Are you sure you want to remove this product from your inventory?</p>
         </Modal>
       )}
+
+      {/* Product Details Popup Modal */}
+      {viewProduct && (
+        <Modal
+          isOpen={!!viewProduct}
+          onClose={() => setViewProduct(null)}
+          title={`📦 Product Details: ${viewProduct.name}`}
+          wide
+          footer={
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  style={{ color: 'var(--teal)', fontWeight: 700 }}
+                  onClick={() => {
+                    const id = viewProduct.id;
+                    setViewProduct(null);
+                    openStockIn(id);
+                  }}
+                >
+                  <Plus size={13} style={{ marginRight: 4 }} /> Quick Inward Stock
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  style={{ fontWeight: 600 }}
+                  onClick={() => {
+                    const id = viewProduct.id;
+                    setViewProduct(null);
+                    openAdjustment(id);
+                  }}
+                >
+                  <Scale size={13} style={{ marginRight: 4 }} /> Stock Adjustment
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => {
+                    const prod = viewProduct;
+                    setViewProduct(null);
+                    openEdit(prod);
+                  }}
+                >
+                  <Pencil size={13} style={{ marginRight: 4 }} /> Edit Product
+                </button>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setViewProduct(null)}
+              >
+                Close
+              </button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Header Identity Bar */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: 12,
+                padding: '12px 16px',
+                background: 'var(--bg)',
+                borderRadius: 10,
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>
+                  {viewProduct.name}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--muted)' }}>
+                    Brand: <strong style={{ color: 'var(--text)' }}>{viewProduct.brand || 'Unbranded'}</strong>
+                  </span>
+                  {viewProduct.barcode && (
+                    <span
+                      style={{
+                        fontSize: 11.5,
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        color: 'var(--teal)',
+                        background: '#f0fdfa',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <Barcode size={13} /> {viewProduct.barcode}
+                    </span>
+                  )}
+                  {viewProduct.hsnCode && (
+                    <span style={{ fontSize: 11, color: 'var(--muted)', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
+                      HSN: {viewProduct.hsnCode}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                <span className="badge badge-teal" style={{ fontSize: 12, padding: '4px 10px' }}>
+                  {viewProduct.category || 'General'}
+                </span>
+                {viewProduct.supplierName && (
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: 6 }}>
+                    🏢 {viewProduct.supplierName}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Metrics 4-Box Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {/* Stock Level */}
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: viewProduct.stock <= viewProduct.low ? '#fef2f2' : '#f8fafc',
+                  border: `1px solid ${viewProduct.stock <= viewProduct.low ? '#fecaca' : 'var(--border)'}`,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Current Stock
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: viewProduct.stock <= viewProduct.low ? '#dc2626' : '#0f172a', marginTop: 4 }}>
+                  {viewProduct.stock} <span style={{ fontSize: 13, fontWeight: 600 }}>{viewProduct.unit || 'Pcs'}</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                  {viewProduct.stock <= 0 ? (
+                    <span style={{ color: '#dc2626', fontWeight: 700 }}>⚠️ Out of Stock</span>
+                  ) : viewProduct.stock <= viewProduct.low ? (
+                    <span style={{ color: '#b45309', fontWeight: 700 }}>⚠️ Low Stock (Min: {viewProduct.low})</span>
+                  ) : (
+                    <span style={{ color: '#16a34a', fontWeight: 600 }}>✓ Optimal Stock (Min: {viewProduct.low})</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Selling Price & MRP */}
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: '#f8fafc',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Selling Price
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--teal)', marginTop: 4 }}>
+                  {money(viewProduct.sell)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                  MRP: <strong>{money(viewProduct.mrp || viewProduct.sell)}</strong>
+                  {viewProduct.minSellPrice ? (
+                    <span> · Min: <strong>{money(viewProduct.minSellPrice)}</strong></span>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Purchase Cost & Profit */}
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: '#f8fafc',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Purchase Rate & Profit
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#334155', marginTop: 4 }}>
+                  {money(viewProduct.buy)}
+                </div>
+                <div style={{ fontSize: 11, color: '#15803d', fontWeight: 700, marginTop: 4 }}>
+                  Margin: {money(Math.max(0, viewProduct.sell - viewProduct.buy))} (
+                  {viewProduct.sell > 0 ? (((viewProduct.sell - viewProduct.buy) / viewProduct.sell) * 100).toFixed(1) : 0}%)
+                </div>
+              </div>
+
+              {/* Expiry & Inward */}
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 10,
+                  background: '#f8fafc',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Expiry & Inward
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)', marginTop: 6 }}>
+                  {viewProduct.expiry ? fmtExpiry(viewProduct.expiry) : 'No Expiry Set'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                  {viewProduct.buyDate ? `Inward: ${fmtDate(viewProduct.buyDate)}` : 'No Inward Date'}
+                </div>
+              </div>
+            </div>
+
+            {/* Batches Breakdown (if multiple batches exist) */}
+            {viewProduct.batches && viewProduct.batches.length > 0 && (
+              <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    background: '#f1f5f9',
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    color: '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <Layers size={14} /> Batches Inventory Breakdown ({viewProduct.batches.length} Batches)
+                </div>
+                <div style={{ maxHeight: 180, overflowY: 'auto' }}>
+                  <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ padding: '6px 12px' }}>Batch #</th>
+                        <th style={{ padding: '6px 12px' }}>Stock Qty</th>
+                        <th style={{ padding: '6px 12px' }}>Expiry Date</th>
+                        <th style={{ padding: '6px 12px' }}>Buy Rate</th>
+                        <th style={{ padding: '6px 12px' }}>MRP</th>
+                        <th style={{ padding: '6px 12px' }}>Inward Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewProduct.batches.map((b, idx) => (
+                        <tr key={b.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 12px', fontWeight: 700, fontFamily: 'monospace' }}>
+                            {b.batch || `Batch-${idx + 1}`}
+                          </td>
+                          <td style={{ padding: '6px 12px', fontWeight: 800 }}>
+                            {b.stock} {viewProduct.unit || 'Pcs'}
+                          </td>
+                          <td style={{ padding: '6px 12px' }}>
+                            {b.expiry ? fmtExpiry(b.expiry) : '—'}
+                          </td>
+                          <td style={{ padding: '6px 12px' }}>{b.buyRate ? money(b.buyRate) : money(viewProduct.buy)}</td>
+                          <td style={{ padding: '6px 12px' }}>{b.mrp ? money(b.mrp) : money(viewProduct.mrp || viewProduct.sell)}</td>
+                          <td style={{ padding: '6px 12px', color: 'var(--muted)' }}>
+                            {b.buyDate ? fmtDate(b.buyDate) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Additional Details (Tax, HSN, Aliases, Total Asset Value) */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 10,
+                fontSize: 12,
+                padding: '12px 14px',
+                background: 'var(--bg)',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div>
+                <span style={{ color: 'var(--muted)' }}>GST / Tax Rate:</span>{' '}
+                <strong>{viewProduct.taxRate ?? defaultGst}%</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--muted)' }}>Total Stock Value:</span>{' '}
+                <strong style={{ color: 'var(--teal)' }}>{money(viewProduct.stock * viewProduct.buy)}</strong>
+              </div>
+              {viewProduct.aliases && viewProduct.aliases.length > 0 && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={{ color: 'var(--muted)' }}>Product Aliases / Bill Matching:</span>{' '}
+                  <span style={{ color: '#475569' }}>{viewProduct.aliases.join(', ')}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Audit / Movement History */}
+            {(() => {
+              const prodHistory = inventoryTx.filter(
+                (tx) => tx.product === viewProduct.name || (tx.barcode && tx.barcode === viewProduct.barcode)
+              ).slice(0, 5);
+
+              if (prodHistory.length === 0) return null;
+
+              return (
+                <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      padding: '8px 12px',
+                      background: '#f8fafc',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: 'var(--text)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <History size={13} /> Recent Stock In / Out Movements
+                  </div>
+                  <table style={{ width: '100%', fontSize: 11.5, borderCollapse: 'collapse' }}>
+                    <tbody>
+                      {prodHistory.map((tx) => (
+                        <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '6px 12px', whiteSpace: 'nowrap', color: 'var(--muted)' }}>
+                            {fmtDate(tx.date)}
+                          </td>
+                          <td style={{ padding: '6px 12px' }}>
+                            <span
+                              style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                                background: tx.type === 'Buy' ? '#f0fdf4' : tx.type === 'Sell' ? '#eff6ff' : '#fef2f2',
+                                color: tx.type === 'Buy' ? '#15803d' : tx.type === 'Sell' ? '#1d4ed8' : '#b91c1c',
+                              }}
+                            >
+                              {tx.type}
+                            </span>
+                          </td>
+                          <td style={{ padding: '6px 12px', fontWeight: 700 }}>
+                            {tx.qty} {viewProduct.unit || 'Pcs'}
+                          </td>
+                          <td style={{ padding: '6px 12px' }}>{money(tx.rate)}</td>
+                          <td style={{ padding: '6px 12px', color: 'var(--muted)' }}>{tx.party || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }

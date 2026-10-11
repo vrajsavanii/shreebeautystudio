@@ -47,13 +47,13 @@ import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
 
-const EMPTY_LINE = (): InvoiceLine => ({
+const EMPTY_LINE = (defaultDisc = 0): InvoiceLine => ({
   type: 'S',
   name: '',
   qty: 1,
   price: 0,
-  discount: 0,
-  discountType: '₹',
+  discount: defaultDisc,
+  discountType: '%',
 });
 
 const calcLineDiscount = (l: InvoiceLine): number => {
@@ -88,12 +88,17 @@ function BillingContent() {
   const [activeTab, setActiveTab] = useState<BillingViewTab>('builder');
   const [historySearch, setHistorySearch] = useState('');
   const [layoutOrientation, setLayoutOrientation] = useState<'up-down' | 'side-by-side'>('up-down');
+  const [defaultDiscountPercent, setDefaultDiscountPercent] = useState<number>(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('shree_billing_layout');
-      if (saved === 'side-by-side' || saved === 'up-down') {
-        setLayoutOrientation(saved);
+      const savedLayout = localStorage.getItem('shree_billing_layout');
+      if (savedLayout === 'side-by-side' || savedLayout === 'up-down') {
+        setLayoutOrientation(savedLayout);
+      }
+      const savedDisc = localStorage.getItem('shree_default_discount_pct');
+      if (savedDisc) {
+        setDefaultDiscountPercent(Number(savedDisc) || 0);
       }
     }
   }, []);
@@ -103,6 +108,14 @@ function BillingContent() {
     try {
       localStorage.setItem('shree_billing_layout', mode);
     } catch {}
+  };
+
+  const handleSetDefaultDiscountPercent = (pct: number) => {
+    setDefaultDiscountPercent(pct);
+    try {
+      localStorage.setItem('shree_default_discount_pct', String(pct));
+    } catch {}
+    toast(`Default Discount set to ${pct}% for new items`);
   };
 
   // Form state
@@ -389,7 +402,7 @@ function BillingContent() {
         const s = (data?.services || []).find((x) => x.name.toLowerCase() === a.service.toLowerCase());
         const price = s ? s.price : 0;
         setLines([
-          { type: 'S', name: a.service, qty: 1, price, discount: 0, discountType: '₹' },
+          { type: 'S', name: a.service, qty: 1, price, discount: 0, discountType: '%' },
           EMPTY_LINE(),
         ]);
         setAppointmentRef(`From Appt: ${a.customer} • ${fmtDate(a.date)} ${a.time} • ${a.service}`);
@@ -433,7 +446,7 @@ function BillingContent() {
           qty: 1,
           price: itemPrice,
           discount: 0,
-          discountType: '₹',
+          discountType: '%',
         };
       });
       setLines([...newLines, EMPTY_LINE()]);
@@ -471,7 +484,7 @@ function BillingContent() {
           qty: 1,
           price: price,
           discount: 0,
-          discountType: '₹',
+          discountType: '%',
         };
       });
       setLines([...newLines, EMPTY_LINE()]);
@@ -488,7 +501,7 @@ function BillingContent() {
           qty: 1,
           price: price,
           discount: 0,
-          discountType: '₹',
+          discountType: '%',
         };
       });
       setLines([...newLines, EMPTY_LINE()]);
@@ -502,7 +515,7 @@ function BillingContent() {
           qty: 1,
           price: resolvedTotal,
           discount: 0,
-          discountType: '₹',
+          discountType: '%',
         },
         EMPTY_LINE(),
       ]);
@@ -511,6 +524,43 @@ function BillingContent() {
   };
 
   const allServices = useMemo(() => data?.services || [], [data?.services]);
+
+  const popularServices = useMemo(() => {
+    const priority = ['hair cut', 'haircut', 'cleanup', 'clean up', 'facial', 'hair spa', 'threading', 'waxing', 'd-tan', 'bleach', 'pedicure', 'manicure'];
+    const matched: typeof allServices = [];
+    const others: typeof allServices = [];
+    allServices.forEach((s) => {
+      const lower = (s.name || '').toLowerCase();
+      if (priority.some((p) => lower.includes(p))) {
+        matched.push(s);
+      } else {
+        others.push(s);
+      }
+    });
+    return [...matched, ...others].slice(0, 10);
+  }, [allServices]);
+
+  const handleQuickAddService = (service: { name: string; price: number }) => {
+    setLines((prev) => {
+      const lastLineIdx = prev.length - 1;
+      const lastLine = prev[lastLineIdx];
+      const newLine: InvoiceLine = {
+        name: service.name,
+        qty: 1,
+        price: service.price,
+        discount: defaultDiscountPercent > 0 ? defaultDiscountPercent : 0,
+        discountType: '%',
+        type: 'S',
+      };
+      if (lastLine && (!lastLine.name || lastLine.name.trim() === '')) {
+        const copy = [...prev];
+        copy[lastLineIdx] = newLine;
+        return copy;
+      }
+      return [...prev, newLine];
+    });
+    toast(`⚡ Added "${service.name}" (${money(service.price)})`);
+  };
 
   // Sort inventory items FEFO: Products expiring first appear first!
   const allProducts = useMemo(() => {
@@ -836,7 +886,7 @@ function BillingContent() {
             expiry: selectedExpiry,
             batch: selectedBatch,
             discount: l.discount || 0,
-            discountType: l.discountType || '₹',
+            discountType: l.discountType || '%',
           };
         }
         return { ...l, name: inputVal };
@@ -1008,7 +1058,7 @@ function BillingContent() {
         qty: 1,
         price: p.sell,
         discount: 0,
-        discountType: '₹',
+        discountType: '%',
         mrp: p.mrp || p.sell * 1.15,
         expiry: scanExpiry,
         batch: scanBatch,
@@ -1403,7 +1453,7 @@ function BillingContent() {
     // Reset form
     setCustomer('');
     setMobile('');
-    setLines([EMPTY_LINE()]);
+    setLines([EMPTY_LINE(defaultDiscountPercent)]);
     setDiscount(0);
     setAdvance(0);
     setPaid('');
@@ -1431,6 +1481,17 @@ function BillingContent() {
     // Open sample layout modal with instant PDF download & print
     setReceiptModalInv(inv);
   };
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleSave]);
 
   const handlePrint = (inv: Invoice) => {
     setReceiptModalInv(inv);
@@ -1534,7 +1595,7 @@ function BillingContent() {
 
   const tabs: { id: BillingViewTab; label: string; shortLabel: string; icon: any; count?: number }[] = [
     { id: 'builder', label: 'New POS Bill', shortLabel: 'New Bill', icon: Receipt },
-    { id: 'split', label: 'Side-by-Side POS', shortLabel: 'Split POS', icon: Columns },
+    { id: 'split', label: 'Split (Bill + History)', shortLabel: 'Bill + History', icon: Columns },
     { id: 'history', label: 'Invoice Receipts History', shortLabel: 'History', icon: History, count: recentInvoices.length },
   ];
 
@@ -1773,11 +1834,8 @@ function BillingContent() {
         {activeTab === 'builder' && (
           <>
             {/* Left Column: Client Details & Line Items List */}
-            <motion.div
+            <div
               className="card billing-builder-card billing-items-panel"
-              variants={fadeSlideUp}
-              initial="hidden"
-              animate="visible"
               style={{
                 padding: '12px 14px',
                 border: '1px solid #e2e8f0',
@@ -2186,6 +2244,68 @@ function BillingContent() {
                 </div>
               </div>
 
+              {/* ⚡ Quick Services Speed Bar (1-Click Instant Add) */}
+              {popularServices.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    marginBottom: 7,
+                    padding: '5px 7px',
+                    background: '#f8fafc',
+                    borderRadius: 8,
+                    border: '1px solid #e2e8f0',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: '#05424A',
+                      whiteSpace: 'nowrap',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                    }}
+                  >
+                    ⚡ Quick Add:
+                  </span>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap' }}>
+                    {popularServices.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => handleQuickAddService(s)}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '2px 7px',
+                          borderRadius: 6,
+                          border: '1px solid #cbd5e1',
+                          background: '#ffffff',
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          transition: 'all 0.15s ease',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        }}
+                        title={`Click to instantly add ${s.name} (${money(s.price)}) to bill`}
+                      >
+                        <Plus size={10} color="#16a34a" strokeWidth={3} />
+                        <span>{s.name}</span>
+                        <span style={{ color: '#05424A', fontWeight: 800, fontSize: 9.5 }}>{money(s.price)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Line Items Section */}
               <div style={{ marginBottom: 4, display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <div
@@ -2213,11 +2333,10 @@ function BillingContent() {
                       {lines.filter((l) => l.name && l.name.trim() !== '').length}
                     </span>
                   </div>
-                  <motion.button
+                  <button
                     type="button"
                     className="btn btn-ghost btn-sm"
-                    onClick={() => setLines((p) => [...p, EMPTY_LINE()])}
-                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setLines((p) => [...p, EMPTY_LINE(defaultDiscountPercent)])}
                     style={{
                       height: 26,
                       padding: '0 9px',
@@ -2230,10 +2349,11 @@ function BillingContent() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
+                      cursor: 'pointer',
                     }}
                   >
                     <Plus size={12} /> <span>Add Item</span>
-                  </motion.button>
+                  </button>
                 </div>
 
                 {/* 1. Desktop & Tablet Grid Table */}
@@ -2241,7 +2361,7 @@ function BillingContent() {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(130px, 2.3fr) 50px 68px 84px 68px 26px',
+                      gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(140px, 2fr) 48px 72px 84px 76px 26px',
                       gap: 5,
                       padding: '5px 8px',
                       background: '#f1f5f9',
@@ -2280,13 +2400,11 @@ function BillingContent() {
                       const buyInfo = getLineProductBuyInfo(line);
                       const isBelowBuy = buyInfo?.isBelowBuy;
                       return (
-                        <motion.div
+                        <div
                           key={idx}
-                          initial={{ opacity: 0, y: 4 }}
-                          animate={{ opacity: 1, y: 0 }}
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(130px, 2.3fr) 50px 68px 84px 68px 26px',
+                            gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(140px, 2fr) 48px 72px 84px 76px 26px',
                             gap: 5,
                             alignItems: 'center',
                             background: isBelowBuy ? 'rgba(254, 242, 242, 0.75)' : 'transparent',
@@ -2621,20 +2739,20 @@ function BillingContent() {
                                   fontSize: 10,
                                   fontWeight: 700,
                                   borderRadius: 5,
-                                  color: isLoss ? '#dc2626' : ((line.discountType || '₹') === '%' ? '#2563eb' : '#05424A'),
+                                  color: isLoss ? '#dc2626' : ((line.discountType || '%') === '%' ? '#2563eb' : '#05424A'),
                                   background:
-                                    isLoss ? '#fee2e2' : ((line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4'),
+                                    isLoss ? '#fee2e2' : ((line.discountType || '%') === '%' ? '#eff6ff' : '#f0fdf4'),
                                   border: isLoss ? '1px solid #fca5a5' : '1px solid #cbd5e1',
                                   flexShrink: 0,
                                 }}
-                                title={`Toggle Discount Unit: currently ${line.discountType || '₹'}`}
+                                title={`Toggle Discount Unit: currently ${line.discountType || '%'}`}
                                 onClick={() =>
                                   setLine(idx, {
-                                    discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
+                                    discountType: (line.discountType || '%') === '%' ? '₹' : '%',
                                   })
                                 }
                               >
-                                {line.discountType || '₹'}
+                                {line.discountType || '%'}
                               </button>
                             </div>
                           );
@@ -2702,7 +2820,7 @@ function BillingContent() {
                         >
                           <Trash2 size={12} />
                         </button>
-                      </motion.div>
+                      </div>
                     );
                   })}
                   </div>
@@ -3032,17 +3150,17 @@ function BillingContent() {
                                       fontSize: 10,
                                       fontWeight: 700,
                                       borderRadius: 4,
-                                      color: isLoss ? '#dc2626' : ((line.discountType || '₹') === '%' ? '#2563eb' : '#05424A'),
-                                      background: isLoss ? '#fee2e2' : ((line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4'),
+                                      color: isLoss ? '#dc2626' : ((line.discountType || '%') === '%' ? '#2563eb' : '#05424A'),
+                                      background: isLoss ? '#fee2e2' : ((line.discountType || '%') === '%' ? '#eff6ff' : '#f0fdf4'),
                                       border: isLoss ? '1px solid #fca5a5' : '1px solid #cbd5e1',
                                     }}
                                     onClick={() =>
                                       setLine(idx, {
-                                        discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
+                                        discountType: (line.discountType || '%') === '%' ? '₹' : '%',
                                       })
                                     }
                                   >
-                                    {line.discountType || '₹'}
+                                    {line.discountType || '%'}
                                   </button>
                                 </div>
                               </div>
@@ -3095,14 +3213,11 @@ function BillingContent() {
                   ))}
                 </datalist>
               </div>
-            </motion.div>
+            </div>
 
             {/* Right Column: Checkout, Discounts, Payment & Instant Print */}
-            <motion.div
+            <div
               className="card billing-builder-card billing-checkout-panel"
-              variants={fadeSlideUp}
-              initial="hidden"
-              animate="visible"
               style={{
                 padding: '12px 14px',
                 border: '1px solid #e2e8f0',
@@ -3254,6 +3369,82 @@ function BillingContent() {
                     value={discount || ''}
                     onChange={(e) => setDiscount(Number(e.target.value))}
                   />
+                </div>
+
+                {/* Quick % Bill Discount & Default % Chips */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    padding: '5px 7px',
+                    borderRadius: 7,
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#475569' }}>
+                      ⚡ 1-Click Bill Disc:
+                    </span>
+                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                      {[0, 5, 10, 15, 20, 25].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            if (pct === 0) {
+                              setDiscount(0);
+                            } else {
+                              const calcAmt = Math.round((rawSubtotal * pct) / 100);
+                              setDiscount(calcAmt);
+                            }
+                          }}
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            padding: '1.5px 5px',
+                            borderRadius: 4,
+                            border: '1px solid #cbd5e1',
+                            background: pct === 0 && Number(discount || 0) === 0 ? '#f1f5f9' : '#ffffff',
+                            color: pct === 0 ? '#64748b' : '#05424A',
+                            cursor: 'pointer',
+                          }}
+                          title={`Apply ${pct}% discount to bill subtotal`}
+                        >
+                          {pct === 0 ? 'Clear 0%' : `${pct}%`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4, borderTop: '1px dashed #e2e8f0', paddingTop: 3 }}>
+                    <span style={{ fontSize: 9.5, color: '#64748b' }}>
+                      ⚙️ Default % for new items:
+                    </span>
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {[0, 5, 10, 15].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => handleSetDefaultDiscountPercent(pct)}
+                          style={{
+                            fontSize: 9,
+                            fontWeight: defaultDiscountPercent === pct ? 800 : 600,
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            border: defaultDiscountPercent === pct ? '1.5px solid #05424A' : '1px solid #e2e8f0',
+                            background: defaultDiscountPercent === pct ? 'rgba(5, 66, 74, 0.12)' : '#ffffff',
+                            color: defaultDiscountPercent === pct ? '#05424A' : '#64748b',
+                            cursor: 'pointer',
+                          }}
+                          title={`Save ${pct}% as default discount for new items`}
+                        >
+                          {pct}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {totalAllDiscount > 0 && (
@@ -3751,6 +3942,112 @@ function BillingContent() {
                     </label>
                   </div>
 
+                  {/* Fast 1-Click Payment Mode Pills */}
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('Cash');
+                        setIsSplitPayment(false);
+                        const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+                        setPaid(payAmt);
+                      }}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '2.5px 7px',
+                        borderRadius: 5,
+                        border: (!isSplitPayment && mode === 'Cash' && balance === 0) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                        background: (!isSplitPayment && mode === 'Cash' && balance === 0) ? '#f0fdf4' : '#ffffff',
+                        color: (!isSplitPayment && mode === 'Cash' && balance === 0) ? '#16a34a' : '#05424A',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                      }}
+                      title="Mark full payment in Cash"
+                    >
+                      💵 Full Cash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('UPI');
+                        setIsSplitPayment(false);
+                        const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+                        setPaid(payAmt);
+                      }}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '2.5px 7px',
+                        borderRadius: 5,
+                        border: (!isSplitPayment && mode === 'UPI' && balance === 0) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                        background: (!isSplitPayment && mode === 'UPI' && balance === 0) ? '#f0fdf4' : '#ffffff',
+                        color: (!isSplitPayment && mode === 'UPI' && balance === 0) ? '#16a34a' : '#05424A',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                      }}
+                      title="Mark full payment in UPI / GPay"
+                    >
+                      📱 Full UPI
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('Card');
+                        setIsSplitPayment(false);
+                        const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+                        setPaid(payAmt);
+                      }}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '2.5px 7px',
+                        borderRadius: 5,
+                        border: (!isSplitPayment && mode === 'Card' && balance === 0) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                        background: (!isSplitPayment && mode === 'Card' && balance === 0) ? '#f0fdf4' : '#ffffff',
+                        color: (!isSplitPayment && mode === 'Card' && balance === 0) ? '#16a34a' : '#05424A',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                      }}
+                      title="Mark full payment via Card"
+                    >
+                      💳 Card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSplitPayment(true);
+                        const totalPay = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+                        if (!splitCash && !splitUpi) {
+                          setSplitCash(Math.floor(totalPay / 2));
+                          setSplitUpi(Math.ceil(totalPay / 2));
+                        }
+                      }}
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '2.5px 7px',
+                        borderRadius: 5,
+                        border: isSplitPayment ? '1.5px solid #05424A' : '1px solid #cbd5e1',
+                        background: isSplitPayment ? 'rgba(5, 66, 74, 0.08)' : '#ffffff',
+                        color: '#05424A',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                      }}
+                      title="Split payment between Cash and UPI"
+                    >
+                      🔀 Split (Cash+UPI)
+                    </button>
+                  </div>
+
                   {isSplitPayment ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
                       <div>
@@ -4065,7 +4362,7 @@ function BillingContent() {
                     Cancel Edit
                   </button>
                 )}
-                <motion.button
+                <button
                   type="button"
                   className="btn btn-primary"
                   style={{
@@ -4075,12 +4372,12 @@ function BillingContent() {
                     fontSize: 13,
                     fontWeight: 700,
                     borderRadius: 7,
+                    cursor: 'pointer',
                     background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
                     boxShadow: hasBelowBuyLines ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 66, 74, 0.25)',
                   }}
                   onClick={handleSave}
-                  title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : undefined}
-                  whileTap={{ scale: 0.98 }}
+                  title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : 'Save invoice and print receipt (Ctrl+Enter)'}
                 >
                   <Printer size={15} />{' '}
                   <span>
@@ -4088,22 +4385,19 @@ function BillingContent() {
                       ? '⛔ Below Buy Price — Cannot Sell'
                       : editingInvoiceId
                       ? 'Update Invoice & Print'
-                      : 'Save & Print Receipt'}
+                      : 'Save & Print Receipt (Ctrl+Enter)'}
                   </span>
-                </motion.button>
+                </button>
               </div>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
 
         {/* 2. SPLIT MODE: Left Combined Builder, Right History */}
         {activeTab === 'split' && (
-          <motion.div
+          <div
             className="card billing-builder-card"
-            variants={fadeSlideUp}
-            initial="hidden"
-            animate="visible"
             style={{
               padding: '14px 16px',
               border: '1px solid #e2e8f0',
@@ -4501,13 +4795,13 @@ function BillingContent() {
                                 height: 30,
                                 fontSize: 9.5,
                                 fontWeight: 700,
-                                color: isLoss ? '#dc2626' : ((line.discountType || '₹') === '%' ? '#2563eb' : '#05424A'),
-                                background: isLoss ? '#fee2e2' : ((line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4'),
+                                color: isLoss ? '#dc2626' : ((line.discountType || '%') === '%' ? '#2563eb' : '#05424A'),
+                                background: isLoss ? '#fee2e2' : ((line.discountType || '%') === '%' ? '#eff6ff' : '#f0fdf4'),
                                 border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
                               }}
-                              onClick={() => setLine(idx, { discountType: (line.discountType || '₹') === '₹' ? '%' : '₹' })}
+                              onClick={() => setLine(idx, { discountType: (line.discountType || '%') === '%' ? '₹' : '%' })}
                             >
-                              {line.discountType || '₹'}
+                              {line.discountType || '%'}
                             </button>
                           </div>
                           <div style={{ textAlign: 'right', fontSize: 11.5, fontWeight: 700, color: isLoss ? '#dc2626' : 'inherit' }}>
@@ -4913,7 +5207,7 @@ function BillingContent() {
             )}
 
             <div style={{ marginTop: 8 }}>
-              <motion.button
+              <button
                 type="button"
                 className="btn btn-primary"
                 style={{
@@ -4922,12 +5216,12 @@ function BillingContent() {
                   fontSize: 13,
                   fontWeight: 700,
                   borderRadius: 7,
+                  cursor: 'pointer',
                   background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
                   boxShadow: hasBelowBuyLines ? '0 2px 8px rgba(220, 38, 38, 0.3)' : undefined,
                 }}
                 onClick={handleSave}
-                title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : undefined}
-                whileTap={{ scale: 0.98 }}
+                title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : 'Save invoice and print receipt (Ctrl+Enter)'}
               >
                 <Printer size={15} />{' '}
                 <span>
@@ -4935,16 +5229,16 @@ function BillingContent() {
                     ? '⛔ Below Buy Price — Cannot Sell'
                     : editingInvoiceId
                     ? 'Update Invoice & Print'
-                    : 'Save & Print Receipt'}
+                    : 'Save & Print Receipt (Ctrl+Enter)'}
                 </span>
-              </motion.button>
+              </button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* 3. Invoice Receipts History Panel */}
         {(activeTab === 'split' || activeTab === 'history') && (
-          <motion.div className="card billing-builder-card" variants={fadeSlideUp} initial="hidden" animate="visible">
+          <div className="card billing-builder-card">
             {/* Header & Search */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -5674,7 +5968,7 @@ function BillingContent() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
 

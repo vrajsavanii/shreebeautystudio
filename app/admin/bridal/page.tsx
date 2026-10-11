@@ -656,7 +656,7 @@ const OTHER_EVENT_OPTIONS = [
                 qty: 1,
                 price: Number(p.price || 0),
                 discount: 0,
-                discountType: '₹',
+                discountType: '%',
               }))
             : [
                 {
@@ -667,7 +667,7 @@ const OTHER_EVENT_OPTIONS = [
                   qty: 1,
                   price: booking.package,
                   discount: 0,
-                  discountType: '₹',
+                  discountType: '%',
                 },
               ];
           return {
@@ -1011,7 +1011,7 @@ const OTHER_EVENT_OPTIONS = [
           qty: 1,
           price: Number(p.price || 0) || resolveBridalBookingPrice({ packageName: p.name }, bridalPackages, data?.services),
           discount: 0,
-          discountType: '₹',
+          discountType: '%',
         }))
       : [
           {
@@ -1022,7 +1022,7 @@ const OTHER_EVENT_OPTIONS = [
             qty: 1,
             price: totalPkg,
             discount: 0,
-            discountType: '₹',
+            discountType: '%',
           },
         ];
 
