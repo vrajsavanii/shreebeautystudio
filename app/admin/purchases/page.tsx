@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Plus, Search, Eye, Trash2, Calendar, FileText, CheckCircle,
   Barcode, PlusCircle, Building2, AlertTriangle, ArrowRight, UserPlus, Camera, Pencil,
-  Layers, ChevronDown, ChevronUp, Sparkles, Copy
+  Layers, ChevronDown, ChevronUp, Copy
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
@@ -1491,26 +1491,6 @@ export default function PurchasesPage() {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Gujarati & English Multi-Expiry Guidance Banner */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            fontSize: 11.5,
-            color: '#475569',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            padding: '7px 12px',
-            borderRadius: 6,
-            marginTop: 8,
-          }}>
-            <Sparkles size={14} color="var(--primary)" style={{ flexShrink: 0 }} />
-            <span>
-              <strong>💡 એક જ બારકોડમાં અલગ Expiry Date ઉમેરવા માટે:</strong>{' '}
-              તે રો પર <strong>[+]</strong> બટન દબાવો જેથી એ જ બારકોડની નવી રો બનશે અને તમે અલગ Expiry Date નાખી શકશો. અથવા ઉપર <strong>&quot;📅 + New Expiry Batch&quot;</strong> મોડ ચાલુ રાખીને સ્કેન કરો.
-            </span>
           </div>
         </div>
 
