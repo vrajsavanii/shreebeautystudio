@@ -2338,6 +2338,62 @@ export default function InstagramHubPage() {
                   />
                 </div>
 
+                {/* Notice for Feed format: Meta API only supports audio on Reels or Stories */}
+                {postFormat === 'feed' && (
+                  <div
+                    style={{
+                      background: 'rgba(234, 179, 8, 0.08)',
+                      border: '1.5px solid rgba(234, 179, 8, 0.35)',
+                      borderRadius: 12,
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                    }}
+                  >
+                    <AlertCircle size={18} color="#eab308" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div style={{ fontSize: 11.5, lineHeight: 1.45 }}>
+                      <div style={{ fontWeight: 800, color: '#ca8a04', marginBottom: 2 }}>
+                        📢 Feed Photo સાથે Music અંગે Instagram API નિયમ:
+                      </div>
+                      <div style={{ color: 'var(--foreground)', opacity: 0.85 }}>
+                        Instagram ની સત્તાવાર Meta Graph API માં <strong>સામાન્ય ફોટો પોસ્ટમાં સીધું સંગીત ઉમેરવાની કોઈ પરવાનગી નથી</strong>. API દ્વારા સંગીત સાથે Instagram પર પોસ્ટ કરવા માટે આ ફોટો <strong>Reel (9:16)</strong> અથવા <strong>Story</strong> વિડીયો તરીકે પબ્લિશ થશે!
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 7, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostFormat('reel');
+                            handleAspectRatioChange('9:16', true);
+                            toast('🎬 Switched to Reel (9:16) with Music!', 'success');
+                          }}
+                          className="btn btn-xs btn-primary"
+                          style={{
+                            background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                            border: 'none',
+                            fontWeight: 800,
+                            fontSize: 10,
+                          }}
+                        >
+                          🎬 Switch to Reel (9:16)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostFormat('story');
+                            handleAspectRatioChange('9:16', true);
+                            toast('⚡ Switched to Story with Music!', 'success');
+                          }}
+                          className="btn btn-xs btn-secondary"
+                          style={{ fontWeight: 800, fontSize: 10 }}
+                        >
+                          ⚡ Switch to Story
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Search Bar + Category Pills */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ position: 'relative' }}>
@@ -2513,24 +2569,48 @@ export default function InstagramHubPage() {
                   </div>
                 </div>
 
-                {/* Live Video Generator Preview Button */}
-                <button
-                  type="button"
-                  onClick={handleGenerateLiveVideoPreview}
-                  disabled={isGeneratingVideoPreview}
-                  className="btn btn-secondary btn-sm"
-                  style={{
-                    border: '1.5px solid rgba(225, 48, 108, 0.4)',
-                    fontWeight: 800,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <RefreshCw size={13} className={isGeneratingVideoPreview ? 'animate-spin' : ''} />
-                  <span>{isGeneratingVideoPreview ? 'Rendering Video...' : '🎬 Preview Animated Video with Music'}</span>
-                </button>
+                {/* Live Video Generator Preview & Download Buttons */}
+                <div style={{ display: 'grid', gridTemplateColumns: previewStoryVideoUrl ? '1fr 1fr' : '1fr', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={handleGenerateLiveVideoPreview}
+                    disabled={isGeneratingVideoPreview}
+                    className="btn btn-secondary btn-sm"
+                    style={{
+                      border: '1.5px solid rgba(225, 48, 108, 0.4)',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <RefreshCw size={13} className={isGeneratingVideoPreview ? 'animate-spin' : ''} />
+                    <span>{isGeneratingVideoPreview ? 'Rendering Video...' : '🎬 Preview Video with Music'}</span>
+                  </button>
+
+                  {previewStoryVideoUrl && (
+                    <a
+                      href={previewStoryVideoUrl}
+                      download={`shree_beauty_story_${Date.now()}.mp4`}
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                        border: 'none',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        textDecoration: 'none',
+                        color: '#fff',
+                      }}
+                    >
+                      <Download size={13} />
+                      <span>📥 Download Video (MP4)</span>
+                    </a>
+                  )}
+                </div>
 
                 {/* Navigation Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
@@ -4285,6 +4365,159 @@ export default function InstagramHubPage() {
           </div>
         </motion.div>
       )}
+
+      {/* ── 🎬 LIVE VIDEO + MUSIC PREVIEW MODAL ── */}
+      <AnimatePresence>
+        {isPreviewingStoryVideo && previewStoryVideoUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              background: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+            onClick={() => setIsPreviewingStoryVideo(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="card"
+              style={{
+                width: '100%',
+                maxWidth: 420,
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                borderRadius: 20,
+                padding: 18,
+                background: '#090d16',
+                border: '1.5px solid rgba(225, 48, 108, 0.4)',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              {/* Modal Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #f09433, #dc2743)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Film size={16} color="#fff" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#fff' }}>
+                      🎬 Live Video + Music Preview
+                    </div>
+                    <div style={{ fontSize: 10.5, color: '#94a3b8' }}>
+                      {audioDurationSec}s Reel / Story Video with Sound
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPreviewingStoryVideo(false)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 28,
+                    height: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Video Player */}
+              <div
+                style={{
+                  position: 'relative',
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  background: '#000',
+                  aspectRatio: '9/16',
+                  maxHeight: '52vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <video
+                  src={previewStoryVideoUrl}
+                  controls
+                  autoPlay
+                  loop
+                  playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              </div>
+
+              {/* Actions: Download & Continue */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <a
+                  href={previewStoryVideoUrl}
+                  download={`shree_beauty_story_${Date.now()}.mp4`}
+                  className="btn btn-primary"
+                  style={{
+                    background: 'linear-gradient(45deg, #f09433, #dc2743)',
+                    border: 'none',
+                    fontWeight: 800,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '10px 16px',
+                    borderRadius: 12,
+                    textDecoration: 'none',
+                    color: '#fff',
+                    boxShadow: '0 4px 15px rgba(220, 39, 67, 0.4)',
+                  }}
+                >
+                  <Download size={15} />
+                  <span>📥 Download Video with Music (MP4)</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPreviewingStoryVideo(false);
+                    setStudioStep('stickers');
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontWeight: 700, borderRadius: 10 }}
+                >
+                  <span>Continue to Stickers &amp; Publish 👉</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

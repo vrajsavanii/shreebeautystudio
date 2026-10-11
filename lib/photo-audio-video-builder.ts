@@ -975,11 +975,15 @@ export async function composePhotoAndAudioToVideo(options: {
     ...audioDest.stream.getAudioTracks(),
   ]);
 
-  // Determine optimal recording mimeType
+  // Determine optimal recording mimeType (Meta Instagram strictly requires MP4 H.264 / AAC)
   let chosenMime = 'video/mp4';
   if (typeof MediaRecorder !== 'undefined') {
-    if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) {
+    if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.424028,mp4a.40.2')) {
+      chosenMime = 'video/mp4;codecs=avc1.424028,mp4a.40.2';
+    } else if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1,mp4a.40.2')) {
       chosenMime = 'video/mp4;codecs=avc1,mp4a.40.2';
+    } else if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) {
+      chosenMime = 'video/mp4;codecs=h264,aac';
     } else if (MediaRecorder.isTypeSupported('video/mp4')) {
       chosenMime = 'video/mp4';
     } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
