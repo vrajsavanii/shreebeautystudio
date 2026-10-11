@@ -409,6 +409,7 @@ export interface Purchase {
   balance: number;
   mode: string;
   notes?: string;
+  billImageUrl?: string; // Uploaded or camera bill photo / document
 }
 
 export interface PaymentVoucher {

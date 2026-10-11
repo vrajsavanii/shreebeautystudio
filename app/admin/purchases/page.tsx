@@ -258,6 +258,24 @@ export default function PurchasesPage() {
   const [paid, setPaid] = useState(0);
   const [mode, setMode] = useState(data?.settings?.payments?.[0] || 'Cash');
   const [notes, setNotes] = useState('');
+  const [billImage, setBillImage] = useState<string>('');
+  const [previewImageModal, setPreviewImageModal] = useState<string | null>(null);
+  const billAttachInputRef = useRef<HTMLInputElement | null>(null);
+  const billCameraInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleBillAttachFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      const base64 = await compressImage(file);
+      setBillImage(base64);
+      setBillImage(base64);
+      toast('✓ Bill photo attached successfully!', 'success');
+    } catch {
+      toast('Failed to process image file.', 'error');
+    }
+  };
 
   // Fast Barcode Lookup & Mobile Camera Scan for Purchases
   const [barcodeInput, setBarcodeInput] = useState('');
@@ -704,6 +722,7 @@ export default function PurchasesPage() {
     setPaid(0);
     setMode(data?.settings?.payments?.[0] || 'Cash');
     setNotes('');
+    setBillImage('');
     setModalOpen(true);
   };
 
@@ -718,6 +737,7 @@ export default function PurchasesPage() {
     setPaid(p.paid || 0);
     setMode(p.mode || 'Cash');
     setNotes(p.notes || '');
+    setBillImage(p.billImageUrl || '');
     setModalOpen(true);
   };
 
@@ -828,6 +848,7 @@ export default function PurchasesPage() {
         balance: calc.balance,
         mode,
         notes,
+        billImageUrl: billImage || undefined,
       };
 
       updateData((d) => {
@@ -975,6 +996,7 @@ export default function PurchasesPage() {
       balance: calc.balance,
       mode,
       notes,
+      billImageUrl: billImage || undefined,
     };
 
     updateData((d) => {
@@ -1322,6 +1344,16 @@ export default function PurchasesPage() {
                             <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 45 }}>
                               {p.mode}
                             </span>
+                            {p.billImageUrl && (
+                              <button
+                                className="btn-icon"
+                                onClick={() => setPreviewImageModal(p.billImageUrl!)}
+                                title="View Original Bill Photo"
+                                style={{ color: '#15803d', background: '#f0fdf4', borderColor: '#86efac' }}
+                              >
+                                <FileText size={13} />
+                              </button>
+                            )}
                             <button className="btn-icon" onClick={() => setViewPurchase(p)} title="View Purchase Bill">
                               <Eye size={13} />
                             </button>
@@ -2058,6 +2090,154 @@ export default function PurchasesPage() {
             />
           </div>
         </div>
+
+        {/* ─── BILL ATTACHMENT / CAMERA PHOTO UPLOAD ─── */}
+        <div style={{
+          marginTop: 14,
+          background: '#f8fafc',
+          padding: '12px 16px',
+          borderRadius: 10,
+          border: '1.5px solid #e2e8f0',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+            <label className="label" style={{ marginBottom: 0, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, color: '#1e293b' }}>
+              <FileUp size={15} color="#2563eb" /> 🧾 Bill Photo / File Attachment (બિલનો ફોટો / ફાઈલ)
+            </label>
+            {billImage && (
+              <span style={{ fontSize: 11, color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: 12, fontWeight: 700 }}>
+                ✓ Attached & Ready to Save
+              </span>
+            )}
+          </div>
+
+          <input
+            type="file"
+            ref={billAttachInputRef}
+            accept="image/*,application/pdf"
+            style={{ display: 'none' }}
+            onChange={handleBillAttachFileSelect}
+          />
+          <input
+            type="file"
+            ref={billCameraInputRef}
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={handleBillAttachFileSelect}
+          />
+
+          {billImage ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              background: '#ffffff',
+              padding: '10px 14px',
+              borderRadius: 8,
+              border: '1px solid #cbd5e1',
+              flexWrap: 'wrap',
+            }}>
+              <img
+                src={billImage}
+                alt="Bill Preview"
+                style={{
+                  width: 60,
+                  height: 60,
+                  objectFit: 'cover',
+                  borderRadius: 6,
+                  border: '1.5px solid #94a3b8',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.06)',
+                }}
+                onClick={() => setPreviewImageModal(billImage)}
+                title="Click to view full size"
+              />
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                  🧾 Bill Photo Attached
+                </div>
+                <div style={{ fontSize: 11.5, color: '#64748b' }}>
+                  આ બિલનો ફોટો Purchase રેકોર્ડ સાથે કાયમ માટે સચવાઈ જશે.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => setPreviewImageModal(billImage)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#0284c7' }}
+                >
+                  <Eye size={13} /> 🔍 View
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => billCameraInputRef.current?.click()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}
+                  title="Take new photo with camera"
+                >
+                  <Camera size={13} /> 📷 Camera
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => billAttachInputRef.current?.click()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}
+                  title="Upload from files"
+                >
+                  <Upload size={13} /> 📁 Change
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => setBillImage('')}
+                  style={{ color: '#ef4444', fontSize: 12 }}
+                  title="Remove photo"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => billCameraInputRef.current?.click()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontWeight: 700,
+                  background: '#ffffff',
+                  borderColor: '#0284c7',
+                  color: '#0369a1',
+                }}
+              >
+                <Camera size={14} color="#0284c7" /> 📷 Camera Foto (ફોટો પાડો)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => billAttachInputRef.current?.click()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontWeight: 700,
+                  background: '#ffffff',
+                  borderColor: '#16a34a',
+                  color: '#15803d',
+                }}
+              >
+                <Upload size={14} color="#16a34a" /> 📁 Upload File / PDF (પસંદ કરો)
+              </button>
+              <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                (બિલનો ફોટો પાડીને કે અપલોડ કરીને બિલ સાથે કાયમ માટે સેવ કરો)
+              </span>
+            </div>
+          )}
+        </div>
       </Modal>
 
       {/* View Purchase Bill Receipt Modal */}
@@ -2085,6 +2265,55 @@ export default function PurchasesPage() {
               <div><b>Status:</b> {viewPurchase.balance <= 0 ? '✓ Fully Paid' : `⚠️ Due ${money(viewPurchase.balance)}`}</div>
             </div>
           </div>
+
+          {/* Attached Bill Document Preview */}
+          {viewPurchase.billImageUrl && (
+            <div style={{
+              marginBottom: 16,
+              background: '#f8fafc',
+              border: '1.5px solid #cbd5e1',
+              borderRadius: 10,
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <img
+                  src={viewPurchase.billImageUrl}
+                  alt="Bill Document"
+                  style={{
+                    width: 60,
+                    height: 60,
+                    objectFit: 'cover',
+                    borderRadius: 6,
+                    border: '1.5px solid #94a3b8',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setPreviewImageModal(viewPurchase.billImageUrl!)}
+                  title="Click to view full size"
+                />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FileText size={15} color="#15803d" /> 🧾 Original Bill Photo Attached
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748b' }}>
+                    આ ખરીદી સાથે અસલ બિલનો ફોટો સાચવેલો છે.
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-secondary"
+                onClick={() => setPreviewImageModal(viewPurchase.billImageUrl!)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+              >
+                <Eye size={13} /> 🔍 View Fullscreen Photo
+              </button>
+            </div>
+          )}
 
           <div className="table-wrap" style={{ marginBottom: 14 }}>
             <table>
@@ -2448,7 +2677,47 @@ export default function PurchasesPage() {
         </Modal>
       )}
 
-      {/* Live Camera Barcode Scanner (Android & iPhone Compatible) */}
+      {/* ─── FULLSCREEN BILL PHOTO LIGHTBOX MODAL ─── */}
+      {previewImageModal && (
+        <Modal
+          isOpen={!!previewImageModal}
+          onClose={() => setPreviewImageModal(null)}
+          title="🧾 Original Bill Photo Preview"
+          wide
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+              <a
+                href={previewImageModal}
+                download="Purchase-Bill.jpg"
+                className="btn btn-secondary btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Upload size={13} style={{ transform: 'rotate(180deg)' }} /> Download Image
+              </a>
+              <button className="btn btn-primary btn-sm" onClick={() => setPreviewImageModal(null)}>
+                Close Preview
+              </button>
+            </div>
+          }
+        >
+          <div style={{ textAlign: 'center', background: '#0f172a', borderRadius: 10, padding: 12, overflow: 'hidden' }}>
+            <img
+              src={previewImageModal}
+              alt="Bill Full Preview"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '75vh',
+                objectFit: 'contain',
+                borderRadius: 6,
+                margin: '0 auto',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+              }}
+            />
+          </div>
+        </Modal>
+      )}
+
+            {/* Live Camera Barcode Scanner (Android & iPhone Compatible) */}
       <CameraBarcodeScanner
         isOpen={cameraModalOpen}
         onClose={() => {
