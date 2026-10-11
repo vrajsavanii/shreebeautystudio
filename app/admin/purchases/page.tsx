@@ -6,7 +6,7 @@ import {
   ShoppingBag, Plus, Search, Eye, Trash2, Calendar, FileText, CheckCircle,
   Barcode, PlusCircle, Building2, AlertTriangle, ArrowRight, UserPlus, Camera, Pencil,
   Layers, ChevronDown, ChevronUp, Copy,
-  Upload, CheckCircle2, RefreshCw, Sparkles, FileUp
+  Upload, CheckCircle2, RefreshCw, Sparkles, FileUp, Link2, Check, BookmarkCheck
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import Link from 'next/link';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
+import { matchBillItemToInventory, addAliasToInventoryItem } from '@/lib/bill-product-matcher';
 
 // Client-side image compression for fast bill upload
 const compressImage = (file: File): Promise<string> => {
@@ -262,11 +263,31 @@ export default function PurchasesPage() {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [targetLineIdx, setTargetLineIdx] = useState<number | null>(null);
 
-  // AI Bill OCR Upload & New Product Detection State
+  // AI Bill OCR Upload, Smart Product Matching & Future Alias Memory
   const billFileInputRef = useRef<HTMLInputElement | null>(null);
   const [scanningBill, setScanningBill] = useState(false);
-  const [newProductsModalOpen, setNewProductsModalOpen] = useState(false);
-  const [detectedNewProducts, setDetectedNewProducts] = useState<Array<{ name: string; category: string; rate: number; mrp: number; qty: number; gst: number }>>([]);
+  const [billMatchingModalOpen, setBillMatchingModalOpen] = useState(false);
+  const [billReviewItems, setBillReviewItems] = useState<Array<{
+    index: number;
+    billName: string;
+    qty: number;
+    rate: number;
+    mrp: number;
+    gst: number;
+    total: number;
+    // Match details
+    matchedInventoryId: string | null;
+    matchedInventoryName: string | null;
+    matchScore: number;
+    matchMethod: 'exact' | 'alias' | 'fuzzy' | 'none';
+    // User choices
+    action: 'match_existing' | 'create_new';
+    selectedInventoryId: string;
+    rememberAlias: boolean;
+    // New product overrides
+    newName: string;
+    newCategory: string;
+  }>>([]);
   const [pendingBillData, setPendingBillData] = useState<any | null>(null);
 
   const handleBillFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -292,33 +313,56 @@ export default function PurchasesPage() {
       const bill = result.data;
       setPendingBillData(bill);
 
-      // Cross-reference products with current salon inventory
       const existingInv = data?.inventory || [];
-      const newItems: any[] = [];
+      const reviewList: typeof billReviewItems = [];
+      let needsReview = false;
 
-      (bill.lines || []).forEach((line: any) => {
-        const cleanName = String(line.name || '').trim().toLowerCase();
-        const exists = existingInv.some(
-          (inv) => inv.name.trim().toLowerCase() === cleanName
-        );
-        if (!exists && cleanName) {
-          newItems.push({
-            name: line.name.trim(),
-            category: 'Skincare',
-            rate: Number(line.rate) || 0,
+      (bill.lines || []).forEach((line: any, idx: number) => {
+        const match = matchBillItemToInventory(
+          {
+            name: line.name || '',
             mrp: Number(line.mrp) || Number(line.rate) || 0,
-            qty: Number(line.qty) || 1,
-            gst: line.gst !== undefined ? Number(line.gst) : defaultGst,
-          });
+            rate: Number(line.rate) || 0,
+          },
+          existingInv
+        );
+
+        const isExactOrAlias = match && (match.method === 'exact' || match.method === 'alias');
+        if (!isExactOrAlias) {
+          needsReview = true;
         }
+
+        const defaultAction: 'match_existing' | 'create_new' = match ? 'match_existing' : 'create_new';
+        const bestMatchedId = match?.item.id || (existingInv[0]?.id || '');
+
+        reviewList.push({
+          index: idx,
+          billName: line.name || 'Product',
+          qty: Number(line.qty) || 1,
+          rate: Number(line.rate) || 0,
+          mrp: Number(line.mrp) || Number(line.rate) || 0,
+          gst: line.gst !== undefined ? Number(line.gst) : defaultGst,
+          total: Number(line.total) || (Number(line.qty) || 1) * (Number(line.rate) || 0),
+          matchedInventoryId: match?.item.id || null,
+          matchedInventoryName: match?.item.name || null,
+          matchScore: match?.score || 0,
+          matchMethod: match?.method || 'none',
+          action: defaultAction,
+          selectedInventoryId: bestMatchedId,
+          rememberAlias: true,
+          newName: line.name || 'Product',
+          newCategory: match?.item.category || 'Skin Care & Facials',
+        });
       });
 
-      if (newItems.length > 0) {
-        setDetectedNewProducts(newItems);
-        setNewProductsModalOpen(true);
+      setBillReviewItems(reviewList);
+
+      if (needsReview && reviewList.length > 0) {
+        setBillMatchingModalOpen(true);
       } else {
-        applyBillToPurchaseOrder(bill);
-        toast(`✓ Bill scanned! Added ${bill.lines?.length || 0} products from ${bill.supplier || 'Vendor'}`, 'success');
+        // All items matched exactly or via remembered aliases!
+        applyMappedBillToOrder(bill, reviewList, existingInv);
+        toast(`✓ Bill scanned! All ${bill.lines?.length || 0} products matched instantly from aliases/inventory.`, 'success');
       }
     } catch (err: any) {
       toast('Error processing bill: ' + (err?.message || 'Unknown error'), 'error');
@@ -327,46 +371,63 @@ export default function PurchasesPage() {
     }
   };
 
-  const updateDetectedProduct = (idx: number, field: string, val: any) => {
-    setDetectedNewProducts((prev) => {
+  const updateReviewItem = (idx: number, patch: Partial<(typeof billReviewItems)[0]>) => {
+    setBillReviewItems((prev) => {
       const copy = [...prev];
-      copy[idx] = { ...copy[idx], [field]: val };
+      copy[idx] = { ...copy[idx], ...patch };
       return copy;
     });
   };
 
-  const handleConfirmAddProductsToInventory = () => {
-    updateData((prev) => {
-      const newInventoryList = [...(prev.inventory || [])];
-      detectedNewProducts.forEach((p) => {
-        const alreadyHas = newInventoryList.some(
-          (x) => x.name.trim().toLowerCase() === p.name.trim().toLowerCase()
+  const handleConfirmBillMappings = () => {
+    let currentInv = [...(data?.inventory || [])];
+
+    // Process aliases and newly created products
+    billReviewItems.forEach((item) => {
+      if (item.action === 'match_existing' && item.selectedInventoryId) {
+        if (item.rememberAlias && item.billName) {
+          // Permanently record alias so future bills match 100% automatically!
+          currentInv = addAliasToInventoryItem(currentInv, item.selectedInventoryId, item.billName);
+        }
+      } else if (item.action === 'create_new') {
+        const alreadyHas = currentInv.some(
+          (x) => x.name.trim().toLowerCase() === item.newName.trim().toLowerCase()
         );
         if (!alreadyHas) {
-          newInventoryList.push({
+          const newProduct: InventoryItem = {
             id: uid(),
-            name: p.name.trim(),
-            category: p.category || 'Skincare',
-            brand: pendingBillData?.supplier || 'Markwell Services',
+            name: item.newName.trim(),
+            category: item.newCategory || 'Skin Care & Facials',
+            brand: pendingBillData?.supplier || 'Salon Brand',
             stock: 0,
-            buy: p.rate,
-            sell: p.mrp || p.rate,
-            mrp: p.mrp || p.rate,
+            buy: item.rate,
+            sell: item.mrp || item.rate,
+            mrp: item.mrp || item.rate,
             low: 2,
             expiry: '',
             batches: [],
-          });
+            aliases: [item.billName.trim()],
+          };
+          currentInv.push(newProduct);
         }
-      });
-      return { ...prev, inventory: newInventoryList };
+      }
     });
 
-    toast(`✓ Added ${detectedNewProducts.length} new products to Inventory!`, 'success');
-    setNewProductsModalOpen(false);
-    applyBillToPurchaseOrder(pendingBillData);
+    updateData((prev) => ({
+      ...prev,
+      inventory: currentInv,
+    }));
+
+    toast('✓ Product mappings & aliases saved! Future bills will auto-match.', 'success');
+    setBillMatchingModalOpen(false);
+    applyMappedBillToOrder(pendingBillData, billReviewItems, currentInv);
   };
 
-  const applyBillToPurchaseOrder = (bill: any) => {
+  const applyMappedBillToOrder = (
+    bill: any,
+    mappings: typeof billReviewItems,
+    latestInventory: InventoryItem[]
+  ) => {
     if (!bill) return;
 
     // 1. Match or create Supplier
@@ -413,23 +474,38 @@ export default function PurchasesPage() {
       }
     }
 
-    // 2. Map line items
-    const newLines: PurchaseLine[] = (bill.lines || []).map((l: any) => ({
-      barcode: '',
-      name: l.name,
-      expiry: '',
-      qty: Number(l.qty) || 1,
-      rate: Number(l.rate) || 0,
-      mrp: Number(l.mrp) || Number(l.rate) || 0,
-      gst: l.gst !== undefined ? Number(l.gst) : defaultGst,
-    }));
+    // 2. Map line items using resolved official inventory names & barcodes
+    const newLines: PurchaseLine[] = mappings.map((m) => {
+      let resolvedName = m.billName;
+      let resolvedBarcode = '';
+
+      if (m.action === 'match_existing' && m.selectedInventoryId) {
+        const found = latestInventory.find((inv) => inv.id === m.selectedInventoryId);
+        if (found) {
+          resolvedName = found.name;
+          resolvedBarcode = found.barcode || '';
+        }
+      } else if (m.action === 'create_new') {
+        resolvedName = m.newName;
+      }
+
+      return {
+        barcode: resolvedBarcode,
+        name: resolvedName,
+        expiry: '',
+        qty: Number(m.qty) || 1,
+        rate: Number(m.rate) || 0,
+        mrp: Number(m.mrp) || Number(m.rate) || 0,
+        gst: m.gst !== undefined ? Number(m.gst) : defaultGst,
+      };
+    });
 
     setLines(newLines.length > 0 ? newLines : [EMPTY_LINE(defaultGst)]);
     setEditPurchaseId(null);
     setModalOpen(true);
   };
 
-  const [scanMode, setScanMode] = useState<'qty' | 'new_batch'>('qty');
+    const [scanMode, setScanMode] = useState<'qty' | 'new_batch'>('qty');
 
   // Quick Supplier Form State
   const [quickSupplierName, setQuickSupplierName] = useState('');
@@ -2162,114 +2238,212 @@ export default function PurchasesPage() {
         </div>
       )}
 
-      {/* ─── NEW PRODUCTS DETECTED MODAL ─── */}
-      {newProductsModalOpen && (
+      {/* ─── SMART BILL PRODUCT MATCHING & ALIAS MEMORY MODAL ─── */}
+      {billMatchingModalOpen && (
         <Modal
-          isOpen={newProductsModalOpen}
+          isOpen={billMatchingModalOpen}
           onClose={() => {
-            setNewProductsModalOpen(false);
-            applyBillToPurchaseOrder(pendingBillData);
+            setBillMatchingModalOpen(false);
+            if (pendingBillData) {
+              applyMappedBillToOrder(pendingBillData, billReviewItems, data?.inventory || []);
+            }
           }}
-          title={`✨ New Products Detected from Bill (${detectedNewProducts.length})`}
+          title={`🧾 Smart Product Matching & Review (${billReviewItems.length} Items)`}
           wide
           footer={
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={() => {
-                  setNewProductsModalOpen(false);
-                  applyBillToPurchaseOrder(pendingBillData);
+                  setBillMatchingModalOpen(false);
+                  if (pendingBillData) {
+                    applyMappedBillToOrder(pendingBillData, billReviewItems, data?.inventory || []);
+                  }
                 }}
               >
-                Skip (Purchase Order Only)
+                Skip Matching (Keep Raw Names)
               </button>
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={handleConfirmAddProductsToInventory}
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={handleConfirmBillMappings}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
               >
-                <CheckCircle2 size={15} /> ✓ Add All to Inventory & Open Purchase
+                <CheckCircle2 size={16} /> ✓ Confirm Mappings & Open Purchase Order
               </button>
             </div>
           }
         >
+          {/* Header Explanation */}
           <div style={{
             background: '#f0fdf4',
             border: '1px solid #bbf7d0',
-            borderRadius: 8,
-            padding: '10px 14px',
-            marginBottom: 14,
+            borderRadius: 10,
+            padding: '12px 16px',
+            marginBottom: 16,
             fontSize: 12.5,
             color: '#166534',
+            lineHeight: 1.5,
           }}>
-            <strong>💡 આ પ્રોડક્ટ્સ તમારા Inventory માં નથી:</strong>
-            <div>શું તમે આ પ્રોડક્ટ્સને સીધી જ ઇન્વેન્ટરીમાં ઉમેરવા માંગો છો જેથી આગળ સ્ટોક અને સેલિંગ આપમેળે થઈ શકે?</div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Sparkles size={16} color="#15803d" /> AI એ બિલના નામોને તમારી સલૂન Inventory સાથે સ્માર્ટલી મેચ કર્યા છે:
+            </div>
+            <div>
+              જેમ કે બિલમાં <code>JC-INTENSE FIRMING AMPOULE</code> છે અને Inventory માં <code>Jeannot Intense Firming Ampoule 7 x 2 ml</code> છે.
+              રિવ્યૂ કરો અને <strong>યાદ રાખો (Remember Alias)</strong> પર ચેક રહેવા દો — જેથી <strong>ભવિષ્યમાં જ્યારે પણ આ બિલ આવશે ત્યારે આપમેળે ૧૦૦% મેચ થઈ જશે!</strong>
+            </div>
           </div>
 
-          <div style={{ maxHeight: 380, overflowY: 'auto' }}>
-            <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', color: '#475569', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                  <th style={{ padding: '8px 10px', width: 32 }}>#</th>
-                  <th style={{ padding: '8px 10px' }}>Product Name</th>
-                  <th style={{ padding: '8px 10px', width: 150 }}>Category</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right', width: 95 }}>Buy Rate</th>
-                  <th style={{ padding: '8px 10px', textAlign: 'right', width: 95 }}>MRP (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detectedNewProducts.map((p, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '8px 10px', color: '#94a3b8' }}>{idx + 1}</td>
-                    <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>
-                      <input
-                        type="text"
-                        className="input"
-                        value={p.name}
-                        onChange={(e) => updateDetectedProduct(idx, 'name', e.target.value)}
-                        style={{ fontSize: 12, padding: '4px 8px', width: '100%' }}
-                      />
-                    </td>
-                    <td style={{ padding: '8px 10px' }}>
+          {/* Review Rows */}
+          <div style={{ maxHeight: 460, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 4 }}>
+            {billReviewItems.map((item, idx) => {
+              const invList = data?.inventory || [];
+              const isMatched = item.action === 'match_existing';
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    background: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  {/* Top: Bill Item Info */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        બિલમાં નામ (Item #{idx + 1}):
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                        {item.billName}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#475569', background: '#f8fafc', padding: '4px 10px', borderRadius: 6, border: '1px solid #f1f5f9' }}>
+                      <span>Qty: <strong>{item.qty}</strong></span>
+                      <span>Buy Rate: <strong>₹{item.rate}</strong></span>
+                      <span>MRP: <strong>₹{item.mrp}</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Middle: Match with existing OR Add new */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, background: '#fafafa', padding: 10, borderRadius: 8 }}>
+                    {/* Option 1: Match Existing */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
+                        <input
+                          type="radio"
+                          name={`action_${idx}`}
+                          checked={item.action === 'match_existing'}
+                          onChange={() => updateReviewItem(idx, { action: 'match_existing' })}
+                        />
+                        <span>🔗 સલૂન Inventory સાથે Link કરો</span>
+                        {item.matchScore > 0 && (
+                          <span style={{
+                            fontSize: 10.5,
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            padding: '1px 6px',
+                            borderRadius: 10,
+                            fontWeight: 700,
+                          }}>
+                            {item.matchMethod === 'alias' ? '🔖 Saved Alias (100%)' : `✨ AI Match (${Math.round(item.matchScore * 100)}%)`}
+                          </span>
+                        )}
+                      </label>
+
                       <select
                         className="input"
-                        value={p.category || 'Skincare'}
-                        onChange={(e) => updateDetectedProduct(idx, 'category', e.target.value)}
-                        style={{ fontSize: 12, padding: '4px 6px' }}
+                        disabled={item.action !== 'match_existing'}
+                        value={item.selectedInventoryId}
+                        onChange={(e) => updateReviewItem(idx, { selectedInventoryId: e.target.value })}
+                        style={{
+                          fontSize: 12,
+                          padding: '6px 8px',
+                          width: '100%',
+                          background: item.action === 'match_existing' ? '#ffffff' : '#f1f5f9',
+                          borderColor: item.action === 'match_existing' ? '#86efac' : '#cbd5e1',
+                        }}
                       >
-                        <option value="Skincare">Skincare</option>
-                        <option value="Haircare">Haircare</option>
-                        <option value="Beauty Products">Beauty Products</option>
-                        <option value="Creams & Serums">Creams & Serums</option>
-                        <option value="Makeup">Makeup</option>
-                        <option value="Salon Professional">Salon Professional</option>
-                        <option value="Other">Other</option>
+                        {invList.map((inv) => (
+                          <option key={inv.id} value={inv.id}>
+                            {inv.name} (MRP: ₹{inv.mrp || inv.buy || 0})
+                          </option>
+                        ))}
                       </select>
-                    </td>
-                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                    </div>
+
+                    {/* Option 2: Create New */}
+                    <div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
+                        <input
+                          type="radio"
+                          name={`action_${idx}`}
+                          checked={item.action === 'create_new'}
+                          onChange={() => updateReviewItem(idx, { action: 'create_new' })}
+                        />
+                        <span>➕ નવું પ્રોડક્ટ ઉમેરો (નવું ઇન્વેન્ટરી)</span>
+                      </label>
+
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input
+                          type="text"
+                          className="input"
+                          disabled={item.action !== 'create_new'}
+                          value={item.newName}
+                          placeholder="Official Product Name"
+                          onChange={(e) => updateReviewItem(idx, { newName: e.target.value })}
+                          style={{
+                            fontSize: 12,
+                            padding: '6px 8px',
+                            flex: 1,
+                            background: item.action === 'create_new' ? '#ffffff' : '#f1f5f9',
+                          }}
+                        />
+                        <select
+                          className="input"
+                          disabled={item.action !== 'create_new'}
+                          value={item.newCategory}
+                          onChange={(e) => updateReviewItem(idx, { newCategory: e.target.value })}
+                          style={{
+                            fontSize: 12,
+                            padding: '6px 6px',
+                            width: 130,
+                            background: item.action === 'create_new' ? '#ffffff' : '#f1f5f9',
+                          }}
+                        >
+                          <option value="Skin Care & Facials">Skin Care & Facials</option>
+                          <option value="Hair Care & Shampoo">Hair Care & Shampoo</option>
+                          <option value="Hair Serum & Oils">Hair Serum & Oils</option>
+                          <option value="Makeup & Cosmetics">Makeup & Cosmetics</option>
+                          <option value="Salon Consumables">Salon Consumables</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom: Alias Memory Checkbox */}
+                  {isMatched && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: '#475569', cursor: 'pointer', marginTop: 2 }}>
                       <input
-                        type="number"
-                        className="input"
-                        value={p.rate}
-                        onChange={(e) => updateDetectedProduct(idx, 'rate', Number(e.target.value))}
-                        style={{ fontSize: 12, padding: '4px 6px', width: 85, textAlign: 'right' }}
+                        type="checkbox"
+                        checked={item.rememberAlias}
+                        onChange={(e) => updateReviewItem(idx, { rememberAlias: e.target.checked })}
                       />
-                    </td>
-                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                      <input
-                        type="number"
-                        className="input"
-                        value={p.mrp}
-                        onChange={(e) => updateDetectedProduct(idx, 'mrp', Number(e.target.value))}
-                        style={{ fontSize: 12, padding: '4px 6px', width: 85, textAlign: 'right' }}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <span>
+                        💾 <strong>ભવિષ્ય માટે યાદ રાખો:</strong> આગળ ક્યારેય આ સપ્લાયરનું બિલ આવે ત્યારે <code>{item.billName}</code> આપમેળે આ જ પ્રોડક્ટ સાથે ૧૦૦% મેચ થઈ જશે (પૂછ્યા વગર).
+                      </span>
+                    </label>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Modal>
       )}

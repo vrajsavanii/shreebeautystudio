@@ -316,6 +316,7 @@ export interface InventoryItem {
   hsnCode?: string;
   taxRate?: number;
   batches?: ProductBatch[];
+  aliases?: string[]; // Vendor / Bill product name aliases for 100% instant auto-matching
 }
 
 export interface InventoryTx {
