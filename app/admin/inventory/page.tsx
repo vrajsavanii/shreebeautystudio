@@ -1287,64 +1287,82 @@ export default function InventoryPage() {
 
   return (
     <div>
-      {/* Top Valuation Metrics */}
+      {/* Top Valuation Metrics - Ultra Compact */}
       <motion.div
         className="stats-grid"
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
+        style={{ gap: 8, marginBottom: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}
       >
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(5,66,74,.1)', color: '#05424A' }}>
-            <Package size={20} />
+        <motion.div className="stat-card" variants={fadeSlideUp} style={{ padding: '8px 12px', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="stat-card-label" style={{ fontSize: 10, letterSpacing: '0.04em' }}>Total Units</span>
+            <div className="stat-card-icon" style={{ background: 'rgba(5,66,74,.1)', color: '#05424A', width: 26, height: 26, marginBottom: 0 }}>
+              <Package size={14} />
+            </div>
           </div>
-          <div className="stat-card-label">Total Inventory Units</div>
-          <div className="stat-card-value">{valuationStats.totalStockCount}</div>
-          <div className="stat-card-sub">{inventory.length} Product SKUs</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span className="stat-card-value" style={{ fontSize: 18 }}>{valuationStats.totalStockCount}</span>
+            <span className="stat-card-sub" style={{ fontSize: 10 }}>{inventory.length} SKUs</span>
+          </div>
         </motion.div>
 
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(35,163,109,.12)', color: '#23a36d' }}>
-            <DollarSign size={20} />
+        <motion.div className="stat-card" variants={fadeSlideUp} style={{ padding: '8px 12px', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="stat-card-label" style={{ fontSize: 10, letterSpacing: '0.04em' }}>Cost Value</span>
+            <div className="stat-card-icon" style={{ background: 'rgba(35,163,109,.12)', color: '#23a36d', width: 26, height: 26, marginBottom: 0 }}>
+              <DollarSign size={14} />
+            </div>
           </div>
-          <div className="stat-card-label">Total Stock Cost Value</div>
-          <div className="stat-card-value">{money(valuationStats.totalCostValuation)}</div>
-          <div className="stat-card-sub">Valued at Buy Rate (FIFO)</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span className="stat-card-value" style={{ fontSize: 18 }}>{money(valuationStats.totalCostValuation)}</span>
+            <span className="stat-card-sub" style={{ fontSize: 10 }}>FIFO buy rate</span>
+          </div>
         </motion.div>
 
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(230,154,34,.12)', color: '#e69a22' }}>
-            <Tag size={20} />
+        <motion.div className="stat-card" variants={fadeSlideUp} style={{ padding: '8px 12px', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="stat-card-label" style={{ fontSize: 10, letterSpacing: '0.04em' }}>Retail MRP</span>
+            <div className="stat-card-icon" style={{ background: 'rgba(230,154,34,.12)', color: '#e69a22', width: 26, height: 26, marginBottom: 0 }}>
+              <Tag size={14} />
+            </div>
           </div>
-          <div className="stat-card-label">Total Retail MRP Value</div>
-          <div className="stat-card-value" style={{ color: 'var(--teal)' }}>
-            {money(valuationStats.totalMrpValuation)}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span className="stat-card-value" style={{ fontSize: 18, color: 'var(--teal)' }}>
+              {money(valuationStats.totalMrpValuation)}
+            </span>
+            <span className="stat-card-sub" style={{ fontSize: 10 }}>Est. revenue</span>
           </div>
-          <div className="stat-card-sub">Estimated Gross Revenue</div>
         </motion.div>
 
-        <motion.div className="stat-card" variants={fadeSlideUp}>
-          <div className="stat-card-icon" style={{ background: 'rgba(217,48,37,.1)', color: '#d93025' }}>
-            <AlertTriangle size={20} />
+        <motion.div className="stat-card" variants={fadeSlideUp} style={{ padding: '8px 12px', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="stat-card-label" style={{ fontSize: 10, letterSpacing: '0.04em' }}>Low Stock</span>
+            <div className="stat-card-icon" style={{ background: 'rgba(217,48,37,.1)', color: '#d93025', width: 26, height: 26, marginBottom: 0 }}>
+              <AlertTriangle size={14} />
+            </div>
           </div>
-          <div className="stat-card-label">Low Stock Warnings</div>
-          <div className="stat-card-value" style={{ color: lowStockItems.length > 0 ? 'var(--red)' : 'var(--green)' }}>
-            {lowStockItems.length}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <span className="stat-card-value" style={{ fontSize: 18, color: lowStockItems.length > 0 ? 'var(--red)' : 'var(--green)' }}>
+              {lowStockItems.length}
+            </span>
+            <span className="stat-card-sub" style={{ fontSize: 10 }}>{lowStockItems.length > 0 ? 'Re-order needed' : 'All healthy'}</span>
           </div>
-          <div className="stat-card-sub">Requires Re-order from Vendor</div>
         </motion.div>
       </motion.div>
 
-      {/* Barcode Fast Scanner Bar */}
-      <div className="card" style={{ padding: '12px 18px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13, color: 'var(--teal)' }}>
-            <Barcode size={18} /> Fast Barcode Scan:
+      {/* Barcode Fast Scanner Bar - Compact */}
+      <div className="card" style={{ padding: '6px 12px', marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontWeight: 700, fontSize: 12, color: 'var(--teal)' }}>
+            <Barcode size={16} /> Fast Barcode Scan:
           </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
             <input
               type="text"
               className="input"
+              style={{ height: 30, padding: '4px 10px', fontSize: 12 }}
               placeholder="Scan with USB barcode laser gun or type barcode & press Enter…"
               value={barcodeScan}
               onChange={(e) => setBarcodeScan(e.target.value)}
@@ -1356,23 +1374,24 @@ export default function InventoryPage() {
               }}
             />
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => handleBarcodeLookup()}>
+          <button className="btn btn-primary btn-sm" style={{ height: 30, padding: '4px 10px', fontSize: 11.5 }} onClick={() => handleBarcodeLookup()}>
             Find / Add
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setCameraModalOpen(true)}>
-            <Camera size={14} /> Camera Scan
+          <button className="btn btn-ghost btn-sm" style={{ height: 30, padding: '4px 8px', fontSize: 11.5 }} onClick={() => setCameraModalOpen(true)}>
+            <Camera size={13} /> Camera Scan
           </button>
         </div>
       </div>
 
-      {/* Main Toolbar */}
-      <div className="toolbar" style={{ justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: 10, flex: 1, maxWidth: 500, alignItems: 'center' }}>
-          <div className="search-wrap" style={{ flex: 1 }}>
-            <Search size={15} className="search-icon" />
+      {/* Main Toolbar - Compact & Single/Two Row */}
+      <div className="toolbar" style={{ justifyContent: 'space-between', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, flex: 1, maxWidth: 460, alignItems: 'center' }}>
+          <div className="search-wrap" style={{ flex: 1, position: 'relative' }}>
+            <Search size={14} className="search-icon" style={{ left: 9 }} />
             <input
               type="search"
               className="input"
+              style={{ height: 30, paddingLeft: 28, fontSize: 12 }}
               placeholder="Search product, barcode, brand, supplier…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -1381,7 +1400,7 @@ export default function InventoryPage() {
 
           <select
             className="input"
-            style={{ width: 170, padding: '7px 10px', fontSize: 12 }}
+            style={{ width: 135, height: 30, padding: '4px 6px', fontSize: 11.5 }}
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
           >
@@ -1395,23 +1414,55 @@ export default function InventoryPage() {
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              style={{ color: '#dc2626', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}
+              style={{ height: 30, padding: '4px 8px', color: '#dc2626', fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}
               onClick={() => {
                 setSearch('');
                 setCategoryFilter('');
                 setBrandFilter('');
               }}
             >
-              🔄 Clear Filters
+              🔄 Clear
             </button>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <motion.button className="btn btn-primary" style={{ height: 30, padding: '4px 12px', fontSize: 12, fontWeight: 700 }} onClick={() => openNew()} whileTap={{ scale: 0.97 }}>
+            <Plus size={14} /> Add Product
+          </motion.button>
+          <motion.button
+            type="button"
+            className="btn btn-secondary"
+            onClick={openImportModal}
+            whileTap={{ scale: 0.97 }}
+            style={{
+              height: 30,
+              fontSize: 11.5,
+              padding: '4px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: '#e0f2fe',
+              color: '#0369a1',
+              border: '1px solid #bae6fd',
+              fontWeight: 700,
+              borderRadius: 6,
+              cursor: 'pointer',
+            }}
+            title="Upload Excel / CSV spreadsheet or Bulk Add Products"
+          >
+            <FileSpreadsheet size={13} /> Bulk Upload
+          </motion.button>
+          <button className="btn btn-ghost btn-sm" style={{ height: 30, padding: '4px 8px', fontSize: 11.5 }} onClick={() => openAdjustment()} title="Stock Adjustment & Internal Salon Usage">
+            <Scale size={13} /> Stock Adjust
+          </button>
+          <button className="btn btn-ghost btn-sm" style={{ height: 30, padding: '4px 8px', fontSize: 11.5 }} onClick={() => setBarcodeLabelsModalOpen(true)} title="Generate Barcode Labels">
+            <Printer size={13} /> Barcode Labels
+          </button>
           <button
             type="button"
             className="btn btn-ghost btn-sm"
-            style={{ color: '#05424A', background: '#f0fdf4', border: '1px solid #bbf7d0', fontWeight: 700 }}
+            style={{ height: 30, padding: '4px 8px', color: '#05424A', background: '#f0fdf4', border: '1px solid #bbf7d0', fontWeight: 700, fontSize: 11 }}
             onClick={() => {
               if (window.confirm('Are you sure you want to set all product stock levels to Nil (0)?')) {
                 updateData((d) => ({
@@ -1425,48 +1476,16 @@ export default function InventoryPage() {
             }}
             title="Set all product stock levels to 0 (Nil)"
           >
-            <Scale size={14} /> Reset to Nil (0) Stock
+            <Scale size={13} /> Nil (0) Stock
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => openAdjustment()} title="Stock Adjustment & Internal Salon Usage">
-            <Scale size={14} /> Stock Adjustment
+          <button className="btn btn-ghost btn-sm" style={{ height: 30, padding: '4px 8px', fontSize: 11.5 }} onClick={exportInventoryCSV} title="Export Inventory to CSV">
+            <Download size={13} /> Export CSV
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => setBarcodeLabelsModalOpen(true)} title="Generate Barcode Labels">
-            <Printer size={14} /> Print Barcode Labels
-          </button>
-          {/* Bulk Add / Excel Upload Products Button */}
-          <motion.button
-            type="button"
-            className="btn btn-secondary"
-            onClick={openImportModal}
-            whileTap={{ scale: 0.97 }}
-            style={{
-              fontSize: 12.5,
-              padding: '6px 13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              background: '#e0f2fe',
-              color: '#0369a1',
-              border: '1px solid #bae6fd',
-              fontWeight: 700,
-              borderRadius: 8,
-              cursor: 'pointer',
-            }}
-            title="Upload Excel / CSV spreadsheet or Bulk Add Products"
-          >
-            <FileSpreadsheet size={15} /> Bulk Add / Excel Upload
-          </motion.button>
-          <button className="btn btn-ghost btn-sm" onClick={exportInventoryCSV} title="Export Inventory to CSV">
-            <Download size={14} /> Export CSV
-          </button>
-          <motion.button className="btn btn-primary" onClick={() => openNew()} whileTap={{ scale: 0.97 }}>
-            <Plus size={15} /> Add Product
-          </motion.button>
         </div>
       </div>
 
-      {/* Sub Tabs */}
-      <div className="tabs">
+      {/* Sub Tabs - Single Row Ultra-Compact */}
+      <div className="tabs" style={{ marginBottom: 8, padding: 3, gap: 3, display: 'flex', flexWrap: 'wrap' }}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1475,11 +1494,15 @@ export default function InventoryPage() {
               key={tab.id}
               type="button"
               className={`tab-btn ${isActive ? 'active' : ''}`}
+              style={{ padding: '4px 10px', fontSize: 11.5, gap: 5 }}
               onClick={() => setActiveTab(tab.id)}
             >
-              <Icon size={14} />
+              <Icon size={13} />
               <span>{tab.label}</span>
-              <span className={`tab-badge ${tab.id === 'lowstock' && tab.count > 0 ? 'danger' : ''}`}>
+              <span
+                className={`tab-badge ${tab.id === 'lowstock' && tab.count > 0 ? 'danger' : ''}`}
+                style={{ fontSize: 10, padding: '1px 6px' }}
+              >
                 {tab.count}
               </span>
             </button>
@@ -1516,12 +1539,12 @@ export default function InventoryPage() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '8px 12px',
+                    padding: '5px 10px',
                     background: '#f8fafc',
                     borderBottom: '1px solid #e2e8f0',
-                    fontSize: 11.5,
+                    fontSize: 11,
                     flexWrap: 'wrap',
-                    gap: 8,
+                    gap: 6,
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ color: '#0f766e', fontWeight: 700 }}>
@@ -1551,6 +1574,33 @@ export default function InventoryPage() {
                       )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        onClick={() =>
+                          setSortConfig((prev) =>
+                            prev.col === 'expiry' && prev.dir === 'asc'
+                              ? { col: null, dir: null }
+                              : { col: 'expiry', dir: 'asc' }
+                          )
+                        }
+                        style={{
+                          background: sortConfig.col === 'expiry' && sortConfig.dir === 'asc' ? '#dcfce7' : '#ffffff',
+                          border: sortConfig.col === 'expiry' && sortConfig.dir === 'asc' ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                          color: sortConfig.col === 'expiry' && sortConfig.dir === 'asc' ? '#15803d' : '#05424A',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          borderRadius: 6,
+                          height: 24,
+                          padding: '0 8px',
+                          fontSize: 10.5,
+                        }}
+                        title="Sort Inventory: First Expiry First (FEFO)"
+                      >
+                        <span>⏳ First Expiry First</span>
+                      </button>
                       {hasAnyFilterActive && (
                         <button
                           type="button"

@@ -1,7 +1,7 @@
 // lib/store.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { SalonData, BridalPackage, MembershipPlan, UserAccount } from '@/types/salon';
+import { SalonData, BridalPackage, BridalBooking, MembershipPlan, UserAccount } from '@/types/salon';
 import { uid } from './utils';
 
 export const DEFAULT_BRIDAL_PACKAGES: BridalPackage[] = [
@@ -25,6 +25,60 @@ export const DEFAULT_BRIDAL_PACKAGES: BridalPackage[] = [
   { id: 'mtvjixej1844l', type: 'Makeup Package', name: 'Make-up (Engagement / Sangeet)', price: 15000, sessions: 2, includes: 'Makeup, hairstyle, draping, eyelashes and lenses' },
   { id: 'mtvjji3ffcy49', type: 'Makeup Package', name: 'Make-up (Bridal & Mandap Muhurat)', price: 20000, sessions: 2, includes: 'Makeup, hairstyle, draping, eyelashes and lenses' },
 ];
+
+/**
+ * Resolves the true price of a bridal booking or package by consulting:
+ * 1. Booking package amount / totalAmount
+ * 2. Sum of selectedPackages
+ * 3. Exact or fuzzy match in bridal packages catalog (or DEFAULT_BRIDAL_PACKAGES)
+ * 4. Fallback search in services catalog
+ */
+export function resolveBridalBookingPrice(
+  b: Partial<BridalBooking> | null | undefined,
+  bridalPackages?: BridalPackage[],
+  services?: any[]
+): number {
+  if (!b) return 0;
+  if (Number(b.package || 0) > 0) return Number(b.package);
+  if (Number(b.totalAmount || 0) > 0) return Number(b.totalAmount);
+
+  if (b.selectedPackages && b.selectedPackages.length > 0) {
+    const sum = b.selectedPackages.reduce((s, p) => s + (Number(p.price) || 0), 0);
+    if (sum > 0) return sum;
+  }
+
+  const allPackages = (bridalPackages && bridalPackages.length > 0)
+    ? bridalPackages
+    : DEFAULT_BRIDAL_PACKAGES;
+
+  const pkgName = (b.packageName || '').trim().toLowerCase();
+  if (pkgName) {
+    // 1. Exact match on package name
+    const exact = allPackages.find((p) => p.name.trim().toLowerCase() === pkgName) ||
+      DEFAULT_BRIDAL_PACKAGES.find((p) => p.name.trim().toLowerCase() === pkgName);
+    if (exact && Number(exact.price) > 0) return Number(exact.price);
+
+    // 2. Normalized match (ignoring dashes, slashes, punctuation, spaces)
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normPkg = norm(pkgName);
+    const normMatch = allPackages.find((p) => norm(p.name) === normPkg) ||
+      DEFAULT_BRIDAL_PACKAGES.find((p) => norm(p.name) === normPkg);
+    if (normMatch && Number(normMatch.price) > 0) return Number(normMatch.price);
+
+    // 3. Substring / Includes match
+    const subMatch = allPackages.find((p) => p.name.toLowerCase().includes(pkgName) || pkgName.includes(p.name.toLowerCase())) ||
+      DEFAULT_BRIDAL_PACKAGES.find((p) => p.name.toLowerCase().includes(pkgName) || pkgName.includes(p.name.toLowerCase()));
+    if (subMatch && Number(subMatch.price) > 0) return Number(subMatch.price);
+
+    // 4. Lookup in services catalog
+    if (services && services.length > 0) {
+      const srvMatch = services.find((s) => s.name.trim().toLowerCase() === pkgName || s.name.toLowerCase().includes(pkgName) || pkgName.includes(s.name.toLowerCase()));
+      if (srvMatch && Number(srvMatch.price) > 0) return Number(srvMatch.price);
+    }
+  }
+
+  return Number(b.package || 0);
+}
 
 export const DEFAULT_MEMBERSHIP_PLANS: MembershipPlan[] = [
   { id: 'mem-silver', name: 'Silver', price: 1999, validityDays: 180, discountPercent: 5, color: '#9ca3af', perks: '5% off on all services, Priority booking' },
@@ -1359,7 +1413,22 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     bridalPackages: Array.isArray(incoming.bridalPackages) && incoming.bridalPackages.length ? incoming.bridalPackages : DEFAULT_BRIDAL_PACKAGES,
     bridal: (() => {
       const inc = Array.isArray(incoming.bridal) ? incoming.bridal : [];
-      return inc.filter((b: any) => b.id !== 'mtvk1se1xiypt');
+      return inc
+        .filter((b: any) => b.id !== 'mtvk1se1xiypt')
+        .map((b: any) => {
+          if (!b.package || Number(b.package) === 0) {
+            const healedPrice = resolveBridalBookingPrice(b, incoming.bridalPackages, incoming.services);
+            if (healedPrice > 0) {
+              const adv = Number(b.advance || 0);
+              return {
+                ...b,
+                package: healedPrice,
+                balance: Math.max(0, healedPrice - adv),
+              };
+            }
+          }
+          return b;
+        });
     })(),
     invoiceSeq: typeof incoming.invoiceSeq === 'number' ? incoming.invoiceSeq : 1001,
     // New collections

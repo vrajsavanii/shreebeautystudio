@@ -238,6 +238,7 @@ export interface InvoiceLine {
   type: 'S' | 'P';
   productId?: string;
   barcode?: string;
+  batch?: string;
   name: string;
   qty: number;
   price: number;
@@ -455,6 +456,8 @@ export interface BridalPackage {
   sessions: number;
   includes: string;
   price: number;
+  customerName?: string;
+  qty?: number;
 }
 
 export interface BridalBooking {

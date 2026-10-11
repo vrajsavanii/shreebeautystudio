@@ -30,7 +30,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['var(--font-jakarta)', 'Plus Jakarta Sans', 'var(--font-inter)', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        cormorant: ['var(--font-cormorant)', 'Cormorant Garamond', 'Georgia', 'serif'],
+        display: ['var(--font-cormorant)', 'Cormorant Garamond', 'Georgia', 'serif'],
       },
       boxShadow: {
         card: '0 8px 30px rgba(15,35,40,.08)',

@@ -8,7 +8,7 @@ import {
   Sparkles, Check, Crown, User, CalendarDays, ShoppingBag, FileText, CheckCircle,
   Receipt, Download, Eye, Loader2, ExternalLink, RefreshCw, Mail, Zap
 } from 'lucide-react';
-import { useSalonStore } from '@/lib/store';
+import { useSalonStore, resolveBridalBookingPrice, DEFAULT_BRIDAL_PACKAGES } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
 import { uid, todayISO, money, fmtDate, formatCustomerContactName, autoCapitalizeName, FIFTEEN_MIN_TIME_SLOTS } from '@/lib/utils';
 import { BridalBooking, BridalPackage, Invoice, InvoiceLine } from '@/types/salon';
@@ -389,29 +389,46 @@ const OTHER_EVENT_OPTIONS = [
     }
     let initialSelected = (b.selectedPackages as BridalPackage[]) || [];
     if (initialSelected.length === 0 && b.packageName) {
-      const names = b.packageName.split(/\s*\+\s*|\s*,\s*/);
-      initialSelected = names
-        .map((entry) => {
-          const match = entry.match(/^(.*?)\s*\((.*?)\)$/);
-          const rawName = match ? match[1].trim() : entry.trim();
-          const custName = match ? match[2].trim() : '';
-          const found = bridalPackages.find((p) => p.name.trim().toLowerCase() === rawName.toLowerCase());
-          if (found) {
-            return { ...found, customerName: custName || b.name || '' };
-          }
-          return {
-            id: uid(),
-            name: rawName,
-            type: b.packageType || 'Bridal Package',
-            price: Number(b.package || 0),
-            includes: '',
-            customerName: custName || b.name || '',
-          };
-        })
-        .filter(Boolean) as BridalPackage[];
+      const exactMatch = bridalPackages.find((p) => p.name.trim().toLowerCase() === b.packageName?.trim().toLowerCase()) ||
+        DEFAULT_BRIDAL_PACKAGES.find((p) => p.name.trim().toLowerCase() === b.packageName?.trim().toLowerCase());
+      if (exactMatch) {
+        initialSelected = [{ ...exactMatch, customerName: b.name || '' }];
+      } else {
+        const names = b.packageName.split(/\s*\+\s*|\s*,\s*/);
+        initialSelected = names
+          .map((entry) => {
+            const exactEntry = bridalPackages.find((p) => p.name.trim().toLowerCase() === entry.trim().toLowerCase()) ||
+              DEFAULT_BRIDAL_PACKAGES.find((p) => p.name.trim().toLowerCase() === entry.trim().toLowerCase());
+            if (exactEntry) {
+              return { ...exactEntry, customerName: b.name || '' };
+            }
+            const match = entry.match(/^(.*?)\s*\((.*?)\)$/);
+            const rawName = match ? match[1].trim() : entry.trim();
+            const custName = match ? match[2].trim() : '';
+            const found = bridalPackages.find((p) => p.name.trim().toLowerCase() === rawName.toLowerCase()) ||
+              DEFAULT_BRIDAL_PACKAGES.find((p) => p.name.trim().toLowerCase() === rawName.toLowerCase());
+            if (found) {
+              return { ...found, customerName: custName || b.name || '' };
+            }
+            const resolvedPrice = resolveBridalBookingPrice({ packageName: rawName || entry }, bridalPackages, data?.services);
+            return {
+              id: uid(),
+              name: rawName || entry,
+              type: b.packageType || 'Bridal Package',
+              price: resolvedPrice || Number(b.package || 0),
+              includes: '',
+              customerName: custName || b.name || '',
+            };
+          })
+          .filter(Boolean) as BridalPackage[];
+      }
     }
+    const resolvedPrice = Number(b.package || 0) || resolveBridalBookingPrice(b, bridalPackages, data?.services);
+    const adv = Number(b.advance || 0);
     setForm({
       ...b,
+      package: resolvedPrice,
+      balance: Math.max(0, resolvedPrice - adv),
       selectedPackages: initialSelected,
       email: b.email || '',
       status: b.status || 'Confirmed',
@@ -584,10 +601,10 @@ const OTHER_EVENT_OPTIONS = [
       packageType: form.packageType || 'Bridal Package',
       packageName: form.packageName || '',
       selectedPackages: form.selectedPackages || [],
-      package: Number(form.package || 0),
+      package: Number(form.package || 0) || resolveBridalBookingPrice(form, bridalPackages, data?.services),
       advance: Number(form.advance || 0),
       advanceAccount: form.advanceAccount || 'Cash',
-      balance: Math.max(0, Number(form.package || 0) - Number(form.advance || 0)),
+      balance: Math.max(0, (Number(form.package || 0) || resolveBridalBookingPrice(form, bridalPackages, data?.services)) - Number(form.advance || 0)),
       status: form.status || 'Confirmed',
       notes: form.notes || '',
     };
@@ -986,13 +1003,13 @@ const OTHER_EVENT_OPTIONS = [
 
   // Generate an official Invoice with package line items
   const handleGenerateInvoice = (b: BridalBooking) => {
-    const totalPkg = Number(b.package || 0);
+    const totalPkg = Number(b.package || 0) || resolveBridalBookingPrice(b, bridalPackages, data?.services);
     const lines: InvoiceLine[] = (b.selectedPackages && b.selectedPackages.length > 0)
       ? b.selectedPackages.map((p) => ({
           type: 'S',
           name: p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
           qty: 1,
-          price: Number(p.price || 0),
+          price: Number(p.price || 0) || resolveBridalBookingPrice({ packageName: p.name }, bridalPackages, data?.services),
           discount: 0,
           discountType: '₹',
         }))
@@ -1175,7 +1192,7 @@ const OTHER_EVENT_OPTIONS = [
                         </td>
                         <td>
                           <div style={{ fontWeight: 700, color: 'var(--teal)', fontSize: 13 }}>{b.packageName}</div>
-                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{money(b.package)}</div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)' }}>{money(resolveBridalBookingPrice(b, bridalPackages, data?.services))}</div>
                         </td>
                         <td>
                           <div style={{ fontSize: 11.5, color: 'var(--green)', fontWeight: 600 }}>

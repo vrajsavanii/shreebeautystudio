@@ -1,34 +1,7 @@
 import type { Metadata, Viewport } from 'next';
-import { Cormorant_Garamond, Plus_Jakarta_Sans, Inter } from 'next/font/google';
 import SmoothScrollProvider from '@/components/providers/SmoothScrollProvider';
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import './globals.css';
-
-// Self-hosted Google Fonts via Next.js with zero external network requests
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-cormorant',
-  display: 'swap',
-  preload: true,
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-jakarta',
-  display: 'swap',
-  preload: true,
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-inter',
-  display: 'swap',
-  preload: true,
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://shreebeauty.studio'),
@@ -93,11 +66,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      className={`${jakarta.variable} ${cormorant.variable} ${inter.variable}`}
-    >
+    <html lang="en">
       <head>
+        {/* Google Fonts (Plus Jakarta Sans, Cormorant Garamond, Inter) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+
         {/* Resource Hints for High Speed & Low-Network Performance */}
         <link rel="dns-prefetch" href="https://lh3.googleusercontent.com" />
         <link rel="preconnect" href="https://lh3.googleusercontent.com" crossOrigin="anonymous" />
@@ -111,14 +89,14 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Shree Beauty" />
         <meta name="application-name" content="Shree Beauty" />
         <meta name="format-detection" content="telephone=no" />
-        {/* Google Search & Browser Favicons (with Cache-Buster) */}
-        <link rel="icon" href="/favicon.ico?v=green1" sizes="any" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=green1" />
-        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png?v=green1" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png?v=green1" />
-        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png?v=green1" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=green1" />
-        <link rel="shortcut icon" href="/favicon.ico?v=green1" />
+        {/* Google Search & Browser Favicons */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.json" />
         <script
           dangerouslySetInnerHTML={{

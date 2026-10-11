@@ -34,7 +34,7 @@ import {
 } from '@/lib/invoice-pdf';
 import { isCustomerIn24HourWindow } from '@/lib/whatsapp';
 import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
-import { money } from '@/lib/utils';
+import { money, fmtExpiry } from '@/lib/utils';
 import { useToast } from '@/components/ui/Toast';
 
 
@@ -824,6 +824,11 @@ Have a wonderful day! 🙏✨`;
                         }}
                       >
                         <div>{cleanServiceNameForBill(l.name)}</div>
+                        {l.expiry && l.type === 'P' ? (
+                          <div style={{ fontSize: 10.5, color: '#444444', fontWeight: 600, marginTop: 1 }}>
+                            {l.batch ? `Lot: ${l.batch} · ` : ''}Exp: {fmtExpiry(l.expiry)}
+                          </div>
+                        ) : null}
                         {l.staff ? <div style={{ fontSize: 11, color: '#444444', fontWeight: 500, marginTop: 1 }}>Beautician: {l.staff}</div> : null}
                         {discAmt > 0 && (
                           <div style={{ fontSize: 11, color: '#000000', fontWeight: 600, marginTop: 1 }}>

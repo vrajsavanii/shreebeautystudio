@@ -5,6 +5,7 @@ import { Invoice, SalonData } from '@/types/salon';
 import { SHREE_INVOICE_BILL_LOGO_BASE64 } from './logo-base64';
 import { format, parseISO } from 'date-fns';
 import { sendWhatsAppTemplateMessage } from './whatsapp';
+import { fmtExpiry } from './utils';
 
 export function formatIndianDate(dateStr: string): string {
   try {
@@ -72,6 +73,7 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
         <tr>
           <td style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 13px; font-weight: 600; text-align: left; vertical-align: middle; color: #000000; line-height: 1.35;">
             <div>${displayName}</div>
+            ${l.expiry && l.type === 'P' ? `<div style="font-size: 10.5px; color: #444444; font-weight: 600; margin-top: 1px;">${l.batch ? `Lot: ${l.batch} · ` : ''}Exp: ${fmtExpiry(l.expiry)}</div>` : ''}
             ${l.staff ? `<div style="font-size: 11px; color: #444444; font-weight: 500; margin-top: 2px;">Beautician: ${l.staff}</div>` : ''}
             ${discAmt > 0 ? `<div style="font-size: 11px; color: #000000; font-weight: 600; margin-top: 2px;">(Disc: -₹${discAmt.toLocaleString('en-IN')})</div>` : ''}
           </td>
@@ -542,7 +544,7 @@ export function buildPublicInvoiceMessage(inv: Invoice, salonData?: SalonData): 
   const linesList = (inv.lines || [])
     .map(
       (l: any) =>
-        `• *${cleanServiceNameForBill(l.name)}* (${l.qty || 1}x) — ₹${Number(
+        `• *${cleanServiceNameForBill(l.name)}* (${l.qty || 1}x)${l.expiry && l.type === 'P' ? ` [Exp: ${fmtExpiry(l.expiry)}]` : ''} — ₹${Number(
           l.price * (l.qty || 1)
         ).toLocaleString('en-IN')}`
     )

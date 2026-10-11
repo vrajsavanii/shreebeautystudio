@@ -1,5 +1,5 @@
-/* Fonts loaded via layout.tsx <link> tags (non-blocking, with preconnect) */
-
+/* Google Fonts Fallback / Direct Import */
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -56,8 +56,11 @@
   --glass-border:    rgba(255, 255, 255, 0.15);
   --glass-border-lt: rgba(255, 255, 255, 0.4);
   --transition-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --easing-smooth:   cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --easing-out:      cubic-bezier(0.0, 0.0, 0.2, 1);
+  --font-jakarta:    'Plus Jakarta Sans', sans-serif;
+  --font-cormorant:  'Cormorant Garamond', Georgia, serif;
+  --font-inter:      'Inter', sans-serif;
+  --font-sans:       'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --display-font:    var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
 }
 
@@ -1039,11 +1042,60 @@ tbody tr.today-row {
   min-width: 0;
 }
 
+/* ⬍ Up & Down (Stacked) Boxes Mode */
+.billing-layout.billing-layout-up-down {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px;
+  width: 100%;
+}
+
+.billing-layout.billing-layout-up-down > .billing-builder-card {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+@media (min-width: 900px) {
+  .billing-layout-up-down .billing-checkout-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr) !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+}
+
 @media (max-width: 1024px) {
   .billing-layout {
     grid-template-columns: 1fr;
     gap: 14px;
   }
+}
+
+/* Qty Up-Down Box Spin Control */
+.qty-up-down-box {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qty-up-down-box:focus-within {
+  border-color: #05424A !important;
+  box-shadow: 0 0 0 2px rgba(5, 66, 74, 0.15) !important;
+}
+
+.qty-up-down-box input[type="number"]::-webkit-inner-spin-button,
+.qty-up-down-box input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.qty-up-down-box input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Segmented Navigation Tabs */

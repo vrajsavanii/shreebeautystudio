@@ -28,10 +28,13 @@ import {
   MessageSquare,
   Loader2,
   QrCode,
+  ChevronUp,
+  ChevronDown,
+  Rows3,
 } from 'lucide-react';
-import { useSalonStore } from '@/lib/store';
+import { useSalonStore, resolveBridalBookingPrice } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate, formatCustomerContactName, autoCapitalizeName, getServicePricingBasis } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, formatCustomerContactName, autoCapitalizeName, getServicePricingBasis, fmtExpiry } from '@/lib/utils';
 import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransaction, BridalBooking } from '@/types/salon';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
@@ -84,6 +87,23 @@ function BillingContent() {
 
   const [activeTab, setActiveTab] = useState<BillingViewTab>('builder');
   const [historySearch, setHistorySearch] = useState('');
+  const [layoutOrientation, setLayoutOrientation] = useState<'up-down' | 'side-by-side'>('up-down');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('shree_billing_layout');
+      if (saved === 'side-by-side' || saved === 'up-down') {
+        setLayoutOrientation(saved);
+      }
+    }
+  }, []);
+
+  const handleToggleLayout = (mode: 'up-down' | 'side-by-side') => {
+    setLayoutOrientation(mode);
+    try {
+      localStorage.setItem('shree_billing_layout', mode);
+    } catch {}
+  };
 
   // Form state
   const [customer, setCustomer] = useState('');
@@ -102,8 +122,12 @@ function BillingContent() {
   const [useWallet, setUseWallet] = useState(0);
   const [selectedCustomerObj, setSelectedCustomerObj] = useState<any>(null);
 
-  // Advanced Vyapar Features: Round-off & Split Payment
+  // Advanced Vyapar Features: Round-off & Manual Price Adjustment (+ YA -)
   const [autoRoundOff, setAutoRoundOff] = useState(true);
+  const [isManualRoundOff, setIsManualRoundOff] = useState(false);
+  const [customRoundOffSign, setCustomRoundOffSign] = useState<'+' | '-'>('+');
+  const [customRoundOffValue, setCustomRoundOffValue] = useState<number | ''>('');
+  const [isEditingFinalPayable, setIsEditingFinalPayable] = useState(false);
   const [isSplitPayment, setIsSplitPayment] = useState(false);
   const [splitCash, setSplitCash] = useState<number | ''>('');
   const [splitUpi, setSplitUpi] = useState<number | ''>('');
@@ -245,6 +269,18 @@ function BillingContent() {
       setSplitCard('');
       setSplitUpiMode('GPay UPI');
     }
+    if (inv.roundOff !== undefined && inv.roundOff !== 0) {
+      setIsManualRoundOff(true);
+      setAutoRoundOff(false);
+      setCustomRoundOffSign(inv.roundOff >= 0 ? '+' : '-');
+      setCustomRoundOffValue(Number(Math.abs(inv.roundOff).toFixed(2)));
+    } else {
+      setIsManualRoundOff(false);
+      setAutoRoundOff(true);
+      setCustomRoundOffSign('+');
+      setCustomRoundOffValue('');
+    }
+    setIsEditingFinalPayable(false);
     setActiveTab('builder');
     toast(`Loaded invoice ${inv.no} for editing`);
   };
@@ -258,6 +294,11 @@ function BillingContent() {
     setAdvance(0);
     setAdvanceMode('Cash');
     setPaid('');
+    setIsManualRoundOff(false);
+    setAutoRoundOff(true);
+    setCustomRoundOffSign('+');
+    setCustomRoundOffValue('');
+    setIsEditingFinalPayable(false);
     setIsSplitPayment(false);
     setSplitCash('');
     setSplitUpi('');
@@ -359,6 +400,20 @@ function BillingContent() {
   }, [convertApptId, data?.appointments, data?.services]);
 
   const handleImportBridal = (b: BridalBooking) => {
+    const resolvedTotal = resolveBridalBookingPrice(b, data?.bridalPackages, data?.services);
+
+    // Auto-heal booking in state/store if it was recorded as 0
+    if (Number(b.package || 0) === 0 && resolvedTotal > 0) {
+      updateData((d) => ({
+        ...d,
+        bridal: (d.bridal || []).map((x) =>
+          x.id === b.id
+            ? { ...x, package: resolvedTotal, balance: Math.max(0, resolvedTotal - Number(x.advance || 0)) }
+            : x
+        ),
+      }));
+    }
+
     setCustomer(b.name);
     setMobile(b.mobile || '');
     if (Number(b.advance) > 0) {
@@ -367,6 +422,26 @@ function BillingContent() {
     }
     setAppointmentRef(`Bridal Booking: ${b.packageName || 'Luxury Package'}`);
 
+    // Case 1: Booking contains specific selectedPackages (combo / bride + siders)
+    if (b.selectedPackages && b.selectedPackages.length > 0) {
+      const newLines: InvoiceLine[] = b.selectedPackages.map((p) => {
+        const itemPrice = Number(p.price || 0) || resolveBridalBookingPrice({ packageName: p.name }, data?.bridalPackages, data?.services);
+        const displayName = p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name;
+        return {
+          type: 'S',
+          name: displayName,
+          qty: 1,
+          price: itemPrice,
+          discount: 0,
+          discountType: '₹',
+        };
+      });
+      setLines([...newLines, EMPTY_LINE()]);
+      toast(`👰 Imported ${b.name}'s bridal booking (${b.selectedPackages.length} package${b.selectedPackages.length > 1 ? 's' : ''})!`);
+      return;
+    }
+
+    // Case 2: Booking contains ticked / dated events
     const events: { name: string; date?: string; time?: string }[] = [];
     if (b.includeWedding !== false && b.weddingDate) {
       events.push({ name: 'Wedding Day Bridal Makeup & Draping', date: b.weddingDate, time: b.weddingTime });
@@ -385,12 +460,11 @@ function BillingContent() {
     }
 
     if (events.length > 0) {
-      const totalPkg = Number(b.package || 0);
-      const perEventPrice = Math.round(totalPkg / events.length);
+      const perEventPrice = Math.round(resolvedTotal / events.length);
 
       const newLines: InvoiceLine[] = events.map((ev, idx) => {
         const isLast = idx === events.length - 1;
-        const price = isLast ? totalPkg - perEventPrice * (events.length - 1) : perEventPrice;
+        const price = isLast ? resolvedTotal - perEventPrice * (events.length - 1) : perEventPrice;
         return {
           type: 'S',
           name: `${b.packageName ? `[${b.packageName}] ` : ''}${ev.name}${ev.date ? ` (${fmtDate(ev.date)}${ev.time ? ` @ ${ev.time}` : ''})` : ''}`,
@@ -402,24 +476,77 @@ function BillingContent() {
       });
       setLines([...newLines, EMPTY_LINE()]);
       toast(`👰 Imported ${b.name}'s bridal booking with ${events.length} ticked function${events.length > 1 ? 's' : ''}!`);
+    } else if (b.selectedEvents && b.selectedEvents.length > 0) {
+      // Case 3: Events list present without specific dates
+      const perEventPrice = Math.round(resolvedTotal / b.selectedEvents.length);
+      const newLines: InvoiceLine[] = b.selectedEvents.map((evName, idx) => {
+        const isLast = idx === b.selectedEvents!.length - 1;
+        const price = isLast ? resolvedTotal - perEventPrice * (b.selectedEvents!.length - 1) : perEventPrice;
+        return {
+          type: 'S',
+          name: `${b.packageName ? `[${b.packageName}] ` : ''}${evName} Makeup & Styling`,
+          qty: 1,
+          price: price,
+          discount: 0,
+          discountType: '₹',
+        };
+      });
+      setLines([...newLines, EMPTY_LINE()]);
+      toast(`👰 Imported ${b.name}'s bridal booking with ${b.selectedEvents.length} event${b.selectedEvents.length > 1 ? 's' : ''}!`);
     } else {
+      // Case 4: Single overall package
       setLines([
         {
           type: 'S',
           name: `Bridal Package — ${b.packageName || 'Luxury Makeup'}`,
           qty: 1,
-          price: Number(b.package || 0),
+          price: resolvedTotal,
           discount: 0,
           discountType: '₹',
         },
         EMPTY_LINE(),
       ]);
-      toast(`👰 Imported bridal package for ${b.name}!`);
+      toast(`👰 Imported bridal package for ${b.name} (${money(resolvedTotal)})!`);
     }
   };
 
   const allServices = useMemo(() => data?.services || [], [data?.services]);
-  const allProducts = useMemo(() => data?.inventory || [], [data?.inventory]);
+
+  // Sort inventory items FEFO: Products expiring first appear first!
+  const allProducts = useMemo(() => {
+    const list = [...(data?.inventory || [])];
+    return list.sort((a, b) => {
+      // 1. In-stock products first
+      const hasStockA = (a.stock ?? 0) > 0 ? 1 : 0;
+      const hasStockB = (b.stock ?? 0) > 0 ? 1 : 0;
+      if (hasStockA !== hasStockB) return hasStockB - hasStockA;
+
+      // Helper to extract earliest active expiry date
+      const getEarliestExp = (item: typeof a) => {
+        if (item.batches && item.batches.length > 0) {
+          const active = item.batches.filter((x) => (x.stock ?? 0) > 0 && x.expiry);
+          if (active.length > 0) {
+            active.sort((x, y) => x.expiry!.localeCompare(y.expiry!));
+            return active[0].expiry!;
+          }
+          const allWithExp = item.batches.filter((x) => x.expiry);
+          if (allWithExp.length > 0) {
+            allWithExp.sort((x, y) => x.expiry!.localeCompare(y.expiry!));
+            return allWithExp[0].expiry!;
+          }
+        }
+        return item.expiry || '9999-99-99';
+      };
+
+      // 2. FIRST EXPIRY FIRST SHOW (Earliest expiry date at top)
+      const expA = getEarliestExp(a);
+      const expB = getEarliestExp(b);
+      if (expA !== expB) return expA.localeCompare(expB);
+
+      // 3. Name alphabetical
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [data?.inventory]);
 
   const allItems = useMemo(
     () => [
@@ -428,27 +555,128 @@ function BillingContent() {
         const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
         const priceLabel = basis.isFixed ? `Fixed ${money(s.price)}` : `Starts ${money(s.price)}${tag}`;
         return {
+          id: s.id,
           label: `[Service] ${s.name} (${priceLabel})`,
           name: s.name,
           price: s.price,
           type: 'S' as const,
           barcode: '',
           brand: '',
+          stock: undefined as number | undefined,
+          expiry: undefined as string | undefined,
+          batch: undefined as string | undefined,
         };
       }),
-      ...allProducts.map((p) => ({
-        label: `[Product] ${p.name}${p.brand ? ` · ${p.brand}` : ''}${p.barcode ? ` [Barcode: ${p.barcode}]` : ''} (${money(p.sell)})`,
-        name: p.name,
-        price: p.sell,
-        mrp: p.mrp || p.sell * 1.15,
-        expiry: p.expiry,
-        type: 'P' as const,
-        barcode: p.barcode || '',
-        brand: p.brand || '',
-      })),
+      ...allProducts.flatMap((p) => {
+        // Sort batches by earliest expiry first (FEFO)
+        const sortedBatches = (p.batches || [])
+          .slice()
+          .sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'));
+        const activeBatches = sortedBatches.filter((b) => (b.stock ?? 0) > 0);
+        const earliestBatch = activeBatches[0] || sortedBatches[0];
+
+        const primaryExp = earliestBatch?.expiry || p.expiry || '';
+        const primaryBatch = earliestBatch?.batch || earliestBatch?.id || p.batch || '';
+        const stockStr = `Stock: ${p.stock ?? 0}`;
+        const expStr = primaryExp ? ` · Exp: ${fmtExpiry(primaryExp)}` : '';
+        const batchStr = primaryBatch ? ` · Lot: ${primaryBatch}` : '';
+
+        const mainEntry = {
+          id: p.id,
+          label: `[Product] ${p.name}${p.brand ? ` · ${p.brand}` : ''} [${stockStr}${expStr}${batchStr}]${p.barcode ? ` [Barcode: ${p.barcode}]` : ''} (${money(p.sell)})`,
+          name: p.name,
+          price: p.sell,
+          mrp: p.mrp || p.sell * 1.15,
+          expiry: primaryExp,
+          batch: primaryBatch,
+          batches: sortedBatches,
+          stock: p.stock ?? 0,
+          type: 'P' as const,
+          barcode: p.barcode || '',
+          brand: p.brand || '',
+        };
+
+        // If product has multiple batches, also include individual batch options sorted FEFO
+        if (sortedBatches.length > 1) {
+          const batchEntries = sortedBatches.map((b, bi) => ({
+            id: `${p.id}-batch-${b.batch || b.id}`,
+            productId: p.id,
+            label: `[Product] ${p.name} [${bi === 0 ? '⭐ FIRST EXPIRY · ' : ''}Lot: ${b.batch || b.id} · Stock: ${b.stock} · Exp: ${fmtExpiry(b.expiry)}] (${money(b.mrp || p.sell)})`,
+            name: p.name,
+            price: p.sell,
+            mrp: b.mrp || p.mrp || p.sell * 1.15,
+            expiry: b.expiry || '',
+            batch: b.batch || b.id,
+            batches: sortedBatches,
+            stock: b.stock ?? 0,
+            type: 'P' as const,
+            barcode: p.barcode || '',
+            brand: p.brand || '',
+          }));
+          return [mainEntry, ...batchEntries];
+        }
+
+        return [mainEntry];
+      }),
     ],
     [allServices, allProducts]
   );
+
+  // Helper to extract purchase buy price and detect if selling price is below cost (Loss)
+  const getLineProductBuyInfo = useCallback(
+    (line: InvoiceLine) => {
+      if (line.type !== 'P' || !line.name || !line.name.trim()) return null;
+      const p =
+        allProducts.find(
+          (x) =>
+            (line.productId && x.id === line.productId) ||
+            x.name.trim().toLowerCase() === line.name.trim().toLowerCase() ||
+            (x.barcode && line.barcode && x.barcode === line.barcode)
+        ) ||
+        (data?.inventory || []).find(
+          (x) =>
+            (line.productId && x.id === line.productId) ||
+            x.name.trim().toLowerCase() === line.name.trim().toLowerCase() ||
+            (x.barcode && line.barcode && x.barcode === line.barcode)
+        );
+      if (!p) return null;
+
+      const batchObj = p.batches?.find((b) => (b.batch || b.id) === line.batch);
+      const batchBuyRate = Number(batchObj?.buyRate) || 0;
+      const defaultBuyRate = Number(p.buy) || 0;
+      const buyPrice = batchBuyRate > 0 ? batchBuyRate : defaultBuyRate;
+      const mrp = Number(batchObj?.mrp ?? p.mrp ?? 0);
+      const qty = Math.max(1, Number(line.qty) || 1);
+      const total = calcLineTotal(line);
+      const unitNet = total / qty;
+      const rawUnitRate = Number(line.price) || 0;
+
+      // Sell price below buy price condition (Buy Price > Net Selling Price)
+      const isBelowBuy = buyPrice > 0 && unitNet < buyPrice;
+      const lossPerUnit = isBelowBuy ? buyPrice - unitNet : 0;
+      const totalLoss = isBelowBuy ? lossPerUnit * qty : 0;
+
+      return {
+        product: p,
+        buyPrice,
+        mrp,
+        unitNet,
+        rawUnitRate,
+        isBelowBuy,
+        lossPerUnit,
+        totalLoss,
+      };
+    },
+    [allProducts, data?.inventory]
+  );
+
+  const belowBuyLinesList = useMemo(() => {
+    return lines
+      .map((line, idx) => ({ line, idx, info: getLineProductBuyInfo(line) }))
+      .filter((x) => x.info && x.info.isBelowBuy);
+  }, [lines, getLineProductBuyInfo]);
+
+  const hasBelowBuyLines = belowBuyLinesList.length > 0;
 
   const rawSubtotal = useMemo(
     () =>
@@ -490,8 +718,26 @@ function BillingContent() {
   );
 
   const discounted = Math.max(0, rawSubtotal - totalAllDiscount);
-  const roundedTotal = autoRoundOff ? Math.round(discounted) : discounted;
-  const roundOffDiff = autoRoundOff ? roundedTotal - discounted : 0;
+
+  // Auto mathematical round-off to nearest rupee (threshold ₹0.50)
+  const autoDiff = useMemo(() => {
+    const rawRounded = Math.round(discounted);
+    return Number((rawRounded - discounted).toFixed(2));
+  }, [discounted]);
+
+  // Round off difference: manual override takes priority if enabled
+  const roundOffDiff = useMemo(() => {
+    if (isManualRoundOff && customRoundOffValue !== '') {
+      const val = Number(customRoundOffValue) || 0;
+      return Number((customRoundOffSign === '-' ? -val : val).toFixed(2));
+    }
+    if (autoRoundOff) {
+      return autoDiff;
+    }
+    return 0;
+  }, [isManualRoundOff, customRoundOffValue, customRoundOffSign, autoRoundOff, autoDiff]);
+
+  const roundedTotal = Math.max(0, Number((discounted + roundOffDiff).toFixed(2)));
 
   // Loyalty points to ₹ conversion
   const loyaltySettings = data?.settings;
@@ -548,20 +794,47 @@ function BillingContent() {
     const trimmed = inputVal.trim();
     const item =
       allItems.find((x) => x.name.toLowerCase() === trimmed.toLowerCase()) ||
+      allItems.find((x) => x.label.toLowerCase() === trimmed.toLowerCase()) ||
       allItems.find((x) => x.barcode && x.barcode === trimmed);
 
     setLines((prev) => {
       const updated = prev.map((l, i) => {
         if (i !== idx) return l;
         if (item) {
+          let selectedBatch = (item as any).batch;
+          let selectedExpiry = (item as any).expiry;
+
+          // FEFO: Auto-assign the earliest active expiring batch
+          if (item.type === 'P') {
+            const p = (data?.inventory || []).find(
+              (x) => x.id === item.id || x.name.toLowerCase() === item.name.toLowerCase()
+            );
+            const batches = (p?.batches || (item as any).batches || []) as any[];
+            if (batches.length > 0) {
+              const active = batches
+                .filter((b) => (b.stock ?? 0) > 0)
+                .sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'));
+              const allSorted = batches
+                .slice()
+                .sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'));
+              const earliest = active[0] || allSorted[0];
+              if (earliest) {
+                selectedBatch = selectedBatch || earliest.batch || earliest.id;
+                selectedExpiry = earliest.expiry || selectedExpiry;
+              }
+            }
+          }
+
           return {
             ...l,
+            productId: (item as any).productId || item.id,
             name: item.name,
             price: item.price,
             type: item.type,
             barcode: item.barcode,
             mrp: (item as any).mrp,
-            expiry: (item as any).expiry,
+            expiry: selectedExpiry,
+            batch: selectedBatch,
             discount: l.discount || 0,
             discountType: l.discountType || '₹',
           };
@@ -714,15 +987,31 @@ function BillingContent() {
     if (existingIdx >= 0) {
       setLine(existingIdx, { qty: lines[existingIdx].qty + 1 });
     } else {
+      // FEFO: Auto-assign earliest active expiring batch
+      let scanBatch = p.batch;
+      let scanExpiry = p.expiry;
+      if (p.batches && p.batches.length > 0) {
+        const sortedBatches = p.batches
+          .filter((b) => (b.stock ?? 0) > 0)
+          .sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'));
+        const earliest = sortedBatches[0] || p.batches.slice().sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'))[0];
+        if (earliest) {
+          scanBatch = earliest.batch || earliest.id;
+          scanExpiry = earliest.expiry || scanExpiry;
+        }
+      }
+
       const newLine: InvoiceLine = {
         type: 'P',
+        productId: p.id,
         name: p.name,
         qty: 1,
         price: p.sell,
         discount: 0,
         discountType: '₹',
         mrp: p.mrp || p.sell * 1.15,
-        expiry: p.expiry,
+        expiry: scanExpiry,
+        batch: scanBatch,
         barcode: p.barcode,
       };
 
@@ -755,9 +1044,44 @@ function BillingContent() {
 
     // Validate stock for products
     for (const l of validLines.filter((x) => x.type === 'P')) {
-      const p = allProducts.find((x) => x.name === l.name);
+      const p = allProducts.find((x) => x.name.toLowerCase() === l.name.toLowerCase());
       if (p && Number(p.stock) < Number(l.qty)) {
         toast(`Not enough stock for ${p.name}. Only ${p.stock} available.`, 'error');
+        return;
+      }
+    }
+
+    // Validate buy price: Product cannot be sold below buy price!
+    const belowBuySold = validLines
+      .map((l) => ({ line: l, info: getLineProductBuyInfo(l) }))
+      .filter((x) => x.info && x.info.isBelowBuy);
+
+    if (belowBuySold.length > 0) {
+      const lossMsg = belowBuySold
+        .map(
+          (x) =>
+            `• ${x.line.name}: Buy Price ${money(x.info!.buyPrice)} > Net Sell Price ${money(x.info!.unitNet)} (Loss: -${money(x.info!.lossPerUnit)}/pc)`
+        )
+        .join('\n');
+      toast(
+        `⛔ PRODUCT NOT SELL: Cannot sell below Buy Price! Please fix marked items.`,
+        'error'
+      );
+      alert(
+        `⛔ PRODUCT NOT SELL — BELOW BUY PRICE (LOSS PREVENTION):\n\nThe following product(s) cannot be sold because the Net Selling Price is LESS than the Buy Price:\n\n${lossMsg}\n\nPlease reduce the discount or increase the price before proceeding.`
+      );
+      return;
+    }
+
+    // Expiry check warning before sale
+    const expiredSold = validLines.filter((l) => {
+      if (l.type !== 'P') return false;
+      const exp = l.expiry || allProducts.find((x) => x.name.toLowerCase() === l.name.toLowerCase())?.expiry;
+      return exp && exp < todayISO();
+    });
+    if (expiredSold.length > 0) {
+      const expMsg = expiredSold.map((x) => `• ${x.name} (Exp: ${fmtExpiry(x.expiry)})`).join('\n');
+      if (!window.confirm(`⚠️ EXPIRED PRODUCT WARNING:\n\nThe following product(s) are EXPIRED:\n\n${expMsg}\n\nDo you still wish to proceed with selling this item?`)) {
         return;
       }
     }
@@ -943,21 +1267,79 @@ function BillingContent() {
         };
       }
 
-      // Deduct inventory stock for product lines
+      // Deduct inventory stock & batch quantities for product lines
       let inventory = [...(d.inventory || [])];
       validLines
         .filter((l) => l.type === 'P')
         .forEach((l) => {
-          inventory = inventory.map((item) =>
-            item.name === l.name ? { ...item, stock: Math.max(0, item.stock - l.qty) } : item
-          );
+          inventory = inventory.map((item) => {
+            if (item.name.toLowerCase() !== l.name.toLowerCase()) return item;
+
+            const newStock = Math.max(0, item.stock - Number(l.qty || 0));
+
+            // If item has batches, also deduct from matching batch or FIFO earliest expiry
+            let updatedBatches = item.batches ? [...item.batches] : undefined;
+            if (updatedBatches && updatedBatches.length > 0) {
+              let qtyRemaining = Number(l.qty || 0);
+
+              // 1. If line has an explicit batch, deduct from that batch first
+              if (l.batch) {
+                const targetIdx = updatedBatches.findIndex((b) => (b.batch || b.id) === l.batch);
+                if (targetIdx >= 0) {
+                  const bStock = updatedBatches[targetIdx].stock;
+                  const deduct = Math.min(bStock, qtyRemaining);
+                  updatedBatches[targetIdx] = {
+                    ...updatedBatches[targetIdx],
+                    stock: Math.max(0, bStock - deduct),
+                  };
+                  qtyRemaining -= deduct;
+                }
+              }
+
+              // 2. Deduct any remaining qty from earliest expiring batches (FIFO)
+              if (qtyRemaining > 0) {
+                const sortedIndices = updatedBatches
+                  .map((b, idx) => ({ b, idx }))
+                  .sort((a, b) => (a.b.expiry || '9999') > (b.b.expiry || '9999') ? 1 : -1);
+
+                for (const { idx } of sortedIndices) {
+                  if (qtyRemaining <= 0) break;
+                  const bStock = updatedBatches[idx].stock;
+                  if (bStock <= 0) continue;
+                  const deduct = Math.min(bStock, qtyRemaining);
+                  updatedBatches[idx] = {
+                    ...updatedBatches[idx],
+                    stock: Math.max(0, bStock - deduct),
+                  };
+                  qtyRemaining -= deduct;
+                }
+              }
+            }
+
+            // Determine active earliest expiry date after sale
+            let nextExpiry = item.expiry;
+            if (updatedBatches && updatedBatches.length > 0) {
+              const activeBatches = updatedBatches.filter((b) => b.stock > 0 && b.expiry);
+              if (activeBatches.length > 0) {
+                activeBatches.sort((a, b) => (a.expiry! > b.expiry! ? 1 : -1));
+                nextExpiry = activeBatches[0].expiry;
+              }
+            }
+
+            return {
+              ...item,
+              stock: newStock,
+              batches: updatedBatches,
+              expiry: nextExpiry,
+            };
+          });
         });
 
-      // Log inventoryTx transactions for sales
+      // Log inventoryTx transactions for sales with exact batch & expiry
       const invTxs = validLines
         .filter((l) => l.type === 'P')
         .map((l) => {
-          const invItem = inventory.find((x) => x.name === l.name);
+          const invItem = (d.inventory || []).find((x) => x.name.toLowerCase() === l.name.toLowerCase());
           return {
             id: uid(),
             date: todayISO(),
@@ -967,7 +1349,8 @@ function BillingContent() {
             qty: l.qty,
             rate: l.price,
             mrp: l.mrp || invItem?.mrp,
-            expiry: l.expiry || invItem?.expiry,
+            batch: l.batch || invItem?.batch || '',
+            expiry: l.expiry || invItem?.expiry || '',
             party: customer,
             invoiceNo: no,
           };
@@ -1157,31 +1540,107 @@ function BillingContent() {
 
   return (
     <div>
-      {/* Segmented Navigation Tabs */}
-      <div className="billing-tabs no-print" role="tablist" aria-label="Billing Views">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
+      {/* Segmented Navigation Tabs & Box Layout Switcher */}
+      <div
+        className="no-print"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+          flexWrap: 'wrap',
+          gap: 8,
+        }}
+      >
+        <div className="billing-tabs" role="tablist" aria-label="Billing Views">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`tab-btn ${isActive ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <Icon size={14} />
+                <span className="tab-label-full">{tab.label}</span>
+                <span className="tab-label-short">{tab.shortLabel}</span>
+                {tab.count !== undefined && (
+                  <span className="tab-badge" aria-label={`${tab.count} invoices`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Up & Down vs Side-by-Side Box Layout Switcher */}
+        {activeTab === 'builder' && (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: '#f1f5f9',
+              padding: '3px',
+              borderRadius: 8,
+              border: '1px solid #cbd5e1',
+              gap: 3,
+            }}
+          >
             <button
-              key={tab.id}
               type="button"
-              role="tab"
-              aria-selected={isActive}
-              className={`tab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
+              className={`tab-btn ${layoutOrientation === 'up-down' ? 'active' : ''}`}
+              onClick={() => handleToggleLayout('up-down')}
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '3px 9px',
+                height: 27,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                borderRadius: 6,
+                border: 'none',
+                cursor: 'pointer',
+                background: layoutOrientation === 'up-down' ? '#ffffff' : 'transparent',
+                color: layoutOrientation === 'up-down' ? '#05424A' : '#64748b',
+                boxShadow: layoutOrientation === 'up-down' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              }}
+              title="Up & Down Layout: Top Box (Invoice Items) & Bottom Box (Checkout & Settlement)"
             >
-              <Icon size={14} />
-              <span className="tab-label-full">{tab.label}</span>
-              <span className="tab-label-short">{tab.shortLabel}</span>
-              {tab.count !== undefined && (
-                <span className="tab-badge" aria-label={`${tab.count} invoices`}>
-                  {tab.count}
-                </span>
-              )}
+              <Rows3 size={12} />
+              <span>⬍ Up &amp; Down Box</span>
             </button>
-          );
-        })}
+            <button
+              type="button"
+              className={`tab-btn ${layoutOrientation === 'side-by-side' ? 'active' : ''}`}
+              onClick={() => handleToggleLayout('side-by-side')}
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '3px 9px',
+                height: 27,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                borderRadius: 6,
+                border: 'none',
+                cursor: 'pointer',
+                background: layoutOrientation === 'side-by-side' ? '#ffffff' : 'transparent',
+                color: layoutOrientation === 'side-by-side' ? '#05424A' : '#64748b',
+                boxShadow: layoutOrientation === 'side-by-side' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              }}
+              title="Side by Side Layout: Left Box (Invoice Items) & Right Box (Checkout & Settlement)"
+            >
+              <Columns size={12} />
+              <span>⬌ Side by Side</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Hidden printable receipt */}
@@ -1253,6 +1712,11 @@ function BillingContent() {
                   <tr key={i}>
                     <td style={{ border: '1.5px solid #222', padding: '6px 8px', fontSize: 12, fontWeight: 600, verticalAlign: 'middle' }}>
                       <div>{cleanServiceNameForBill(l.name)}</div>
+                      {l.expiry && l.type === 'P' && (
+                        <div style={{ fontSize: 9.5, color: '#475569', fontWeight: 600 }}>
+                          Exp: {fmtExpiry(l.expiry)}{l.batch ? ` · Batch: ${l.batch}` : ''}
+                        </div>
+                      )}
                       {discAmt > 0 && <div style={{ fontSize: 9.5, color: '#16a34a' }}>(Disc: −₹{discAmt})</div>}
                     </td>
                     <td style={{ border: '1.5px solid #222', textAlign: 'center', verticalAlign: 'middle', padding: '6px 4px', fontSize: 12, fontWeight: 600 }}>{l.qty}</td>
@@ -1304,7 +1768,7 @@ function BillingContent() {
       )}
 
       {/* VIEW: 2-Column POS Builder, Side-by-Side Split, or History Mode */}
-      <div className={activeTab === 'history' ? '' : 'billing-layout'}>
+      <div className={activeTab === 'history' ? '' : activeTab === 'builder' && layoutOrientation === 'up-down' ? 'billing-layout billing-layout-up-down' : 'billing-layout'}>
         {/* 1. BUILDER MODE: 2-Column Balanced POS (Items on Left, Checkout on Right) */}
         {activeTab === 'builder' && (
           <>
@@ -1436,11 +1900,14 @@ function BillingContent() {
                     <option value="" disabled>
                       Select bride booking to load into bill…
                     </option>
-                    {data.bridal.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.mobile || 'No mobile'}) — {b.packageName || 'Bridal'} ({money(b.package)})
-                      </option>
-                    ))}
+                    {data.bridal.map((b) => {
+                      const pPrice = resolveBridalBookingPrice(b, data?.bridalPackages, data?.services);
+                      return (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.mobile || 'No mobile'}) — {b.packageName || 'Bridal'} ({money(pPrice)})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
@@ -1774,7 +2241,7 @@ function BillingContent() {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'minmax(130px, 2.3fr) 42px 68px 84px 68px 26px',
+                      gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(130px, 2.3fr) 50px 68px 84px 68px 26px',
                       gap: 5,
                       padding: '5px 8px',
                       background: '#f1f5f9',
@@ -1809,160 +2276,408 @@ function BillingContent() {
                       paddingRight: 4,
                     }}
                   >
-                    {lines.map((line, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'minmax(130px, 2.3fr) 42px 68px 84px 68px 26px',
-                          gap: 5,
-                          alignItems: 'center',
-                        }}
-                      >
+                    {lines.map((line, idx) => {
+                      const buyInfo = getLineProductBuyInfo(line);
+                      const isBelowBuy = buyInfo?.isBelowBuy;
+                      return (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(130px, 2.3fr) 50px 68px 84px 68px 26px',
+                            gap: 5,
+                            alignItems: 'center',
+                            background: isBelowBuy ? 'rgba(254, 242, 242, 0.75)' : 'transparent',
+                            borderRadius: 6,
+                            padding: isBelowBuy ? '3px 4px' : '0',
+                            border: isBelowBuy ? '1.5px solid #fca5a5' : 'none',
+                          }}
+                        >
                         {/* Item Name + Type Badge */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <button
-                            type="button"
-                            className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
-                            style={{
-                              cursor: 'pointer',
-                              fontSize: 10,
-                              padding: '2px 5px',
-                              border: 'none',
-                              flexShrink: 0,
-                              borderRadius: 5,
-                            }}
-                            title={
-                              line.type === 'P'
-                                ? 'Retail Product (Click to switch to Service)'
-                                : 'Salon Service (Click to switch to Product)'
-                            }
-                            onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
-                          >
-                            {line.type === 'P' ? '📦' : '💄'}
-                          </button>
-                          <input
-                            type="text"
-                            id={`billing-line-name-${idx}`}
-                            className="input"
-                            list="billing-items-list"
-                            placeholder="Select service or scan product…"
-                            value={line.name}
-                            onChange={(e) => handleItemSelect(idx, e.target.value)}
-                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                            style={{
-                              height: 32,
-                              fontSize: 11.5,
-                              padding: '0 7px',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: 6,
-                            }}
-                          />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <button
+                              type="button"
+                              className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
+                              style={{
+                                cursor: 'pointer',
+                                fontSize: 10,
+                                padding: '2px 5px',
+                                border: 'none',
+                                flexShrink: 0,
+                                borderRadius: 5,
+                              }}
+                              title={
+                                line.type === 'P'
+                                  ? 'Retail Product (Click to switch to Service)'
+                                  : 'Salon Service (Click to switch to Product)'
+                              }
+                              onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
+                            >
+                              {line.type === 'P' ? '📦' : '💄'}
+                            </button>
+                            <input
+                              type="text"
+                              id={`billing-line-name-${idx}`}
+                              className="input"
+                              list="billing-items-list"
+                              placeholder="Select service or scan product…"
+                              value={line.name}
+                              onChange={(e) => handleItemSelect(idx, e.target.value)}
+                              onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                              style={{
+                                height: 32,
+                                fontSize: 11.5,
+                                padding: '0 7px',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: 6,
+                              }}
+                            />
+                          </div>
+
+                          {/* Live Inventory Stock & Expiry Pill for Products */}
+                          {line.type === 'P' && line.name.trim() !== '' && (() => {
+                            const p = allProducts.find(
+                              (x) => x.name.toLowerCase() === line.name.trim().toLowerCase() || (x.barcode && x.barcode === line.barcode)
+                            );
+                            const buyInfo = getLineProductBuyInfo(line);
+                            const stock = p?.stock ?? 0;
+                            const isOutOfStock = stock <= 0;
+                            const isLowStock = stock > 0 && stock <= (p?.low ?? 3);
+                            const expDate = line.expiry || p?.expiry;
+                            const isExpired = expDate ? expDate < todayISO() : false;
+
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, paddingLeft: 20, marginTop: 1, flexWrap: 'wrap' }}>
+                                {/* Stock pill */}
+                                <span
+                                  style={{
+                                    padding: '1px 5px',
+                                    borderRadius: 4,
+                                    fontWeight: 700,
+                                    background: isOutOfStock ? '#fef2f2' : isLowStock ? '#fff7ed' : '#f0fdf4',
+                                    color: isOutOfStock ? '#dc2626' : isLowStock ? '#c2410c' : '#15803d',
+                                    border: `1px solid ${isOutOfStock ? '#fca5a5' : isLowStock ? '#fed7aa' : '#bbf7d0'}`,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 2,
+                                  }}
+                                  title={`Current Available Stock in Inventory: ${stock}`}
+                                >
+                                  📦 Stock: {stock}
+                                  {isOutOfStock && ' (Nil/0)'}
+                                  {stock > 0 && Number(line.qty) > stock && ' ⚠️ Exceeds'}
+                                </span>
+
+                                {/* Expiry pill */}
+                                {expDate ? (
+                                  <span
+                                    style={{
+                                      padding: '1px 5px',
+                                      borderRadius: 4,
+                                      fontWeight: 700,
+                                      background: isExpired ? '#fef2f2' : '#f8fafc',
+                                      color: isExpired ? '#dc2626' : '#05424A',
+                                      border: `1px solid ${isExpired ? '#fca5a5' : '#cbd5e1'}`,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 2,
+                                    }}
+                                    title={isExpired ? '⚠️ Product is EXPIRED' : `Product Expiry: ${fmtExpiry(expDate)}`}
+                                  >
+                                    ⏳ Exp: {fmtExpiry(expDate)}
+                                    {isExpired && ' (EXPIRED!)'}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#94a3b8', fontSize: 9.5 }}>No Expiry</span>
+                                )}
+
+                                {/* Batch selector if multiple batches */}
+                                {p?.batches && p.batches.length > 1 ? (
+                                  <select
+                                    value={line.batch || ''}
+                                    onChange={(e) => {
+                                      const b = p.batches?.find((x) => (x.batch || x.id) === e.target.value);
+                                      setLine(idx, {
+                                        batch: b?.batch || b?.id,
+                                        expiry: b?.expiry || line.expiry,
+                                      });
+                                    }}
+                                    style={{
+                                      height: 19,
+                                      fontSize: 9.5,
+                                      padding: '0 4px',
+                                      borderRadius: 4,
+                                      border: '1px solid #93c5fd',
+                                      background: '#eff6ff',
+                                      color: '#1d4ed8',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                    }}
+                                    title="Choose Batch / Expiry Date (First Expiry First)"
+                                  >
+                                    <option value="">Select Batch/Exp</option>
+                                    {p.batches
+                                      .slice()
+                                      .sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'))
+                                      .map((b, bi) => (
+                                        <option key={bi} value={b.batch || b.id}>
+                                          {bi === 0 ? '⭐ [FIRST EXP] ' : ''}{b.batch ? `Lot ${b.batch}` : `B#${bi + 1}`}: {b.stock} pcs ({fmtExpiry(b.expiry)})
+                                        </option>
+                                      ))}
+                                  </select>
+                                ) : (
+                                  (line.batch || p?.batch) && (
+                                    <span style={{ color: '#64748b', fontSize: 9.5 }}>
+                                      Lot: {line.batch || p?.batch}
+                                    </span>
+                                  )
+                                )}
+
+                                {/* 🔴 Red Warning: Buy Price > Net Selling Price */}
+                                {buyInfo?.isBelowBuy && (
+                                  <span
+                                    style={{
+                                      padding: '1.5px 6px',
+                                      borderRadius: 4,
+                                      fontWeight: 800,
+                                      background: '#fee2e2',
+                                      color: '#b91c1c',
+                                      border: '1.5px solid #ef4444',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 3,
+                                      fontSize: 10,
+                                    }}
+                                    title={`Cannot sell below buy price! Buy Rate: ₹${buyInfo.buyPrice}, Net Sell Rate: ₹${buyInfo.unitNet.toFixed(1)}`}
+                                  >
+                                    🚨 BELOW BUY PRICE (Buy: {money(buyInfo.buyPrice)} &gt; Net: {money(buyInfo.unitNet)} | Loss: -{money(buyInfo.lossPerUnit)}/pc) — DO NOT SELL
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
-                        {/* Qty */}
-                        <input
-                          type="number"
-                          min={1}
-                          className="input"
-                          title="Quantity"
-                          placeholder="Qty"
-                          value={line.qty}
-                          onChange={(e) =>
-                            setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
-                          }
-                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                        {/* Qty Up-Down Box */}
+                        <div
+                          className="qty-up-down-box"
                           style={{
-                            textAlign: 'center',
                             height: 32,
-                            fontSize: 11.5,
-                            padding: '0 2px',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
+                            position: 'relative',
                           }}
-                        />
-
-                        {/* Price */}
-                        <input
-                          type="number"
-                          min={0}
-                          className="input"
-                          title="Rate (₹)"
-                          placeholder="0"
-                          value={line.price || ''}
-                          onChange={(e) =>
-                            setLine(idx, { price: Number(e.target.value) || 0 })
-                          }
-                          onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                          style={{
-                            textAlign: 'right',
-                            height: 32,
-                            fontSize: 11.5,
-                            padding: '0 5px',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: 6,
-                          }}
-                        />
-
-                        {/* Item Discount Input + Unit Toggle (₹ or %) */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        >
                           <input
                             type="number"
-                            min={0}
+                            min={1}
                             className="input"
-                            title="Discount on this item"
-                            placeholder="0"
-                            value={line.discount || ''}
+                            title="Quantity (Type or use Up/Down arrows)"
+                            placeholder="Qty"
+                            value={line.qty}
                             onChange={(e) =>
-                              setLine(idx, { discount: Number(e.target.value) || 0 })
+                              setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
                             }
                             onKeyDown={(e) => handleLineKeyDown(e, idx)}
                             style={{
-                              textAlign: 'right',
-                              height: 32,
+                              textAlign: 'center',
+                              height: '100%',
+                              width: '100%',
                               fontSize: 11.5,
-                              padding: '0 3px',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: 6,
-                              color: Number(line.discount || 0) > 0 ? '#16a34a' : 'inherit',
-                              fontWeight: Number(line.discount || 0) > 0 ? 700 : 400,
+                              fontWeight: 700,
+                              padding: '0 16px 0 2px',
+                              border: 'none',
+                              background: 'transparent',
+                              boxShadow: 'none',
                             }}
                           />
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-sm"
+                          <div
                             style={{
-                              padding: 0,
-                              width: 22,
-                              height: 32,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              borderRadius: 5,
-                              color: (line.discountType || '₹') === '%' ? '#2563eb' : '#05424A',
-                              background:
-                                (line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4',
-                              border: '1px solid #cbd5e1',
-                              flexShrink: 0,
+                              position: 'absolute',
+                              right: 0,
+                              top: 0,
+                              bottom: 0,
+                              width: 15,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              borderLeft: '1px solid #e2e8f0',
+                              background: '#f8fafc',
                             }}
-                            title={`Toggle Discount Unit: currently ${line.discountType || '₹'}`}
-                            onClick={() =>
-                              setLine(idx, {
-                                discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
-                              })
-                            }
                           >
-                            {line.discountType || '₹'}
-                          </button>
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              title="Increase (+1)"
+                              onClick={() => setLine(idx, { qty: (Number(line.qty) || 1) + 1 })}
+                              style={{
+                                flex: 1,
+                                border: 'none',
+                                background: 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                padding: 0,
+                                color: '#475569',
+                                borderBottom: '1px solid #e2e8f0',
+                              }}
+                            >
+                              <ChevronUp size={9} strokeWidth={2.5} />
+                            </button>
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              title="Decrease (-1)"
+                              onClick={() => setLine(idx, { qty: Math.max(1, (Number(line.qty) || 1) - 1) })}
+                              style={{
+                                flex: 1,
+                                border: 'none',
+                                background: 'transparent',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                padding: 0,
+                                color: '#475569',
+                              }}
+                            >
+                              <ChevronDown size={9} strokeWidth={2.5} />
+                            </button>
+                          </div>
                         </div>
 
+                        {/* Price */}
+                        {(() => {
+                          const buyInfo = getLineProductBuyInfo(line);
+                          const isLoss = buyInfo?.isBelowBuy;
+                          return (
+                            <input
+                              type="number"
+                              min={0}
+                              className="input"
+                              title={isLoss ? `🚨 Cannot sell below buy price (${money(buyInfo!.buyPrice)})!` : "Rate (₹)"}
+                              placeholder="0"
+                              value={line.price || ''}
+                              onChange={(e) =>
+                                setLine(idx, { price: Number(e.target.value) || 0 })
+                              }
+                              onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                              style={{
+                                textAlign: 'right',
+                                height: 32,
+                                fontSize: 11.5,
+                                padding: '0 5px',
+                                border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                                background: isLoss ? '#fef2f2' : '#ffffff',
+                                color: isLoss ? '#dc2626' : 'inherit',
+                                fontWeight: isLoss ? 800 : 400,
+                                borderRadius: 6,
+                              }}
+                            />
+                          );
+                        })()}
+
+                        {/* Item Discount Input + Unit Toggle (₹ or %) */}
+                        {(() => {
+                          const buyInfo = getLineProductBuyInfo(line);
+                          const isLoss = buyInfo?.isBelowBuy;
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <input
+                                type="number"
+                                min={0}
+                                className="input"
+                                title={
+                                  isLoss
+                                    ? `🚨 Discount brings net price (${money(buyInfo!.unitNet)}) below buy price (${money(buyInfo!.buyPrice)})! Loss: -${money(buyInfo!.lossPerUnit)}/pc`
+                                    : "Discount on this item"
+                                }
+                                placeholder="0"
+                                value={line.discount || ''}
+                                onChange={(e) =>
+                                  setLine(idx, { discount: Number(e.target.value) || 0 })
+                                }
+                                onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                                style={{
+                                  textAlign: 'right',
+                                  height: 32,
+                                  fontSize: 11.5,
+                                  padding: '0 3px',
+                                  border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                                  background: isLoss ? '#fef2f2' : '#ffffff',
+                                  borderRadius: 6,
+                                  color: isLoss ? '#dc2626' : (Number(line.discount || 0) > 0 ? '#16a34a' : 'inherit'),
+                                  fontWeight: 700,
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                style={{
+                                  padding: 0,
+                                  width: 22,
+                                  height: 32,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  borderRadius: 5,
+                                  color: isLoss ? '#dc2626' : ((line.discountType || '₹') === '%' ? '#2563eb' : '#05424A'),
+                                  background:
+                                    isLoss ? '#fee2e2' : ((line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4'),
+                                  border: isLoss ? '1px solid #fca5a5' : '1px solid #cbd5e1',
+                                  flexShrink: 0,
+                                }}
+                                title={`Toggle Discount Unit: currently ${line.discountType || '₹'}`}
+                                onClick={() =>
+                                  setLine(idx, {
+                                    discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
+                                  })
+                                }
+                              >
+                                {line.discountType || '₹'}
+                              </button>
+                            </div>
+                          );
+                        })()}
+
                         {/* Line Net Total */}
-                        <div style={{ textAlign: 'right', paddingRight: 3 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>
-                            {money(calcLineTotal(line))}
-                          </span>
-                        </div>
+                        {(() => {
+                          const buyInfo = getLineProductBuyInfo(line);
+                          const isLoss = buyInfo?.isBelowBuy;
+                          return (
+                            <div style={{ textAlign: 'right', paddingRight: 3 }}>
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                  color: isLoss ? '#dc2626' : '#0f172a',
+                                  background: isLoss ? '#fee2e2' : 'transparent',
+                                  padding: isLoss ? '1px 5px' : '0',
+                                  borderRadius: 4,
+                                  display: 'inline-block',
+                                }}
+                              >
+                                {money(calcLineTotal(line))}
+                              </span>
+                              {isLoss && (
+                                <span
+                                  style={{
+                                    display: 'block',
+                                    fontSize: 8.5,
+                                    fontWeight: 800,
+                                    color: '#b91c1c',
+                                    lineHeight: 1.1,
+                                    marginTop: 1,
+                                    letterSpacing: -0.2,
+                                  }}
+                                  title={`Buy Price: ₹${buyInfo!.buyPrice}. Loss: -₹${buyInfo!.lossPerUnit.toFixed(1)}/pc`}
+                                >
+                                  ⛔ BELOW BUY ({money(buyInfo!.buyPrice)})
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         {/* Delete Line */}
                         <button
@@ -1988,26 +2703,30 @@ function BillingContent() {
                           <Trash2 size={12} />
                         </button>
                       </motion.div>
-                    ))}
+                    );
+                  })}
                   </div>
                 </div>
 
                 {/* 2. Mobile Responsive Cards View */}
                 <div className="billing-lines-mobile" style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                  {lines.map((line, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 8,
-                        padding: 8,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 6,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-                      }}
-                    >
+                  {lines.map((line, idx) => {
+                    const buyInfo = getLineProductBuyInfo(line);
+                    const isBelowBuy = buyInfo?.isBelowBuy;
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          background: isBelowBuy ? '#fff7f7' : '#ffffff',
+                          border: isBelowBuy ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
+                          borderRadius: 8,
+                          padding: 8,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6,
+                          boxShadow: isBelowBuy ? '0 1px 4px rgba(239, 68, 68, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
+                        }}
+                      >
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <button
                           type="button"
@@ -2050,10 +2769,110 @@ function BillingContent() {
                         </button>
                       </div>
 
+                      {/* Live Inventory Stock & Expiry Pill for Products (Mobile) */}
+                      {line.type === 'P' && line.name.trim() !== '' && (() => {
+                        const p = allProducts.find(
+                          (x) => x.name.toLowerCase() === line.name.trim().toLowerCase() || (x.barcode && x.barcode === line.barcode)
+                        );
+                        const buyInfo = getLineProductBuyInfo(line);
+                        const stock = p?.stock ?? 0;
+                        const isOutOfStock = stock <= 0;
+                        const isLowStock = stock > 0 && stock <= (p?.low ?? 3);
+                        const expDate = line.expiry || p?.expiry;
+                        const isExpired = expDate ? expDate < todayISO() : false;
+
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                padding: '1px 5px',
+                                borderRadius: 4,
+                                fontWeight: 700,
+                                background: isOutOfStock ? '#fef2f2' : isLowStock ? '#fff7ed' : '#f0fdf4',
+                                color: isOutOfStock ? '#dc2626' : isLowStock ? '#c2410c' : '#15803d',
+                                border: `1px solid ${isOutOfStock ? '#fca5a5' : isLowStock ? '#fed7aa' : '#bbf7d0'}`,
+                              }}
+                            >
+                              📦 Stock: {stock}
+                              {isOutOfStock && ' (Nil/0)'}
+                              {stock > 0 && Number(line.qty) > stock && ' ⚠️ Exceeds'}
+                            </span>
+                            {expDate && (
+                              <span
+                                style={{
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  fontWeight: 700,
+                                  background: isExpired ? '#fef2f2' : '#f8fafc',
+                                  color: isExpired ? '#dc2626' : '#05424A',
+                                  border: `1px solid ${isExpired ? '#fca5a5' : '#cbd5e1'}`,
+                                }}
+                              >
+                                ⏳ Exp: {fmtExpiry(expDate)}
+                                {isExpired && ' (EXPIRED!)'}
+                              </span>
+                            )}
+                            {p?.batches && p.batches.length > 1 ? (
+                              <select
+                                value={line.batch || ''}
+                                onChange={(e) => {
+                                  const b = p.batches?.find((x) => (x.batch || x.id) === e.target.value);
+                                  setLine(idx, {
+                                    batch: b?.batch || b?.id,
+                                    expiry: b?.expiry || line.expiry,
+                                  });
+                                }}
+                                style={{
+                                  height: 19,
+                                  fontSize: 9.5,
+                                  padding: '0 4px',
+                                  borderRadius: 4,
+                                  border: '1px solid #93c5fd',
+                                  background: '#eff6ff',
+                                  color: '#1d4ed8',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                <option value="">Select Batch/Exp</option>
+                                {p.batches
+                                  .slice()
+                                  .sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'))
+                                  .map((b, bi) => (
+                                    <option key={bi} value={b.batch || b.id}>
+                                      {bi === 0 ? '⭐ [FIRST EXP] ' : ''}{b.batch ? `Lot ${b.batch}` : `B#${bi + 1}`}: {b.stock} pcs ({fmtExpiry(b.expiry)})
+                                    </option>
+                                  ))}
+                              </select>
+                            ) : null}
+
+                            {/* 🔴 Red Loss Alert */}
+                            {buyInfo?.isBelowBuy && (
+                              <span
+                                style={{
+                                  padding: '1.5px 6px',
+                                  borderRadius: 4,
+                                  fontWeight: 800,
+                                  background: '#fee2e2',
+                                  color: '#b91c1c',
+                                  border: '1.5px solid #ef4444',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 3,
+                                  fontSize: 10,
+                                }}
+                                title={`Cannot sell below buy price! Buy Rate: ₹${buyInfo.buyPrice}, Net Sell Rate: ₹${buyInfo.unitNet.toFixed(1)}`}
+                              >
+                                🚨 BELOW BUY PRICE (Buy: {money(buyInfo.buyPrice)} &gt; Net: {money(buyInfo.unitNet)} | Loss: -{money(buyInfo.lossPerUnit)}/pc) — DO NOT SELL
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       <div
                         style={{
                           display: 'grid',
-                          gridTemplateColumns: '42px 68px 1fr auto',
+                          gridTemplateColumns: '50px 68px 1fr auto',
                           gap: 5,
                           alignItems: 'center',
                         }}
@@ -2062,82 +2881,210 @@ function BillingContent() {
                           <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
                             QTY
                           </span>
-                          <input
-                            type="number"
-                            min={1}
-                            className="input"
-                            value={line.qty}
-                            onChange={(e) =>
-                              setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
-                            }
-                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                            style={{ textAlign: 'center', height: 28, fontSize: 11.5, padding: 0 }}
-                          />
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
-                            RATE (₹)
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            className="input"
-                            placeholder="0"
-                            value={line.price || ''}
-                            onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
-                            onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                            style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 4px' }}
-                          />
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
-                            DISCOUNT
-                          </span>
-                          <div style={{ display: 'flex', gap: 2 }}>
+                          <div
+                            className="qty-up-down-box"
+                            style={{
+                              height: 28,
+                              position: 'relative',
+                            }}
+                          >
                             <input
                               type="number"
-                              min={0}
+                              min={1}
                               className="input"
-                              placeholder="0"
-                              value={line.discount || ''}
+                              value={line.qty}
                               onChange={(e) =>
-                                setLine(idx, { discount: Number(e.target.value) || 0 })
+                                setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })
                               }
                               onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                              style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 4px', flex: 1 }}
-                            />
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm"
                               style={{
-                                padding: 0,
-                                width: 20,
-                                height: 28,
-                                fontSize: 10,
+                                textAlign: 'center',
+                                height: '100%',
+                                width: '100%',
+                                fontSize: 11.5,
                                 fontWeight: 700,
-                                borderRadius: 4,
+                                padding: '0 15px 0 2px',
+                                border: 'none',
+                                background: 'transparent',
+                                boxShadow: 'none',
                               }}
-                              onClick={() =>
-                                setLine(idx, {
-                                  discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
-                                })
-                              }
+                            />
+                            <div
+                              style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: 14,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                borderLeft: '1px solid #e2e8f0',
+                                background: '#f8fafc',
+                              }}
                             >
-                              {line.discountType || '₹'}
-                            </button>
+                              <button
+                                type="button"
+                                tabIndex={-1}
+                                title="Increase (+1)"
+                                onClick={() => setLine(idx, { qty: (Number(line.qty) || 1) + 1 })}
+                                style={{
+                                  flex: 1,
+                                  border: 'none',
+                                  background: 'transparent',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  color: '#475569',
+                                  borderBottom: '1px solid #e2e8f0',
+                                }}
+                              >
+                                <ChevronUp size={8} strokeWidth={2.5} />
+                              </button>
+                              <button
+                                type="button"
+                                tabIndex={-1}
+                                title="Decrease (-1)"
+                                onClick={() => setLine(idx, { qty: Math.max(1, (Number(line.qty) || 1) - 1) })}
+                                style={{
+                                  flex: 1,
+                                  border: 'none',
+                                  background: 'transparent',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  padding: 0,
+                                  color: '#475569',
+                                }}
+                              >
+                                <ChevronDown size={8} strokeWidth={2.5} />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right', minWidth: 55 }}>
-                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
-                            TOTAL
-                          </span>
-                          <span style={{ fontSize: 12, fontWeight: 800, color: '#0f172a' }}>
-                            {money(calcLineTotal(line))}
-                          </span>
-                        </div>
+                        {(() => {
+                          const buyInfo = getLineProductBuyInfo(line);
+                          const isLoss = buyInfo?.isBelowBuy;
+                          return (
+                            <>
+                              <div>
+                                <span style={{ fontSize: 9, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700 }}>
+                                  RATE (₹)
+                                </span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  className="input"
+                                  placeholder="0"
+                                  title={isLoss ? `🚨 Cannot sell below buy price (${money(buyInfo!.buyPrice)})!` : "Rate (₹)"}
+                                  value={line.price || ''}
+                                  onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
+                                  onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                                  style={{
+                                    textAlign: 'right',
+                                    height: 28,
+                                    fontSize: 11.5,
+                                    padding: '0 4px',
+                                    border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                                    background: isLoss ? '#fef2f2' : '#ffffff',
+                                    color: isLoss ? '#dc2626' : 'inherit',
+                                    fontWeight: isLoss ? 800 : 400,
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <span style={{ fontSize: 9, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700 }}>
+                                  DISCOUNT
+                                </span>
+                                <div style={{ display: 'flex', gap: 2 }}>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    className="input"
+                                    placeholder="0"
+                                    title={isLoss ? `🚨 Net price (${money(buyInfo!.unitNet)}) is below buy price (${money(buyInfo!.buyPrice)})!` : "Discount"}
+                                    value={line.discount || ''}
+                                    onChange={(e) =>
+                                      setLine(idx, { discount: Number(e.target.value) || 0 })
+                                    }
+                                    onKeyDown={(e) => handleLineKeyDown(e, idx)}
+                                    style={{
+                                      textAlign: 'right',
+                                      height: 28,
+                                      fontSize: 11.5,
+                                      padding: '0 4px',
+                                      flex: 1,
+                                      border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                                      background: isLoss ? '#fef2f2' : '#ffffff',
+                                      color: isLoss ? '#dc2626' : (Number(line.discount || 0) > 0 ? '#16a34a' : 'inherit'),
+                                      fontWeight: 700,
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-ghost btn-sm"
+                                    style={{
+                                      padding: 0,
+                                      width: 20,
+                                      height: 28,
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      borderRadius: 4,
+                                      color: isLoss ? '#dc2626' : ((line.discountType || '₹') === '%' ? '#2563eb' : '#05424A'),
+                                      background: isLoss ? '#fee2e2' : ((line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4'),
+                                      border: isLoss ? '1px solid #fca5a5' : '1px solid #cbd5e1',
+                                    }}
+                                    onClick={() =>
+                                      setLine(idx, {
+                                        discountType: (line.discountType || '₹') === '₹' ? '%' : '₹',
+                                      })
+                                    }
+                                  >
+                                    {line.discountType || '₹'}
+                                  </button>
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right', minWidth: 55 }}>
+                                <span style={{ fontSize: 9, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700 }}>
+                                  TOTAL
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    color: isLoss ? '#dc2626' : '#0f172a',
+                                    background: isLoss ? '#fee2e2' : 'transparent',
+                                    padding: isLoss ? '1px 4px' : '0',
+                                    borderRadius: 4,
+                                    display: 'inline-block',
+                                  }}
+                                >
+                                  {money(calcLineTotal(line))}
+                                </span>
+                                {isLoss && (
+                                  <span
+                                    style={{
+                                      display: 'block',
+                                      fontSize: 8,
+                                      fontWeight: 800,
+                                      color: '#b91c1c',
+                                      lineHeight: 1.1,
+                                      marginTop: 1,
+                                    }}
+                                  >
+                                    ⛔ BELOW BUY
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
 
                 <datalist id="billing-items-list">
@@ -2250,8 +3197,10 @@ function BillingContent() {
                   </div>
                 )}
 
-              {/* Totals & Discounts Summary Card */}
-              <div className="billing-totals" style={{ marginTop: 0 }}>
+              {/* Checkout Two-Column Grid (Active in Up & Down Layout) */}
+              <div className="billing-checkout-grid">
+                {/* Totals & Discounts Summary Card */}
+                <div className="billing-totals" style={{ marginTop: 0 }}>
                 <div className="total-row">
                   <span>Gross Subtotal</span>
                   <span style={{ fontWeight: 600 }}>{money(rawSubtotal)}</span>
@@ -2455,23 +3404,196 @@ function BillingContent() {
                   </div>
                 )}
 
-                {/* Vyapar Auto Round Off Toggle */}
-                <div className="total-row" style={{ fontSize: 11, color: '#64748b' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={autoRoundOff}
-                      onChange={(e) => setAutoRoundOff(e.target.checked)}
-                    />
-                    <span>Auto Round Off (₹0.50)</span>
-                  </label>
-                  <span>
-                    {roundOffDiff !== 0
-                      ? roundOffDiff > 0
-                        ? `+₹${roundOffDiff.toFixed(2)}`
-                        : `−₹${Math.abs(roundOffDiff).toFixed(2)}`
-                      : '₹0.00'}
-                  </span>
+                {/* Vyapar Round Off & Manual Price Adjustment (+ YA -) */}
+                <div
+                  className="total-row"
+                  style={{
+                    fontSize: 11,
+                    color: '#475569',
+                    padding: '3px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 6,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        fontWeight: 600,
+                      }}
+                      title="Toggle automatic mathematical round off to nearest rupee"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={autoRoundOff && !isManualRoundOff}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setAutoRoundOff(true);
+                            setIsManualRoundOff(false);
+                            setCustomRoundOffValue('');
+                          } else {
+                            setAutoRoundOff(false);
+                            setIsManualRoundOff(false);
+                            setCustomRoundOffValue('');
+                          }
+                        }}
+                        style={{ accentColor: '#05424A', cursor: 'pointer', width: 13, height: 13 }}
+                      />
+                      <span style={{ color: isManualRoundOff ? '#b45309' : '#475569' }}>
+                        {isManualRoundOff ? 'Custom Round Off' : 'Auto Round Off (₹0.50)'}
+                      </span>
+                    </label>
+
+                    {isManualRoundOff && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAutoRoundOff(true);
+                          setIsManualRoundOff(false);
+                          setCustomRoundOffValue('');
+                        }}
+                        title="Reset back to Auto Round Off"
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: 3,
+                          background: '#f1f5f9',
+                          border: '1px solid #cbd5e1',
+                          color: '#05424A',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset Auto ↺
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Interactive + YA - Price Edit Controls */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    {/* Toggle Button for (+) YA (-) */}
+                    <button
+                      type="button"
+                      title={`Click to switch between + (Add) and − (Minus / Discount). Currently: ${
+                        (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                          ? '+ (Add)'
+                          : '− (Minus)'
+                      }`}
+                      onClick={() => {
+                        const currentSign = isManualRoundOff
+                          ? customRoundOffSign
+                          : roundOffDiff >= 0
+                          ? '+'
+                          : '-';
+                        const newSign = currentSign === '+' ? '-' : '+';
+                        const currentAmt =
+                          isManualRoundOff && customRoundOffValue !== ''
+                            ? Number(customRoundOffValue)
+                            : Math.abs(roundOffDiff);
+                        setIsManualRoundOff(true);
+                        setAutoRoundOff(false);
+                        setCustomRoundOffSign(newSign);
+                        setCustomRoundOffValue(currentAmt > 0 ? Number(currentAmt.toFixed(2)) : '');
+                      }}
+                      style={{
+                        height: 24,
+                        width: 26,
+                        padding: 0,
+                        fontSize: 13,
+                        fontWeight: 900,
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border:
+                          (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                            ? '1.5px solid #16a34a'
+                            : '1.5px solid #dc2626',
+                        background:
+                          (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                            ? '#f0fdf4'
+                            : '#fef2f2',
+                        color:
+                          (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                            ? '#15803d'
+                            : '#b91c1c',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {(isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+' ? '+' : '−'}
+                    </button>
+
+                    {/* Editable Price / Round-off Amount Input */}
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: 5,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: '#64748b',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        className="input"
+                        placeholder="0.00"
+                        title="Edit round off / price adjustment amount (Type custom + or - adjustment)"
+                        value={
+                          isManualRoundOff
+                            ? customRoundOffValue === ''
+                              ? ''
+                              : customRoundOffValue
+                            : Math.abs(roundOffDiff) > 0
+                            ? Math.abs(roundOffDiff).toFixed(2)
+                            : '0.00'
+                        }
+                        onFocus={() => {
+                          if (!isManualRoundOff) {
+                            setIsManualRoundOff(true);
+                            setAutoRoundOff(false);
+                            setCustomRoundOffSign(roundOffDiff >= 0 ? '+' : '-');
+                            setCustomRoundOffValue(
+                              Math.abs(roundOffDiff) > 0 ? Number(Math.abs(roundOffDiff).toFixed(2)) : ''
+                            );
+                          }
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Math.max(0, Number(e.target.value));
+                          setIsManualRoundOff(true);
+                          setAutoRoundOff(false);
+                          setCustomRoundOffValue(val);
+                        }}
+                        style={{
+                          height: 24,
+                          width: 62,
+                          textAlign: 'right',
+                          padding: '0 4px 0 14px',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          borderRadius: 4,
+                          border: isManualRoundOff ? '1.5px solid #05424A' : '1px solid #cbd5e1',
+                          background: isManualRoundOff ? '#f0fdfa' : '#ffffff',
+                          color:
+                            (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                              ? '#15803d'
+                              : '#b91c1c',
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Final Payable — Primary visual register emphasis */}
@@ -2483,16 +3605,90 @@ function BillingContent() {
                     borderRadius: 7,
                     border: '1.5px solid #05424A',
                     margin: '2px 0',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                   }}
                 >
-                  <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a' }}>
-                    Final Payable
-                  </span>
-                  <span style={{ fontSize: 19, fontWeight: 900, color: '#05424A' }}>
-                    {money(totalAfterLoyalty - Number(advance || 0))}
-                  </span>
-                </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a' }}>
+                      Final Payable
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingFinalPayable((v) => !v)}
+                      title="Directly edit Final Payable amount (auto-adjusts Round Off difference)"
+                      style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        border: '1px solid #cbd5e1',
+                        background: isEditingFinalPayable ? '#05424A' : '#ffffff',
+                        color: isEditingFinalPayable ? '#ffffff' : '#64748b',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2,
+                      }}
+                    >
+                      <Pencil size={9} /> Edit
+                    </button>
+                  </div>
 
+                  {isEditingFinalPayable ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ fontSize: 13, fontWeight: 900, color: '#05424A' }}>₹</span>
+                      <input
+                        type="number"
+                        step="1"
+                        min={0}
+                        autoFocus
+                        className="input"
+                        placeholder="Final Price"
+                        value={Math.max(0, totalAfterLoyalty - Number(advance || 0))}
+                        onChange={(e) => {
+                          const targetFinal = Math.max(0, Number(e.target.value) || 0);
+                          const base = Math.max(0, discounted - pointsDiscountAmount - Number(useWallet || 0) - Number(advance || 0));
+                          const diff = Number((targetFinal - base).toFixed(2));
+                          setIsManualRoundOff(true);
+                          setAutoRoundOff(false);
+                          if (diff >= 0) {
+                            setCustomRoundOffSign('+');
+                            setCustomRoundOffValue(diff);
+                          } else {
+                            setCustomRoundOffSign('-');
+                            setCustomRoundOffValue(Math.abs(diff));
+                          }
+                        }}
+                        style={{
+                          height: 28,
+                          width: 88,
+                          textAlign: 'right',
+                          fontSize: 14,
+                          fontWeight: 900,
+                          color: '#05424A',
+                          border: '2px solid #05424A',
+                          borderRadius: 5,
+                          padding: '0 5px',
+                          background: '#f0fdfa',
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <span
+                      style={{ fontSize: 19, fontWeight: 900, color: '#05424A', cursor: 'pointer' }}
+                      title="Click to edit final payable price directly"
+                      onClick={() => setIsEditingFinalPayable(true)}
+                    >
+                      {money(totalAfterLoyalty - Number(advance || 0))}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Section: Payment Method, Settlement & Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {/* Payment Section (Split or Single Method) */}
                 <div
                   style={{
@@ -2827,6 +4023,36 @@ function BillingContent() {
                 </div>
               </div>
 
+              {/* Below Buy Price Loss Alert Banner */}
+              {hasBelowBuyLines && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    marginBottom: 4,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    background: '#fef2f2',
+                    border: '1.5px solid #ef4444',
+                    color: '#991b1b',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>⛔</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#b91c1c', fontWeight: 800 }}>
+                      PRODUCT NOT SELL — BELOW BUY PRICE
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 500, color: '#991b1b', marginTop: 2 }}>
+                      {belowBuyLinesList.length} item(s) are selling below purchase cost. Adjust discount or rate to proceed.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                 {editingInvoiceId && (
@@ -2849,15 +4075,23 @@ function BillingContent() {
                     fontSize: 13,
                     fontWeight: 700,
                     borderRadius: 7,
-                    background: 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
-                    boxShadow: '0 2px 8px rgba(5, 66, 74, 0.25)',
+                    background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
+                    boxShadow: hasBelowBuyLines ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 66, 74, 0.25)',
                   }}
                   onClick={handleSave}
+                  title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : undefined}
                   whileTap={{ scale: 0.98 }}
                 >
                   <Printer size={15} />{' '}
-                  <span>{editingInvoiceId ? 'Update Invoice & Print' : 'Save & Print Receipt'}</span>
+                  <span>
+                    {hasBelowBuyLines
+                      ? '⛔ Below Buy Price — Cannot Sell'
+                      : editingInvoiceId
+                      ? 'Update Invoice & Print'
+                      : 'Save & Print Receipt'}
+                  </span>
                 </motion.button>
+              </div>
               </div>
             </motion.div>
           </>
@@ -2954,11 +4188,14 @@ function BillingContent() {
                   defaultValue=""
                 >
                   <option value="" disabled>Select bride booking to load into bill…</option>
-                  {data.bridal.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.mobile || 'No mobile'}) — {b.packageName || 'Bridal'} ({money(b.package)})
-                    </option>
-                  ))}
+                  {data.bridal.map((b) => {
+                    const pPrice = resolveBridalBookingPrice(b, data?.bridalPackages, data?.services);
+                    return (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.mobile || 'No mobile'}) — {b.packageName || 'Bridal'} ({money(pPrice)})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             )}
@@ -3027,22 +4264,265 @@ function BillingContent() {
               </div>
               <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {lines.map((line, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 2fr) 38px 60px 75px 60px 24px', gap: 4, alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <button type="button" className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`} style={{ fontSize: 9.5, padding: '2px 4px', border: 'none', borderRadius: 4 }} onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}>
-                        {line.type === 'P' ? '📦' : '💄'}
-                      </button>
-                      <input type="text" className="input" list="billing-items-list" placeholder="Service / product…" value={line.name} onChange={(e) => handleItemSelect(idx, e.target.value)} style={{ height: 30, fontSize: 11, padding: '0 6px' }} />
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 2fr) 48px 60px 75px 60px 24px', gap: 4, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <button type="button" className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`} style={{ fontSize: 9.5, padding: '2px 4px', border: 'none', borderRadius: 4 }} onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}>
+                          {line.type === 'P' ? '📦' : '💄'}
+                        </button>
+                        <input type="text" className="input" list="billing-items-list" placeholder="Service / product…" value={line.name} onChange={(e) => handleItemSelect(idx, e.target.value)} style={{ height: 30, fontSize: 11, padding: '0 6px', width: '100%' }} />
+                      </div>
+                      {line.type === 'P' && line.name.trim() !== '' && (() => {
+                        const matchedProd = data.inventory?.find(
+                          (inv) =>
+                            inv.id === line.productId ||
+                            inv.name.toLowerCase() === line.name.trim().toLowerCase()
+                        );
+                        const buyInfo = getLineProductBuyInfo(line);
+                        const curStock = matchedProd ? (matchedProd.stock ?? 0) : null;
+                        const isExpired = line.expiry ? line.expiry < todayISO() : false;
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', fontSize: 9.5 }}>
+                            {curStock !== null && (
+                              <span
+                                style={{
+                                  padding: '1px 4px',
+                                  borderRadius: 4,
+                                  fontWeight: 700,
+                                  background: curStock <= 0 ? '#fee2e2' : curStock < (line.qty || 1) ? '#fef3c7' : '#ecfdf5',
+                                  color: curStock <= 0 ? '#dc2626' : curStock < (line.qty || 1) ? '#b45309' : '#047857',
+                                  border: `1px solid ${curStock <= 0 ? '#fca5a5' : curStock < (line.qty || 1) ? '#fde68a' : '#a7f3d0'}`,
+                                }}
+                              >
+                                📦 {curStock}
+                              </span>
+                            )}
+                            {line.expiry && (
+                              <span
+                                style={{
+                                  padding: '1px 4px',
+                                  borderRadius: 4,
+                                  fontWeight: 700,
+                                  background: isExpired ? '#fee2e2' : '#f1f5f9',
+                                  color: isExpired ? '#dc2626' : '#475569',
+                                  border: `1px solid ${isExpired ? '#fca5a5' : '#cbd5e1'}`,
+                                }}
+                              >
+                                ⏳ {fmtExpiry(line.expiry)}
+                              </span>
+                            )}
+                            {matchedProd?.batches && matchedProd.batches.length > 1 ? (
+                              <select
+                                value={line.batch || ''}
+                                onChange={(e) => {
+                                  const b = matchedProd.batches?.find((x) => (x.batch || x.id) === e.target.value);
+                                  setLine(idx, {
+                                    batch: b?.batch || b?.id,
+                                    expiry: b?.expiry || line.expiry,
+                                  });
+                                }}
+                                style={{
+                                  height: 19,
+                                  fontSize: 9,
+                                  padding: '0 3px',
+                                  borderRadius: 4,
+                                  border: '1px solid #93c5fd',
+                                  background: '#eff6ff',
+                                  color: '#1d4ed8',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                <option value="">Select Batch/Exp</option>
+                                {matchedProd.batches
+                                  .slice()
+                                  .sort((a, b) => (a.expiry || '9999').localeCompare(b.expiry || '9999'))
+                                  .map((b, bi) => (
+                                    <option key={bi} value={b.batch || b.id}>
+                                      {bi === 0 ? '⭐ [FIRST EXP] ' : ''}{b.batch ? `Lot ${b.batch}` : `B#${bi + 1}`}: {b.stock} ({fmtExpiry(b.expiry)})
+                                    </option>
+                                  ))}
+                              </select>
+                            ) : null}
+
+                            {/* 🔴 Red Below Buy Price Alert */}
+                            {buyInfo?.isBelowBuy && (
+                              <span
+                                style={{
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  fontWeight: 800,
+                                  background: '#fee2e2',
+                                  color: '#b91c1c',
+                                  border: '1.5px solid #ef4444',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 2,
+                                  fontSize: 9,
+                                }}
+                                title={`Cannot sell below buy price! Buy Rate: ₹${buyInfo.buyPrice}, Net Sell Rate: ₹${buyInfo.unitNet.toFixed(1)}`}
+                              >
+                                🚨 BELOW BUY ({money(buyInfo.buyPrice)} &gt; {money(buyInfo.unitNet)}) — DO NOT SELL
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
-                    <input type="number" min={1} className="input" value={line.qty} onChange={(e) => setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })} style={{ textAlign: 'center', height: 30, fontSize: 11, padding: 0 }} />
-                    <input type="number" min={0} className="input" value={line.price || ''} onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })} style={{ textAlign: 'right', height: 30, fontSize: 11, padding: '0 4px' }} placeholder="0" />
-                    <div style={{ display: 'flex', gap: 1 }}>
-                      <input type="number" min={0} className="input" value={line.discount || ''} onChange={(e) => setLine(idx, { discount: Number(e.target.value) || 0 })} style={{ textAlign: 'right', height: 30, fontSize: 11, padding: '0 3px', flex: 1 }} placeholder="0" />
-                      <button type="button" className="btn btn-ghost btn-sm" style={{ padding: 0, width: 20, height: 30, fontSize: 9.5, fontWeight: 700 }} onClick={() => setLine(idx, { discountType: (line.discountType || '₹') === '₹' ? '%' : '₹' })}>
-                        {line.discountType || '₹'}
-                      </button>
+                    <div
+                      className="qty-up-down-box"
+                      style={{
+                        height: 30,
+                        position: 'relative',
+                      }}
+                    >
+                      <input
+                        type="number"
+                        min={1}
+                        className="input"
+                        value={line.qty}
+                        onChange={(e) => setLine(idx, { qty: Math.max(1, Number(e.target.value) || 1) })}
+                        style={{
+                          textAlign: 'center',
+                          height: '100%',
+                          width: '100%',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          padding: '0 14px 0 2px',
+                          border: 'none',
+                          background: 'transparent',
+                          boxShadow: 'none',
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 14,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          borderLeft: '1px solid #e2e8f0',
+                          background: '#f8fafc',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          title="Increase (+1)"
+                          onClick={() => setLine(idx, { qty: (Number(line.qty) || 1) + 1 })}
+                          style={{
+                            flex: 1,
+                            border: 'none',
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            padding: 0,
+                            color: '#475569',
+                            borderBottom: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <ChevronUp size={8} strokeWidth={2.5} />
+                        </button>
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          title="Decrease (-1)"
+                          onClick={() => setLine(idx, { qty: Math.max(1, (Number(line.qty) || 1) - 1) })}
+                          style={{
+                            flex: 1,
+                            border: 'none',
+                            background: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            padding: 0,
+                            color: '#475569',
+                          }}
+                        >
+                          <ChevronDown size={8} strokeWidth={2.5} />
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: 11.5, fontWeight: 700 }}>{money(calcLineTotal(line))}</div>
+                    {(() => {
+                      const buyInfo = getLineProductBuyInfo(line);
+                      const isLoss = buyInfo?.isBelowBuy;
+                      return (
+                        <>
+                          <input
+                            type="number"
+                            min={0}
+                            className="input"
+                            value={line.price || ''}
+                            onChange={(e) => setLine(idx, { price: Number(e.target.value) || 0 })}
+                            style={{
+                              textAlign: 'right',
+                              height: 30,
+                              fontSize: 11,
+                              padding: '0 4px',
+                              border: isLoss ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                              background: isLoss ? '#fef2f2' : '#ffffff',
+                              color: isLoss ? '#dc2626' : 'inherit',
+                              fontWeight: isLoss ? 800 : 400,
+                            }}
+                            placeholder="0"
+                            title={isLoss ? `🚨 Cannot sell below buy price (${money(buyInfo!.buyPrice)})!` : 'Rate (₹)'}
+                          />
+                          <div style={{ display: 'flex', gap: 1 }}>
+                            <input
+                              type="number"
+                              min={0}
+                              className="input"
+                              value={line.discount || ''}
+                              onChange={(e) => setLine(idx, { discount: Number(e.target.value) || 0 })}
+                              style={{
+                                textAlign: 'right',
+                                height: 30,
+                                fontSize: 11,
+                                padding: '0 3px',
+                                flex: 1,
+                                border: isLoss ? '2px solid #ef4444' : '1px solid #cbd5e1',
+                                background: isLoss ? '#fef2f2' : '#ffffff',
+                                color: isLoss ? '#dc2626' : (Number(line.discount || 0) > 0 ? '#16a34a' : 'inherit'),
+                                fontWeight: 700,
+                              }}
+                              placeholder="0"
+                              title={isLoss ? `🚨 Net price (${money(buyInfo!.unitNet)}) is below buy price (${money(buyInfo!.buyPrice)})!` : 'Discount'}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              style={{
+                                padding: 0,
+                                width: 20,
+                                height: 30,
+                                fontSize: 9.5,
+                                fontWeight: 700,
+                                color: isLoss ? '#dc2626' : ((line.discountType || '₹') === '%' ? '#2563eb' : '#05424A'),
+                                background: isLoss ? '#fee2e2' : ((line.discountType || '₹') === '%' ? '#eff6ff' : '#f0fdf4'),
+                                border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
+                              }}
+                              onClick={() => setLine(idx, { discountType: (line.discountType || '₹') === '₹' ? '%' : '₹' })}
+                            >
+                              {line.discountType || '₹'}
+                            </button>
+                          </div>
+                          <div style={{ textAlign: 'right', fontSize: 11.5, fontWeight: 700, color: isLoss ? '#dc2626' : 'inherit' }}>
+                            <span style={{ background: isLoss ? '#fee2e2' : 'transparent', padding: isLoss ? '1px 4px' : '0', borderRadius: 4 }}>
+                              {money(calcLineTotal(line))}
+                            </span>
+                            {isLoss && (
+                              <span style={{ display: 'block', fontSize: 8, fontWeight: 800, color: '#b91c1c' }}>
+                                ⛔ BELOW BUY
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()}
                     <button type="button" className="btn-icon danger" style={{ width: 24, height: 24, borderRadius: 5 }} onClick={() => setLines((p) => { const r = p.filter((_, i) => i !== idx); return r.length === 0 ? [EMPTY_LINE()] : r; })}>
                       <Trash2 size={11} />
                     </button>
@@ -3054,9 +4534,270 @@ function BillingContent() {
             {/* Combined Totals & Payment for Split Tab */}
             <div className="billing-totals" style={{ marginTop: 8 }}>
               <div className="total-row"><span>Gross Subtotal</span><span style={{ fontWeight: 600 }}>{money(rawSubtotal)}</span></div>
-              <div className="total-row grand" style={{ padding: '6px 8px', borderRadius: 7, border: '1.5px solid #05424A', margin: '2px 0' }}>
-                <span style={{ fontSize: 13.5, fontWeight: 800 }}>Final Payable</span>
-                <span style={{ fontSize: 18, fontWeight: 900, color: '#05424A' }}>{money(totalAfterLoyalty - Number(advance || 0))}</span>
+
+              {/* Vyapar Round Off & Manual Price Adjustment (+ YA -) in Split Tab */}
+              <div
+                className="total-row"
+                style={{
+                  fontSize: 11,
+                  color: '#475569',
+                  padding: '2px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={autoRoundOff && !isManualRoundOff}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setAutoRoundOff(true);
+                          setIsManualRoundOff(false);
+                          setCustomRoundOffValue('');
+                        } else {
+                          setAutoRoundOff(false);
+                          setIsManualRoundOff(false);
+                          setCustomRoundOffValue('');
+                        }
+                      }}
+                      style={{ accentColor: '#05424A', cursor: 'pointer', width: 13, height: 13 }}
+                    />
+                    <span style={{ color: isManualRoundOff ? '#b45309' : '#475569' }}>
+                      {isManualRoundOff ? 'Custom Round Off' : 'Auto Round Off (₹0.50)'}
+                    </span>
+                  </label>
+                  {isManualRoundOff && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAutoRoundOff(true);
+                        setIsManualRoundOff(false);
+                        setCustomRoundOffValue('');
+                      }}
+                      title="Reset back to Auto Round Off"
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        padding: '1px 4px',
+                        borderRadius: 3,
+                        background: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        color: '#05424A',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Reset Auto ↺
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentSign = isManualRoundOff
+                        ? customRoundOffSign
+                        : roundOffDiff >= 0
+                        ? '+'
+                        : '-';
+                      const newSign = currentSign === '+' ? '-' : '+';
+                      const currentAmt =
+                        isManualRoundOff && customRoundOffValue !== ''
+                          ? Number(customRoundOffValue)
+                          : Math.abs(roundOffDiff);
+                      setIsManualRoundOff(true);
+                      setAutoRoundOff(false);
+                      setCustomRoundOffSign(newSign);
+                      setCustomRoundOffValue(currentAmt > 0 ? Number(currentAmt.toFixed(2)) : '');
+                    }}
+                    style={{
+                      height: 24,
+                      width: 26,
+                      padding: 0,
+                      fontSize: 13,
+                      fontWeight: 900,
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border:
+                        (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                          ? '1.5px solid #16a34a'
+                          : '1.5px solid #dc2626',
+                      background:
+                        (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                          ? '#f0fdf4'
+                          : '#fef2f2',
+                      color:
+                        (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                          ? '#15803d'
+                          : '#b91c1c',
+                    }}
+                  >
+                    {(isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+' ? '+' : '−'}
+                  </button>
+
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span
+                      style={{
+                        position: 'absolute',
+                        left: 5,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: '#64748b',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      className="input"
+                      placeholder="0.00"
+                      value={
+                        isManualRoundOff
+                          ? customRoundOffValue === ''
+                            ? ''
+                            : customRoundOffValue
+                          : Math.abs(roundOffDiff) > 0
+                          ? Math.abs(roundOffDiff).toFixed(2)
+                          : '0.00'
+                      }
+                      onFocus={() => {
+                        if (!isManualRoundOff) {
+                          setIsManualRoundOff(true);
+                          setAutoRoundOff(false);
+                          setCustomRoundOffSign(roundOffDiff >= 0 ? '+' : '-');
+                          setCustomRoundOffValue(
+                            Math.abs(roundOffDiff) > 0 ? Number(Math.abs(roundOffDiff).toFixed(2)) : ''
+                          );
+                        }
+                      }}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : Math.max(0, Number(e.target.value));
+                        setIsManualRoundOff(true);
+                        setAutoRoundOff(false);
+                        setCustomRoundOffValue(val);
+                      }}
+                      style={{
+                        height: 24,
+                        width: 60,
+                        textAlign: 'right',
+                        padding: '0 4px 0 14px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        borderRadius: 4,
+                        border: isManualRoundOff ? '1.5px solid #05424A' : '1px solid #cbd5e1',
+                        background: isManualRoundOff ? '#f0fdfa' : '#ffffff',
+                        color:
+                          (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
+                            ? '#15803d'
+                            : '#b91c1c',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="total-row grand"
+                style={{
+                  padding: '6px 8px',
+                  borderRadius: 7,
+                  border: '1.5px solid #05424A',
+                  margin: '2px 0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 13.5, fontWeight: 800 }}>Final Payable</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingFinalPayable((v) => !v)}
+                    title="Directly edit Final Payable amount"
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 700,
+                      padding: '1px 4px',
+                      borderRadius: 3,
+                      border: '1px solid #cbd5e1',
+                      background: isEditingFinalPayable ? '#05424A' : '#ffffff',
+                      color: isEditingFinalPayable ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 2,
+                    }}
+                  >
+                    <Pencil size={8} /> Edit
+                  </button>
+                </div>
+
+                {isEditingFinalPayable ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: '#05424A' }}>₹</span>
+                    <input
+                      type="number"
+                      step="1"
+                      min={0}
+                      autoFocus
+                      className="input"
+                      placeholder="Final Price"
+                      value={Math.max(0, totalAfterLoyalty - Number(advance || 0))}
+                      onChange={(e) => {
+                        const targetFinal = Math.max(0, Number(e.target.value) || 0);
+                        const base = Math.max(0, discounted - pointsDiscountAmount - Number(useWallet || 0) - Number(advance || 0));
+                        const diff = Number((targetFinal - base).toFixed(2));
+                        setIsManualRoundOff(true);
+                        setAutoRoundOff(false);
+                        if (diff >= 0) {
+                          setCustomRoundOffSign('+');
+                          setCustomRoundOffValue(diff);
+                        } else {
+                          setCustomRoundOffSign('-');
+                          setCustomRoundOffValue(Math.abs(diff));
+                        }
+                      }}
+                      style={{
+                        height: 26,
+                        width: 82,
+                        textAlign: 'right',
+                        fontSize: 13,
+                        fontWeight: 900,
+                        color: '#05424A',
+                        border: '2px solid #05424A',
+                        borderRadius: 4,
+                        padding: '0 4px',
+                        background: '#f0fdfa',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <span
+                    style={{ fontSize: 18, fontWeight: 900, color: '#05424A', cursor: 'pointer' }}
+                    onClick={() => setIsEditingFinalPayable(true)}
+                  >
+                    {money(totalAfterLoyalty - Number(advance || 0))}
+                  </span>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginTop: 4 }}>
                 <input type="text" className="input" list="pos-payment-accounts" placeholder="Payment method…" value={mode} onChange={(e) => setMode(e.target.value)} style={{ flex: 1, height: 28, fontSize: 11.5, padding: '0 6px' }} />
@@ -3142,9 +4883,60 @@ function BillingContent() {
               </div>
             </div>
 
+            {hasBelowBuyLines && (
+              <div
+                style={{
+                  marginTop: 8,
+                  marginBottom: 4,
+                  padding: '7px 10px',
+                  borderRadius: 7,
+                  background: '#fef2f2',
+                  border: '1.5px solid #ef4444',
+                  color: '#991b1b',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 16 }}>⛔</span>
+                <div>
+                  <div style={{ color: '#b91c1c', fontWeight: 800 }}>
+                    PRODUCT NOT SELL — BELOW BUY PRICE
+                  </div>
+                  <div style={{ fontSize: 9.5, fontWeight: 500, color: '#991b1b', marginTop: 1 }}>
+                    {belowBuyLinesList.length} item(s) are selling below purchase cost. Adjust discount or rate to proceed.
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ marginTop: 8 }}>
-              <motion.button type="button" className="btn btn-primary" style={{ width: '100%', height: 38, fontSize: 13, fontWeight: 700, borderRadius: 7, background: 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)' }} onClick={handleSave} whileTap={{ scale: 0.98 }}>
-                <Printer size={15} /> <span>{editingInvoiceId ? 'Update Invoice & Print' : 'Save & Print Receipt'}</span>
+              <motion.button
+                type="button"
+                className="btn btn-primary"
+                style={{
+                  width: '100%',
+                  height: 38,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  borderRadius: 7,
+                  background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
+                  boxShadow: hasBelowBuyLines ? '0 2px 8px rgba(220, 38, 38, 0.3)' : undefined,
+                }}
+                onClick={handleSave}
+                title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : undefined}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Printer size={15} />{' '}
+                <span>
+                  {hasBelowBuyLines
+                    ? '⛔ Below Buy Price — Cannot Sell'
+                    : editingInvoiceId
+                    ? 'Update Invoice & Print'
+                    : 'Save & Print Receipt'}
+                </span>
               </motion.button>
             </div>
           </motion.div>
