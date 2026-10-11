@@ -75,6 +75,7 @@ import {
   stopAudioPreview,
   composePhotoAndAudioToVideo,
 } from '@/lib/photo-audio-video-builder';
+import { MusicWaveformGraph } from '@/components/instagram/MusicWaveformGraph';
 
 interface InstagramPost {
   id: string;
@@ -166,6 +167,7 @@ export default function InstagramHubPage() {
   const [selectedAudioTrackId, setSelectedAudioTrackId] = useState<string>('searched_song');
   const [customAudioFile, setCustomAudioFile] = useState<File | null>(null);
   const [customAudioBuffer, setCustomAudioBuffer] = useState<AudioBuffer | null>(null);
+  const [activeDecodedAudioBuffer, setActiveDecodedAudioBuffer] = useState<AudioBuffer | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioDurationSec, setAudioDurationSec] = useState<number>(7);
   const [audioStartOffsetSec, setAudioStartOffsetSec] = useState<number>(0);
@@ -423,6 +425,68 @@ export default function InstagramHubPage() {
     fetchTrendingOrSearchSongs('trending', 'all');
   }, [fetchTrendingOrSearchSongs]);
 
+  // Synchronize decoded AudioBuffer for waveform graph
+  useEffect(() => {
+    if (selectedAudioTrackId === 'custom_audio') {
+      setActiveDecodedAudioBuffer(customAudioBuffer);
+      if (customAudioBuffer) {
+        setAudioPlaybackDuration(Math.max(10, Math.floor(customAudioBuffer.duration)));
+      }
+    } else if (selectedAudioTrackId === 'searched_song' && selectedSong?.previewUrl) {
+      let isMounted = true;
+      fetchAndDecodeRemoteSongUrl(selectedSong.previewUrl)
+        .then((buf) => {
+          if (isMounted) {
+            setActiveDecodedAudioBuffer(buf);
+            setAudioPlaybackDuration(Math.max(10, Math.floor(buf.duration)));
+          }
+        })
+        .catch(() => {});
+      return () => {
+        isMounted = false;
+      };
+    } else if (
+      selectedAudioTrackId &&
+      selectedAudioTrackId !== 'none' &&
+      selectedAudioTrackId !== 'searched_song' &&
+      selectedAudioTrackId !== 'custom_audio'
+    ) {
+      let isMounted = true;
+      synthesizeWeddingAudioBuffer(selectedAudioTrackId, 30)
+        .then((buf) => {
+          if (isMounted) {
+            setActiveDecodedAudioBuffer(buf);
+            setAudioPlaybackDuration(30);
+          }
+        })
+        .catch(() => {});
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [selectedAudioTrackId, selectedSong, customAudioBuffer]);
+
+  // Playhead smooth tracking during custom Web Audio playback
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (isPlayingAudio) {
+      const startWallTime = Date.now();
+      const startOffset = audioStartOffsetSec;
+      timer = setInterval(() => {
+        const elapsed = (Date.now() - startWallTime) / 1000;
+        const currentPos = startOffset + elapsed;
+        if (currentPos >= startOffset + audioDurationSec || currentPos >= audioPlaybackDuration) {
+          setAudioPlaybackCurrentTime(startOffset);
+        } else {
+          setAudioPlaybackCurrentTime(currentPos);
+        }
+      }, 50);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isPlayingAudio, audioStartOffsetSec, audioDurationSec, audioPlaybackDuration]);
+
   const handleTogglePlaySong = (song: SongSearchResult, startAtSec?: number) => {
     stopAudioPreview();
     setIsPlayingAudio(false);
@@ -433,7 +497,7 @@ export default function InstagramHubPage() {
         audioPreviewElementRef.current = null;
       }
       setCurrentPlayingSongId(null);
-      setAudioPlaybackCurrentTime(0);
+      setAudioPlaybackCurrentTime(audioStartOffsetSec);
       return;
     }
 
@@ -447,13 +511,17 @@ export default function InstagramHubPage() {
     audio.currentTime = targetOffset;
     audio.ontimeupdate = () => {
       setAudioPlaybackCurrentTime(audio.currentTime);
+      // Auto-loop within the selected story / reel duration window
+      if (audio.currentTime >= audioStartOffsetSec + audioDurationSec || audio.currentTime >= (audio.duration || 30)) {
+        audio.currentTime = audioStartOffsetSec;
+      }
     };
     audio.onloadedmetadata = () => {
-      setAudioPlaybackDuration(audio.duration || 30);
+      setAudioPlaybackDuration(Math.max(10, Math.floor(audio.duration || 30)));
     };
     audio.onended = () => {
       setCurrentPlayingSongId(null);
-      setAudioPlaybackCurrentTime(0);
+      setAudioPlaybackCurrentTime(audioStartOffsetSec);
     };
     audio.onerror = () => {
       setCurrentPlayingSongId(null);
@@ -468,12 +536,25 @@ export default function InstagramHubPage() {
   };
 
   const handleSeekAudio = (newTime: number) => {
-    setAudioPlaybackCurrentTime(newTime);
-    setAudioStartOffsetSec(Math.floor(newTime));
+    const formatted = Math.max(0, Math.round(newTime * 10) / 10);
+    setAudioPlaybackCurrentTime(formatted);
+    setAudioStartOffsetSec(formatted);
     if (audioPreviewElementRef.current) {
-      audioPreviewElementRef.current.currentTime = newTime;
-    } else if (selectedSong) {
-      handleTogglePlaySong(selectedSong, newTime);
+      audioPreviewElementRef.current.currentTime = formatted;
+    } else if (isPlayingAudio && selectedAudioTrackId === 'custom_audio' && customAudioBuffer) {
+      playAudioPreview(customAudioBuffer, formatted, () => setIsPlayingAudio(false));
+    } else if (selectedSong && currentPlayingSongId === selectedSong.id) {
+      handleTogglePlaySong(selectedSong, formatted);
+    }
+  };
+
+  const handleTogglePlayActiveTrack = () => {
+    if (selectedAudioTrackId === 'searched_song' && selectedSong) {
+      handleTogglePlaySong(selectedSong, audioStartOffsetSec);
+    } else if (selectedAudioTrackId === 'custom_audio') {
+      handleTogglePlayAudio('custom_audio');
+    } else if (selectedAudioTrackId !== 'none') {
+      handleTogglePlayAudio(selectedAudioTrackId);
     }
   };
 
@@ -559,10 +640,10 @@ export default function InstagramHubPage() {
       if (trackId === 'custom_audio' && customAudioBuffer) {
         buf = customAudioBuffer;
       } else if (trackId !== 'none' && trackId !== 'custom_audio') {
-        buf = await synthesizeWeddingAudioBuffer(trackId, 6);
+        buf = await synthesizeWeddingAudioBuffer(trackId, 30);
       }
       if (buf) {
-        playAudioPreview(buf, () => setIsPlayingAudio(false));
+        playAudioPreview(buf, audioStartOffsetSec, () => setIsPlayingAudio(false));
       } else {
         setIsPlayingAudio(false);
       }
@@ -579,7 +660,11 @@ export default function InstagramHubPage() {
         const buf = await decodeCustomAudioFile(file);
         setCustomAudioFile(file);
         setCustomAudioBuffer(buf);
+        setActiveDecodedAudioBuffer(buf);
         setSelectedAudioTrackId('custom_audio');
+        setAudioPlaybackDuration(Math.max(10, Math.floor(buf.duration)));
+        setAudioStartOffsetSec(0);
+        setAudioPlaybackCurrentTime(0);
         toast(`🎵 Loaded custom song: ${file.name}!`, 'success');
       } catch {
         toast('Failed to decode audio file. Please select a standard MP3/M4A/WAV file.', 'error');
@@ -2359,34 +2444,72 @@ export default function InstagramHubPage() {
                   })}
                 </div>
 
-                {/* Duration & Start Offset Picker */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, background: 'var(--muted)', padding: '8px 12px', borderRadius: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 2 }}>
-                      Story Length: <strong style={{ color: '#E1306C' }}>{audioDurationSec}s</strong>
+                {/* ── 🎵 INTERACTIVE MUSIC WAVEFORM GRAPH (DRAG & SCRUB TO SET MUSIC) ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                    <label style={{ fontSize: 11.5, fontWeight: 800, color: '#E1306C', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
+                      <Activity size={14} />
+                      <span>🎵 Music Waveform Graph (ગ્રાફ વડે મ્યુઝિક સેટ કરો)</span>
                     </label>
-                    <input
-                      type="range"
-                      min="5"
-                      max="15"
-                      value={audioDurationSec}
-                      onChange={(e) => setAudioDurationSec(parseInt(e.target.value))}
-                      style={{ width: '100%', accentColor: '#E1306C', height: 4 }}
-                    />
+                    <span style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 600 }}>
+                      🎯 Drag window or click waveform to choose exact song part
+                    </span>
                   </div>
 
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 2 }}>
-                      Start Time: <strong style={{ color: '#E1306C' }}>{formatAudioTime(audioStartOffsetSec)}</strong>
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="25"
-                      value={audioStartOffsetSec}
-                      onChange={(e) => handleSeekAudio(parseFloat(e.target.value))}
-                      style={{ width: '100%', accentColor: '#E1306C', height: 4 }}
-                    />
+                  <MusicWaveformGraph
+                    audioBuffer={activeDecodedAudioBuffer}
+                    trackId={selectedSong?.id || selectedAudioTrackId}
+                    trackTitle={
+                      selectedAudioTrackId === 'custom_audio'
+                        ? customAudioFile?.name || 'Custom Song'
+                        : selectedSong?.title || 'Selected Wedding Song'
+                    }
+                    trackArtist={
+                      selectedAudioTrackId === 'custom_audio'
+                        ? 'Custom Uploaded Audio'
+                        : selectedSong
+                        ? `${selectedSong.artist} • ${selectedSong.category}`
+                        : 'Shree Beauty Studio Collection'
+                    }
+                    totalDuration={audioPlaybackDuration}
+                    startTime={audioStartOffsetSec}
+                    duration={audioDurationSec}
+                    currentTime={audioPlaybackCurrentTime}
+                    isPlaying={Boolean(isPlayingAudio || (currentPlayingSongId && currentPlayingSongId === selectedSong?.id))}
+                    onSeekStartTime={handleSeekAudio}
+                    onChangeDuration={(newDur) => setAudioDurationSec(newDur)}
+                    onTogglePlay={handleTogglePlayActiveTrack}
+                  />
+
+                  {/* Secondary Fine-tuning Sliders */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, background: 'var(--muted)', padding: '8px 12px', borderRadius: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 2 }}>
+                        Story Length: <strong style={{ color: '#E1306C' }}>{audioDurationSec}s</strong>
+                      </label>
+                      <input
+                        type="range"
+                        min="5"
+                        max="15"
+                        value={audioDurationSec}
+                        onChange={(e) => setAudioDurationSec(parseInt(e.target.value))}
+                        style={{ width: '100%', accentColor: '#E1306C', height: 4 }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: 10, fontWeight: 700, display: 'block', marginBottom: 2 }}>
+                        Start Offset: <strong style={{ color: '#E1306C' }}>{formatAudioTime(audioStartOffsetSec)}</strong>
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max={Math.max(10, Math.floor(audioPlaybackDuration - audioDurationSec))}
+                        value={audioStartOffsetSec}
+                        onChange={(e) => handleSeekAudio(parseFloat(e.target.value))}
+                        style={{ width: '100%', accentColor: '#E1306C', height: 4 }}
+                      />
+                    </div>
                   </div>
                 </div>
 
