@@ -133,6 +133,8 @@ export default function InventoryPage() {
     cloudSync().catch(() => {});
   }, []);
 
+  const defaultGst = data?.settings?.defaultGstRate !== undefined ? Number(data.settings.defaultGstRate) : 18;
+
   const [activeTab, setActiveTab] = useState<InventoryTab>('products');
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
@@ -249,7 +251,7 @@ export default function InventoryPage() {
         unit: 'Pcs',
         low: 3,
         hsnCode: '3305',
-        taxRate: 18,
+        taxRate: defaultGst,
       }));
 
     if (valid.length === 0) {
@@ -292,7 +294,7 @@ export default function InventoryPage() {
             buyDate: todayISO(),
             low: 3,
             hsnCode: '3305',
-            taxRate: 18,
+            taxRate: defaultGst,
           });
         }
       });
@@ -413,7 +415,7 @@ export default function InventoryPage() {
       batch: '',
       expiry: '',
       hsnCode: '3305',
-      taxRate: 18,
+      taxRate: defaultGst,
     },
   });
 
@@ -493,7 +495,7 @@ export default function InventoryPage() {
       batch: '',
       expiry: '',
       hsnCode: '3305',
-      taxRate: 18,
+      taxRate: defaultGst,
     });
     setModalOpen(true);
   };
@@ -505,7 +507,7 @@ export default function InventoryPage() {
       buyDate: item.buyDate || todayISO(),
       mrp: item.mrp || item.sell,
       hsnCode: item.hsnCode || '3305',
-      taxRate: item.taxRate !== undefined ? item.taxRate : 18,
+      taxRate: item.taxRate !== undefined ? item.taxRate : defaultGst,
       minSellPrice: item.minSellPrice || item.sell,
     });
     setModalOpen(true);
@@ -872,7 +874,7 @@ export default function InventoryPage() {
             expiry: row.expiry || '',
             low: row.low || 3,
             hsnCode: '3305',
-            taxRate: 18,
+            taxRate: defaultGst,
           });
           addedCount++;
         }
@@ -1761,8 +1763,13 @@ export default function InventoryPage() {
             <label className="label">GST Tax Rate (%)</label>
             <select className="input" {...register('taxRate', { valueAsNumber: true })}>
               {GST_TAX_RATES.map((t) => (
-                <option key={t} value={t}>{t}% GST</option>
+                <option key={t} value={t}>
+                  {t}% GST {t === defaultGst ? '(Default)' : ''}
+                </option>
               ))}
+              {defaultGst > 0 && !GST_TAX_RATES.includes(defaultGst) && (
+                <option value={defaultGst}>{defaultGst}% GST (Default Setting)</option>
+              )}
             </select>
           </div>
 

@@ -64,6 +64,8 @@ export const DEFAULT_DATA: SalonData = {
     staffR: 1,
     printer: '58',
     payments: ['Cash', 'GPay UPI', 'PhonePe UPI', 'Bank Transfer', 'Card', 'HDFC Bank'],
+    defaultGstRate: 0,
+    gstin: '',
     // Loyalty defaults
     loyaltyEnabled: true,
     loyaltyEarnRate: 100,   // ₹100 spent = 1 point

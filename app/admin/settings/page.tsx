@@ -45,6 +45,8 @@ export default function SettingsPage() {
     staffR: 1,
     printer: 'both',
     payments: ['Cash', 'GPay UPI'],
+    defaultGstRate: 0,
+    gstin: '',
   };
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -550,7 +552,7 @@ export default function SettingsPage() {
     { id: 'sidebar', label: '🧭 Sidebar Navigation Order', icon: ArrowUpDown },
     { id: 'services', label: 'Services & Pricing', icon: Scissors },
     { id: 'reminders', label: 'Reminder Timing', icon: Bell },
-    { id: 'billing', label: 'Billing & Accounts', icon: CreditCard },
+    { id: 'billing', label: 'Billing, Tax & Accounts', icon: CreditCard },
     { id: 'loyalty', label: 'Loyalty Scheme & Rewards', icon: Sparkles },
     { id: 'whatsapp', label: 'WhatsApp Webhook', icon: MessageCircle },
     { id: 'email', label: 'Domain Email (Resend)', icon: Mail },
@@ -1580,38 +1582,174 @@ export default function SettingsPage() {
           </motion.div>
         )}
 
-        {/* Billing & Payments Tab */}
+        {/* Billing, Tax & Payments Tab */}
         {activeTab === 'billing' && (
-          <motion.div key="billing" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" className="card" style={{ padding: 24 }}>
-            <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
-              <h2>💳 Invoice Printing & Payment Accounts</h2>
-            </div>
-            <div className="form-grid">
-              <div className="form-group">
-                <label className="label">Receipt Printer Format</label>
-                <select
-                  className="input"
-                  value={s.printer || '58'}
-                  onChange={(e) => update('printer', e.target.value as 'both' | '80' | '58' | 'a4')}
-                >
-                  <option value="58">2 Inch (58mm) Thermal Receipt Printer (Default Auto-Cut)</option>
-                  <option value="80">3 Inch (80mm) Thermal Receipt Printer</option>
-                  <option value="both">Both (A4 Full Sheet + Thermal)</option>
-                  <option value="a4">A4 Full Page Only</option>
-                </select>
+          <motion.div key="billing" variants={fadeSlideUp} initial="hidden" animate="visible" exit="exit" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* GST & Tax Configuration Card */}
+            <div className="card" style={{ padding: 24 }}>
+              <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h2>🏛️ GST Tax Settings & Slabs (ડિફોલ્ટ GST સેટિંગ્સ)</h2>
+                  <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                    Choose your salon&apos;s default GST rate and GSTIN. Pre-fills automatically across purchases, inventory products, and invoices.
+                  </span>
+                </div>
+                <div>
+                  <span style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    padding: '4px 12px',
+                    borderRadius: 999,
+                    background: Number(s.defaultGstRate || 0) > 0 ? '#e6f7ef' : '#f1f5f9',
+                    color: Number(s.defaultGstRate || 0) > 0 ? '#19734b' : '#475569',
+                    border: `1px solid ${Number(s.defaultGstRate || 0) > 0 ? '#a3e635' : '#cbd5e1'}`,
+                  }}>
+                    {Number(s.defaultGstRate || 0) > 0
+                      ? `🟢 Default GST: ${Number(s.defaultGstRate)}% Active`
+                      : '⚪ 0% Tax Exempt / Composition'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Preset Quick-Select Buttons */}
+              <div style={{ marginBottom: 20 }}>
+                <label className="label" style={{ fontWeight: 800, marginBottom: 8 }}>
+                  Quick Select Default GST Slab (ડિફોલ્ટ GST સ્લેબ પસંદ કરો)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+                  {[
+                    { rate: 0, title: '0% (Exempt)', desc: 'No tax / Composition' },
+                    { rate: 5, title: '5% GST', desc: 'Basic essentials' },
+                    { rate: 12, title: '12% GST', desc: 'Apparel & care items' },
+                    { rate: 18, title: '18% GST', desc: 'Standard Salon (Most Used)' },
+                    { rate: 28, title: '28% GST', desc: 'Luxury / Cosmetics' },
+                  ].map((preset) => {
+                    const isSelected = Number(s.defaultGstRate || 0) === preset.rate;
+                    return (
+                      <button
+                        key={preset.rate}
+                        type="button"
+                        onClick={() => update('defaultGstRate', preset.rate)}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-start',
+                          padding: '12px 14px',
+                          borderRadius: 10,
+                          border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--primary-subtle, rgba(235, 78, 142, 0.08))' : '#ffffff',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 4 }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: isSelected ? 'var(--primary)' : '#1e293b' }}>
+                            {preset.title}
+                          </span>
+                          {isSelected && <Check size={16} color="var(--primary)" />}
+                        </div>
+                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                          {preset.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Form Grid: Custom GST Rate & GSTIN */}
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="label">Custom Default GST Rate % (કસ્ટમ ટકાવારી)</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="any"
+                      className="input"
+                      value={s.defaultGstRate !== undefined ? s.defaultGstRate : 0}
+                      onChange={(e) => update('defaultGstRate', Math.max(0, Number(e.target.value)))}
+                      placeholder="e.g. 18 or 0"
+                      style={{ paddingRight: 36 }}
+                    />
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--muted)' }}>
+                      %
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4 }}>
+                    New purchase bills & inventory items will automatically adopt this GST percentage.
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="label">Salon Business GSTIN Number (GST નંબર - Optional)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={s.gstin || ''}
+                    onChange={(e) => update('gstin', e.target.value.toUpperCase())}
+                    placeholder="e.g. 24AAAAA0000A1Z5"
+                    style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}
+                  />
+                  <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4 }}>
+                    Prints on tax invoices, thermal customer slips, and supplier purchase audit logs.
+                  </span>
+                </div>
+              </div>
+
+              {/* Gujarati Explainer / Notice Banner */}
+              <div style={{
+                marginTop: 18,
+                padding: '12px 16px',
+                borderRadius: 10,
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+              }}>
+                <Receipt size={18} color="var(--primary)" style={{ marginTop: 2, flexShrink: 0 }} />
+                <div style={{ fontSize: 12, color: '#334155', lineHeight: 1.55 }}>
+                  <strong>💡 ગુજરાતી માર્ગદર્શિકા (Default GST Help):</strong>{' '}
+                  અહીં તમે જે પણ GST રેટ સેટ કરશો (જેમ કે <strong>{Number(s.defaultGstRate || 0)}%</strong>), તે પર્ચેઝ બિલ (Purchases) અને નવી પ્રોડક્ટ બનાવતી વખતે આપોઆપ આવી જશે. જેથી તમારે વારંવાર GST પસંદ કરવાની જરૂર નહીં પડે.
+                </div>
               </div>
             </div>
-            <div className="form-group">
-              <label className="label">Payment Modes / Accounts (Comma Separated)</label>
-              <input
-                type="text" className="input"
-                value={(s.payments || []).join(', ')}
-                onChange={(e) => update('payments', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))}
-                placeholder="Cash, GPay UPI, PhonePe UPI, HDFC Bank, Card"
-              />
-              <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4 }}>
-                These appear in all dropdowns for billing, bridal advances, and vendor purchases.
-              </span>
+
+            {/* Invoice Printing & Payment Accounts Card */}
+            <div className="card" style={{ padding: 24 }}>
+              <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
+                <h2>💳 Invoice Printing & Payment Accounts</h2>
+              </div>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="label">Receipt Printer Format</label>
+                  <select
+                    className="input"
+                    value={s.printer || '58'}
+                    onChange={(e) => update('printer', e.target.value as 'both' | '80' | '58' | 'a4')}
+                  >
+                    <option value="58">2 Inch (58mm) Thermal Receipt Printer (Default Auto-Cut)</option>
+                    <option value="80">3 Inch (80mm) Thermal Receipt Printer</option>
+                    <option value="both">Both (A4 Full Sheet + Thermal)</option>
+                    <option value="a4">A4 Full Page Only</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="label">Payment Modes / Accounts (Comma Separated)</label>
+                <input
+                  type="text" className="input"
+                  value={(s.payments || []).join(', ')}
+                  onChange={(e) => update('payments', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))}
+                  placeholder="Cash, GPay UPI, PhonePe UPI, HDFC Bank, Card"
+                />
+                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4 }}>
+                  These appear in all dropdowns for billing, bridal advances, and vendor purchases.
+                </span>
+              </div>
             </div>
           </motion.div>
         )}

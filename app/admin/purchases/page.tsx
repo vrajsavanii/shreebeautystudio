@@ -18,14 +18,14 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import Link from 'next/link';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
 
-const EMPTY_LINE = (): PurchaseLine => ({
+const EMPTY_LINE = (defaultGst = 0): PurchaseLine => ({
   barcode: '',
   name: '',
   batch: '',
   expiry: '',
   qty: 1,
   rate: 0,
-  gst: 0,
+  gst: Number(defaultGst || 0),
 });
 
 function inferBrandAndCategory(name: string): { brand: string; category: string } {
@@ -106,12 +106,14 @@ export default function PurchasesPage() {
     setExpandedPurchaseIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const defaultGst = Number(data?.settings?.defaultGstRate || 0);
+
   // Form State
   const [supplierId, setSupplierId] = useState('');
   const [date, setDate] = useState(todayISO());
   const [supplierInvoice, setSupplierInvoice] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [lines, setLines] = useState<PurchaseLine[]>([EMPTY_LINE()]);
+  const [lines, setLines] = useState<PurchaseLine[]>([EMPTY_LINE(defaultGst)]);
   const [discount, setDiscount] = useState(0);
   const [paid, setPaid] = useState(0);
   const [mode, setMode] = useState(data?.settings?.payments?.[0] || 'Cash');
@@ -199,7 +201,7 @@ export default function PurchasesPage() {
           buyDate: existingProduct.buyDate || todayISO(),
           batch: existingProduct.batch || '',
           expiry: existingProduct.expiry || '',
-          gst: 18,
+          gst: existingProduct.taxRate !== undefined ? existingProduct.taxRate : defaultGst,
         };
         if (lines.length === 1 && !lines[0].name) {
           setLines([newLine]);
@@ -210,9 +212,9 @@ export default function PurchasesPage() {
       toast(`Added ${existingProduct.name} (${money(existingProduct.buy || 0)})`);
     } else {
       if (lines.length === 1 && !lines[0].name) {
-        setLines([{ ...EMPTY_LINE(), barcode: code }]);
+        setLines([{ ...EMPTY_LINE(defaultGst), barcode: code }]);
       } else {
-        setLines((prev) => [...prev, { ...EMPTY_LINE(), barcode: code }]);
+        setLines((prev) => [...prev, { ...EMPTY_LINE(defaultGst), barcode: code }]);
       }
       toast(`Barcode "${code}" attached to new line item`);
     }
@@ -229,6 +231,7 @@ export default function PurchasesPage() {
         buyDate: lines[idx].buyDate || todayISO(),
         batch: p.batch || lines[idx].batch,
         expiry: p.expiry || lines[idx].expiry,
+        gst: p.taxRate !== undefined ? p.taxRate : (lines[idx].gst !== undefined ? lines[idx].gst : defaultGst),
       });
     } else {
       setLine(idx, { name });
@@ -245,7 +248,7 @@ export default function PurchasesPage() {
     setDate(todayISO());
     setSupplierInvoice('');
     setDueDate('');
-    setLines([EMPTY_LINE()]);
+    setLines([EMPTY_LINE(defaultGst)]);
     setDiscount(0);
     setPaid(0);
     setMode(data?.settings?.payments?.[0] || 'Cash');
@@ -259,7 +262,7 @@ export default function PurchasesPage() {
     setDate(p.date || todayISO());
     setSupplierInvoice(p.supplierInvoice || '');
     setDueDate(p.dueDate || '');
-    setLines(p.lines && p.lines.length > 0 ? p.lines : [EMPTY_LINE()]);
+    setLines(p.lines && p.lines.length > 0 ? p.lines : [EMPTY_LINE(defaultGst)]);
     setDiscount(p.discount || 0);
     setPaid(p.paid || 0);
     setMode(p.mode || 'Cash');
@@ -409,6 +412,7 @@ export default function PurchasesPage() {
               low: 2,
               batch: l.batch || '',
               expiry: l.expiry || '',
+              taxRate: l.gst !== undefined ? Number(l.gst) : defaultGst,
             };
             updatedInventory.push(p);
           }
@@ -421,6 +425,7 @@ export default function PurchasesPage() {
           if (l.barcode) p.barcode = l.barcode;
           if (l.batch) p.batch = l.batch;
           if (l.expiry) p.expiry = l.expiry;
+          if (l.gst !== undefined) p.taxRate = Number(l.gst);
         });
 
         // 3. Update purchases list
@@ -505,6 +510,7 @@ export default function PurchasesPage() {
             low: 2,
             batch: l.batch || '',
             expiry: l.expiry || '',
+            taxRate: l.gst !== undefined ? Number(l.gst) : defaultGst,
           };
           updatedInventory.push(p);
         }
@@ -517,6 +523,7 @@ export default function PurchasesPage() {
         if (l.barcode) p.barcode = l.barcode;
         if (l.batch) p.batch = l.batch;
         if (l.expiry) p.expiry = l.expiry;
+        if (l.gst !== undefined) p.taxRate = Number(l.gst);
 
         newTxs.push({
           id: uid(),
@@ -1045,7 +1052,7 @@ export default function PurchasesPage() {
             <label className="label" style={{ margin: 0, fontWeight: 800 }}>Purchase Line Items</label>
             <motion.button
               className="btn btn-ghost btn-sm"
-              onClick={() => setLines((prev) => [...prev, EMPTY_LINE()])}
+              onClick={() => setLines((prev) => [...prev, EMPTY_LINE(defaultGst)])}
               whileTap={{ scale: 0.97 }}
             >
               <Plus size={13} /> Add Line Item
@@ -1163,7 +1170,7 @@ export default function PurchasesPage() {
                 <select
                   className="input"
                   title="GST Rate %"
-                  value={l.gst || 0}
+                  value={l.gst !== undefined ? l.gst : defaultGst}
                   onChange={(e) => setLine(idx, { gst: Number(e.target.value) })}
                   style={{ padding: '6px 4px', fontSize: 11 }}
                 >
@@ -1172,6 +1179,12 @@ export default function PurchasesPage() {
                   <option value={12}>12%</option>
                   <option value={18}>18%</option>
                   <option value={28}>28%</option>
+                  {defaultGst > 0 && ![0, 5, 12, 18, 28].includes(defaultGst) && (
+                    <option value={defaultGst}>{defaultGst}% (Default)</option>
+                  )}
+                  {l.gst !== undefined && ![0, 5, 12, 18, 28, defaultGst].includes(l.gst) && (
+                    <option value={l.gst}>{l.gst}%</option>
+                  )}
                 </select>
                 <div style={{ textAlign: 'right', paddingRight: 4 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--teal)', whiteSpace: 'nowrap' }}>

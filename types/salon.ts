@@ -12,6 +12,8 @@ export interface SalonSettings {
   staffR: number;
   printer: 'both' | '80' | '58' | 'a4';
   payments: string[];
+  defaultGstRate?: number; // Default GST Rate % (e.g. 0, 5, 12, 18, 28)
+  gstin?: string; // Salon Business GSTIN Number
   // Loyalty
   loyaltyEnabled?: boolean;
   loyaltyEarnRate?: number;   // ₹ spent per 1 point earned (e.g. 100 → spend ₹100 earn 1 pt)
