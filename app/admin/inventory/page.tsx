@@ -1178,7 +1178,7 @@ export default function InventoryPage() {
                                   style={{
                                     fontWeight: 800,
                                     fontSize: 13.5,
-                                    color: isLow ? 'var(--red)' : 'var(--text)',
+                                    color: '#0f172a',
                                   }}
                                 >
                                   {item.stock} {item.unit || 'Pcs'}
@@ -1492,7 +1492,7 @@ export default function InventoryPage() {
                           </td>
                           <td>{item.supplierName || '—'}</td>
                           <td>
-                            <span style={{ fontWeight: 800, color: 'var(--red)', fontSize: 14 }}>
+                            <span style={{ fontWeight: 800, color: '#0f172a', fontSize: 14 }}>
                               {item.stock} {item.unit || 'Pcs'}
                             </span>
                           </td>
