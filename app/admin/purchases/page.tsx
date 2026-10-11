@@ -18,6 +18,22 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import Link from 'next/link';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
 
+const DEFAULT_LINE_COL_WIDTHS = [135, 195, 105, 52, 75, 75, 72, 54, 92, 58];
+const MIN_LINE_COL_WIDTHS = [85, 110, 80, 42, 55, 55, 52, 45, 68, 50];
+
+const PURCHASE_LINE_HEADERS = [
+  { id: 'barcode', label: 'Barcode', align: 'left' },
+  { id: 'name', label: 'Product Name *', align: 'left' },
+  { id: 'expiry', label: 'Expiry (MM/YY)', align: 'left' },
+  { id: 'qty', label: 'Qty', align: 'center' },
+  { id: 'rate', label: 'Buy Rate', align: 'right' },
+  { id: 'mrp', label: 'MRP (₹)', align: 'right' },
+  { id: 'margin', label: 'Margin %', align: 'center' },
+  { id: 'gst', label: 'GST', align: 'center' },
+  { id: 'total', label: 'Item Total', align: 'right' },
+  { id: 'actions', label: '', align: 'center' },
+] as const;
+
 const EMPTY_LINE = (defaultGst = 0): PurchaseLine => ({
   barcode: '',
   name: '',
@@ -107,6 +123,94 @@ export default function PurchasesPage() {
   };
 
   const defaultGst = Number(data?.settings?.defaultGstRate || 0);
+
+  // Draggable / Resizable Column Widths for Purchase Line Items (Mouse & Touch)
+  const [colWidths, setColWidths] = useState<number[]>(DEFAULT_LINE_COL_WIDTHS);
+  const [resizingColIdx, setResizingColIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('shree_purchase_col_widths');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === DEFAULT_LINE_COL_WIDTHS.length) {
+          setColWidths(parsed);
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  const resetColWidths = () => {
+    setColWidths(DEFAULT_LINE_COL_WIDTHS);
+    try {
+      localStorage.removeItem('shree_purchase_col_widths');
+    } catch {
+      // ignore
+    }
+  };
+
+  const startColResize = (colIdx: number, e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColIdx(colIdx);
+
+    const startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const startW = colWidths[colIdx];
+    const minW = MIN_LINE_COL_WIDTHS[colIdx] || 40;
+
+    let currentW = startW;
+
+    const onMove = (moveEvt: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in moveEvt ? moveEvt.touches[0].clientX : moveEvt.clientX;
+      const diff = clientX - startX;
+      currentW = Math.max(minW, Math.round(startW + diff));
+
+      setColWidths((prev) => {
+        const next = [...prev];
+        next[colIdx] = currentW;
+        return next;
+      });
+    };
+
+    const onEnd = () => {
+      setResizingColIdx(null);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+
+      setColWidths((latest) => {
+        try {
+          localStorage.setItem('shree_purchase_col_widths', JSON.stringify(latest));
+        } catch {
+          // ignore
+        }
+        return latest;
+      });
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    document.addEventListener('mousemove', onMove, { passive: false });
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  };
+
+  const lineGridTemplate = useMemo(() => {
+    return colWidths.map((w) => `${w}px`).join(' ');
+  }, [colWidths]);
+
+  const totalLineWidth = useMemo(() => {
+    return colWidths.reduce((a, b) => a + b, 0) + (colWidths.length - 1) * 6;
+  }, [colWidths]);
+
+
 
   // Form State
   const [supplierId, setSupplierId] = useState('');
@@ -1277,7 +1381,18 @@ export default function PurchasesPage() {
         {/* Purchase Line Items */}
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <label className="label" style={{ margin: 0, fontWeight: 800 }}>Purchase Line Items</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <label className="label" style={{ margin: 0, fontWeight: 800 }}>Purchase Line Items</label>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={resetColWidths}
+                title="Reset column widths to default"
+                style={{ fontSize: 10.5, color: '#64748b', padding: '2px 6px', height: 22 }}
+              >
+                ↺ Reset Widths
+              </button>
+            </div>
             <motion.button
               className="btn btn-ghost btn-sm"
               onClick={() => setLines((prev) => [...prev, EMPTY_LINE(defaultGst)])}
@@ -1287,33 +1402,75 @@ export default function PurchasesPage() {
             </motion.button>
           </div>
 
-          {/* Column Header Titles */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1.2fr 1.6fr 0.85fr 50px 72px 72px 70px 52px 90px 58px',
-              gap: 6,
-              padding: '6px 8px',
-              background: '#e2e8f0',
-              borderRadius: '6px 6px 0 0',
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#334155',
-              textTransform: 'uppercase',
-              letterSpacing: '0.03em',
-            }}
-          >
-            <span>Barcode</span>
-            <span>Product Name *</span>
-            <span>Expiry (MM/YY)</span>
-            <span style={{ textAlign: 'center' }}>Qty</span>
-            <span style={{ textAlign: 'right' }}>Buy Rate</span>
-            <span style={{ textAlign: 'right' }}>MRP (₹)</span>
-            <span style={{ textAlign: 'center' }}>Margin %</span>
-            <span style={{ textAlign: 'center' }}>GST</span>
-            <span style={{ textAlign: 'right' }}>Item Total</span>
-            <span></span>
-          </div>
+          <div style={{ overflowX: 'auto', paddingBottom: 6 }}>
+            <div style={{ minWidth: totalLineWidth }}>
+              {/* Column Header Titles with Interactive Vertical Resizer Lines */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: lineGridTemplate,
+                  gap: 6,
+                  padding: '7px 8px',
+                  background: '#e2e8f0',
+                  borderRadius: '6px 6px 0 0',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: '#334155',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em',
+                  position: 'relative',
+                  userSelect: resizingColIdx !== null ? 'none' : 'auto',
+                }}
+              >
+                {PURCHASE_LINE_HEADERS.map((h, i) => (
+                  <div
+                    key={h.id}
+                    style={{
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: h.align === 'center' ? 'center' : h.align === 'right' ? 'flex-end' : 'flex-start',
+                      paddingRight: i < PURCHASE_LINE_HEADERS.length - 1 ? 8 : 0,
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.label}</span>
+                    {i < PURCHASE_LINE_HEADERS.length - 1 && (
+                      <div
+                        onMouseDown={(e) => startColResize(i, e)}
+                        onTouchStart={(e) => startColResize(i, e)}
+                        title="↔ Drag or swipe vertical line to resize column"
+                        style={{
+                          position: 'absolute',
+                          top: -7,
+                          right: -3,
+                          bottom: -7,
+                          width: 14,
+                          cursor: 'col-resize',
+                          zIndex: 20,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          touchAction: 'none',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: resizingColIdx === i ? 2.5 : 2,
+                            height: resizingColIdx === i ? '100%' : '65%',
+                            background: resizingColIdx === i ? 'var(--teal)' : '#94a3b8',
+                            borderRadius: 1,
+                            boxShadow: resizingColIdx === i ? '0 0 6px rgba(13,148,136,0.7)' : 'none',
+                            transition: 'background 0.15s, height 0.15s',
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
             {lines.map((l, idx) => (
@@ -1321,7 +1478,7 @@ export default function PurchasesPage() {
                 key={idx}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.2fr 1.6fr 0.85fr 50px 72px 72px 70px 52px 90px 58px',
+                  gridTemplateColumns: lineGridTemplate,
                   gap: 6,
                   alignItems: 'center',
                   background: '#f8fafc',
@@ -1492,20 +1649,26 @@ export default function PurchasesPage() {
               </div>
             ))}
           </div>
+            </div>
+          </div>
 
           {/* Subtle small 1-line guidance tip */}
           <div style={{
             fontSize: 11,
             color: '#64748b',
             marginTop: 6,
-            padding: '4px 8px',
-            borderRadius: 4,
+            padding: '5px 10px',
+            borderRadius: 6,
             background: '#f8fafc',
+            border: '1px solid #e2e8f0',
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            justifyContent: 'space-between',
+            gap: 8,
+            flexWrap: 'wrap',
           }}>
             <span>💡 <strong>Tip:</strong> એક જ બારકોડમાં અલગ Expiry Date માટે રો પર <strong>[+]</strong> દબાવો અથવા ઉપર <strong>&quot;📅 + New Expiry Batch&quot;</strong> મોડ વાપરો.</span>
+            <span style={{ fontSize: 10.5, color: '#0f766e', fontWeight: 600 }}>↔ હેડર વર્ટિકલ લાઈન ડ્રેગ/સ્વાઈપ કરીને કોલમ નાની-મોટી (Resize) કરી શકો છો</span>
           </div>
         </div>
 
