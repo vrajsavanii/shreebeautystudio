@@ -18,6 +18,52 @@ export const fmtDate = (d?: string | null): string => {
   }
 };
 
+export const toMonthInput = (d?: string | null): string => {
+  if (!d) return '';
+  const trimmed = d.trim();
+  // YYYY-MM
+  if (/^\d{4}-\d{2}$/.test(trimmed)) return trimmed;
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 7);
+  // DD-MMM-YYYY or DD MMM YYYY (e.g. 01-Aug-2030 or 01 Aug 2030)
+  const monthNames: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  };
+  const dMmmY = trimmed.match(/^(\d{1,2})[-\s/]([a-zA-Z]{3})[-\s/](\d{4})$/i);
+  if (dMmmY) {
+    const mm = monthNames[dMmmY[2].toLowerCase()];
+    if (mm) return `${dMmmY[3]}-${mm}`;
+  }
+  // DD-MM-YYYY or DD/MM/YYYY
+  const ddmmyyyy = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (ddmmyyyy) return `${ddmmyyyy[3]}-${ddmmyyyy[2].padStart(2, '0')}`;
+  // MM/YYYY
+  const m4 = trimmed.match(/^(\d{1,2})\/(\d{4})$/);
+  if (m4) return `${m4[2]}-${m4[1].padStart(2, '0')}`;
+  // MM/YY
+  const m2 = trimmed.match(/^(\d{1,2})\/(\d{2})$/);
+  if (m2) return `20${m2[2]}-${m2[1].padStart(2, '0')}`;
+  return trimmed.slice(0, 7);
+};
+
+export const fmtExpiry = (d?: string | null): string => {
+  if (!d) return '';
+  const ym = toMonthInput(d);
+  if (ym && /^\d{4}-\d{2}$/.test(ym)) {
+    try {
+      return format(parseISO(`${ym}-01`), 'MMM yyyy'); // e.g. "Aug 2030"
+    } catch {
+      return ym;
+    }
+  }
+  try {
+    return format(parseISO(d), 'MMM yyyy');
+  } catch {
+    return d;
+  }
+};
+
 export const fmtDateTime = (d?: string | null, t?: string): string => {
   if (!d) return '';
   try {

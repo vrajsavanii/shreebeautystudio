@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Printer, X, Tag, SlidersHorizontal, Check } from 'lucide-react';
 import { InventoryItem } from '@/types/salon';
-import { money, fmtDate } from '@/lib/utils';
+import { money, fmtDate, fmtExpiry } from '@/lib/utils';
 import Modal from '@/components/ui/Modal';
 
 interface BarcodeLabelSheetProps {
@@ -295,7 +295,7 @@ export default function BarcodeLabelSheet({
                 {showDates && (item.buyDate || item.expiry) && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8.5, color: '#64748b', marginTop: 2, borderTop: '0.5px solid #e2e8f0', paddingTop: 2 }}>
                     {item.buyDate ? <span>Buy: {fmtDate(item.buyDate)}</span> : <span />}
-                    {item.expiry ? <span style={{ fontWeight: 600 }}>Exp: {fmtDate(item.expiry)}</span> : <span />}
+                    {item.expiry ? <span style={{ fontWeight: 600 }}>Exp: {fmtExpiry(item.expiry)}</span> : <span />}
                   </div>
                 )}
               </div>

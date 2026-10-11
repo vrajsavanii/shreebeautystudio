@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSalonStore } from '@/lib/store';
-import { todayISO, money, fmtDate } from '@/lib/utils';
+import { todayISO, money, fmtDate, fmtExpiry } from '@/lib/utils';
 import { getAllUpcomingReminders } from '@/lib/reminders';
 import StatCard from '@/components/ui/StatCard';
 import Badge from '@/components/ui/Badge';
@@ -409,7 +409,7 @@ export default function DashboardPage() {
                     <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{item.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>Exp: {fmtDate(item.expiry!)}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>Exp: {fmtExpiry(item.expiry!)}</div>
                       </div>
                       <div style={{ fontWeight: 700, fontSize: 12, color: diffDays <= 7 ? 'var(--red)' : '#e69a22', background: diffDays <= 7 ? '#fee2e2' : '#fef9c3', padding: '3px 8px', borderRadius: 6 }}>
                         {diffDays}d left

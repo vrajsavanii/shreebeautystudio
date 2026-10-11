@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
-import { uid, fmtDate, money, todayISO } from '@/lib/utils';
+import { uid, fmtDate, money, todayISO, toMonthInput, fmtExpiry } from '@/lib/utils';
 import { InventoryItem, InventoryTx, Supplier, StockAdjustment, AdjustmentReason } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -1205,14 +1205,14 @@ export default function InventoryPage() {
                               <div>
                                 {isExpired ? (
                                   <span className="tab-badge danger" style={{ fontSize: 10.5, padding: '2px 6px' }}>
-                                    Expired ({fmtDate(item.expiry)})
+                                    Expired ({fmtExpiry(item.expiry)})
                                   </span>
                                 ) : isExpiringSoon ? (
                                   <span style={{ background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: 10.5, padding: '2px 6px', borderRadius: 99 }}>
-                                    Exp: {fmtDate(item.expiry)}
+                                    Exp: {fmtExpiry(item.expiry)}
                                   </span>
                                 ) : item.expiry ? (
-                                  <span style={{ fontSize: 11.5 }}>Exp: {fmtDate(item.expiry)}</span>
+                                  <span style={{ fontSize: 11.5 }}>Exp: {fmtExpiry(item.expiry)}</span>
                                 ) : (
                                   <span style={{ color: 'var(--muted)', fontSize: 11.5 }}>No Expiry</span>
                                 )}
@@ -1322,7 +1322,7 @@ export default function InventoryPage() {
                           <td>{money(tx.rate)}</td>
                           <td>{tx.party || '—'}</td>
                           <td style={{ fontSize: 12, color: 'var(--muted)' }}>
-                            {tx.batch ? `Batch: ${tx.batch}` : ''} {tx.expiry ? `(Exp: ${fmtDate(tx.expiry)})` : ''}
+                            {tx.batch ? `Batch: ${tx.batch} ` : ''}{tx.expiry ? `(Exp: ${fmtExpiry(tx.expiry)})` : ''}
                           </td>
                           <td>
                             <button
@@ -1522,11 +1522,11 @@ export default function InventoryPage() {
                             <td>
                               {isExpired ? (
                                 <span className="tab-badge danger" style={{ fontSize: 11, padding: '3px 8px' }}>
-                                  Expired on {fmtDate(item.expiry)}
+                                  Expired on {fmtExpiry(item.expiry)}
                                 </span>
                               ) : (
                                 <span style={{ background: '#fef3c7', color: '#b45309', fontWeight: 700, fontSize: 11, padding: '3px 8px', borderRadius: 99 }}>
-                                  Expiring {fmtDate(item.expiry)}
+                                  Expiring {fmtExpiry(item.expiry)}
                                 </span>
                               )}
                             </td>
@@ -1844,8 +1844,8 @@ export default function InventoryPage() {
           </div>
 
           <div className="form-group">
-            <label className="label">Expiry Date</label>
-            <input type="date" className="input" {...register('expiry')} />
+            <label className="label">Expiry Date (Month & Year)</label>
+            <input type="month" className="input" {...register('expiry')} />
           </div>
         </div>
       </Modal>
@@ -1906,11 +1906,11 @@ export default function InventoryPage() {
             />
           </div>
           <div className="form-group">
-            <label className="label">Expiry Date</label>
+            <label className="label">Expiry Date (Month & Year)</label>
             <input
-              type="date"
+              type="month"
               className="input"
-              value={stockExpiry}
+              value={toMonthInput(stockExpiry)}
               onChange={(e) => setStockExpiry(e.target.value)}
             />
           </div>

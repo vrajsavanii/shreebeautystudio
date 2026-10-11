@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
-import { uid, todayISO, money, fmtDate } from '@/lib/utils';
+import { uid, todayISO, money, fmtDate, toMonthInput, fmtExpiry } from '@/lib/utils';
 import { Purchase, PurchaseLine, Supplier } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import StatCard from '@/components/ui/StatCard';
@@ -875,7 +875,7 @@ export default function PurchasesPage() {
             <span>Barcode</span>
             <span>Product Name *</span>
             <span>Batch No</span>
-            <span>Expiry Date</span>
+            <span>Expiry (MM/YY)</span>
             <span style={{ textAlign: 'center' }}>Qty</span>
             <span style={{ textAlign: 'right' }}>Buy Rate</span>
             <span style={{ textAlign: 'right' }}>MRP (₹)</span>
@@ -924,12 +924,12 @@ export default function PurchasesPage() {
                   style={{ padding: '6px 8px', fontSize: 11.5 }}
                 />
                 <input
-                  type="date"
+                  type="month"
                   className="input"
-                  title="Expiry Date"
-                  value={l.expiry || ''}
+                  title="Expiry Date (Month & Year)"
+                  value={toMonthInput(l.expiry)}
                   onChange={(e) => setLine(idx, { expiry: e.target.value })}
-                  style={{ padding: '6px 4px', fontSize: 11 }}
+                  style={{ padding: '6px 4px', fontSize: 11.5 }}
                 />
                 <input
                   type="number"
@@ -1105,7 +1105,7 @@ export default function PurchasesPage() {
                       <td style={{ fontFamily: 'monospace', fontSize: 11.5 }}>{l.barcode || '—'}</td>
                       <td style={{ fontWeight: 700 }}>{l.name}</td>
                       <td style={{ fontSize: 12, color: 'var(--muted)' }}>
-                        {l.batch || l.expiry ? `${l.batch || ''} ${l.expiry ? `(${fmtDate(l.expiry)})` : ''}` : '—'}
+                        {l.batch || l.expiry ? `${l.batch ? `Batch: ${l.batch} ` : ''}${l.expiry ? `(Exp: ${fmtExpiry(l.expiry)})` : ''}` : '—'}
                       </td>
                       <td style={{ fontWeight: 700 }}>{l.qty}</td>
                       <td>{money(l.rate)}</td>
