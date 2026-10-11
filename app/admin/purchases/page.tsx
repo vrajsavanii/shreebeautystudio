@@ -965,6 +965,7 @@ export default function PurchasesPage() {
                                     <th style={{ padding: '6px 10px', textAlign: 'center', width: 60 }}>Qty</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'right', width: 95 }}>Buy Rate</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'right', width: 95 }}>MRP</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'center', width: 90 }}>(Buy/MRP)%</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'center', width: 60 }}>GST</th>
                                     <th style={{ padding: '6px 10px', textAlign: 'right', width: 125, fontWeight: 800, color: '#0f172a' }}>
                                       Item Total in Row
@@ -997,6 +998,32 @@ export default function PurchasesPage() {
                                         </td>
                                         <td style={{ padding: '6px 10px', textAlign: 'right', color: '#64748b' }}>
                                           {line.mrp ? money(line.mrp) : '—'}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                                          {Number(line.mrp) > 0 && Number(line.rate) > 0 ? (
+                                            (() => {
+                                              const pct = (Number(line.rate) / Number(line.mrp)) * 100;
+                                              const isLow = pct <= 50;
+                                              const isMed = pct <= 75;
+                                              return (
+                                                <span
+                                                  style={{
+                                                    fontSize: 11,
+                                                    fontWeight: 800,
+                                                    padding: '2px 6px',
+                                                    borderRadius: 4,
+                                                    background: isLow ? '#dcfce7' : isMed ? '#e0f2fe' : '#fef3c7',
+                                                    color: isLow ? '#15803d' : isMed ? '#0369a1' : '#b45309',
+                                                  }}
+                                                  title={`Buy rate is ${pct.toFixed(1)}% of MRP (${(100 - pct).toFixed(0)}% margin discount)`}
+                                                >
+                                                  {pct.toFixed(1)}%
+                                                </span>
+                                              );
+                                            })()
+                                          ) : (
+                                            <span style={{ color: '#94a3b8' }}>—</span>
+                                          )}
                                         </td>
                                         <td style={{ padding: '6px 10px', textAlign: 'center' }}>
                                           {line.gst ? `${line.gst}%` : '0%'}
@@ -1263,7 +1290,7 @@ export default function PurchasesPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.15fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 60px',
+              gridTemplateColumns: '1.15fr 1.35fr 0.65fr 0.75fr 48px 68px 68px 68px 50px 88px 58px',
               gap: 6,
               padding: '6px 8px',
               background: '#e2e8f0',
@@ -1282,6 +1309,7 @@ export default function PurchasesPage() {
             <span style={{ textAlign: 'center' }}>Qty</span>
             <span style={{ textAlign: 'right' }}>Buy Rate</span>
             <span style={{ textAlign: 'right' }}>MRP (₹)</span>
+            <span style={{ textAlign: 'center' }}>Buy/MRP %</span>
             <span style={{ textAlign: 'center' }}>GST</span>
             <span style={{ textAlign: 'right' }}>Item Total</span>
             <span style={{ textAlign: 'center' }}>Actions</span>
@@ -1293,7 +1321,7 @@ export default function PurchasesPage() {
                 key={idx}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.15fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 60px',
+                  gridTemplateColumns: '1.15fr 1.35fr 0.65fr 0.75fr 48px 68px 68px 68px 50px 88px 58px',
                   gap: 6,
                   alignItems: 'center',
                   background: '#f8fafc',
@@ -1388,6 +1416,47 @@ export default function PurchasesPage() {
                   onChange={(e) => setLine(idx, { mrp: Number(e.target.value) })}
                   style={{ padding: '6px 6px', textAlign: 'right', fontSize: 12 }}
                 />
+                {/* Buy / MRP % Column */}
+                <div style={{ textAlign: 'center' }}>
+                  {Number(l.mrp) > 0 && Number(l.rate) > 0 ? (
+                    (() => {
+                      const pct = (Number(l.rate) / Number(l.mrp)) * 100;
+                      const margin = 100 - pct;
+                      const isLow = pct <= 50;
+                      const isMed = pct <= 75;
+                      return (
+                        <div
+                          style={{
+                            display: 'inline-flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '2px 4px',
+                            borderRadius: 5,
+                            background: isLow ? '#dcfce7' : isMed ? '#e0f2fe' : '#fef3c7',
+                            border: `1px solid ${isLow ? '#bbf7d0' : isMed ? '#bae6fd' : '#fde68a'}`,
+                            minWidth: 46,
+                          }}
+                          title={`Purchase rate is ${pct.toFixed(1)}% of MRP. Margin discount is ${margin.toFixed(1)}%`}
+                        >
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: isLow ? '#15803d' : isMed ? '#0369a1' : '#b45309',
+                            lineHeight: 1.1,
+                          }}>
+                            {pct.toFixed(1)}%
+                          </span>
+                          <span style={{ fontSize: 8.5, color: '#64748b', lineHeight: 1 }}>
+                            {margin.toFixed(0)}% margin
+                          </span>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>
+                  )}
+                </div>
                 <select
                   className="input"
                   title="GST Rate %"
@@ -1565,6 +1634,7 @@ export default function PurchasesPage() {
                   <th>Qty</th>
                   <th>Buy Rate</th>
                   <th>MRP</th>
+                  <th style={{ textAlign: 'center' }}>(Buy/MRP) %</th>
                   <th>GST %</th>
                   <th style={{ textAlign: 'right' }}>Item Order Total</th>
                 </tr>
@@ -1583,6 +1653,29 @@ export default function PurchasesPage() {
                       <td style={{ fontWeight: 700, textAlign: 'center' }}>{l.qty}</td>
                       <td>{money(l.rate)}</td>
                       <td style={{ fontWeight: 600 }}>{l.mrp ? money(l.mrp) : '—'}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        {Number(l.mrp) > 0 && Number(l.rate) > 0 ? (
+                          (() => {
+                            const pct = (Number(l.rate) / Number(l.mrp)) * 100;
+                            const isLow = pct <= 50;
+                            const isMed = pct <= 75;
+                            return (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 800,
+                                  padding: '2px 6px',
+                                  borderRadius: 4,
+                                  background: isLow ? '#dcfce7' : isMed ? '#e0f2fe' : '#fef3c7',
+                                  color: isLow ? '#15803d' : isMed ? '#0369a1' : '#b45309',
+                                }}
+                              >
+                                {pct.toFixed(1)}%
+                              </span>
+                            );
+                          })()
+                        ) : '—'}
+                      </td>
                       <td>{l.gst || 0}%</td>
                       <td style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'right' }}>{money(lineSub + lineGst)}</td>
                     </tr>
