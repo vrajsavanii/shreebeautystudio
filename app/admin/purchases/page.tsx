@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag, Plus, Search, Eye, Trash2, Calendar, FileText, CheckCircle,
-  Barcode, PlusCircle, Building2, AlertTriangle, ArrowRight, UserPlus, Camera, Pencil
+  Barcode, PlusCircle, Building2, AlertTriangle, ArrowRight, UserPlus, Camera, Pencil,
+  Layers, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave, cloudSave, cloudSync } from '@/lib/sync';
@@ -96,6 +97,14 @@ export default function PurchasesPage() {
   const [viewPurchase, setViewPurchase] = useState<Purchase | null>(null);
   const [editPurchaseId, setEditPurchaseId] = useState<string | null>(null);
   const [deletePurchaseId, setDeletePurchaseId] = useState<string | null>(null);
+
+  // Expandable Item Order Breakdown in Main Table Rows
+  const [expandedPurchaseIds, setExpandedPurchaseIds] = useState<Record<string, boolean>>({});
+  const [showAllItemRows, setShowAllItemRows] = useState(false);
+
+  const toggleRowExpand = (id: string) => {
+    setExpandedPurchaseIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Form State
   const [supplierId, setSupplierId] = useState('');
@@ -600,34 +609,49 @@ export default function PurchasesPage() {
         </div>
       </div>
 
-      {/* Sub Tabs */}
-      <div className="tabs">
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-          onClick={() => setActiveTab('all')}
-        >
-          <span>All Purchases</span>
-          <span className="tab-badge">{kpis.count}</span>
-        </button>
+      {/* Sub Tabs & Item Order Breakdown Toggle */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+        <div className="tabs" style={{ margin: 0 }}>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveTab('all')}
+          >
+            <span>All Purchases</span>
+            <span className="tab-badge">{kpis.count}</span>
+          </button>
 
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'dues' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dues')}
-        >
-          <span>⚠️ Pending Supplier Dues</span>
-          <span className="tab-badge danger">{kpis.duesCount}</span>
-        </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'dues' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dues')}
+          >
+            <span>⚠️ Pending Supplier Dues</span>
+            <span className="tab-badge danger">{kpis.duesCount}</span>
+          </button>
 
-        <button
-          type="button"
-          className={`tab-btn ${activeTab === 'settled' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settled')}
-        >
-          <span>✓ Fully Paid / Settled</span>
-          <span className="tab-badge">{kpis.settledCount}</span>
-        </button>
+          <button
+            type="button"
+            className={`tab-btn ${activeTab === 'settled' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settled')}
+          >
+            <span>✓ Fully Paid / Settled</span>
+            <span className="tab-badge">{kpis.settledCount}</span>
+          </button>
+        </div>
+
+        {filtered.length > 0 && (
+          <button
+            type="button"
+            className={`btn btn-sm ${showAllItemRows ? 'btn-primary' : 'btn-ghost'}`}
+            onClick={() => setShowAllItemRows((prev) => !prev)}
+            style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
+            title="Expand and view all individual item order totals in table rows"
+          >
+            <Layers size={13} />
+            {showAllItemRows ? '▲ Hide Item Order Details' : '▼ Show All Item Order Totals in Rows'}
+          </button>
+        )}
       </div>
 
       {/* Purchases Table */}
@@ -657,70 +681,186 @@ export default function PurchasesPage() {
                 </tr>
               </thead>
               <motion.tbody variants={staggerContainer} initial="hidden" animate="visible">
-                {filtered.map((p) => (
-                  <motion.tr key={p.id} variants={fadeSlideUp}>
-                    <td>
-                      <div style={{ fontWeight: 700, color: 'var(--teal)', fontSize: 13 }}>{p.no}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{fmtDate(p.date)}</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.supplier}</div>
-                      {p.supplierInvoice && (
-                        <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>
-                          Ref: {p.supplierInvoice}
-                        </div>
+                {filtered.map((p) => {
+                  const isExpanded = showAllItemRows || !!expandedPurchaseIds[p.id];
+                  return (
+                    <Fragment key={p.id}>
+                      <motion.tr variants={fadeSlideUp}>
+                        <td>
+                          <div style={{ fontWeight: 700, color: 'var(--teal)', fontSize: 13 }}>{p.no}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{fmtDate(p.date)}</div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: 'var(--text)' }}>{p.supplier}</div>
+                          {p.supplierInvoice && (
+                            <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>
+                              Ref: {p.supplierInvoice}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontWeight: 700 }}>{(p.lines || []).length} items</span>
+                            <button
+                              type="button"
+                              className="badge"
+                              style={{
+                                cursor: 'pointer',
+                                fontSize: 10.5,
+                                padding: '2px 7px',
+                                borderRadius: 5,
+                                border: '1px solid var(--border)',
+                                background: isExpanded ? '#05424A' : '#f8fafc',
+                                color: isExpanded ? '#ffffff' : '#334155',
+                                fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                              }}
+                              onClick={() => toggleRowExpand(p.id)}
+                              title="Toggle item order-wise totals in row"
+                            >
+                              {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                              {isExpanded ? 'Hide' : 'Item Totals'}
+                            </button>
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                            Sub: {money(p.subtotal)} {p.gst > 0 ? `· GST: ${money(p.gst)}` : ''}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
+                            {money(p.total)}
+                          </div>
+                          {p.discount > 0 && (
+                            <div style={{ fontSize: 10.5, color: 'var(--green)' }}>
+                              Disc: −{money(p.discount)}
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: 12 }}>
+                              Paid: {money(p.paid)}
+                            </span>
+                          </div>
+                          {p.balance > 0 ? (
+                            <div style={{ color: 'var(--red)', fontWeight: 800, fontSize: 12 }}>
+                              Due: {money(p.balance)}
+                            </div>
+                          ) : (
+                            <span className="badge badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>
+                              Fully Settled
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 45 }}>
+                              {p.mode}
+                            </span>
+                            <button className="btn-icon" onClick={() => setViewPurchase(p)} title="View Purchase Bill">
+                              <Eye size={13} />
+                            </button>
+                            <button className="btn-icon edit" onClick={() => openEditPurchase(p)} title="Edit Purchase Bill">
+                              <Pencil size={13} />
+                            </button>
+                            <button className="btn-icon danger" onClick={() => setDeletePurchaseId(p.id)} title="Delete Purchase Bill">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+
+                      {/* Expandable Item Order-wise Total in Row */}
+                      {isExpanded && (
+                        <tr style={{ background: '#f8fafc' }}>
+                          <td colSpan={6} style={{ padding: '6px 12px 14px 12px', borderTop: 'none' }}>
+                            <div style={{
+                              background: '#ffffff',
+                              borderRadius: 8,
+                              border: '1.5px solid #cbd5e1',
+                              overflow: 'hidden',
+                              boxShadow: '0 2px 5px rgba(0,0,0,0.04)',
+                            }}>
+                              <div style={{
+                                padding: '8px 12px',
+                                background: '#f1f5f9',
+                                borderBottom: '1px solid #e2e8f0',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: 8,
+                              }}>
+                                <span style={{ fontSize: 12, fontWeight: 800, color: '#1e293b' }}>
+                                  📦 Order Items Breakdown — {p.lines?.length || 0} Products
+                                </span>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)' }}>
+                                  Order Total: {money(p.total)}
+                                </span>
+                              </div>
+                              <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                                <thead>
+                                  <tr style={{ background: '#f8fafc', color: '#475569', fontSize: 11, borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase' }}>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left', width: 32 }}>#</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left' }}>Item / Product Name</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left', width: 130 }}>Barcode</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'left', width: 140 }}>Batch / Expiry</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'center', width: 60 }}>Qty</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'right', width: 95 }}>Buy Rate</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'right', width: 95 }}>MRP</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'center', width: 60 }}>GST</th>
+                                    <th style={{ padding: '6px 10px', textAlign: 'right', width: 125, fontWeight: 800, color: '#0f172a' }}>
+                                      Item Total in Row
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(p.lines || []).map((line, lIdx) => {
+                                    const lineSub = Number(line.qty || 0) * Number(line.rate || 0);
+                                    const lineGst = (lineSub * Number(line.gst || 0)) / 100;
+                                    const lineTotal = lineSub + lineGst;
+                                    return (
+                                      <tr key={lIdx} style={{ borderBottom: lIdx === (p.lines?.length || 0) - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                                        <td style={{ padding: '6px 10px', color: '#94a3b8' }}>{lIdx + 1}</td>
+                                        <td style={{ padding: '6px 10px', fontWeight: 600, color: '#1e293b' }}>
+                                          {line.name}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', fontFamily: 'monospace', fontSize: 11, color: '#64748b' }}>
+                                          {line.barcode || '—'}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', fontSize: 11, color: '#64748b' }}>
+                                          {line.batch ? `B: ${line.batch} ` : ''}
+                                          {line.expiry ? `(Exp: ${fmtExpiry(line.expiry)})` : '—'}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>
+                                          {line.qty}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'right' }}>
+                                          {money(line.rate)}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'right', color: '#64748b' }}>
+                                          {line.mrp ? money(line.mrp) : '—'}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'center' }}>
+                                          {line.gst ? `${line.gst}%` : '0%'}
+                                        </td>
+                                        <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 800, color: 'var(--teal)', fontSize: 12.5 }}>
+                                          {money(lineTotal)}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{(p.lines || []).length} items</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                        Sub: {money(p.subtotal)} {p.gst > 0 ? `· GST: ${money(p.gst)}` : ''}
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--text)' }}>
-                        {money(p.total)}
-                      </div>
-                      {p.discount > 0 && (
-                        <div style={{ fontSize: 10.5, color: 'var(--green)' }}>
-                          Disc: −{money(p.discount)}
-                        </div>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: 12 }}>
-                          Paid: {money(p.paid)}
-                        </span>
-                      </div>
-                      {p.balance > 0 ? (
-                        <div style={{ color: 'var(--red)', fontWeight: 800, fontSize: 12 }}>
-                          Due: {money(p.balance)}
-                        </div>
-                      ) : (
-                        <span className="badge badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>
-                          Fully Settled
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 45 }}>
-                          {p.mode}
-                        </span>
-                        <button className="btn-icon" onClick={() => setViewPurchase(p)} title="View Purchase Bill">
-                          <Eye size={13} />
-                        </button>
-                        <button className="btn-icon edit" onClick={() => openEditPurchase(p)} title="Edit Purchase Bill">
-                          <Pencil size={13} />
-                        </button>
-                        <button className="btn-icon danger" onClick={() => setDeletePurchaseId(p.id)} title="Delete Purchase Bill">
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
+                    </Fragment>
+                  );
+                })}
               </motion.tbody>
             </table>
           </div>
@@ -916,7 +1056,7 @@ export default function PurchasesPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.1fr 1.5fr 0.8fr 0.9fr 55px 75px 75px 65px 28px',
+              gridTemplateColumns: '1.05fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 28px',
               gap: 6,
               padding: '6px 8px',
               background: '#e2e8f0',
@@ -936,6 +1076,7 @@ export default function PurchasesPage() {
             <span style={{ textAlign: 'right' }}>Buy Rate</span>
             <span style={{ textAlign: 'right' }}>MRP (₹)</span>
             <span style={{ textAlign: 'center' }}>GST</span>
+            <span style={{ textAlign: 'right' }}>Item Total</span>
             <span></span>
           </div>
 
@@ -945,7 +1086,7 @@ export default function PurchasesPage() {
                 key={idx}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.1fr 1.5fr 0.8fr 0.9fr 55px 75px 75px 65px 28px',
+                  gridTemplateColumns: '1.05fr 1.35fr 0.7fr 0.8fr 50px 70px 70px 52px 90px 28px',
                   gap: 6,
                   alignItems: 'center',
                   background: '#f8fafc',
@@ -1032,6 +1173,16 @@ export default function PurchasesPage() {
                   <option value={18}>18%</option>
                   <option value={28}>28%</option>
                 </select>
+                <div style={{ textAlign: 'right', paddingRight: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--teal)', whiteSpace: 'nowrap' }}>
+                    {money(Number(l.qty || 0) * Number(l.rate || 0) + (Number(l.qty || 0) * Number(l.rate || 0) * Number(l.gst || 0)) / 100)}
+                  </div>
+                  {Number(l.gst || 0) > 0 && (
+                    <div style={{ fontSize: 9.5, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                      Incl. {l.gst}%
+                    </div>
+                  )}
+                </div>
                 <button
                   className="btn-icon danger"
                   type="button"
@@ -1149,7 +1300,7 @@ export default function PurchasesPage() {
                   <th>Buy Rate</th>
                   <th>MRP</th>
                   <th>GST %</th>
-                  <th>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Item Order Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -1163,11 +1314,11 @@ export default function PurchasesPage() {
                       <td style={{ fontSize: 12, color: 'var(--muted)' }}>
                         {l.batch || l.expiry ? `${l.batch ? `Batch: ${l.batch} ` : ''}${l.expiry ? `(Exp: ${fmtExpiry(l.expiry)})` : ''}` : '—'}
                       </td>
-                      <td style={{ fontWeight: 700 }}>{l.qty}</td>
+                      <td style={{ fontWeight: 700, textAlign: 'center' }}>{l.qty}</td>
                       <td>{money(l.rate)}</td>
                       <td style={{ fontWeight: 600 }}>{l.mrp ? money(l.mrp) : '—'}</td>
                       <td>{l.gst || 0}%</td>
-                      <td style={{ fontWeight: 600 }}>{money(lineSub + lineGst)}</td>
+                      <td style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'right' }}>{money(lineSub + lineGst)}</td>
                     </tr>
                   );
                 })}

@@ -1282,6 +1282,7 @@ export default function InventoryPage() {
                         <th>Product</th>
                         <th>Qty</th>
                         <th>Rate (₹)</th>
+                        <th style={{ textAlign: 'right' }}>Row Total (₹)</th>
                         <th>Party / Supplier / Client</th>
                         <th>Batch / Expiry</th>
                         <th>Action</th>
@@ -1322,6 +1323,9 @@ export default function InventoryPage() {
                           <td style={{ fontWeight: 700 }}>{tx.product}</td>
                           <td style={{ fontWeight: 700 }}>{tx.qty}</td>
                           <td>{money(tx.rate)}</td>
+                          <td style={{ fontWeight: 800, color: 'var(--teal)', textAlign: 'right' }}>
+                            {money(Number(tx.qty || 0) * Number(tx.rate || 0))}
+                          </td>
                           <td>{tx.party || '—'}</td>
                           <td style={{ fontSize: 12, color: 'var(--muted)' }}>
                             {tx.batch ? `Batch: ${tx.batch} ` : ''}{tx.expiry ? `(Exp: ${fmtExpiry(tx.expiry)})` : ''}
