@@ -131,10 +131,10 @@ const ADJUSTMENT_REASONS: AdjustmentReason[] = [
 ];
 
 // Column Widths, Sorting & Excel Filtering Constants
-const DEFAULT_INV_COL_WIDTHS = [290, 200, 130, 210, 160, 110];
-const MIN_INV_COL_WIDTHS = [160, 120, 85, 140, 110, 80];
+const DEFAULT_INV_COL_WIDTHS = [330, 140, 220, 170, 110];
+const MIN_INV_COL_WIDTHS = [160, 85, 140, 110, 80];
 
-type InvSortCol = 'product' | 'category' | 'stock' | 'pricing' | 'expiry';
+type InvSortCol = 'product' | 'stock' | 'pricing' | 'expiry';
 type InvSortDir = 'asc' | 'desc';
 
 interface InvColHeaderDef {
@@ -146,7 +146,6 @@ interface InvColHeaderDef {
 
 const INV_COL_DEFS: InvColHeaderDef[] = [
   { id: 'product', label: 'Product & Barcode', canSort: true, canFilter: true },
-  { id: 'category', label: 'Category & Supplier', canSort: true, canFilter: true },
   { id: 'stock', label: 'Stock Level', canSort: true, canFilter: true },
   { id: 'pricing', label: 'Pricing (Sell / MRP / Buy)', canSort: true, canFilter: true },
   { id: 'expiry', label: 'Expiry & Buy Date', canSort: true, canFilter: true },
@@ -174,7 +173,7 @@ export default function InventoryPage() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('shree_inv_col_widths');
+      const saved = localStorage.getItem('shree_inv_col_widths_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length === DEFAULT_INV_COL_WIDTHS.length) {
@@ -189,7 +188,7 @@ export default function InventoryPage() {
   const resetColWidths = () => {
     setColWidths(DEFAULT_INV_COL_WIDTHS);
     try {
-      localStorage.removeItem('shree_inv_col_widths');
+      localStorage.removeItem('shree_inv_col_widths_v2');
     } catch {
       // ignore
     }
@@ -229,7 +228,7 @@ export default function InventoryPage() {
 
       setColWidths((latest) => {
         try {
-          localStorage.setItem('shree_inv_col_widths', JSON.stringify(latest));
+          localStorage.setItem('shree_inv_col_widths_v2', JSON.stringify(latest));
         } catch {
           // ignore
         }
@@ -263,13 +262,11 @@ export default function InventoryPage() {
   // ─── Excel-Style Column Filters (▽) ───
   const [colFilters, setColFilters] = useState<{
     product: string[];
-    category: string[];
     stock: string[];
     pricing: string[];
     expiry: string[];
   }>({
     product: [],
-    category: [],
     stock: [],
     pricing: [],
     expiry: [],
@@ -315,7 +312,6 @@ export default function InventoryPage() {
   const clearAllFilters = () => {
     setColFilters({
       product: [],
-      category: [],
       stock: [],
       pricing: [],
       expiry: [],
@@ -329,7 +325,6 @@ export default function InventoryPage() {
   const hasAnyFilterActive = useMemo(() => {
     return (
       colFilters.product.length > 0 ||
-      colFilters.category.length > 0 ||
       colFilters.stock.length > 0 ||
       colFilters.pricing.length > 0 ||
       colFilters.expiry.length > 0 ||
@@ -706,7 +701,6 @@ export default function InventoryPage() {
 
     return {
       product: productOptions,
-      category: categoryOptions,
       stock: stockOptions,
       pricing: pricingOptions,
       expiry: expiryOptions,
@@ -740,13 +734,7 @@ export default function InventoryPage() {
         if (!colFilters.product.includes(b)) return false;
       }
 
-      // 4. Column Filter: Category
-      if (colFilters.category.length > 0) {
-        const c = p.category || 'General';
-        if (!colFilters.category.includes(c)) return false;
-      }
-
-      // 5. Column Filter: Stock
+      // 4. Column Filter: Stock
       if (colFilters.stock.length > 0) {
         const s = Number(p.stock || 0);
         const low = Number(p.low || 2);
@@ -802,10 +790,6 @@ export default function InventoryPage() {
         switch (sortConfig.col) {
           case 'product':
             return (a.name || '').localeCompare(b.name || '') * dirMult;
-          case 'category':
-            return ((a.category || '') + (a.supplierName || '')).localeCompare(
-              (b.category || '') + (b.supplierName || '')
-            ) * dirMult;
           case 'stock':
             return (Number(a.stock || 0) - Number(b.stock || 0)) * dirMult;
           case 'pricing':
@@ -1536,94 +1520,7 @@ export default function InventoryPage() {
                 </div>
               ) : (
                 <div className="table-wrap">
-                  {/* Filter / Sort / Resize Status Bar */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '5px 10px',
-                    background: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
-                    fontSize: 11,
-                    flexWrap: 'wrap',
-                    gap: 6,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ color: '#0f766e', fontWeight: 700 }}>
-                        ↔ હેડર વર્ટિકલ લાઈન ડ્રેગ/સ્વાઈપ કરીને કોલમ નાની (Small) કે મોટી (Big) કરી શકો છો
-                      </span>
-                      {sortConfig.col && (
-                        <span style={{
-                          background: '#ccfbf1',
-                          color: '#0f766e',
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          fontWeight: 700,
-                        }}>
-                          Sort: {INV_COL_DEFS.find((c) => c.id === sortConfig.col)?.label} ({sortConfig.dir === 'asc' ? '▲ Ascending' : '▼ Descending'})
-                        </span>
-                      )}
-                      {Object.entries(colFilters).some(([_, arr]) => arr.length > 0) && (
-                        <span style={{
-                          background: '#dcfce7',
-                          color: '#15803d',
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          fontWeight: 700,
-                        }}>
-                          Filtered: {Object.values(colFilters).reduce((sum, a) => sum + a.length, 0)} Filters Active
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs"
-                        onClick={() =>
-                          setSortConfig((prev) =>
-                            prev.col === 'expiry' && prev.dir === 'asc'
-                              ? { col: null, dir: null }
-                              : { col: 'expiry', dir: 'asc' }
-                          )
-                        }
-                        style={{
-                          background: sortConfig.col === 'expiry' && sortConfig.dir === 'asc' ? '#dcfce7' : '#ffffff',
-                          border: sortConfig.col === 'expiry' && sortConfig.dir === 'asc' ? '1px solid #16a34a' : '1px solid #cbd5e1',
-                          color: sortConfig.col === 'expiry' && sortConfig.dir === 'asc' ? '#15803d' : '#05424A',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          borderRadius: 6,
-                          height: 24,
-                          padding: '0 8px',
-                          fontSize: 10.5,
-                        }}
-                        title="Sort Inventory: First Expiry First (FEFO)"
-                      >
-                        <span>⏳ First Expiry First</span>
-                      </button>
-                      {hasAnyFilterActive && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          onClick={clearAllFilters}
-                          style={{ color: '#ef4444', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                          <X size={12} /> Clear Filters & Sorting
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-xs"
-                        onClick={resetColWidths}
-                        style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 4 }}
-                        title="Reset column widths to default"
-                      >
-                        <RotateCcw size={12} /> Reset Widths
-                      </button>
-                    </div>
-                  </div>
+
 
                   <table style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0), minWidth: '100%' }}>
                     <colgroup>
@@ -1922,7 +1819,7 @@ export default function InventoryPage() {
                           !isExpired &&
                           item.expiry <= new Date(Date.now() + 45 * 86400000).toISOString().slice(0, 10);
                         return (
-                          <motion.tr key={item.id} variants={fadeSlideUp} className={isLow ? 'low-stock-row' : ''}>
+                          <motion.tr key={item.id} variants={fadeSlideUp} className={isLow ? 'low-stock-row' : ''} onClick={() => setViewProduct(item)} style={{ cursor: 'pointer' }} title="Click to view product details">
                             <td>
                               <div
                                 style={{
@@ -1946,14 +1843,6 @@ export default function InventoryPage() {
                                     · [{item.barcode}]
                                   </span>
                                 )}
-                              </div>
-                            </td>
-                            <td>
-                              <span className="badge badge-teal" style={{ fontSize: 11 }}>
-                                {item.category || 'General'}
-                              </span>
-                              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                                {item.supplierName || '—'}
                               </div>
                             </td>
                             <td>
@@ -2021,7 +1910,7 @@ export default function InventoryPage() {
                                 </div>
                               )}
                             </td>
-                            <td>
+                            <td onClick={(e) => e.stopPropagation()}>
                               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                                 <button
                                   className="btn btn-sm btn-ghost"
@@ -2085,7 +1974,14 @@ export default function InventoryPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {inventoryTx.slice(0, 50).map((tx) => (
+                      {[...inventoryTx]
+                        .sort((a, b) => {
+                          const timeA = a.date ? new Date(a.date).getTime() : 0;
+                          const timeB = b.date ? new Date(b.date).getTime() : 0;
+                          return timeB - timeA;
+                        })
+                        .slice(0, 100)
+                        .map((tx) => (
                         <tr key={tx.id}>
                           <td style={{ whiteSpace: 'nowrap' }}>{fmtDate(tx.date)}</td>
                           <td>
@@ -2253,7 +2149,7 @@ export default function InventoryPage() {
                     </thead>
                     <tbody>
                       {lowStockItems.map((item) => (
-                        <tr key={item.id}>
+                        <tr key={item.id} onClick={() => setViewProduct(item)} style={{ cursor: 'pointer' }} title="Click to view product details">
                           <td style={{ fontWeight: 700 }}>
                               <div
                                 style={{ cursor: 'pointer', transition: 'color 0.15s ease' }}
@@ -2274,7 +2170,7 @@ export default function InventoryPage() {
                           </td>
                           <td>{item.low} {item.unit || 'Pcs'}</td>
                           <td>{money(item.buy)}</td>
-                          <td>
+                          <td onClick={(e) => e.stopPropagation()}>
                             <button
                               className="btn btn-primary btn-sm"
                               onClick={() => openStockIn(item.id)}
@@ -2322,7 +2218,7 @@ export default function InventoryPage() {
                       {expiringItems.map((item) => {
                         const isExpired = item.expiry && item.expiry < today;
                         return (
-                          <tr key={item.id} className={isExpired ? 'low-stock-row' : ''}>
+                          <tr key={item.id} className={isExpired ? 'low-stock-row' : ''} onClick={() => setViewProduct(item)} style={{ cursor: 'pointer' }} title="Click to view product details">
                             <td style={{ fontFamily: 'monospace', fontSize: 11.5 }}>{item.barcode || '—'}</td>
                             <td style={{ fontWeight: 700 }}>
                               <div
@@ -2356,7 +2252,7 @@ export default function InventoryPage() {
                             <td>{money(item.buy)}</td>
                             <td>{item.mrp ? money(item.mrp) : money(item.sell)}</td>
                             <td>{item.supplierName || '—'}</td>
-                            <td>
+                            <td onClick={(e) => e.stopPropagation()}>
                               <div style={{ display: 'flex', gap: 5 }}>
                                 <button
                                   className="btn btn-sm btn-ghost"
@@ -3264,62 +3160,100 @@ export default function InventoryPage() {
             </div>
           }
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {/* Header Identity Bar */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Header Identity & Details Bar (Compact) */}
             <div
               style={{
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
-                gap: 12,
-                padding: '12px 16px',
+                flexDirection: 'column',
+                gap: 6,
+                padding: '8px 12px',
                 background: 'var(--bg)',
-                borderRadius: 10,
+                borderRadius: 8,
                 border: '1px solid var(--border)',
               }}
             >
-              <div>
-                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text)' }}>
-                  {viewProduct.name}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--muted)' }}>
-                    Brand: <strong style={{ color: 'var(--text)' }}>{viewProduct.brand || 'Unbranded'}</strong>
-                  </span>
-                  {viewProduct.barcode && (
-                    <span
-                      style={{
-                        fontSize: 11.5,
-                        fontFamily: 'monospace',
-                        fontWeight: 700,
-                        color: 'var(--teal)',
-                        background: '#f0fdfa',
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <Barcode size={13} /> {viewProduct.barcode}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)', lineHeight: 1.2 }}>
+                    {viewProduct.name}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--muted)' }}>
+                      Brand: <strong style={{ color: 'var(--text)' }}>{viewProduct.brand || 'Unbranded'}</strong>
                     </span>
-                  )}
-                  {viewProduct.hsnCode && (
-                    <span style={{ fontSize: 11, color: 'var(--muted)', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4 }}>
-                      HSN: {viewProduct.hsnCode}
+                    {viewProduct.barcode && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          fontWeight: 700,
+                          color: 'var(--teal)',
+                          background: '#f0fdfa',
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                        }}
+                      >
+                        <Barcode size={12} /> {viewProduct.barcode}
+                      </span>
+                    )}
+                    {viewProduct.hsnCode && (
+                      <span style={{ fontSize: 10.5, color: 'var(--muted)', background: '#f1f5f9', padding: '1px 5px', borderRadius: 4 }}>
+                        HSN: {viewProduct.hsnCode}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span className="badge badge-teal" style={{ fontSize: 11, padding: '2px 8px' }}>
+                    {viewProduct.category || 'General'}
+                  </span>
+                  {viewProduct.supplierName && (
+                    <span style={{ fontSize: 11, color: 'var(--muted)', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: 4 }}>
+                      🏢 {viewProduct.supplierName}
                     </span>
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className="badge badge-teal" style={{ fontSize: 12, padding: '4px 10px' }}>
-                  {viewProduct.category || 'General'}
-                </span>
-                {viewProduct.supplierName && (
-                  <span style={{ fontSize: 11.5, color: 'var(--muted)', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 8px', borderRadius: 6 }}>
-                    🏢 {viewProduct.supplierName}
-                  </span>
+
+              {/* Tax Rate & Total Stock Value (Merged from Card 1 - Compact) */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                  paddingTop: 5,
+                  borderTop: '1px solid var(--border)',
+                  fontSize: 11.5,
+                  lineHeight: 1.2,
+                }}
+              >
+                <div>
+                  <span style={{ color: 'var(--muted)' }}>GST / Tax Rate:</span>{' '}
+                  <strong>{viewProduct.taxRate ?? defaultGst}%</strong>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--muted)' }}>Total Stock Value:</span>{' '}
+                  <strong style={{ color: 'var(--teal)' }}>{money(viewProduct.stock * viewProduct.buy)}</strong>
+                </div>
+                {viewProduct.aliases && viewProduct.aliases.length > 0 && (
+                  <div style={{ width: '100%', marginTop: 1, fontSize: 11 }}>
+                    <span style={{ color: 'var(--muted)' }}>Aliases:</span>{' '}
+                    <span style={{ color: '#475569' }}>{viewProduct.aliases.join(', ')}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -3423,94 +3357,22 @@ export default function InventoryPage() {
               </div>
             </div>
 
-            {/* Batches Breakdown (if multiple batches exist) */}
-            {viewProduct.batches && viewProduct.batches.length > 0 && (
-              <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    background: '#f1f5f9',
-                    fontSize: 12.5,
-                    fontWeight: 800,
-                    color: '#1e293b',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <Layers size={14} /> Batches Inventory Breakdown ({viewProduct.batches.length} Batches)
-                </div>
-                <div style={{ maxHeight: 180, overflowY: 'auto' }}>
-                  <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ padding: '6px 12px' }}>Batch #</th>
-                        <th style={{ padding: '6px 12px' }}>Stock Qty</th>
-                        <th style={{ padding: '6px 12px' }}>Expiry Date</th>
-                        <th style={{ padding: '6px 12px' }}>Buy Rate</th>
-                        <th style={{ padding: '6px 12px' }}>MRP</th>
-                        <th style={{ padding: '6px 12px' }}>Inward Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {viewProduct.batches.map((b, idx) => (
-                        <tr key={b.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '6px 12px', fontWeight: 700, fontFamily: 'monospace' }}>
-                            {b.batch || `Batch-${idx + 1}`}
-                          </td>
-                          <td style={{ padding: '6px 12px', fontWeight: 800 }}>
-                            {b.stock} {viewProduct.unit || 'Pcs'}
-                          </td>
-                          <td style={{ padding: '6px 12px' }}>
-                            {b.expiry ? fmtExpiry(b.expiry) : '—'}
-                          </td>
-                          <td style={{ padding: '6px 12px' }}>{b.buyRate ? money(b.buyRate) : money(viewProduct.buy)}</td>
-                          <td style={{ padding: '6px 12px' }}>{b.mrp ? money(b.mrp) : money(viewProduct.mrp || viewProduct.sell)}</td>
-                          <td style={{ padding: '6px 12px', color: 'var(--muted)' }}>
-                            {b.buyDate ? fmtDate(b.buyDate) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
 
-            {/* Additional Details (Tax, HSN, Aliases, Total Asset Value) */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 10,
-                fontSize: 12,
-                padding: '12px 14px',
-                background: 'var(--bg)',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-              }}
-            >
-              <div>
-                <span style={{ color: 'var(--muted)' }}>GST / Tax Rate:</span>{' '}
-                <strong>{viewProduct.taxRate ?? defaultGst}%</strong>
-              </div>
-              <div>
-                <span style={{ color: 'var(--muted)' }}>Total Stock Value:</span>{' '}
-                <strong style={{ color: 'var(--teal)' }}>{money(viewProduct.stock * viewProduct.buy)}</strong>
-              </div>
-              {viewProduct.aliases && viewProduct.aliases.length > 0 && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <span style={{ color: 'var(--muted)' }}>Product Aliases / Bill Matching:</span>{' '}
-                  <span style={{ color: '#475569' }}>{viewProduct.aliases.join(', ')}</span>
-                </div>
-              )}
-            </div>
+
+
 
             {/* Recent Audit / Movement History */}
             {(() => {
-              const prodHistory = inventoryTx.filter(
-                (tx) => tx.product === viewProduct.name || (tx.barcode && tx.barcode === viewProduct.barcode)
-              ).slice(0, 5);
+              const prodHistory = [...inventoryTx]
+                .filter(
+                  (tx) => tx.product === viewProduct.name || (tx.barcode && tx.barcode === viewProduct.barcode)
+                )
+                .sort((a, b) => {
+                  const timeA = a.date ? new Date(a.date).getTime() : 0;
+                  const timeB = b.date ? new Date(b.date).getTime() : 0;
+                  return timeB - timeA;
+                })
+                .slice(0, 10);
 
               if (prodHistory.length === 0) return null;
 
