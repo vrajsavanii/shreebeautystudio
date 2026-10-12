@@ -130,7 +130,7 @@ export default function CameraBarcodeScanner({
           qrbox: qrboxFunction,
           aspectRatio: 1.333333,
         },
-        (decodedText) => {
+        (decodedText: string) => {
           handleDetected(decodedText);
         },
         () => {
