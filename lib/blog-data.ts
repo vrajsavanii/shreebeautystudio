@@ -12,6 +12,12 @@ import { MAKEUP_TRENDS_BLOGS } from './blogs/makeup-trends';
 import { OCCASION_BEAUTY_BLOGS } from './blogs/occasion-beauty';
 import { SKINCARE_WELLNESS_BLOGS } from './blogs/skincare-wellness';
 import { SEO_DRIVEN_GUIDES } from './blogs/seo-driven-guides';
+import { MASTER_GEO_NEIGHBORHOODS_BLOGS } from './blogs/master-geo-neighborhoods';
+import { MASTER_NEAR_ME_BLOGS } from './blogs/master-near-me';
+import { MASTER_BRIDAL_CEREMONIES_BLOGS } from './blogs/master-bridal-ceremonies';
+import { MASTER_FESTIVE_BRAND_BLOGS } from './blogs/master-festive-brand';
+import { MASTER_HAIR_SKIN_BLOGS } from './blogs/master-hair-skin';
+import { MASTER_VOICE_SEARCH_FAQ_BLOGS } from './blogs/master-voice-search-faq';
 
 export const ALL_BLOG_POSTS: BlogPost[] = [
   ...BRIDAL_BLOGS,
@@ -27,6 +33,12 @@ export const ALL_BLOG_POSTS: BlogPost[] = [
   ...OCCASION_BEAUTY_BLOGS,
   ...SKINCARE_WELLNESS_BLOGS,
   ...SEO_DRIVEN_GUIDES,
+  ...MASTER_GEO_NEIGHBORHOODS_BLOGS,
+  ...MASTER_NEAR_ME_BLOGS,
+  ...MASTER_BRIDAL_CEREMONIES_BLOGS,
+  ...MASTER_FESTIVE_BRAND_BLOGS,
+  ...MASTER_HAIR_SKIN_BLOGS,
+  ...MASTER_VOICE_SEARCH_FAQ_BLOGS,
 ];
 
 export function getBlogPostBySlug(slug: string): BlogPost | undefined {
