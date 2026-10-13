@@ -3229,7 +3229,7 @@ export default function SettingsPage() {
                 </div>
                 <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 8, border: '1px solid #86efac' }}>
                   <b>📲 WhatsApp &amp; PDF:</b><br />
-                  &quot;બ્રાઇડલ રેટ કાર્ડ મોકલો 9601014899 પર&quot;
+                  &quot;બ્રાઇડલ રેટ કાર્ડ મોકલો 9824183769 પર&quot;
                 </div>
               </div>
             </div>

@@ -124,7 +124,7 @@ export default function WhatsAppHubPage() {
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, name: '' });
 
   // WhatsApp Connect Chat States (Matches User Screenshot)
-  const [connectSearch, setConnectSearch] = useState('9601014899');
+  const [connectSearch, setConnectSearch] = useState('');
   const [connectInputMessage, setConnectInputMessage] = useState('');
   const [showSmartMenu, setShowSmartMenu] = useState(false);
   const [showPartyMenu, setShowPartyMenu] = useState(false);
@@ -145,6 +145,7 @@ export default function WhatsAppHubPage() {
   const bulkCancelRef = useRef(false);
   const [isSyncingModalOpen, setIsSyncingModalOpen] = useState(false);
   const wasWaitingQrRef = useRef(false);
+  const hasSyncedOnceRef = useRef(false);
 
   // WhatsApp Connect QR Code State
   const [isDeviceLinked, setIsDeviceLinked] = useState<boolean>(true);
@@ -190,8 +191,8 @@ export default function WhatsAppHubPage() {
   };
 
   // Composer / Live Desk Target State
-  const [targetPhone, setTargetPhone] = useState('9601014899');
-  const [targetName, setTargetName] = useState('sandip');
+  const [targetPhone, setTargetPhone] = useState('');
+  const [targetName, setTargetName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('appointment');
   const [customText, setCustomText] = useState('');
   const [promoOffer, setPromoOffer] = useState('Flat 20% OFF on all Hair Spa & Hydra Facials this week! ✨');
@@ -358,21 +359,24 @@ export default function WhatsAppHubPage() {
       wasWaitingQrRef.current = true;
     } else if (waStatus === 'connected') {
       setIsDeviceLinked(true);
-      if (wasWaitingQrRef.current) {
+      if (wasWaitingQrRef.current && !hasSyncedOnceRef.current && connectSubView !== 'chat') {
         wasWaitingQrRef.current = false;
+        hasSyncedOnceRef.current = true;
         setIsSyncingModalOpen(true);
         const timer = setTimeout(() => {
           setIsSyncingModalOpen(false);
           setActiveTab('connect');
           setConnectSubView('chat');
           toast('🎉 WhatsApp Web connected & synced successfully!');
-        }, 2800);
+        }, 2200);
         return () => clearTimeout(timer);
       } else {
+        wasWaitingQrRef.current = false;
+        setIsSyncingModalOpen(false);
         setConnectSubView('chat');
       }
     }
-  }, [waStatus]);
+  }, [waStatus, connectSubView]);
 
   useEffect(() => {
     if (targetPhone) {
@@ -811,14 +815,6 @@ export default function WhatsAppHubPage() {
     return [...invoices].reverse();
   }, [invoices]);
 
-  // Set initial selected customer if empty
-  useEffect(() => {
-    if (!targetPhone) {
-      setTargetPhone('9601014899');
-      setTargetName('sandip');
-    }
-  }, [targetPhone]);
-
   // ── IN-PAGE WHATSAPP WEB DISPATCH HANDLER (DIRECT & ZERO EXTRA TABS) ────────
   const handleSendInPageMessage = (
     customPhone?: string,
@@ -1123,9 +1119,13 @@ export default function WhatsAppHubPage() {
       return;
     }
 
-    const cleanMobile = (targetPhone || '9601014899').replace(/\D/g, '').slice(-10);
+    const cleanMobile = (targetPhone || '').replace(/\D/g, '').slice(-10);
+    if (!cleanMobile) {
+      toast('કૃપા કરીને ગ્રાહકનો મોબાઈલ નંબર પસંદ કરો.', 'error');
+      return;
+    }
     const targetJid = `91${cleanMobile}@s.whatsapp.net`;
-    const clientName = targetName || 'Sandip';
+    const clientName = targetName || 'Customer';
 
     setIsSendingLive(true);
 
@@ -1361,18 +1361,6 @@ export default function WhatsAppHubPage() {
       });
     });
 
-    // 2. Ensure Sandip is in list
-    if (!contactMap.has('9601014899')) {
-      contactMap.set('9601014899', {
-        id: 'sandip_default',
-        name: 'sandip',
-        mobile: '9601014899',
-        lastMessage: 'hi',
-        lastTime: '3:46 PM',
-        unreadCount: 0,
-      });
-    }
-
     // 3. From salon customers
     (customers || []).forEach((c) => {
       const clean = (c.mobile || '').replace(/\D/g, '').slice(-10);
@@ -1403,7 +1391,8 @@ export default function WhatsAppHubPage() {
 
   // ── ACTIVE CHAT MESSAGES ──────────────────────────────────────────
   const activeChatMessages = useMemo(() => {
-    const clean = (targetPhone || '9601014899').replace(/\D/g, '').slice(-10);
+    const clean = (targetPhone || '').replace(/\D/g, '').slice(-10);
+    if (!clean) return [];
     const targetJid = `91${clean}@s.whatsapp.net`;
 
     const liveList = backendMessages[targetJid] || [];
@@ -1415,31 +1404,7 @@ export default function WhatsAppHubPage() {
       .filter((l) => (l.mobile || '').replace(/\D/g, '').slice(-10) === clean)
       .slice(-40);
 
-    const isSandip = clean === '9601014899' || (targetName && targetName.toLowerCase() === 'sandip');
-    const seedMessages = isSandip
-      ? [
-          {
-            id: 'seed_1',
-            mobile: '9601014899',
-            customerName: 'sandip',
-            text: "This message can't be displayed here",
-            timestamp: '2026-09-22T18:44:00',
-            direction: 'outbound' as const,
-            status: 'sent' as const,
-          },
-          {
-            id: 'seed_2',
-            mobile: '9601014899',
-            customerName: 'sandip',
-            text: 'hi',
-            timestamp: '2026-10-13T15:46:00',
-            direction: 'outbound' as const,
-            status: 'delivered' as const,
-          },
-        ]
-      : [];
-
-    return [...seedMessages, ...logs];
+    return logs;
   }, [backendMessages, data?.whatsappLogs, targetPhone, targetName]);
 
   return (
@@ -1619,7 +1584,7 @@ export default function WhatsAppHubPage() {
       )}
 
       {/* Syncing Modal */}
-      <WhatsAppSyncingModal isOpen={isSyncingModalOpen} />
+      <WhatsAppSyncingModal isOpen={isSyncingModalOpen} onClose={() => setIsSyncingModalOpen(false)} />
 
       {/* Primary Navigation Tabs & Toolbar COMBINED IN ONE SINGLE ROW */}
       <div
@@ -1851,7 +1816,7 @@ export default function WhatsAppHubPage() {
 
       {/* ── TAB: WHATSAPP CONNECT CONTENT ── */}
       {activeTab === 'connect' && (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
           {connectSubView === 'chat' ? (
             <WhatsAppLiveChatTab
               customers={customers}

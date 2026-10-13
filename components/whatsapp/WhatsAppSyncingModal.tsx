@@ -4,14 +4,15 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Smartphone, Wifi, CheckCircle2 } from 'lucide-react';
+import { MessageCircle, Smartphone, Wifi, CheckCircle2, X } from 'lucide-react';
 
 interface WhatsAppSyncingModalProps {
   isOpen: boolean;
   onFinish?: () => void;
+  onClose?: () => void;
 }
 
-export default function WhatsAppSyncingModal({ isOpen, onFinish }: WhatsAppSyncingModalProps) {
+export default function WhatsAppSyncingModal({ isOpen, onFinish, onClose }: WhatsAppSyncingModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -21,6 +22,7 @@ export default function WhatsAppSyncingModal({ isOpen, onFinish }: WhatsAppSynci
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
+        onClick={onClose}
         style={{
           position: 'fixed',
           inset: 0,
@@ -76,6 +78,7 @@ export default function WhatsAppSyncingModal({ isOpen, onFinish }: WhatsAppSynci
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          onClick={(e) => e.stopPropagation()}
           style={{
             position: 'relative',
             zIndex: 10,
@@ -88,6 +91,31 @@ export default function WhatsAppSyncingModal({ isOpen, onFinish }: WhatsAppSynci
             textAlign: 'center',
           }}
         >
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                position: 'absolute',
+                top: 14,
+                right: 14,
+                background: '#f1f5f9',
+                border: 'none',
+                borderRadius: '50%',
+                width: 30,
+                height: 30,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748b',
+                zIndex: 30,
+              }}
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+          )}
           <div style={{ padding: '36px 30px 28px' }}>
             {/* Pulsing WhatsApp Logo */}
             <motion.div

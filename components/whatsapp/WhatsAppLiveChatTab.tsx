@@ -27,6 +27,10 @@ import {
   ChevronDown,
   ChevronUp,
   Store,
+  Trash2,
+  VolumeX,
+  Clock,
+  MessageCircle,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { getCachedChats, saveCachedChats, getCachedMessages, saveCachedMessages } from '@/lib/whatsapp-cache';
@@ -97,45 +101,12 @@ export default function WhatsAppLiveChatTab({
   onSendPartyStatement,
   onShowCustomerProfile,
 }: WhatsAppLiveChatTabProps) {
-  // Initial seed contacts matching screenshot (Sandip 9601014899)
-  const defaultChats: ChatContact[] = [
-    {
-      jid: '919601014899@s.whatsapp.net',
-      name: 'sandip',
-      phone: '9601014899',
-      lastMessage: 'hi',
-      timestamp: '2026-10-13T15:46:00.000Z',
-      unreadCount: 0,
-    },
-  ];
+  const defaultChats: ChatContact[] = [];
 
   const [chats, setChats] = useState<ChatContact[]>(defaultChats);
-  const [selectedJid, setSelectedJid] = useState<string>('919601014899@s.whatsapp.net');
-  const [searchQuery, setSearchQuery] = useState('9601014899');
-  const [messagesMap, setMessagesMap] = useState<Record<string, ChatMessage[]>>({
-    '919601014899@s.whatsapp.net': [
-      {
-        id: 'seed_msg_1',
-        jid: '919601014899@s.whatsapp.net',
-        fromMe: true,
-        type: 'text',
-        body: "This message can't be displayed here",
-        status: 'sent',
-        timestamp: '2026-09-22T18:44:00.000Z',
-        senderName: 'Me',
-      },
-      {
-        id: 'seed_msg_2',
-        jid: '919601014899@s.whatsapp.net',
-        fromMe: true,
-        type: 'text',
-        body: 'hi',
-        status: 'delivered',
-        timestamp: '2026-10-13T15:46:00.000Z',
-        senderName: 'Me',
-      },
-    ],
-  });
+  const [selectedJid, setSelectedJid] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [messagesMap, setMessagesMap] = useState<Record<string, ChatMessage[]>>({});
 
   const [inputText, setInputText] = useState('');
   const [showAttachMenu, setShowAttachMenu] = useState(false);
@@ -144,16 +115,50 @@ export default function WhatsAppLiveChatTab({
   const [showPartyMenu, setShowPartyMenu] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [isSyncingOlder, setIsSyncingOlder] = useState(false);
-  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
 
   // AI Smart replies state
   const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
+  const outerContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const optionsMenuRef = useRef<HTMLDivElement>(null);
   const [attachType, setAttachType] = useState<'image' | 'document' | 'audio'>('image');
+
+  // WhatsApp Web 3-dots Menu States
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
+  const [mutedChats, setMutedChats] = useState<Record<string, string>>({});
+  const [muteModalOpen, setMuteModalOpen] = useState(false);
+  const [selectedMuteDuration, setSelectedMuteDuration] = useState<'8 hours' | '1 week' | 'Always'>('8 hours');
+  const [disappearingModalOpen, setDisappearingModalOpen] = useState(false);
+  const [disappearingDuration, setDisappearingDuration] = useState<'24 hours' | '7 days' | '90 days' | 'Off'>('Off');
+  const [confirmClearModalOpen, setConfirmClearModalOpen] = useState(false);
+  const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
+
+  // Close options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(e.target as Node)) {
+        setShowOptionsMenu(false);
+      }
+    };
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showOptionsMenu]);
+
+  // Keep outer container strictly scrolled to top
+  useEffect(() => {
+    if (outerContainerRef.current) {
+      outerContainerRef.current.scrollTop = 0;
+    }
+  }, [selectedJid]);
 
   // 1. Load from IndexedDB on initial mount
   useEffect(() => {
@@ -161,7 +166,6 @@ export default function WhatsAppLiveChatTab({
       const cached = await getCachedChats();
       if (cached && cached.length > 0) {
         setChats((prev) => {
-          // Merge ensuring sandip is present
           const map = new Map<string, ChatContact>();
           prev.forEach((c) => map.set(c.jid, c));
           cached.forEach((c) => map.set(c.jid, c));
@@ -182,20 +186,18 @@ export default function WhatsAppLiveChatTab({
         if (Array.isArray(json.chats)) {
           setChats((prev) => {
             const map = new Map<string, ChatContact>();
-            // Ensure sandip is always present
-            map.set('919601014899@s.whatsapp.net', {
-              jid: '919601014899@s.whatsapp.net',
-              name: 'sandip',
-              phone: '9601014899',
-              lastMessage: 'hi',
-              timestamp: '2026-10-13T15:46:00.000Z',
-              unreadCount: 0,
+            json.chats.forEach((c: ChatContact) => {
+              if (c.phone === '9601014899' || c.jid.includes('9601014899')) return;
+              map.set(c.jid, c);
             });
-            json.chats.forEach((c: ChatContact) => map.set(c.jid, c));
             const sorted = Array.from(map.values()).sort(
               (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
             );
             saveCachedChats(sorted);
+            setSelectedJid((curr) => {
+              if (curr && map.has(curr)) return curr;
+              return sorted[0]?.jid || '';
+            });
             return sorted;
           });
         }
@@ -242,15 +244,23 @@ export default function WhatsAppLiveChatTab({
   };
 
   useEffect(() => {
-    if (selectedJid) {
-      fetchChatMessages(selectedJid);
-      fetch('/api/whatsapp/mark-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jid: selectedJid }),
-      }).catch(() => {});
-    }
-  }, [selectedJid]);
+    const targetJid = selectedJid || (chats[0]?.jid || '');
+    if (!targetJid) return;
+
+    fetchChatMessages(targetJid);
+    fetch('/api/whatsapp/mark-read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jid: targetJid }),
+    }).catch(() => {});
+
+    // Live continuous sync: poll messages every 2.5s so newly received messages appear immediately!
+    const pollInterval = setInterval(() => {
+      fetchChatMessages(targetJid);
+    }, 2500);
+
+    return () => clearInterval(pollInterval);
+  }, [selectedJid, chats[0]?.jid]);
 
   // 4. SSE real-time listener for incoming messages & status updates
   useEffect(() => {
@@ -333,10 +343,12 @@ export default function WhatsAppLiveChatTab({
     });
   }, [chats, searchQuery]);
 
-  // 7. Auto-scroll on new message
+  // 7. Auto-scroll on new message (Using direct scrollTop on message container to NEVER scroll outer page/header)
   useEffect(() => {
-    if (!showScrollBottom) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!showScrollBottom && chatScrollContainerRef.current) {
+      const container = chatScrollContainerRef.current;
+      // Scroll only inside the message stream container
+      container.scrollTop = container.scrollHeight;
     }
   }, [activeMessages, showScrollBottom]);
 
@@ -348,7 +360,12 @@ export default function WhatsAppLiveChatTab({
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatScrollContainerRef.current) {
+      chatScrollContainerRef.current.scrollTo({
+        top: chatScrollContainerRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    }
     setShowScrollBottom(false);
   };
 
@@ -544,11 +561,29 @@ export default function WhatsAppLiveChatTab({
     return groups;
   }, [activeMessages]);
 
+  const menuItemStyle: React.CSSProperties = {
+    width: '100%',
+    textAlign: 'left',
+    padding: '9px 24px',
+    border: 'none',
+    background: 'none',
+    fontSize: 14,
+    fontWeight: 400,
+    color: '#3b4a54',
+    cursor: 'pointer',
+    display: 'block',
+    transition: 'background 0.1s ease',
+    outline: 'none',
+  };
+
   return (
     <div
+      ref={outerContainerRef}
       style={{
-        display: 'grid',
-        gridTemplateColumns: mobileView === 'list' ? '320px 1fr' : '0 1fr',
+        display: 'flex',
+        flexDirection: 'row',
+        width: '100%',
+        minWidth: 0,
         background: '#ffffff',
         borderRadius: 10,
         border: '1px solid #e2e8f0',
@@ -559,14 +594,19 @@ export default function WhatsAppLiveChatTab({
         boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
       }}
     >
-      {/* ── LEFT PANEL: SEARCH & CHAT LIST (EXACT SCREENSHOT MATCH) ── */}
+      {/* ── LEFT PANEL: SEARCH & CHAT LIST (PERMANENTLY VISIBLE, NEVER HIDDEN) ── */}
       <div
         style={{
+          width: 320,
+          minWidth: 280,
+          maxWidth: 340,
+          flexShrink: 0,
           borderRight: '1px solid #e2e8f0',
           display: 'flex',
           flexDirection: 'column',
           background: '#ffffff',
           height: '100%',
+          overflow: 'hidden',
         }}
       >
         {/* Top Search Pill Input (Exact match to screenshot with magnifying glass) */}
@@ -611,7 +651,7 @@ export default function WhatsAppLiveChatTab({
         </div>
 
         {/* Contact List */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {filteredChats.length === 0 ? (
             <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 12 }}>
               No contact found for &quot;{searchQuery}&quot;
@@ -661,7 +701,6 @@ export default function WhatsAppLiveChatTab({
                   key={c.jid}
                   onClick={() => {
                     setSelectedJid(c.jid);
-                    setMobileView('chat');
                   }}
                   style={{
                     display: 'flex',
@@ -670,8 +709,9 @@ export default function WhatsAppLiveChatTab({
                     padding: '10px 14px',
                     cursor: 'pointer',
                     borderBottom: '1px solid #f8fafc',
-                    background: isSelected ? '#f0f2f5' : '#ffffff',
-                    transition: 'background 0.1s ease',
+                    background: isSelected ? '#eef3f5' : '#ffffff',
+                    borderLeft: isSelected ? '4px solid #05424A' : '4px solid transparent',
+                    transition: 'background 0.15s ease, border-left-color 0.15s ease',
                   }}
                 >
                   {/* Round Avatar Icon (Matching exact grey circle from screenshot) */}
@@ -692,9 +732,12 @@ export default function WhatsAppLiveChatTab({
                       >
                         {c.name || c.phone}
                       </span>
-                      <span style={{ fontSize: 11, color: '#667781' }}>
-                        {formattedTime}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {mutedChats[c.jid] && <VolumeX size={12} color="#8696a0" />}
+                        <span style={{ fontSize: 11, color: '#667781' }}>
+                          {formattedTime}
+                        </span>
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -745,139 +788,304 @@ export default function WhatsAppLiveChatTab({
         </div>
       </div>
 
-      {/* ── RIGHT PANEL: CHAT WINDOW (EXACT SCREENSHOT MATCH) ── */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          background: '#efeae2 url(/images/whatsapp-doodle-bg.svg) repeat',
-          backgroundSize: '412px 412px',
-        }}
-      >
-        {/* Chat Top Bar (Avatar + Bold Name + 3 Dots) */}
+      {/* ── RIGHT PANEL: CHAT WINDOW OR WHATSAPP EMPTY STATE (EXACT SCREENSHOT MATCH) ── */}
+      {!activeChat ? (
         <div
           style={{
-            height: 54,
-            background: '#f0f2f5',
-            borderBottom: '1px solid #e2e8f0',
+            flex: 1,
+            minWidth: 0,
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 16px',
-            flexShrink: 0,
+            justifyContent: 'center',
+            height: '100%',
+            background: '#f0f2f5',
+            padding: 32,
+            textAlign: 'center',
+            borderLeft: '1px solid #e2e8f0',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Mobile Back Button */}
-            <button
-              type="button"
-              onClick={() => setMobileView('list')}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 4,
-                display: mobileView === 'chat' ? 'block' : 'none',
-                color: '#54656f',
-              }}
-            >
-              <ChevronLeft size={20} />
-            </button>
-
-            {/* Avatar */}
-            <WhatsAppAvatar size={36} />
-
-            {/* Contact Name in Bold */}
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: '#111b21' }}>
-              {activeChat?.name || activeChat?.phone || 'sandip'}
-            </div>
+          <div
+            style={{
+              width: 84,
+              height: 84,
+              borderRadius: '50%',
+              background: '#25D366',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(37,211,102,0.25)',
+              marginBottom: 20,
+            }}
+          >
+            <MessageCircle size={44} color="#ffffff" />
           </div>
-
-          {/* Three dots ⋮ Menu */}
-          <div style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setShowOptionsMenu((prev) => !prev)}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 6,
-                cursor: 'pointer',
-                color: '#54656f',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              title="Menu"
-            >
-              <MoreVertical size={18} />
-            </button>
-
-            {showOptionsMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: 4,
-                  background: '#ffffff',
-                  borderRadius: 6,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                  border: '1px solid #e2e8f0',
-                  width: 160,
-                  zIndex: 50,
-                  padding: 4,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowOptionsMenu(false);
-                    if (activeChat && onShowCustomerProfile) {
-                      onShowCustomerProfile(activeChat.phone, activeChat.name);
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '8px 10px',
-                    borderRadius: 4,
-                    border: 'none',
-                    background: 'none',
-                    fontSize: 12,
-                    color: '#1e293b',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Contact info
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowOptionsMenu(false);
-                    if (activeChat) {
-                      setMessagesMap((prev) => ({ ...prev, [activeChat.jid]: [] }));
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '8px 10px',
-                    borderRadius: 4,
-                    border: 'none',
-                    background: 'none',
-                    fontSize: 12,
-                    color: '#dc2626',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Clear chat
-                </button>
-              </div>
-            )}
+          <h2 style={{ fontSize: 26, fontWeight: 300, color: '#41525d', margin: '0 0 10px' }}>
+            WhatsApp Web
+          </h2>
+          <p style={{ fontSize: 13.5, color: '#667781', maxWidth: 440, lineHeight: 1.6, margin: '0 0 32px' }}>
+            Send and receive messages without keeping your phone online.<br />
+            Use WhatsApp on up to 4 linked devices and 1 phone at the same time.
+          </p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#8696a0', marginTop: 'auto' }}>
+            <Lock size={12} color="#8696a0" />
+            <span>End-to-end encrypted</span>
           </div>
         </div>
+      ) : (
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            background: '#efeae2 url(/images/whatsapp-doodle-bg.svg) repeat',
+            backgroundSize: '412px 412px',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Chat Top Bar: Selection Mode OR Normal Top Bar */}
+          {isSelectionMode ? (
+            <div
+              style={{
+                height: 54,
+                background: '#008069',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 16px',
+                flexShrink: 0,
+                width: '100%',
+                minWidth: 0,
+                position: 'sticky',
+                top: 0,
+                zIndex: 20,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSelectionMode(false);
+                    setSelectedMessageIds(new Set());
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', padding: 4 }}
+                  title="Cancel selection"
+                >
+                  <X size={20} />
+                </button>
+                <span style={{ fontSize: 15, fontWeight: 600 }}>
+                  {selectedMessageIds.size} selected
+                </span>
+              </div>
+
+              {selectedMessageIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeChat) {
+                      setMessagesMap((prev) => ({
+                        ...prev,
+                        [activeChat.jid]: (prev[activeChat.jid] || []).filter((m) => !selectedMessageIds.has(m.id)),
+                      }));
+                    }
+                    setIsSelectionMode(false);
+                    setSelectedMessageIds(new Set());
+                  }}
+                  style={{ background: 'none', border: 'none', color: '#ffffff', cursor: 'pointer', padding: 6 }}
+                  title="Delete selected messages"
+                >
+                  <Trash2 size={20} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              style={{
+                height: 54,
+                background: '#f0f2f5',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 16px',
+                flexShrink: 0,
+                width: '100%',
+                minWidth: 0,
+                position: 'sticky',
+                top: 0,
+                zIndex: 20,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Avatar */}
+                <WhatsAppAvatar size={36} />
+
+                {/* Contact Name & Muted Status */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 14.5, fontWeight: 700, color: '#111b21' }}>
+                    {activeChat?.name || activeChat?.phone || 'Select a chat'}
+                  </span>
+                  {activeChat && mutedChats[activeChat.jid] && (
+                    <span title={`Muted for ${mutedChats[activeChat.jid]}`}>
+                      <VolumeX size={14} color="#8696a0" />
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Three dots ⋮ Menu */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowOptionsMenu((prev) => !prev)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 6,
+                    cursor: 'pointer',
+                    color: '#54656f',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Menu"
+                >
+                  <MoreVertical size={18} />
+                </button>
+
+                {showOptionsMenu && (
+                  <div
+                    ref={optionsMenuRef}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: 4,
+                      background: '#ffffff',
+                      borderRadius: 8,
+                      boxShadow: '0 4px 24px rgba(11,20,26,0.18)',
+                      border: '1px solid #e2e8f0',
+                      width: 200,
+                      zIndex: 50,
+                      padding: '6px 0',
+                    }}
+                  >
+                    {/* 1. Contact info */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        if (activeChat && onShowCustomerProfile) {
+                          onShowCustomerProfile(activeChat.phone, activeChat.name);
+                        }
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f6f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      style={menuItemStyle}
+                    >
+                      Contact info
+                    </button>
+
+                    {/* 2. Select messages */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        setIsSelectionMode(true);
+                        setSelectedMessageIds(new Set());
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f6f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      style={menuItemStyle}
+                    >
+                      Select messages
+                    </button>
+
+                    {/* 3. Close chat */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        setSelectedJid('');
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f6f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      style={menuItemStyle}
+                    >
+                      Close chat
+                    </button>
+
+                    {/* 4. Mute notifications / Unmute */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        if (activeChat && mutedChats[activeChat.jid]) {
+                          setMutedChats((prev) => {
+                            const next = { ...prev };
+                            delete next[activeChat.jid];
+                            return next;
+                          });
+                        } else {
+                          setMuteModalOpen(true);
+                        }
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f6f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      style={menuItemStyle}
+                    >
+                      {activeChat && mutedChats[activeChat.jid] ? 'Unmute notifications' : 'Mute notifications'}
+                    </button>
+
+                    {/* 5. Disappearing messages */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        setDisappearingModalOpen(true);
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f6f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      style={menuItemStyle}
+                    >
+                      Disappearing messages
+                    </button>
+
+                    {/* 6. Clear chat */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        setConfirmClearModalOpen(true);
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f6f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      style={menuItemStyle}
+                    >
+                      Clear chat
+                    </button>
+
+                    {/* 7. Delete chat */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        setConfirmDeleteModalOpen(true);
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f5f6f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      style={menuItemStyle}
+                    >
+                      Delete chat
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
         {/* Message Stream Area */}
         <div
@@ -885,6 +1093,7 @@ export default function WhatsAppLiveChatTab({
           onScroll={handleScroll}
           style={{
             flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
             padding: '12px 24px',
             display: 'flex',
@@ -970,17 +1179,48 @@ export default function WhatsAppLiveChatTab({
                 const isOut = Boolean(msg.fromMe);
                 const timeText = msg.timestamp ? format(new Date(msg.timestamp), 'h:mm a') : '3:46 PM';
                 const isUndecrypted = !msg.body || msg.body.includes("can't be displayed");
+                const isSelected = selectedMessageIds.has(msg.id);
 
                 return (
                   <div
                     key={msg.id}
+                    onClick={() => {
+                      if (isSelectionMode) {
+                        setSelectedMessageIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(msg.id)) next.delete(msg.id);
+                          else next.add(msg.id);
+                          return next;
+                        });
+                      }
+                    }}
                     style={{
                       alignSelf: isOut ? 'flex-end' : 'flex-start',
-                      maxWidth: '75%',
+                      maxWidth: isSelectionMode ? '85%' : '75%',
                       display: 'flex',
-                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 8,
+                      flexDirection: isOut ? 'row' : 'row-reverse',
+                      cursor: isSelectionMode ? 'pointer' : 'default',
                     }}
                   >
+                    {isSelectionMode && (
+                      <div
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 4,
+                          border: isSelected ? '2px solid #00a884' : '2px solid #8696a0',
+                          background: isSelected ? '#00a884' : '#ffffff',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isSelected && <Check size={13} color="#ffffff" strokeWidth={3} />}
+                      </div>
+                    )}
                     <div
                       style={{
                         background: isOut ? '#d9fdd3' : '#ffffff',
@@ -1139,6 +1379,8 @@ export default function WhatsAppLiveChatTab({
             gap: 8,
             alignItems: 'center',
             position: 'relative',
+            flexWrap: 'wrap',
+            minWidth: 0,
           }}
         >
           {/* 1. Smart Messaging Button (Orange Border + Chevron) */}
@@ -1417,6 +1659,8 @@ export default function WhatsAppLiveChatTab({
             alignItems: 'center',
             gap: 12,
             position: 'relative',
+            width: '100%',
+            minWidth: 0,
           }}
         >
           {/* "+" Attach Menu Button */}
@@ -1561,6 +1805,336 @@ export default function WhatsAppLiveChatTab({
           </button>
         </div>
       </div>
+    )}
+
+      {/* ── MODAL 1: Mute Notifications (WhatsApp Web Style) ── */}
+      {muteModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11,20,26,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+          onClick={() => setMuteModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 8,
+              padding: 24,
+              width: 360,
+              boxShadow: '0 12px 36px rgba(11,20,26,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 17, fontWeight: 600, color: '#111b21', marginBottom: 16 }}>
+              Mute notifications for {activeChat?.name || activeChat?.phone}?
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+              {(['8 hours', '1 week', 'Always'] as const).map((dur) => (
+                <label key={dur} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: '#3b4a54' }}>
+                  <input
+                    type="radio"
+                    name="muteDur"
+                    checked={selectedMuteDuration === dur}
+                    onChange={() => setSelectedMuteDuration(dur)}
+                    style={{ accentColor: '#00a884', width: 16, height: 16 }}
+                  />
+                  <span>{dur}</span>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setMuteModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 20,
+                  padding: '7px 18px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#00a884',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeChat) {
+                    setMutedChats((prev) => ({ ...prev, [activeChat.jid]: selectedMuteDuration }));
+                  }
+                  setMuteModalOpen(false);
+                }}
+                style={{
+                  background: '#00a884',
+                  border: 'none',
+                  borderRadius: 20,
+                  padding: '7px 20px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                }}
+              >
+                Mute
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: Disappearing Messages (WhatsApp Web Style) ── */}
+      {disappearingModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11,20,26,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+          onClick={() => setDisappearingModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 8,
+              padding: 24,
+              width: 380,
+              boxShadow: '0 12px 36px rgba(11,20,26,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 17, fontWeight: 600, color: '#111b21', marginBottom: 10 }}>
+              Disappearing messages
+            </div>
+            <p style={{ fontSize: 13, color: '#667781', lineHeight: 1.5, margin: '0 0 16px' }}>
+              For more privacy and storage, new messages will disappear from this chat for everyone after the selected duration.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+              {(['24 hours', '7 days', '90 days', 'Off'] as const).map((d) => (
+                <label key={d} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: '#3b4a54' }}>
+                  <input
+                    type="radio"
+                    name="disappearDur"
+                    checked={disappearingDuration === d}
+                    onChange={() => setDisappearingDuration(d)}
+                    style={{ accentColor: '#00a884', width: 16, height: 16 }}
+                  />
+                  <span>{d}</span>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setDisappearingModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 20,
+                  padding: '7px 18px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#00a884',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisappearingModalOpen(false)}
+                style={{
+                  background: '#00a884',
+                  border: 'none',
+                  borderRadius: 20,
+                  padding: '7px 20px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 3: Clear Chat Confirmation (WhatsApp Web Style) ── */}
+      {confirmClearModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11,20,26,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+          onClick={() => setConfirmClearModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 8,
+              padding: 24,
+              width: 380,
+              boxShadow: '0 12px 36px rgba(11,20,26,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 17, fontWeight: 600, color: '#111b21', marginBottom: 10 }}>
+              Clear this chat?
+            </div>
+            <p style={{ fontSize: 13.5, color: '#667781', lineHeight: 1.5, margin: '0 0 24px' }}>
+              Messages will only be removed from this device and cannot be recovered.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setConfirmClearModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 20,
+                  padding: '7px 18px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#00a884',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeChat) {
+                    setMessagesMap((prev) => ({ ...prev, [activeChat.jid]: [] }));
+                  }
+                  setConfirmClearModalOpen(false);
+                }}
+                style={{
+                  background: '#ea0038',
+                  border: 'none',
+                  borderRadius: 20,
+                  padding: '7px 20px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 4: Delete Chat Confirmation (WhatsApp Web Style) ── */}
+      {confirmDeleteModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11,20,26,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+          }}
+          onClick={() => setConfirmDeleteModalOpen(false)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: 8,
+              padding: 24,
+              width: 380,
+              boxShadow: '0 12px 36px rgba(11,20,26,0.2)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 17, fontWeight: 600, color: '#111b21', marginBottom: 10 }}>
+              Delete this chat?
+            </div>
+            <p style={{ fontSize: 13.5, color: '#667781', lineHeight: 1.5, margin: '0 0 24px' }}>
+              Messages will be deleted from your phone and this device.
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 20,
+                  padding: '7px 18px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#00a884',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeChat) {
+                    const deletedJid = activeChat.jid;
+                    setChats((prev) => {
+                      const updated = prev.filter((c) => c.jid !== deletedJid);
+                      saveCachedChats(updated);
+                      return updated;
+                    });
+                    setMessagesMap((prev) => {
+                      const next = { ...prev };
+                      delete next[deletedJid];
+                      return next;
+                    });
+                    setSelectedJid('');
+                  }
+                  setConfirmDeleteModalOpen(false);
+                }}
+                style={{
+                  background: '#ea0038',
+                  border: 'none',
+                  borderRadius: 20,
+                  padding: '7px 20px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: '#ffffff',
+                  cursor: 'pointer',
+                }}
+              >
+                Delete chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -91,30 +91,8 @@ function loadStore() {
       });
     });
     chats = consolidatedChats;
-
-    if (chats.size === 0) {
-      const seedJid = '919601014899@s.whatsapp.net';
-      chats.set(seedJid, {
-        jid: seedJid,
-        name: 'sandip',
-        phone: '9601014899',
-        lastMessage: 'hi',
-        timestamp: new Date().toISOString(),
-        unreadCount: 0,
-      });
-      messages.set(seedJid, [
-        {
-          id: 'seed_msg_1',
-          jid: seedJid,
-          fromMe: true,
-          type: 'text',
-          body: 'hi',
-          status: 'read',
-          timestamp: new Date().toISOString(),
-          senderName: 'sandip',
-        },
-      ]);
-    }
+    chats.delete('919601014899@s.whatsapp.net');
+    messages.delete('919601014899@s.whatsapp.net');
     saveStore();
   } catch (err) {
     console.error('Error loading store:', err);
@@ -210,6 +188,7 @@ async function connectToWhatsApp() {
           qrDataUrl = await QRCode.toDataURL(qr, {
             margin: 2,
             scale: 8,
+            errorCorrectionLevel: 'H',
             color: { dark: '#05424A', light: '#ffffff' },
           });
         } catch {}
@@ -241,7 +220,7 @@ async function connectToWhatsApp() {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         console.log(`[WhatsApp Service] Connection closed. StatusCode: ${statusCode}`);
 
-        if (statusCode === DisconnectReason.loggedOut) {
+        if (statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403 || statusCode === 440) {
           status = 'disconnected';
           connectedPhone = '';
           connectedName = '';
@@ -253,6 +232,10 @@ async function connectToWhatsApp() {
             fs.mkdirSync(authDir, { recursive: true });
           } catch {}
           broadcast('status', getStatusPayload());
+          console.log('[WhatsApp Service] Session terminated or replaced (440/loggedOut). Cleaned auth, waiting for fresh QR.');
+          setTimeout(() => {
+            connectToWhatsApp();
+          }, 1500);
         } else {
           status = 'disconnected';
           broadcast('status', getStatusPayload());
@@ -346,8 +329,12 @@ async function parseMsg(m) {
       ? new Date(Number(m.messageTimestamp) * 1000).toISOString()
       : new Date().toISOString();
 
-    const c = m.message;
+    let c = m.message;
     if (!c) return null;
+    if (c.ephemeralMessage?.message) c = c.ephemeralMessage.message;
+    if (c.viewOnceMessage?.message) c = c.viewOnceMessage.message;
+    if (c.viewOnceMessageV2?.message) c = c.viewOnceMessageV2.message;
+    if (c.documentWithCaptionMessage?.message) c = c.documentWithCaptionMessage.message;
 
     let type = 'text';
     let body = '';
@@ -521,13 +508,22 @@ const server = http.createServer(async (req, res) => {
     if (!jid) {
       jid = (url.searchParams.get('jid') || '').trim();
     }
-    if (jid && !jid.includes('@')) {
-      const clean = jid.replace(/\D/g, '').slice(-10);
-      jid = `91${clean}@s.whatsapp.net`;
+    const canon = toCanonicalJid(jid);
+    let list = messages.get(jid) || (canon ? messages.get(canon) : null);
+    if (!list && jid) {
+      const cleanPhone = jid.replace(/\D/g, '').slice(-10);
+      if (cleanPhone) {
+        for (const [key, msgList] of messages.entries()) {
+          if (key.includes(cleanPhone)) {
+            list = msgList;
+            break;
+          }
+        }
+      }
     }
-    const list = jid ? (messages.get(jid) || []) : [];
+    const resultList = list || [];
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ success: true, jid, messages: list, total: list.length }));
+    res.end(JSON.stringify({ success: true, jid: canon || jid, messages: resultList, total: resultList.length }));
     return;
   }
 

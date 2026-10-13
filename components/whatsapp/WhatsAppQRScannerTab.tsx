@@ -313,19 +313,20 @@ export default function WhatsAppQRScannerTab({
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: 44,
-                  height: 44,
+                  width: 36,
+                  height: 36,
                   borderRadius: '50%',
                   background: '#25D366',
-                  border: '3px solid #ffffff',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  border: '2.5px solid #ffffff',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   zIndex: 2,
+                  pointerEvents: 'none',
                 }}
               >
-                <MessageCircle size={24} color="#ffffff" fill="#ffffff" />
+                <MessageCircle size={20} color="#ffffff" fill="#ffffff" />
               </div>
 
               {/* Expired QR Overlay */}

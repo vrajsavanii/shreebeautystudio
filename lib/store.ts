@@ -520,17 +520,6 @@ export const DEFAULT_DATA: SalonData = {
   ],
   customers: [
     {
-      id: 'mtol0qvjc9oqe',
-      name: 'SANDIP',
-      email: 'bhalanisandip@gmail.com',
-      mobile: '9601014899',
-      birthday: '1987-08-30',
-      sagaiDate: '2006-03-26',
-      anniversary: '2007-11-26',
-      loyaltyPoints: 200,
-      walletBalance: 0,
-    },
-    {
       id: 'mtr4b290502ji',
       name: 'Pooja Varma',
       mobile: '98241 83769',

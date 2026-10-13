@@ -83,31 +83,9 @@ class WhatsAppBackendStore {
         }
       }
 
-      // Ensure seed Sandip chat exists if empty
-      if (this.chats.size === 0) {
-        this.chats.set('919601014899@s.whatsapp.net', {
-          jid: '919601014899@s.whatsapp.net',
-          name: 'sandip',
-          phone: '9601014899',
-          lastMessage: 'hi',
-          timestamp: new Date().toISOString(),
-          unreadCount: 0,
-        });
-
-        this.messages.set('919601014899@s.whatsapp.net', [
-          {
-            id: 'init_msg_1',
-            jid: '919601014899@s.whatsapp.net',
-            fromMe: true,
-            type: 'text',
-            body: 'hi',
-            status: 'read',
-            timestamp: new Date().toISOString(),
-            senderName: 'sandip',
-          },
-        ]);
-        this.saveNow();
-      }
+      this.chats.delete('919601014899@s.whatsapp.net');
+      this.messages.delete('919601014899@s.whatsapp.net');
+      this.saveNow();
 
       this.initialized = true;
     } catch (err) {
