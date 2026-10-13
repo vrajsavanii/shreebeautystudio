@@ -3,7 +3,9 @@
 export interface SalonSettings {
   salon: string;
   whatsapp: string;
+  phone?: string;
   phone2?: string; // Secondary Studio Call Number (e.g. 9824183769)
+  email?: string;
   open: string;
   close: string;
   address: string;
@@ -258,7 +260,10 @@ export interface Invoice {
   customer: string;
   mobile: string;
   appointmentId?: string;
+  appointmentDate?: string;
   bridalBookingId?: string;
+  eventDate?: string;
+  venue?: string;
   lines: InvoiceLine[];
   subtotal: number;
   discount: number;

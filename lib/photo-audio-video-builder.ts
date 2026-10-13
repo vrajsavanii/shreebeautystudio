@@ -998,7 +998,7 @@ export async function composePhotoAndAudioToVideo(options: {
   const chunks: Blob[] = [];
   const recorder = new MediaRecorder(combinedStream, {
     mimeType: chosenMime,
-    videoBitsPerSecond: 3500000,
+    videoBitsPerSecond: 2500000,
   });
 
   recorder.ondataavailable = (e) => {
@@ -1116,3 +1116,164 @@ export async function composePhotoAndAudioToVideo(options: {
 
   return await recordingPromise;
 }
+
+// ── IN-BROWSER HIGH-SPEED VIDEO COMPRESSOR FOR INSTAGRAM REELS ──
+// Compresses 50MB - 300MB phone camera / 4K videos down to Instagram-optimal 1080p (<40MB)
+export async function compressVideoForInstagram(
+  file: File,
+  targetMaxMB: number = 38,
+  onProgress?: (percent: number, statusText: string) => void
+): Promise<File> {
+  if (file.size <= targetMaxMB * 1024 * 1024) {
+    return file;
+  }
+
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+    const url = URL.createObjectURL(file);
+    video.src = url;
+
+    const cleanup = () => {
+      try {
+        URL.revokeObjectURL(url);
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      } catch {}
+    };
+
+    video.onloadedmetadata = async () => {
+      try {
+        const duration = Math.min(video.duration || 15, 90);
+        const origW = video.videoWidth || 1080;
+        const origH = video.videoHeight || 1920;
+
+        let targetW = origW;
+        let targetH = origH;
+        const maxDim = 1920;
+        if (targetW > maxDim || targetH > maxDim) {
+          if (targetW >= targetH) {
+            targetW = maxDim;
+            targetH = Math.round((origH / origW) * maxDim);
+          } else {
+            targetH = maxDim;
+            targetW = Math.round((origW / origH) * maxDim);
+          }
+        }
+        targetW = Math.floor(targetW / 2) * 2;
+        targetH = Math.floor(targetH / 2) * 2;
+
+        const targetBits = targetMaxMB * 8 * 1024 * 1024;
+        const calcBps = Math.min(3200000, Math.max(1500000, Math.floor(targetBits / duration)));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          cleanup();
+          throw new Error('Canvas rendering context unavailable');
+        }
+
+        let audioTrack: MediaStreamTrack | null = null;
+        let audioSourceNode: AudioBufferSourceNode | null = null;
+        try {
+          const audioCtx = getOrCreateAudioContext();
+          const arrayBuf = await file.arrayBuffer();
+          const decodedBuf = await audioCtx.decodeAudioData(arrayBuf);
+          const audioDest = audioCtx.createMediaStreamDestination();
+          audioSourceNode = audioCtx.createBufferSource();
+          audioSourceNode.buffer = decodedBuf;
+          audioSourceNode.connect(audioDest);
+          audioTrack = audioDest.stream.getAudioTracks()[0] || null;
+        } catch {
+          console.warn('Could not decode audio track directly from video; proceeding with video only');
+        }
+
+        const videoStream = canvas.captureStream(30);
+        const tracks: MediaStreamTrack[] = [...videoStream.getVideoTracks()];
+        if (audioTrack) tracks.push(audioTrack);
+        const combinedStream = new MediaStream(tracks);
+
+        let chosenMime = 'video/mp4';
+        if (typeof MediaRecorder !== 'undefined') {
+          if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.424028,mp4a.40.2')) {
+            chosenMime = 'video/mp4;codecs=avc1.424028,mp4a.40.2';
+          } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+            chosenMime = 'video/mp4';
+          } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+            chosenMime = 'video/webm;codecs=vp9,opus';
+          } else if (MediaRecorder.isTypeSupported('video/webm')) {
+            chosenMime = 'video/webm';
+          }
+        }
+
+        const chunks: Blob[] = [];
+        const recorder = new MediaRecorder(combinedStream, {
+          mimeType: chosenMime,
+          videoBitsPerSecond: calcBps,
+        });
+
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = () => {
+          cleanup();
+          const isMp4 = chosenMime.includes('mp4');
+          const blob = new Blob(chunks, { type: chosenMime });
+          const baseName = file.name.replace(/\.[^/.]+$/, '');
+          const compressed = new File([blob], `${baseName}_1080p.${isMp4 ? 'mp4' : 'webm'}`, { type: chosenMime });
+          resolve(compressed);
+        };
+
+        recorder.onerror = (e) => {
+          cleanup();
+          reject(e);
+        };
+
+        recorder.start(100);
+        if (audioSourceNode) {
+          try { audioSourceNode.start(0); } catch {}
+        }
+        await video.play();
+
+        const renderFrame = () => {
+          if (video.paused || video.ended || video.currentTime >= duration) {
+            if (recorder.state === 'recording') {
+              try { if (audioSourceNode) audioSourceNode.stop(); } catch {}
+              recorder.stop();
+            }
+            return;
+          }
+          ctx.drawImage(video, 0, 0, targetW, targetH);
+          if (onProgress && duration > 0) {
+            const pct = Math.min(99, Math.round((video.currentTime / duration) * 100));
+            onProgress(pct, `Compressing video to 1080p Reel (${pct}%)...`);
+          }
+          requestAnimationFrame(renderFrame);
+        };
+        requestAnimationFrame(renderFrame);
+
+        video.onended = () => {
+          if (recorder.state === 'recording') {
+            try { if (audioSourceNode) audioSourceNode.stop(); } catch {}
+            recorder.stop();
+          }
+        };
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    };
+
+    video.onerror = () => {
+      cleanup();
+      reject(new Error('Browser could not load video for compression'));
+    };
+  });
+}
+

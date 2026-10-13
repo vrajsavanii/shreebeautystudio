@@ -30,7 +30,9 @@ import {
   QrCode,
   ChevronUp,
   ChevronDown,
-  Rows3,
+  RotateCcw,
+  Smartphone,
+  UserPlus,
 } from 'lucide-react';
 import { useSalonStore, resolveBridalBookingPrice } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
@@ -44,15 +46,16 @@ import { isCustomerIn24HourWindow } from '@/lib/whatsapp';
 import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import { SHREE_INVOICE_BILL_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
+import ContactImportModal from '@/components/billing/ContactImportModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
 
-const EMPTY_LINE = (defaultDisc = 0): InvoiceLine => ({
+const EMPTY_LINE = (): InvoiceLine => ({
   type: 'S',
   name: '',
   qty: 1,
   price: 0,
-  discount: defaultDisc,
+  discount: 0,
   discountType: '%',
 });
 
@@ -87,42 +90,25 @@ function BillingContent() {
 
   const [activeTab, setActiveTab] = useState<BillingViewTab>('builder');
   const [historySearch, setHistorySearch] = useState('');
-  const [layoutOrientation, setLayoutOrientation] = useState<'up-down' | 'side-by-side'>('up-down');
-  const [defaultDiscountPercent, setDefaultDiscountPercent] = useState<number>(0);
+  const [layoutOrientation, setLayoutOrientation] = useState<'up-down' | 'side-by-side'>('side-by-side');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedLayout = localStorage.getItem('shree_billing_layout');
-      if (savedLayout === 'side-by-side' || savedLayout === 'up-down') {
-        setLayoutOrientation(savedLayout);
-      }
-      const savedDisc = localStorage.getItem('shree_default_discount_pct');
-      if (savedDisc) {
-        setDefaultDiscountPercent(Number(savedDisc) || 0);
-      }
+      setLayoutOrientation('side-by-side');
+      try {
+        localStorage.setItem('shree_billing_layout', 'side-by-side');
+        localStorage.removeItem('shree_default_discount_pct');
+      } catch {}
     }
   }, []);
-
-  const handleToggleLayout = (mode: 'up-down' | 'side-by-side') => {
-    setLayoutOrientation(mode);
-    try {
-      localStorage.setItem('shree_billing_layout', mode);
-    } catch {}
-  };
-
-  const handleSetDefaultDiscountPercent = (pct: number) => {
-    setDefaultDiscountPercent(pct);
-    try {
-      localStorage.setItem('shree_default_discount_pct', String(pct));
-    } catch {}
-    toast(`Default Discount set to ${pct}% for new items`);
-  };
 
   // Form state
   const [customer, setCustomer] = useState('');
   const [mobile, setMobile] = useState('');
   const [lines, setLines] = useState<InvoiceLine[]>([EMPTY_LINE()]);
   const [discount, setDiscount] = useState(0);
+  const [billDiscountPercent, setBillDiscountPercent] = useState<number | ''>('');
+  const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('amount');
   const [advance, setAdvance] = useState(0);
   const [advanceMode, setAdvanceMode] = useState('Cash');
   const [paid, setPaid] = useState<number | ''>('');
@@ -170,55 +156,71 @@ function BillingContent() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const cust24hStatus = useMemo(() => isCustomerIn24HourWindow(mobile, data), [mobile, data]);
 
+  // Android & iPhone Contact Import Modal & Auto-Suggest State
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [activeCustSuggest, setActiveCustSuggest] = useState<'name' | 'mobile' | null>(null);
+
+  const handleDownloadInvoicePDF = async (inv: Invoice) => {
+    try {
+      const rawName = (inv.customer || 'invoice').trim();
+      const cleanName = rawName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
+      const filename = `${cleanName || 'invoice'}.pdf`;
+      toast(`Generating ${filename}…`);
+      const res = await fetch(`/api/billing/${inv.id}/pdf`);
+      if (!res.ok) throw new Error('PDF generation failed on server');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast(`✅ Downloaded ${filename}!`);
+    } catch (e: any) {
+      toast(`Download error: ${e.message}`, 'error');
+    }
+  };
+
   const handleSendInvoicePDF = async (inv: Invoice) => {
     if (!inv.mobile) {
       toast('No mobile number on this invoice', 'error');
       return;
     }
-
-    // If Meta has an active payment issue, immediately use Direct WhatsApp PDF sharing (100% free)
-    if (data?.settings?.whatsappPaymentIssue) {
-      setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sending' }));
-      try {
-        const shareRes = await shareInvoicePDFViaDirectWhatsApp(inv, data);
-        setWaPdfStatus((s) => ({ ...s, [inv.id]: shareRes.success ? 'sent' : 'failed' }));
-        toast(shareRes.message);
-        setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-      } catch {
-        setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-        setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-      }
+    const cleanDigits = inv.mobile.replace(/\D/g, '').slice(-10);
+    if (cleanDigits.length !== 10) {
+      toast('Invalid mobile number. 10 digits required.', 'error');
       return;
     }
 
     setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sending' }));
     try {
-      const res = await sendInvoicePDFViaWhatsApp(inv, data);
-      if (res.success) {
+      const res = await fetch(`/api/billing/${inv.id}/whatsapp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice: inv, salonData: data }),
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
         setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sent' }));
-        toast(res.message);
+        toast(result.message || 'Bill PDF sent on WhatsApp!');
         setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       } else {
-        if (res.isPaymentRequired) {
-          toast('Meta payment required. Opening Direct WhatsApp PDF share (Free)…', 'info');
-          const shareRes = await shareInvoicePDFViaDirectWhatsApp(inv, data);
-          setWaPdfStatus((s) => ({ ...s, [inv.id]: shareRes.success ? 'sent' : 'failed' }));
-          toast(shareRes.message);
+        if (result.directWaUrl) {
+          window.open(result.directWaUrl, '_blank');
+          setWaPdfStatus((s) => ({ ...s, [inv.id]: 'sent' }));
+          toast('WhatsApp Connect waiting for scan. Opened WhatsApp with bill message.', 'info');
           setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
-          return;
+        } else {
+          setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
+          toast(result.error || result.message || 'WhatsApp PDF send failed', 'error');
+          setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
         }
-
-        setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-        const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
-        const fallbackMsg = is24h
-          ? 'PDF template pending review. Click TXT button for guaranteed instant delivery!'
-          : res.message || 'WhatsApp PDF send failed';
-        toast(fallbackMsg, is24h ? 'info' : 'error');
-        setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
       }
-    } catch {
+    } catch (err: any) {
       setWaPdfStatus((s) => ({ ...s, [inv.id]: 'failed' }));
-      toast('Unexpected error sending PDF via WhatsApp', 'error');
+      toast(err?.message || 'Unexpected error sending PDF via WhatsApp', 'error');
       setTimeout(() => setWaPdfStatus((s) => { const n = { ...s }; delete n[inv.id]; return n; }), 4000);
     }
   };
@@ -265,6 +267,14 @@ function BillingContent() {
         : [EMPTY_LINE()]
     );
     setDiscount(inv.discount || 0);
+    if (inv.discount && (inv.subtotal || 0) > 0) {
+      const pct = Number(((inv.discount / inv.subtotal) * 100).toFixed(1));
+      setBillDiscountPercent(pct === Math.round(pct) ? Math.round(pct) : pct);
+      setDiscountMode('amount');
+    } else {
+      setBillDiscountPercent('');
+      setDiscountMode('amount');
+    }
     setAdvance(inv.advance || 0);
     setAdvanceMode(inv.advanceMode || 'Cash');
     setPaid(inv.paid);
@@ -298,12 +308,19 @@ function BillingContent() {
     toast(`Loaded invoice ${inv.no} for editing`);
   };
 
+  // Clear All Invoices State (History Tab)
+  const [clearAllInvoicesModalOpen, setClearAllInvoicesModalOpen] = useState(false);
+  const [confirmClearAllInvoicesText, setConfirmClearAllInvoicesText] = useState('');
+  const [restoreStockOnClearAll, setRestoreStockOnClearAll] = useState(true);
+
   const cancelEditInvoice = () => {
     setEditingInvoiceId(null);
     setCustomer('');
     setMobile('');
     setLines([EMPTY_LINE()]);
     setDiscount(0);
+    setBillDiscountPercent('');
+    setDiscountMode('amount');
     setAdvance(0);
     setAdvanceMode('Cash');
     setPaid('');
@@ -316,7 +333,84 @@ function BillingContent() {
     setSplitCash('');
     setSplitUpi('');
     setSplitCard('');
+    setBarcodeInput('');
+    setAppointmentRef(null);
+    setRedeemPoints(0);
+    setUseWallet(0);
+    setSelectedCustomerObj(null);
     setMode(data?.settings?.payments?.[0] || 'Cash');
+  };
+
+  const handleAllClearInvoice = () => {
+    const hasData =
+      Boolean(editingInvoiceId) ||
+      customer.trim() !== '' ||
+      mobile.trim() !== '' ||
+      lines.some((l) => (l.name && l.name.trim() !== '') || Number(l.price || 0) > 0) ||
+      Number(discount || 0) > 0 ||
+      paid !== '' ||
+      Number(splitCash || 0) > 0 ||
+      Number(splitUpi || 0) > 0 ||
+      Number(splitCard || 0) > 0 ||
+      Boolean(appointmentRef);
+
+    if (hasData) {
+      if (!window.confirm('Clear entire invoice and reset all fields (All Clear)?')) {
+        return;
+      }
+    }
+    cancelEditInvoice();
+    toast('Invoice cleared successfully');
+  };
+
+  const handleClearAllLines = () => {
+    const hasItems = lines.some((l) => (l.name && l.name.trim() !== '') || Number(l.price || 0) > 0);
+    if (!hasItems) return;
+    if (window.confirm('Clear all invoice items?')) {
+      setLines([EMPTY_LINE()]);
+      toast('Invoice items cleared');
+    }
+  };
+
+  const handleClearAllInvoices = () => {
+    if (confirmClearAllInvoicesText.trim().toUpperCase() !== 'CLEAR') {
+      toast('Please type CLEAR to confirm deleting all invoices', 'error');
+      return;
+    }
+
+    const allInvs = data?.invoices || [];
+    if (allInvs.length === 0) {
+      setClearAllInvoicesModalOpen(false);
+      return;
+    }
+
+    updateData((d) => {
+      let inventory = [...(d.inventory || [])];
+
+      if (restoreStockOnClearAll) {
+        for (const inv of allInvs) {
+          (inv.lines || [])
+            .filter((l) => l.type === 'P')
+            .forEach((l) => {
+              inventory = inventory.map((item) =>
+                item.name === l.name ? { ...item, stock: item.stock + Number(l.qty || 0) } : item
+              );
+            });
+        }
+      }
+
+      return {
+        ...d,
+        inventory,
+        invoices: [],
+        inventoryTx: (d.inventoryTx || []).filter((tx) => !allInvs.some((inv) => inv.no === tx.invoiceNo)),
+      };
+    });
+
+    scheduleSave();
+    setClearAllInvoicesModalOpen(false);
+    setConfirmClearAllInvoicesText('');
+    toast(`All ${allInvs.length} invoices cleared successfully!`, 'info');
   };
 
   const handleDeleteInvoice = (id: string) => {
@@ -548,7 +642,7 @@ function BillingContent() {
         name: service.name,
         qty: 1,
         price: service.price,
-        discount: defaultDiscountPercent > 0 ? defaultDiscountPercent : 0,
+        discount: 0,
         discountType: '%',
         type: 'S',
       };
@@ -769,6 +863,14 @@ function BillingContent() {
 
   const discounted = Math.max(0, rawSubtotal - totalAllDiscount);
 
+  // Synchronize bill discount amount when rawSubtotal changes and discount mode is percent
+  useEffect(() => {
+    if (discountMode === 'percent' && typeof billDiscountPercent === 'number' && billDiscountPercent > 0) {
+      const calcAmt = Math.round((rawSubtotal * billDiscountPercent) / 100);
+      setDiscount(calcAmt);
+    }
+  }, [rawSubtotal, discountMode, billDiscountPercent]);
+
   // Auto mathematical round-off to nearest rupee (threshold ₹0.50)
   const autoDiff = useMemo(() => {
     const rawRounded = Math.round(discounted);
@@ -938,28 +1040,159 @@ function BillingContent() {
     }
   };
 
+  // Smart helper to apply imported contact (from phonebook, paste, or selection)
+  const handleImportContact = (rawName: string, rawPhone: string) => {
+    let digits = (rawPhone || '').replace(/\D/g, '');
+    if (digits.length > 10) {
+      if (digits.startsWith('91') && digits.length === 12) digits = digits.slice(2);
+      else if (digits.startsWith('0') && digits.length === 11) digits = digits.slice(1);
+      else digits = digits.slice(-10);
+    }
+    const cleanNum = digits.slice(0, 10);
+    const cleanName = autoCapitalizeName((rawName || '').trim());
+
+    if (cleanNum) setMobile(cleanNum);
+    if (cleanName) setCustomer(cleanName);
+
+    // Auto-match in salon customers database
+    const matched = (data?.customers || []).find(
+      (c) =>
+        (cleanNum && c.mobile === cleanNum) ||
+        (cleanName && c.name.trim().toLowerCase() === cleanName.toLowerCase())
+    );
+
+    if (matched) {
+      setCustomer(autoCapitalizeName(matched.name));
+      setMobile(matched.mobile);
+      setSelectedCustomerObj(matched);
+      setRedeemPoints(0);
+      setUseWallet(0);
+      toast(`✅ Matched & auto-imported salon customer: ${matched.name} (📞 ${matched.mobile})`);
+    } else {
+      setSelectedCustomerObj(null);
+      if (cleanName || cleanNum) {
+        toast(`📲 Imported contact: ${cleanName || 'Contact'} (${cleanNum || 'No phone'})`);
+      }
+    }
+    setActiveCustSuggest(null);
+  };
+
+  // Web Contact Picker API for mobile devices (Android Chrome/Edge/Samsung)
+  const handlePickDeviceContact = async () => {
+    if (typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window) {
+      try {
+        const props = ['name', 'tel'];
+        const contacts = await (navigator as any).contacts.select(props, { multiple: false });
+        if (contacts && contacts.length > 0) {
+          const c = contacts[0];
+          const name = Array.isArray(c.name) ? c.name[0] : c.name || '';
+          const tel = Array.isArray(c.tel) ? c.tel[0] : c.tel || '';
+          handleImportContact(name, tel);
+          return;
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.warn('Contact picker error:', err);
+        }
+        return;
+      }
+    }
+    // Fallback for iPhone / Safari / Desktop
+    setContactModalOpen(true);
+  };
+
+  // Auto-Match Customer as user writes Name (Without needing any button!)
+  const autoMatchCustomerByName = (inputVal: string, isBlurOrEnter: boolean = false) => {
+    const trimmed = inputVal.trim();
+    if (!trimmed) {
+      if (isBlurOrEnter) {
+        setSelectedCustomerObj(null);
+      }
+      return null;
+    }
+
+    const q = trimmed.toLowerCase();
+    const customers = data?.customers || [];
+
+    // 1. Exact match (case-insensitive) on name or stripped prefix name
+    const exactMatch = customers.find((c) => {
+      const fn = formatCustomerContactName(c.name).toLowerCase();
+      const raw = c.name.trim().toLowerCase();
+      return fn === q || raw === q || fn.replace(/\s+/g, '') === q.replace(/\s+/g, '');
+    });
+
+    if (exactMatch) {
+      const cleanMob = exactMatch.mobile.replace(/\D/g, '').slice(-10);
+      setMobile(cleanMob);
+      setSelectedCustomerObj(exactMatch);
+      if (isBlurOrEnter) {
+        setCustomer(autoCapitalizeName(formatCustomerContactName(exactMatch.name)));
+      }
+      return exactMatch;
+    }
+
+    // 2. Filter matching candidates by name or phone
+    const candidates = customers.filter((c) => {
+      const fn = formatCustomerContactName(c.name).toLowerCase();
+      const raw = c.name.toLowerCase();
+      return (
+        fn.startsWith(q) ||
+        raw.startsWith(q) ||
+        fn.includes(q) ||
+        raw.includes(q) ||
+        c.mobile.includes(q)
+      );
+    });
+
+    // When typing (at least 2 letters) and exactly 1 salon customer matches:
+    if (candidates.length === 1 && q.length >= 2) {
+      const single = candidates[0];
+      const cleanMob = single.mobile.replace(/\D/g, '').slice(-10);
+      setMobile(cleanMob);
+      setSelectedCustomerObj(single);
+      if (isBlurOrEnter) {
+        setCustomer(autoCapitalizeName(formatCustomerContactName(single.name)));
+      }
+      return single;
+    }
+
+    // On Blur or Enter (e.g. user finished typing or tapped away):
+    if (isBlurOrEnter && candidates.length > 0) {
+      // Find best candidate: prefix match first, then first candidate
+      const best =
+        candidates.find((c) => formatCustomerContactName(c.name).toLowerCase().startsWith(q)) ||
+        candidates.find((c) => c.name.toLowerCase().startsWith(q)) ||
+        candidates[0];
+      const cleanMob = best.mobile.replace(/\D/g, '').slice(-10);
+      setCustomer(autoCapitalizeName(formatCustomerContactName(best.name)));
+      setMobile(cleanMob);
+      setSelectedCustomerObj(best);
+      toast(`👤 Auto-matched: ${formatCustomerContactName(best.name)} (📞 ${cleanMob})`);
+      return best;
+    }
+
+    return null;
+  };
+
   const handleCustomerSelect = (val: string) => {
     const trimmed = val.trim();
     if (!trimmed) {
       setCustomer('');
+      setMobile('');
       setSelectedCustomerObj(null);
       return;
     }
 
-    // 1. Check if chosen from datalist format "Name (Mobile)"
-    const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(\d{10})\)?$/);
+    // 1. Check if chosen from datalist format "Name (Mobile)" or "Name — 📞 Mobile"
+    const match = trimmed.match(/^(.*?)\s*[\(—\-]\s*(?:📞\s*)?(\d{10})\)?$/);
     if (match) {
-      const extractedName = autoCapitalizeName(match[1].trim());
+      const extractedName = autoCapitalizeName(formatCustomerContactName(match[1].trim()));
       const extractedMob = match[2].trim();
-      const c = (data?.customers || []).find((x) => x.mobile === extractedMob) || null;
-      setCustomer(extractedName);
-      setMobile(extractedMob);
-      setSelectedCustomerObj(c);
-      setRedeemPoints(0);
-      setUseWallet(0);
+      handleImportContact(extractedName, extractedMob);
       return;
     }
 
+    // 2. Check combined format match
     const foundByCombined = (data?.customers || []).find(
       (c) =>
         `${formatCustomerContactName(c.name)} (${c.mobile})`.toLowerCase() === trimmed.toLowerCase() ||
@@ -967,17 +1200,27 @@ function BillingContent() {
         `${formatCustomerContactName(c.name)} — 📞 ${c.mobile}`.toLowerCase() === trimmed.toLowerCase()
     );
     if (foundByCombined) {
-      setCustomer(autoCapitalizeName(foundByCombined.name));
-      setMobile(foundByCombined.mobile);
-      setSelectedCustomerObj(foundByCombined);
-      setRedeemPoints(0);
-      setUseWallet(0);
+      handleImportContact(foundByCombined.name, foundByCombined.mobile);
       return;
     }
 
-    // 2. User is just typing name -> update customer name only
-    setCustomer(autoCapitalizeName(val));
-    setSelectedCustomerObj(null);
+    // 3. Smart check if user pasted text with both Name and 10-digit number (e.g. from WhatsApp/Contacts)
+    const hasPhoneMatch = trimmed.match(/(?:(?:\+?91|0)[-\s]?)?([6-9]\d{9})/);
+    if (hasPhoneMatch) {
+      const extractedMob = hasPhoneMatch[1];
+      const extractedName = autoCapitalizeName(
+        trimmed.replace(hasPhoneMatch[0], '').replace(/[\(\)—\-\:\,\+]/g, ' ').replace(/\s+/g, ' ').trim()
+      );
+      handleImportContact(extractedName, extractedMob);
+      return;
+    }
+
+    // 4. User is typing name directly
+    setCustomer(val);
+    setActiveCustSuggest('name');
+
+    // 5. Automatic real-time matching as they write!
+    autoMatchCustomerByName(val, false);
   };
 
   const handleMobileSelect = (val: string) => {
@@ -988,28 +1231,38 @@ function BillingContent() {
       return;
     }
 
-    // 1. Check if chosen from datalist format "Mobile (Name)"
-    const match = trimmed.match(/^(\d{10})\s*[\(—\-]\s*(.*?)\)?$/);
+    // 1. Check if chosen from datalist format "Mobile (Name)" or "Mobile — 👤 Name"
+    const match = trimmed.match(/^(\d{10})\s*[\(—\-]\s*(?:👤\s*)?(.*?)\)?$/);
     if (match) {
       const extractedMob = match[1].trim();
       const extractedName = match[2].trim();
-      const c = (data?.customers || []).find((x) => x.mobile === extractedMob) || null;
-      setMobile(extractedMob);
-      setCustomer(extractedName);
-      setSelectedCustomerObj(c);
+      handleImportContact(extractedName, extractedMob);
       return;
     }
 
-    const cleanNum = trimmed.replace(/\D/g, '').slice(0, 10);
+    // 2. Normalize mobile number for Android & iPhone (strips +91, 0, spaces, dashes)
+    let digits = trimmed.replace(/\D/g, '');
+    if (digits.length > 10) {
+      if (digits.startsWith('91') && digits.length === 12) {
+        digits = digits.slice(2);
+      } else if (digits.startsWith('0') && digits.length === 11) {
+        digits = digits.slice(1);
+      } else {
+        digits = digits.slice(-10);
+      }
+    }
+    const cleanNum = digits.slice(0, 10);
     setMobile(cleanNum);
 
+    // 3. AUTO-MATCH & AUTO-IMPORT: When 10 digits match an existing customer
     if (cleanNum.length === 10) {
-      const c = (data?.customers || []).find((x) => x.mobile === cleanNum);
+      const c = (data?.customers || []).find(
+        (x) => x.mobile.replace(/\D/g, '').slice(-10) === cleanNum
+      );
       if (c) {
         setSelectedCustomerObj(c);
-        if (!customer) {
-          setCustomer(c.name);
-        }
+        setCustomer(autoCapitalizeName(formatCustomerContactName(c.name)));
+        toast(`👤 Auto-imported: ${formatCustomerContactName(c.name)} (${cleanNum})`);
       } else {
         setSelectedCustomerObj(null);
       }
@@ -1017,6 +1270,28 @@ function BillingContent() {
       setSelectedCustomerObj(null);
     }
   };
+
+  // Auto-suggest matches for touch-friendly mobile dropdowns
+  // Auto-suggest matches for touch-friendly mobile dropdowns
+  const custNameSuggestions = useMemo(() => {
+    const q = customer.trim().toLowerCase();
+    if (!q || q.length < 1) return [];
+    return (data?.customers || [])
+      .filter((c) => {
+        const fn = formatCustomerContactName(c.name).toLowerCase();
+        const raw = c.name.toLowerCase();
+        return fn.includes(q) || raw.includes(q) || c.mobile.includes(q);
+      })
+      .slice(0, 8);
+  }, [customer, data?.customers]);
+
+  const custMobSuggestions = useMemo(() => {
+    const q = mobile.trim().replace(/\D/g, '');
+    if (!q || q.length < 2) return [];
+    return (data?.customers || [])
+      .filter((c) => c.mobile.replace(/\D/g, '').includes(q))
+      .slice(0, 8);
+  }, [mobile, data?.customers]);
 
   // Barcode scanning handler (USB or Camera)
   const handleScanBarcode = (scannedCode?: string) => {
@@ -1453,8 +1728,10 @@ function BillingContent() {
     // Reset form
     setCustomer('');
     setMobile('');
-    setLines([EMPTY_LINE(defaultDiscountPercent)]);
+    setLines([EMPTY_LINE()]);
     setDiscount(0);
+    setBillDiscountPercent('');
+    setDiscountMode('amount');
     setAdvance(0);
     setPaid('');
     setIsSplitPayment(false);
@@ -1595,7 +1872,6 @@ function BillingContent() {
 
   const tabs: { id: BillingViewTab; label: string; shortLabel: string; icon: any; count?: number }[] = [
     { id: 'builder', label: 'New POS Bill', shortLabel: 'New Bill', icon: Receipt },
-    { id: 'split', label: 'Split (Bill + History)', shortLabel: 'Bill + History', icon: Columns },
     { id: 'history', label: 'Invoice Receipts History', shortLabel: 'History', icon: History, count: recentInvoices.length },
   ];
 
@@ -1638,70 +1914,6 @@ function BillingContent() {
             );
           })}
         </div>
-
-        {/* Up & Down vs Side-by-Side Box Layout Switcher */}
-        {activeTab === 'builder' && (
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              background: '#f1f5f9',
-              padding: '3px',
-              borderRadius: 8,
-              border: '1px solid #cbd5e1',
-              gap: 3,
-            }}
-          >
-            <button
-              type="button"
-              className={`tab-btn ${layoutOrientation === 'up-down' ? 'active' : ''}`}
-              onClick={() => handleToggleLayout('up-down')}
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '3px 9px',
-                height: 27,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                borderRadius: 6,
-                border: 'none',
-                cursor: 'pointer',
-                background: layoutOrientation === 'up-down' ? '#ffffff' : 'transparent',
-                color: layoutOrientation === 'up-down' ? '#05424A' : '#64748b',
-                boxShadow: layoutOrientation === 'up-down' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}
-              title="Up & Down Layout: Top Box (Invoice Items) & Bottom Box (Checkout & Settlement)"
-            >
-              <Rows3 size={12} />
-              <span>⬍ Up &amp; Down Box</span>
-            </button>
-            <button
-              type="button"
-              className={`tab-btn ${layoutOrientation === 'side-by-side' ? 'active' : ''}`}
-              onClick={() => handleToggleLayout('side-by-side')}
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '3px 9px',
-                height: 27,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-                borderRadius: 6,
-                border: 'none',
-                cursor: 'pointer',
-                background: layoutOrientation === 'side-by-side' ? '#ffffff' : 'transparent',
-                color: layoutOrientation === 'side-by-side' ? '#05424A' : '#64748b',
-                boxShadow: layoutOrientation === 'side-by-side' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              }}
-              title="Side by Side Layout: Left Box (Invoice Items) & Right Box (Checkout & Settlement)"
-            >
-              <Columns size={12} />
-              <span>⬌ Side by Side</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Hidden printable receipt */}
@@ -1828,8 +2040,8 @@ function BillingContent() {
         </div>
       )}
 
-      {/* VIEW: 2-Column POS Builder, Side-by-Side Split, or History Mode */}
-      <div className={activeTab === 'history' ? '' : activeTab === 'builder' && layoutOrientation === 'up-down' ? 'billing-layout billing-layout-up-down' : 'billing-layout'}>
+      {/* VIEW: 2-Column POS Builder (Items on Left, Checkout & Settlement on Right — Fits Screen) */}
+      <div className={activeTab === 'history' ? '' : 'billing-layout'}>
         {/* 1. BUILDER MODE: 2-Column Balanced POS (Items on Left, Checkout on Right) */}
         {activeTab === 'builder' && (
           <>
@@ -1837,7 +2049,7 @@ function BillingContent() {
             <div
               className="card billing-builder-card billing-items-panel"
               style={{
-                padding: '12px 14px',
+                padding: '10px 12px',
                 border: '1px solid #e2e8f0',
                 borderRadius: 12,
                 background: '#ffffff',
@@ -1869,83 +2081,97 @@ function BillingContent() {
                     ? `✎ Edit Invoice — ${data?.invoices?.find((i) => i.id === editingInvoiceId)?.no || ''}`
                     : 'New POS Invoice'}
                 </h2>
-                {editingInvoiceId ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={cancelEditInvoice}
-                    style={{ fontSize: 11, padding: '2px 8px', height: 26, borderRadius: 6 }}
-                  >
-                    Cancel Edit
-                  </button>
-                ) : appointmentRef ? (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      background: '#e0f2fe',
-                      color: '#0369a1',
-                      padding: '2px 8px',
-                      borderRadius: 6,
-                      fontWeight: 700,
-                      border: '1px solid #bae6fd',
-                    }}
-                  >
-                    {appointmentRef}
-                  </span>
-                ) : null}
-              </div>
-
-              {/* Quick Import Bridal Booking (Compact pink container) */}
-              {data?.bridal && data.bridal.length > 0 && (
-                <div
-                  style={{
-                    marginBottom: 8,
-                    padding: '6px 10px',
-                    background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)',
-                    borderRadius: 8,
-                    border: '1px solid #fbcfe8',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: 4,
-                    }}
-                  >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {editingInvoiceId ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={cancelEditInvoice}
+                      style={{ fontSize: 11, padding: '2px 8px', height: 26, borderRadius: 6 }}
+                    >
+                      Cancel Edit
+                    </button>
+                  ) : appointmentRef ? (
                     <span
                       style={{
                         fontSize: 11,
+                        background: '#e0f2fe',
+                        color: '#0369a1',
+                        padding: '2px 8px',
+                        borderRadius: 6,
                         fontWeight: 700,
-                        color: '#9d174d',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
+                        border: '1px solid #bae6fd',
                       }}
                     >
-                      👑 Quick Import Bridal Booking
+                      {appointmentRef}
                     </span>
-                    <span style={{ fontSize: 10, fontWeight: 500, color: '#be185d' }}>
-                      Auto-loads events &amp; package
-                    </span>
-                  </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleAllClearInvoice}
+                    className="btn btn-ghost btn-sm"
+                    style={{
+                      fontSize: 11,
+                      padding: '2px 9px',
+                      height: 26,
+                      borderRadius: 6,
+                      color: '#e11d48',
+                      border: '1px solid #fecdd3',
+                      background: '#fff1f2',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                    title="Clear all fields, items & reset invoice (All Clear)"
+                  >
+                    <RotateCcw size={11} />
+                    <span>All Clear</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Import Bridal Booking (Compact single-line) */}
+              {data?.bridal && data.bridal.length > 0 && (
+                <div
+                  style={{
+                    marginBottom: 6,
+                    padding: '3px 8px',
+                    background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)',
+                    borderRadius: 6,
+                    border: '1px solid #fbcfe8',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: '#9d174d',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3,
+                    }}
+                  >
+                    👑 Bridal:
+                  </span>
                   <select
                     className="input"
                     style={{
-                      height: 30,
-                      fontSize: 11.5,
+                      flex: 1,
+                      height: 26,
+                      fontSize: 11,
                       fontWeight: 600,
                       borderColor: '#f472b6',
                       background: '#ffffff',
                       color: '#831843',
                       cursor: 'pointer',
-                      padding: '0 8px',
-                      borderRadius: 6,
+                      padding: '0 6px',
+                      borderRadius: 5,
                     }}
                     onChange={(e) => {
                       const b = data.bridal?.find((x) => x.id === e.target.value);
@@ -1976,41 +2202,87 @@ function BillingContent() {
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 1fr)',
-                  gap: 8,
-                  marginBottom: 8,
+                  gap: 6,
+                  marginBottom: 6,
                 }}
               >
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label
-                    className="label"
+                <div className="form-group" style={{ margin: 0, position: 'relative' }}>
+                  <div
                     style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      marginBottom: 3,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 4,
-                      color: '#1e293b',
+                      justifyContent: 'space-between',
+                      marginBottom: 2,
                     }}
                   >
-                    <span>Customer Name</span>
-                    <span style={{ fontSize: 10, fontWeight: 400, color: '#64748b' }}>
-                      (auto-suggest)
-                    </span>
-                  </label>
+                    <label
+                      className="label"
+                      style={{
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        margin: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        color: '#1e293b',
+                      }}
+                    >
+                      <span>Customer Name</span>
+                      <span style={{ fontSize: 9.5, fontWeight: 600, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0 5px', borderRadius: 4 }}>
+                        ⚡ Auto-Match
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handlePickDeviceContact}
+                      title="Import contact from Android / iPhone"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        fontSize: 9.5,
+                        fontWeight: 600,
+                        color: '#05424A',
+                        background: '#E2F7F4',
+                        border: '1px solid #7EDAD0',
+                        borderRadius: 4,
+                        padding: '1px 6px',
+                        cursor: 'pointer',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      <Smartphone size={10} />
+                      <span>Import</span>
+                    </button>
+                  </div>
                   <input
                     type="text"
+                    name="customerName"
+                    autoComplete="name"
                     className="input"
                     list="billing-cust-name-list"
-                    autoComplete="off"
                     placeholder="Start typing name or contact…"
                     value={customer}
+                    onFocus={() => setActiveCustSuggest('name')}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setActiveCustSuggest(null);
+                        autoMatchCustomerByName(customer, true);
+                      }, 250);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        autoMatchCustomerByName(customer, true);
+                        setActiveCustSuggest(null);
+                      }
+                    }}
                     onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
                     style={{
-                      height: 34,
-                      fontSize: 12,
-                      borderRadius: 7,
-                      padding: '0 9px',
+                      height: 30,
+                      fontSize: 11.5,
+                      borderRadius: 6,
+                      padding: '0 8px',
                       border: '1px solid #cbd5e1',
                       textTransform: 'capitalize',
                     }}
@@ -2025,14 +2297,69 @@ function BillingContent() {
                       </option>
                     ))}
                   </datalist>
+
+                  {/* Touch-Friendly Auto-Suggest Dropdown for Android & iPhone */}
+                  {activeCustSuggest === 'name' && custNameSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 60,
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 7,
+                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.18)',
+                        marginTop: 2,
+                        maxHeight: 190,
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {custNameSuggestions.map((c) => (
+                        <div
+                          key={c.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleImportContact(c.name, c.mobile);
+                          }}
+                          onTouchStart={(e) => {
+                            e.preventDefault();
+                            handleImportContact(c.name, c.mobile);
+                          }}
+                          style={{
+                            padding: '6px 8px',
+                            borderBottom: '1px solid #f1f5f9',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            fontSize: 11,
+                          }}
+                        >
+                          <div>
+                            <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
+                            {c.loyaltyPoints ? (
+                              <span style={{ marginLeft: 5, fontSize: 9.5, color: '#d97706', fontWeight: 600 }}>
+                                🪙 {c.loyaltyPoints} pts
+                              </span>
+                            ) : null}
+                          </div>
+                          <span style={{ color: '#05424A', fontSize: 10, background: '#E2F7F4', padding: '1px 6px', borderRadius: 4, fontWeight: 500 }}>
+                            📞 {c.mobile}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="form-group" style={{ margin: 0 }}>
+                <div className="form-group" style={{ margin: 0, position: 'relative' }}>
                   <label
                     className="label"
                     style={{
-                      fontSize: 11,
+                      fontSize: 10.5,
                       fontWeight: 700,
-                      marginBottom: 3,
+                      marginBottom: 2,
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
@@ -2040,23 +2367,43 @@ function BillingContent() {
                     }}
                   >
                     <span>Mobile Number</span>
-                    <span style={{ fontSize: 10, fontWeight: 400, color: '#64748b' }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 400, color: '#64748b' }}>
                       (10-digit)
                     </span>
                   </label>
                   <input
                     type="tel"
+                    inputMode="tel"
+                    name="customerMobile"
+                    autoComplete="tel"
                     className="input"
                     list="billing-cust-mob-list"
-                    autoComplete="off"
                     placeholder="10-digit mobile number"
                     value={mobile}
+                    onFocus={() => setActiveCustSuggest('mobile')}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setActiveCustSuggest(null);
+                        const clean = mobile.replace(/\D/g, '').slice(-10);
+                        if (clean.length === 10) {
+                          const c = (data?.customers || []).find(
+                            (x) => x.mobile.replace(/\D/g, '').slice(-10) === clean
+                          );
+                          if (c) {
+                            setSelectedCustomerObj(c);
+                            if (!customer || customer.trim() === '') {
+                              setCustomer(autoCapitalizeName(formatCustomerContactName(c.name)));
+                            }
+                          }
+                        }
+                      }, 250);
+                    }}
                     onChange={(e) => handleMobileSelect(e.target.value)}
                     style={{
-                      height: 34,
-                      fontSize: 12,
-                      borderRadius: 7,
-                      padding: '0 9px',
+                      height: 30,
+                      fontSize: 11.5,
+                      borderRadius: 6,
+                      padding: '0 8px',
                       border: '1px solid #cbd5e1',
                     }}
                   />
@@ -2070,6 +2417,52 @@ function BillingContent() {
                       </option>
                     ))}
                   </datalist>
+
+                  {/* Touch-Friendly Auto-Suggest Dropdown for Mobile Number */}
+                  {activeCustSuggest === 'mobile' && custMobSuggestions.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 60,
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 7,
+                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.18)',
+                        marginTop: 2,
+                        maxHeight: 190,
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {custMobSuggestions.map((c) => (
+                        <div
+                          key={c.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleImportContact(c.name, c.mobile);
+                          }}
+                          onTouchStart={(e) => {
+                            e.preventDefault();
+                            handleImportContact(c.name, c.mobile);
+                          }}
+                          style={{
+                            padding: '6px 8px',
+                            borderBottom: '1px solid #f1f5f9',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            fontSize: 11,
+                          }}
+                        >
+                          <span style={{ fontWeight: 600, color: '#05424A' }}>📞 {c.mobile}</span>
+                          <span style={{ color: '#475569', fontSize: 10.5 }}>{c.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* 24-Hour Free Customer Service Window Status */}
                   {mobile.length === 10 ? (
@@ -2169,31 +2562,31 @@ function BillingContent() {
                 className="billing-barcode-container"
                 style={{
                   display: 'flex',
-                  gap: 6,
+                  gap: 5,
                   alignItems: 'center',
                   background: '#f8fafc',
                   border: '1px dashed #cbd5e1',
-                  borderRadius: 8,
-                  padding: '5px 8px',
-                  margin: '4px 0 8px',
+                  borderRadius: 7,
+                  padding: '3px 7px',
+                  margin: '3px 0 6px',
                 }}
               >
                 <div
                   className="billing-barcode-input-row"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, minWidth: 0 }}
                 >
-                  <Barcode size={16} color="#05424A" style={{ flexShrink: 0 }} />
+                  <Barcode size={15} color="#05424A" style={{ flexShrink: 0 }} />
                   <input
                     type="text"
                     className="input billing-barcode-input"
                     style={{
                       flex: 1,
                       minWidth: 0,
-                      height: 30,
+                      height: 28,
                       border: '1px solid #e2e8f0',
-                      borderRadius: 6,
-                      padding: '0 8px',
-                      fontSize: 11.5,
+                      borderRadius: 5,
+                      padding: '0 7px',
+                      fontSize: 11,
                     }}
                     placeholder="Scan barcode or type item & press Enter…"
                     value={barcodeInput}
@@ -2208,17 +2601,17 @@ function BillingContent() {
                 </div>
                 <div
                   className="billing-barcode-actions"
-                  style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}
+                  style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}
                 >
                   <button
                     className="btn btn-primary btn-sm"
                     type="button"
                     style={{
-                      height: 30,
-                      padding: '0 10px',
-                      fontSize: 11.5,
+                      height: 28,
+                      padding: '0 9px',
+                      fontSize: 11,
                       fontWeight: 700,
-                      borderRadius: 6,
+                      borderRadius: 5,
                     }}
                     onClick={() => handleScanBarcode()}
                   >
@@ -2228,14 +2621,14 @@ function BillingContent() {
                     className="btn btn-ghost btn-sm"
                     type="button"
                     style={{
-                      height: 30,
-                      padding: '0 8px',
-                      fontSize: 11.5,
+                      height: 28,
+                      padding: '0 7px',
+                      fontSize: 11,
                       border: '1px solid #cbd5e1',
-                      borderRadius: 6,
+                      borderRadius: 5,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 4,
+                      gap: 3,
                     }}
                     onClick={() => setCameraModalOpen(true)}
                   >
@@ -2333,27 +2726,53 @@ function BillingContent() {
                       {lines.filter((l) => l.name && l.name.trim() !== '').length}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setLines((p) => [...p, EMPTY_LINE(defaultDiscountPercent)])}
-                    style={{
-                      height: 26,
-                      padding: '0 9px',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      borderRadius: 6,
-                      border: '1px solid #cbd5e1',
-                      background: '#f8fafc',
-                      color: '#05424A',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <Plus size={12} /> <span>Add Item</span>
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {lines.some((l) => (l.name && l.name.trim() !== '') || Number(l.price || 0) > 0) && (
+                      <button
+                        type="button"
+                        onClick={handleClearAllLines}
+                        style={{
+                          height: 26,
+                          padding: '0 8px',
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          borderRadius: 6,
+                          border: '1px solid #fecdd3',
+                          background: '#fff1f2',
+                          color: '#e11d48',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          cursor: 'pointer',
+                        }}
+                        title="Clear all item lines"
+                      >
+                        <Trash2 size={11} />
+                        <span>Clear Items</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setLines((p) => [...p, EMPTY_LINE()])}
+                      style={{
+                        height: 26,
+                        padding: '0 9px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        borderRadius: 6,
+                        border: '1px solid #cbd5e1',
+                        background: '#f8fafc',
+                        color: '#05424A',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <Plus size={12} /> <span>Add Item</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* 1. Desktop & Tablet Grid Table */}
@@ -3219,7 +3638,7 @@ function BillingContent() {
             <div
               className="card billing-builder-card billing-checkout-panel"
               style={{
-                padding: '12px 14px',
+                padding: '10px 12px',
                 border: '1px solid #e2e8f0',
                 borderRadius: 12,
                 background: '#ffffff',
@@ -3351,98 +3770,136 @@ function BillingContent() {
                   </div>
                 )}
 
-                <div className="total-row" style={{ alignItems: 'center' }}>
-                  <span style={{ fontSize: 11.5 }}>Additional Bill Discount (₹)</span>
-                  <input
-                    type="number"
-                    min={0}
-                    className="input"
-                    style={{
-                      width: 80,
-                      height: 26,
-                      textAlign: 'right',
-                      padding: '0 6px',
-                      fontSize: 11.5,
-                      borderRadius: 6,
-                    }}
-                    placeholder="₹ 0"
-                    value={discount || ''}
-                    onChange={(e) => setDiscount(Number(e.target.value))}
-                  />
-                </div>
-
-                {/* Quick % Bill Discount & Default % Chips */}
+                {/* Bill Discount: 2 Options (1. Editing Box % and 2. Writing Box ₹) */}
                 <div
                   style={{
                     background: '#f8fafc',
-                    padding: '5px 7px',
+                    padding: '6px 8px',
                     borderRadius: 7,
                     border: '1px solid #e2e8f0',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 4,
+                    gap: 5,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#475569' }}>
-                      ⚡ 1-Click Bill Disc:
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#05424A', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      🏷️ Bill Discount
                     </span>
-                    <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                      {[0, 5, 10, 15, 20, 25].map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => {
-                            if (pct === 0) {
-                              setDiscount(0);
-                            } else {
-                              const calcAmt = Math.round((rawSubtotal * pct) / 100);
-                              setDiscount(calcAmt);
-                            }
-                          }}
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: 700,
-                            padding: '1.5px 5px',
-                            borderRadius: 4,
-                            border: '1px solid #cbd5e1',
-                            background: pct === 0 && Number(discount || 0) === 0 ? '#f1f5f9' : '#ffffff',
-                            color: pct === 0 ? '#64748b' : '#05424A',
-                            cursor: 'pointer',
-                          }}
-                          title={`Apply ${pct}% discount to bill subtotal`}
-                        >
-                          {pct === 0 ? 'Clear 0%' : `${pct}%`}
-                        </button>
-                      ))}
-                    </div>
+                    {(discount > 0 || (billDiscountPercent !== '' && billDiscountPercent !== 0)) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDiscount(0);
+                          setBillDiscountPercent('');
+                          setDiscountMode('amount');
+                        }}
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 700,
+                          color: '#dc2626',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '0 2px',
+                        }}
+                        title="Clear discount"
+                      >
+                        ✕ Clear
+                      </button>
+                    )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4, borderTop: '1px dashed #e2e8f0', paddingTop: 3 }}>
-                    <span style={{ fontSize: 9.5, color: '#64748b' }}>
-                      ⚙️ Default % for new items:
-                    </span>
-                    <div style={{ display: 'flex', gap: 3 }}>
-                      {[0, 5, 10, 15].map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => handleSetDefaultDiscountPercent(pct)}
-                          style={{
-                            fontSize: 9,
-                            fontWeight: defaultDiscountPercent === pct ? 800 : 600,
-                            padding: '1px 5px',
-                            borderRadius: 4,
-                            border: defaultDiscountPercent === pct ? '1.5px solid #05424A' : '1px solid #e2e8f0',
-                            background: defaultDiscountPercent === pct ? 'rgba(5, 66, 74, 0.12)' : '#ffffff',
-                            color: defaultDiscountPercent === pct ? '#05424A' : '#64748b',
-                            cursor: 'pointer',
-                          }}
-                          title={`Save ${pct}% as default discount for new items`}
-                        >
-                          {pct}%
-                        </button>
-                      ))}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {/* % Editing Box */}
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="input"
+                        style={{
+                          width: '100%',
+                          height: 26,
+                          padding: '0 20px 0 6px',
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          borderRadius: 6,
+                          textAlign: 'right',
+                          borderColor: discountMode === 'percent' && billDiscountPercent !== '' ? '#05424A' : '#cbd5e1',
+                          background: discountMode === 'percent' && billDiscountPercent !== '' ? 'rgba(5, 66, 74, 0.04)' : '#ffffff',
+                        }}
+                        placeholder="0"
+                        value={billDiscountPercent !== '' ? billDiscountPercent : ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value)));
+                          setDiscountMode('percent');
+                          setBillDiscountPercent(val);
+                          if (val === '' || val === 0) {
+                            setDiscount(0);
+                          } else {
+                            const calcAmt = Math.round((rawSubtotal * Number(val)) / 100);
+                            setDiscount(calcAmt);
+                          }
+                        }}
+                      />
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: 6,
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: '#64748b',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        %
+                      </span>
+                    </div>
+
+                    {/* ₹ Writing Box */}
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          left: 6,
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: '#64748b',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        className="input"
+                        style={{
+                          width: '100%',
+                          height: 26,
+                          padding: '0 6px 0 18px',
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          borderRadius: 6,
+                          textAlign: 'right',
+                          borderColor: discountMode === 'amount' && discount > 0 ? '#05424A' : '#cbd5e1',
+                          background: discountMode === 'amount' && discount > 0 ? 'rgba(5, 66, 74, 0.04)' : '#ffffff',
+                        }}
+                        placeholder="0"
+                        value={discount || ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 0 : Math.max(0, Number(e.target.value));
+                          setDiscountMode('amount');
+                          setDiscount(val);
+                          if (val === 0 || rawSubtotal <= 0) {
+                            setBillDiscountPercent('');
+                          } else {
+                            const pct = Number(((val / rawSubtotal) * 100).toFixed(1));
+                            setBillDiscountPercent(pct === Math.round(pct) ? Math.round(pct) : pct);
+                          }
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -3902,7 +4359,11 @@ function BillingContent() {
                       <span style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>
                         Payment Method
                       </span>
-                      {!isSplitPayment && (
+                      {balance === 0 && effectivePaid > 0 ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                          ✓ Paid {money(effectivePaid)}
+                        </span>
+                      ) : balance > 0 ? (
                         <button
                           type="button"
                           onClick={handleSetFullPayment}
@@ -3910,40 +4371,22 @@ function BillingContent() {
                           style={{
                             fontSize: 9.5,
                             fontWeight: 700,
-                            padding: '1px 6px',
+                            padding: '1.5px 6px',
                             borderRadius: 4,
-                            background: balance === 0 ? '#f0fdf4' : 'rgba(5, 66, 74, 0.08)',
-                            color: balance === 0 ? '#16a34a' : '#05424A',
-                            border: balance === 0 ? '1px solid #bbf7d0' : '1px solid rgba(5, 66, 74, 0.2)',
+                            background: 'rgba(5, 66, 74, 0.08)',
+                            color: '#05424A',
+                            border: '1px solid rgba(5, 66, 74, 0.2)',
                             cursor: 'pointer',
                           }}
                         >
                           ⚡ Full ({money(Math.max(0, totalAfterLoyalty - Number(advance || 0)))})
                         </button>
-                      )}
+                      ) : null}
                     </div>
-                    <label
-                      style={{
-                        fontSize: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        cursor: 'pointer',
-                        color: '#05424A',
-                        fontWeight: 600,
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSplitPayment}
-                        onChange={(e) => setIsSplitPayment(e.target.checked)}
-                      />
-                      <span>Split Payment (Cash + UPI)</span>
-                    </label>
                   </div>
 
-                  {/* Fast 1-Click Payment Mode Pills */}
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                  {/* Fast 1-Click Payment Mode Buttons (Speedy & Quick, No Duplicates) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 6 }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -3951,49 +4394,59 @@ function BillingContent() {
                         setIsSplitPayment(false);
                         const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
                         setPaid(payAmt);
+                        setSplitCash('');
+                        setSplitUpi('');
+                        setSplitCard('');
                       }}
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        padding: '2.5px 7px',
-                        borderRadius: 5,
-                        border: (!isSplitPayment && mode === 'Cash' && balance === 0) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                        background: (!isSplitPayment && mode === 'Cash' && balance === 0) ? '#f0fdf4' : '#ffffff',
-                        color: (!isSplitPayment && mode === 'Cash' && balance === 0) ? '#16a34a' : '#05424A',
+                        padding: '4px 2px',
+                        borderRadius: 6,
+                        border: (!isSplitPayment && mode === 'Cash') ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                        background: (!isSplitPayment && mode === 'Cash') ? '#f0fdf4' : '#ffffff',
+                        color: (!isSplitPayment && mode === 'Cash') ? '#16a34a' : '#334155',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 3,
+                        justifyContent: 'center',
+                        gap: 2,
                       }}
-                      title="Mark full payment in Cash"
+                      title="1-Click: Mark 100% full payment in Cash"
                     >
-                      💵 Full Cash
+                      💵 Cash
                     </button>
+
                     <button
                       type="button"
                       onClick={() => {
-                        setMode('UPI');
+                        setMode('GPay UPI');
                         setIsSplitPayment(false);
                         const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
                         setPaid(payAmt);
+                        setSplitCash('');
+                        setSplitUpi('');
+                        setSplitCard('');
                       }}
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        padding: '2.5px 7px',
-                        borderRadius: 5,
-                        border: (!isSplitPayment && mode === 'UPI' && balance === 0) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                        background: (!isSplitPayment && mode === 'UPI' && balance === 0) ? '#f0fdf4' : '#ffffff',
-                        color: (!isSplitPayment && mode === 'UPI' && balance === 0) ? '#16a34a' : '#05424A',
+                        padding: '4px 2px',
+                        borderRadius: 6,
+                        border: (!isSplitPayment && (mode === 'GPay UPI' || mode === 'PhonePe UPI' || mode === 'UPI')) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                        background: (!isSplitPayment && (mode === 'GPay UPI' || mode === 'PhonePe UPI' || mode === 'UPI')) ? '#f0fdf4' : '#ffffff',
+                        color: (!isSplitPayment && (mode === 'GPay UPI' || mode === 'PhonePe UPI' || mode === 'UPI')) ? '#16a34a' : '#334155',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 3,
+                        justifyContent: 'center',
+                        gap: 2,
                       }}
-                      title="Mark full payment in UPI / GPay"
+                      title="1-Click: Mark 100% full payment in UPI / GPay"
                     >
-                      📱 Full UPI
+                      📱 UPI
                     </button>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -4001,50 +4454,65 @@ function BillingContent() {
                         setIsSplitPayment(false);
                         const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
                         setPaid(payAmt);
+                        setSplitCash('');
+                        setSplitUpi('');
+                        setSplitCard('');
                       }}
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        padding: '2.5px 7px',
-                        borderRadius: 5,
-                        border: (!isSplitPayment && mode === 'Card' && balance === 0) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                        background: (!isSplitPayment && mode === 'Card' && balance === 0) ? '#f0fdf4' : '#ffffff',
-                        color: (!isSplitPayment && mode === 'Card' && balance === 0) ? '#16a34a' : '#05424A',
+                        padding: '4px 2px',
+                        borderRadius: 6,
+                        border: (!isSplitPayment && mode === 'Card') ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
+                        background: (!isSplitPayment && mode === 'Card') ? '#f0fdf4' : '#ffffff',
+                        color: (!isSplitPayment && mode === 'Card') ? '#16a34a' : '#334155',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 3,
+                        justifyContent: 'center',
+                        gap: 2,
                       }}
-                      title="Mark full payment via Card"
+                      title="1-Click: Mark 100% full payment via Card"
                     >
                       💳 Card
                     </button>
+
                     <button
                       type="button"
                       onClick={() => {
-                        setIsSplitPayment(true);
                         const totalPay = Math.max(0, totalAfterLoyalty - Number(advance || 0));
-                        if (!splitCash && !splitUpi) {
-                          setSplitCash(Math.floor(totalPay / 2));
-                          setSplitUpi(Math.ceil(totalPay / 2));
+                        if (isSplitPayment) {
+                          // Toggle back to single Cash payment
+                          setIsSplitPayment(false);
+                          setMode('Cash');
+                          setPaid(totalPay);
+                        } else {
+                          // Toggle into Split mode and auto-split 50/50 between Cash & UPI
+                          setIsSplitPayment(true);
+                          const half1 = Math.floor(totalPay / 2);
+                          const half2 = totalPay - half1;
+                          setSplitCash(half1);
+                          setSplitUpi(half2);
+                          setSplitCard('');
                         }
                       }}
                       style={{
                         fontSize: 10,
                         fontWeight: 700,
-                        padding: '2.5px 7px',
-                        borderRadius: 5,
+                        padding: '4px 2px',
+                        borderRadius: 6,
                         border: isSplitPayment ? '1.5px solid #05424A' : '1px solid #cbd5e1',
-                        background: isSplitPayment ? 'rgba(5, 66, 74, 0.08)' : '#ffffff',
-                        color: '#05424A',
+                        background: isSplitPayment ? 'rgba(5, 66, 74, 0.1)' : '#ffffff',
+                        color: isSplitPayment ? '#05424A' : '#334155',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: 3,
+                        justifyContent: 'center',
+                        gap: 2,
                       }}
-                      title="Split payment between Cash and UPI"
+                      title="1-Click: Split payment between Cash & UPI (Click again to switch back)"
                     >
-                      🔀 Split (Cash+UPI)
+                      🔀 Split
                     </button>
                   </div>
 
@@ -4153,104 +4621,68 @@ function BillingContent() {
                     </div>
                   ) : (
                     <div>
-                      <div style={{ display: 'flex', gap: 5, alignItems: 'center', marginBottom: 4 }}>
-                        <div style={{ flex: 1 }}>
-                          <input
-                            type="text"
-                            className="input"
-                            list="pos-payment-accounts"
-                            placeholder="Pick payment method…"
-                            value={mode}
-                            onChange={(e) => setMode(e.target.value)}
-                            style={{ height: 28, fontSize: 11.5, padding: '0 6px' }}
-                          />
-                          <datalist id="pos-payment-accounts">
-                            {(
-                              data?.settings?.payments || [
-                                'Cash',
-                                'GPay UPI',
-                                'PhonePe UPI',
-                                'Card',
-                                'Bank Transfer',
-                                'HDFC Bank',
-                              ]
-                            ).map((p) => (
-                              <option key={p} value={p}>
-                                {p}
-                              </option>
-                            ))}
-                          </datalist>
-                        </div>
-                        <div style={{ width: 110, display: 'flex', gap: 3, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <select
+                          value={mode}
+                          onChange={(e) => setMode(e.target.value)}
+                          style={{
+                            flex: 1,
+                            height: 28,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '0 6px',
+                            borderRadius: 6,
+                            border: '1px solid #cbd5e1',
+                            background: '#ffffff',
+                            color: '#0f172a',
+                          }}
+                        >
+                          {(
+                            data?.settings?.payments || [
+                              'Cash',
+                              'GPay UPI',
+                              'PhonePe UPI',
+                              'Card',
+                              'Bank Transfer',
+                              'HDFC Bank',
+                            ]
+                          ).map((p) => (
+                            <option key={p} value={p}>
+                              {p}
+                            </option>
+                          ))}
+                        </select>
+                        <div style={{ width: 110, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <span
+                            style={{
+                              position: 'absolute',
+                              left: 6,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: '#64748b',
+                              pointerEvents: 'none',
+                            }}
+                          >
+                            ₹
+                          </span>
                           <input
                             type="number"
                             min={0}
                             className="input"
-                            placeholder="Paid ₹"
+                            placeholder="0"
                             value={paid}
                             onChange={(e) => setPaid(Number(e.target.value) || '')}
-                            style={{ textAlign: 'right', height: 28, fontSize: 11.5, padding: '0 5px', flex: 1 }}
-                          />
-                          <button
-                            type="button"
-                            onClick={handleSetFullPayment}
-                            title="Auto-fill full payable amount"
                             style={{
+                              textAlign: 'right',
                               height: 28,
-                              padding: '0 6px',
-                              borderRadius: 4,
-                              background: balance === 0 ? '#16a34a' : '#05424A',
-                              color: '#ffffff',
-                              border: 'none',
-                              fontSize: 10,
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              whiteSpace: 'nowrap',
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              padding: '0 6px 0 16px',
+                              width: '100%',
+                              borderRadius: 6,
                             }}
-                          >
-                            Full
-                          </button>
+                          />
                         </div>
-                      </div>
-
-                      {/* Quick Pick Pills */}
-                      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                        {(
-                          data?.settings?.payments || [
-                            'Cash',
-                            'GPay UPI',
-                            'PhonePe UPI',
-                            'Card',
-                            'Bank Transfer',
-                            'HDFC Bank',
-                          ]
-                        ).map((p) => {
-                          const isSelected = mode === p;
-                          return (
-                            <button
-                              key={p}
-                              type="button"
-                              onClick={() => {
-                                setMode(p);
-                                if (paid === '' || paid === 0) {
-                                  setPaid(Math.max(0, totalAfterLoyalty - Number(advance || 0)));
-                                }
-                              }}
-                              style={{
-                                padding: '2px 5px',
-                                borderRadius: 4,
-                                border: isSelected ? '1.5px solid #05424A' : '1px solid #cbd5e1',
-                                background: isSelected ? '#05424A' : '#ffffff',
-                                color: isSelected ? '#ffffff' : '#334155',
-                                fontWeight: isSelected ? 700 : 500,
-                                fontSize: 10,
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {p}
-                            </button>
-                          );
-                        })}
                       </div>
                     </div>
                   )}
@@ -4352,21 +4784,35 @@ function BillingContent() {
 
               {/* Action Buttons */}
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                {editingInvoiceId && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    style={{ flex: 1, padding: '6px 10px', height: 38, fontSize: 12, borderRadius: 7 }}
-                    onClick={cancelEditInvoice}
-                  >
-                    Cancel Edit
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{
+                    padding: '6px 12px',
+                    height: 38,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    borderRadius: 7,
+                    color: '#e11d48',
+                    borderColor: '#fecdd3',
+                    background: '#fff1f2',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onClick={editingInvoiceId ? cancelEditInvoice : handleAllClearInvoice}
+                  title={editingInvoiceId ? 'Cancel editing invoice' : 'Clear all fields & reset invoice (All Clear)'}
+                >
+                  <RotateCcw size={13} />
+                  <span>{editingInvoiceId ? 'Cancel Edit' : 'All Clear'}</span>
+                </button>
                 <button
                   type="button"
                   className="btn btn-primary"
                   style={{
-                    flex: editingInvoiceId ? 2 : 1,
+                    flex: 1,
                     height: 38,
                     padding: '8px 14px',
                     fontSize: 13,
@@ -4429,30 +4875,55 @@ function BillingContent() {
                   ? `✎ Edit Invoice — ${data?.invoices?.find((i) => i.id === editingInvoiceId)?.no || ''}`
                   : 'New POS Invoice'}
               </h2>
-              {editingInvoiceId ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {editingInvoiceId ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={cancelEditInvoice}
+                    style={{ fontSize: 11, padding: '2px 8px', height: 26, borderRadius: 6 }}
+                  >
+                    Cancel Edit
+                  </button>
+                ) : appointmentRef ? (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      background: '#e0f2fe',
+                      color: '#0369a1',
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      border: '1px solid #bae6fd',
+                    }}
+                  >
+                    {appointmentRef}
+                  </span>
+                ) : null}
                 <button
                   type="button"
+                  onClick={handleAllClearInvoice}
                   className="btn btn-ghost btn-sm"
-                  onClick={cancelEditInvoice}
-                  style={{ fontSize: 11, padding: '2px 8px', height: 26, borderRadius: 6 }}
-                >
-                  Cancel Edit
-                </button>
-              ) : appointmentRef ? (
-                <span
                   style={{
                     fontSize: 11,
-                    background: '#e0f2fe',
-                    color: '#0369a1',
-                    padding: '2px 8px',
+                    padding: '2px 9px',
+                    height: 26,
                     borderRadius: 6,
+                    color: '#e11d48',
+                    border: '1px solid #fecdd3',
+                    background: '#fff1f2',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
                     fontWeight: 700,
-                    border: '1px solid #bae6fd',
+                    cursor: 'pointer',
                   }}
+                  title="Clear all fields, items & reset invoice (All Clear)"
                 >
-                  {appointmentRef}
-                </span>
-              ) : null}
+                  <RotateCcw size={11} />
+                  <span>All Clear</span>
+                </button>
+              </div>
             </div>
 
             {/* Bridal Selector */}
@@ -4496,33 +4967,194 @@ function BillingContent() {
 
             {/* Customer Inputs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 1fr)', gap: 8, marginBottom: 8 }}>
-              <div className="form-group" style={{ margin: 0 }}>
-                <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3, color: '#1e293b' }}>
-                  Customer Name
-                </label>
+              <div className="form-group" style={{ margin: 0, position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                  <label className="label" style={{ fontSize: 11, fontWeight: 700, margin: 0, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span>Customer Name</span>
+                    <span style={{ fontSize: 9.5, fontWeight: 600, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0 5px', borderRadius: 4 }}>
+                      ⚡ Auto-Match
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handlePickDeviceContact}
+                    title="Import contact from Android / iPhone"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      fontSize: 9.5,
+                      fontWeight: 600,
+                      color: '#05424A',
+                      background: '#E2F7F4',
+                      border: '1px solid #7EDAD0',
+                      borderRadius: 4,
+                      padding: '1px 6px',
+                      cursor: 'pointer',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    <Smartphone size={10} />
+                    <span>Import</span>
+                  </button>
+                </div>
                 <input
                   type="text"
+                  name="customerName"
+                  autoComplete="name"
                   className="input"
                   list="billing-cust-name-list"
                   placeholder="Start typing name or contact…"
                   value={customer}
-                  onChange={(e) => handleCustomerSelect(e.target.value)}
-                  style={{ height: 34, fontSize: 12, borderRadius: 7, padding: '0 9px', border: '1px solid #cbd5e1' }}
+                  onFocus={() => setActiveCustSuggest('name')}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setActiveCustSuggest(null);
+                      autoMatchCustomerByName(customer, true);
+                    }, 250);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      autoMatchCustomerByName(customer, true);
+                      setActiveCustSuggest(null);
+                    }
+                  }}
+                  onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
+                  style={{ height: 34, fontSize: 12, borderRadius: 7, padding: '0 9px', border: '1px solid #cbd5e1', textTransform: 'capitalize' }}
                 />
+                {activeCustSuggest === 'name' && custNameSuggestions.length > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 60,
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 7,
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.18)',
+                      marginTop: 2,
+                      maxHeight: 190,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {custNameSuggestions.map((c) => (
+                      <div
+                        key={c.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleImportContact(c.name, c.mobile);
+                        }}
+                        onTouchStart={(e) => {
+                          e.preventDefault();
+                          handleImportContact(c.name, c.mobile);
+                        }}
+                        style={{
+                          padding: '6px 8px',
+                          borderBottom: '1px solid #f1f5f9',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: 11,
+                        }}
+                      >
+                        <div>
+                          <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
+                          {c.loyaltyPoints ? (
+                            <span style={{ marginLeft: 5, fontSize: 9.5, color: '#d97706', fontWeight: 600 }}>
+                              🪙 {c.loyaltyPoints} pts
+                            </span>
+                          ) : null}
+                        </div>
+                        <span style={{ color: '#05424A', fontSize: 10, background: '#E2F7F4', padding: '1px 6px', borderRadius: 4, fontWeight: 500 }}>
+                          📞 {c.mobile}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="form-group" style={{ margin: 0 }}>
+              <div className="form-group" style={{ margin: 0, position: 'relative' }}>
                 <label className="label" style={{ fontSize: 11, fontWeight: 700, marginBottom: 3, color: '#1e293b' }}>
                   Mobile Number
                 </label>
                 <input
                   type="tel"
+                  inputMode="tel"
+                  name="customerMobile"
+                  autoComplete="tel"
                   className="input"
                   list="billing-cust-mob-list"
                   placeholder="10-digit mobile number"
                   value={mobile}
+                  onFocus={() => setActiveCustSuggest('mobile')}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setActiveCustSuggest(null);
+                      const clean = mobile.replace(/\D/g, '').slice(-10);
+                      if (clean.length === 10) {
+                        const c = (data?.customers || []).find(
+                          (x) => x.mobile.replace(/\D/g, '').slice(-10) === clean
+                        );
+                        if (c) {
+                          setSelectedCustomerObj(c);
+                          if (!customer || customer.trim() === '') {
+                            setCustomer(autoCapitalizeName(formatCustomerContactName(c.name)));
+                          }
+                        }
+                      }
+                    }, 250);
+                  }}
                   onChange={(e) => handleMobileSelect(e.target.value)}
                   style={{ height: 34, fontSize: 12, borderRadius: 7, padding: '0 9px', border: '1px solid #cbd5e1' }}
                 />
+                {activeCustSuggest === 'mobile' && custMobSuggestions.length > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      zIndex: 60,
+                      background: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 7,
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.18)',
+                      marginTop: 2,
+                      maxHeight: 190,
+                      overflowY: 'auto',
+                    }}
+                  >
+                    {custMobSuggestions.map((c) => (
+                      <div
+                        key={c.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleImportContact(c.name, c.mobile);
+                        }}
+                        onTouchStart={(e) => {
+                          e.preventDefault();
+                          handleImportContact(c.name, c.mobile);
+                        }}
+                        style={{
+                          padding: '6px 8px',
+                          borderBottom: '1px solid #f1f5f9',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: 11,
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, color: '#05424A' }}>📞 {c.mobile}</span>
+                        <span style={{ color: '#475569', fontSize: 10.5 }}>{c.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -4552,9 +5184,35 @@ function BillingContent() {
             <div style={{ marginBottom: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontWeight: 800, fontSize: 12.5 }}>Invoice Line Items ({lines.filter((l) => l.name && l.name.trim() !== '').length})</span>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLines((p) => [...p, EMPTY_LINE()])} style={{ height: 26, padding: '0 8px', fontSize: 11, borderRadius: 6, border: '1px solid #cbd5e1' }}>
-                  <Plus size={12} /> Add
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {lines.some((l) => (l.name && l.name.trim() !== '') || Number(l.price || 0) > 0) && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllLines}
+                      style={{
+                        height: 26,
+                        padding: '0 8px',
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        borderRadius: 6,
+                        border: '1px solid #fecdd3',
+                        background: '#fff1f2',
+                        color: '#e11d48',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        cursor: 'pointer',
+                      }}
+                      title="Clear all item lines"
+                    >
+                      <Trash2 size={11} />
+                      <span>Clear</span>
+                    </button>
+                  )}
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLines((p) => [...p, EMPTY_LINE()])} style={{ height: 26, padding: '0 8px', fontSize: 11, borderRadius: 6, border: '1px solid #cbd5e1' }}>
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
               </div>
               <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {lines.map((line, idx) => (
@@ -5206,12 +5864,36 @@ function BillingContent() {
               </div>
             )}
 
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={editingInvoiceId ? cancelEditInvoice : handleAllClearInvoice}
+                style={{
+                  height: 38,
+                  padding: '8px 12px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  borderRadius: 7,
+                  cursor: 'pointer',
+                  color: '#e11d48',
+                  borderColor: '#fecdd3',
+                  background: '#fff1f2',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  whiteSpace: 'nowrap',
+                }}
+                title={editingInvoiceId ? 'Cancel editing invoice' : 'Clear all fields & reset invoice (All Clear)'}
+              >
+                <RotateCcw size={13} />
+                <span>{editingInvoiceId ? 'Cancel Edit' : 'All Clear'}</span>
+              </button>
               <button
                 type="button"
                 className="btn btn-primary"
                 style={{
-                  width: '100%',
+                  flex: 1,
                   height: 38,
                   fontSize: 13,
                   fontWeight: 700,
@@ -5258,6 +5940,33 @@ function BillingContent() {
                 >
                   {filteredInvoices.length}
                 </span>
+                {(data?.invoices || []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmClearAllInvoicesText('');
+                      setClearAllInvoicesModalOpen(true);
+                    }}
+                    style={{
+                      height: 24,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#dc2626',
+                      background: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: 6,
+                      padding: '0 8px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer',
+                    }}
+                    title="Clear all saved invoices from history"
+                  >
+                    <Trash2 size={11} />
+                    <span>Clear All Invoices</span>
+                  </button>
+                )}
               </div>
               <div className="search-wrap" style={{ maxWidth: 220, flex: 1, minWidth: 140 }}>
                 <Search size={13} className="search-icon" />
@@ -5475,7 +6184,7 @@ function BillingContent() {
                                     width: 24,
                                     padding: 0,
                                   }}
-                                  onClick={() => downloadInvoicePDF(inv, data)}
+                                  onClick={() => handleDownloadInvoicePDF(inv)}
                                 >
                                   <Download size={11} />
                                 </button>
@@ -5757,7 +6466,7 @@ function BillingContent() {
                         <button
                           type="button"
                           className="btn btn-ghost btn-xs"
-                          onClick={() => downloadInvoicePDF(inv, data)}
+                          onClick={() => handleDownloadInvoicePDF(inv)}
                           style={{ height: 28, fontSize: 10.5, borderRadius: 5, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 3px' }}
                         >
                           <Download size={11} /> PDF
@@ -6061,6 +6770,83 @@ function BillingContent() {
         </Modal>
       )}
 
+      {/* Clear All Invoices Confirmation Modal */}
+      {clearAllInvoicesModalOpen && (
+        <Modal
+          isOpen={clearAllInvoicesModalOpen}
+          onClose={() => setClearAllInvoicesModalOpen(false)}
+          title="⚠️ Clear All Invoices"
+          footer={
+            <>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setClearAllInvoicesModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={confirmClearAllInvoicesText.trim().toUpperCase() !== 'CLEAR'}
+                onClick={handleClearAllInvoices}
+                style={{
+                  background: '#dc2626',
+                  borderColor: '#dc2626',
+                  color: '#ffffff',
+                  opacity: confirmClearAllInvoicesText.trim().toUpperCase() !== 'CLEAR' ? 0.5 : 1,
+                }}
+              >
+                Delete All Invoices
+              </button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div
+              style={{
+                padding: '10px 12px',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                borderRadius: 8,
+                color: '#991b1b',
+                fontSize: 12.5,
+                lineHeight: 1.5,
+              }}
+            >
+              <strong>Are you sure you want to clear all invoices?</strong>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#7f1d1d' }}>
+                This will delete all <strong>{data?.invoices?.length || 0}</strong> historical invoices from the salon database.
+              </p>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', color: '#1e293b' }}>
+              <input
+                type="checkbox"
+                checked={restoreStockOnClearAll}
+                onChange={(e) => setRestoreStockOnClearAll(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: '#05424A' }}
+              />
+              <span>Restore inventory stock for sold products on all deleted bills</span>
+            </label>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569' }}>
+                Type <span style={{ color: '#dc2626', fontWeight: 800 }}>CLEAR</span> to confirm:
+              </label>
+              <input
+                type="text"
+                className="input"
+                value={confirmClearAllInvoicesText}
+                onChange={(e) => setConfirmClearAllInvoicesText(e.target.value)}
+                placeholder="CLEAR"
+                style={{ height: 34, fontSize: 12.5, borderColor: '#fca5a5' }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {/* Live Camera Barcode Scanner */}
       <CameraBarcodeScanner
         isOpen={cameraModalOpen}
@@ -6084,6 +6870,14 @@ function BillingContent() {
         studioMobile={data?.settings?.whatsapp || '919824183769'}
         customerMobile={mobile}
         customerName={customer}
+      />
+
+      {/* Android & iPhone Contact Import Modal (Smart Paste, VCF, Directory Search) */}
+      <ContactImportModal
+        isOpen={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
+        customers={data?.customers || []}
+        onSelectContact={(name, mob) => handleImportContact(name, mob)}
       />
     </div>
   );

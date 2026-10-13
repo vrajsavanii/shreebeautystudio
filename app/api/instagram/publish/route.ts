@@ -304,6 +304,16 @@ export async function POST(req: NextRequest) {
 
           const fileMime = file.type || (isVid ? (ext === 'mov' ? 'video/quicktime' : 'video/mp4') : 'image/jpeg');
 
+          if (buffer.length > 48 * 1024 * 1024) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: `File size (${(buffer.length / (1024 * 1024)).toFixed(1)}MB) exceeds the 48MB cloud storage limit. Please compress or trim the file before publishing.`,
+              },
+              { status: 400 }
+            );
+          }
+
           const { error: uploadErr } = await supabase.storage
             .from('salon_media')
             .upload(fileName, buffer, {

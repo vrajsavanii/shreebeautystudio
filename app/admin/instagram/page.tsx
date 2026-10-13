@@ -74,6 +74,7 @@ import {
   playAudioPreview,
   stopAudioPreview,
   composePhotoAndAudioToVideo,
+  compressVideoForInstagram,
 } from '@/lib/photo-audio-video-builder';
 import { MusicWaveformGraph } from '@/components/instagram/MusicWaveformGraph';
 
@@ -194,7 +195,7 @@ export default function InstagramHubPage() {
   const [publishMessage, setPublishMessage] = useState<string>('');
 
   // AI Caption Studio & Post Metadata State
-  const [captionCategory, setCaptionCategory] = useState<'bridal' | 'sagai' | 'reception' | 'haldi_mehndi' | 'prebridal' | 'review'>('bridal');
+  const [captionCategory, setCaptionCategory] = useState<'bridal' | 'sagai' | 'reception' | 'haldi_mehndi' | 'prebridal' | 'babyshower' | 'review'>('bridal');
   const [captionLanguage, setCaptionLanguage] = useState<'english' | 'hinglish' | 'gujarati'>('hinglish');
   const [generationCount, setGenerationCount] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -208,6 +209,8 @@ export default function InstagramHubPage() {
   const [shareThreads, setShareThreads] = useState(true);
   const [shareFacebook, setShareFacebook] = useState(true);
   const [shareGoogleMaps, setShareGoogleMaps] = useState(true);
+  const [isCompressingVideo, setIsCompressingVideo] = useState(false);
+  const [compressPercent, setCompressPercent] = useState(0);
   const [generatedCaption, setGeneratedCaption] = useState('');
   const [lastHookUsed, setLastHookUsed] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -289,6 +292,11 @@ export default function InstagramHubPage() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const isVid = file.type?.startsWith('video/') || /\.(mp4|mov|m4v|3gp|webm|avi|mkv)$/i.test(file.name || '');
+
+        if (isVid && file.size > 48 * 1024 * 1024) {
+          toast(`⚡ Video "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)}MB. It will be auto-compressed to ~15MB when publishing.`, 'info');
+        }
+
         const previewUrl = URL.createObjectURL(file);
         const id = `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`;
 
@@ -791,8 +799,20 @@ export default function InstagramHubPage() {
         ctx.drawImage(imageSource, -drawW / 2 + offsetX, -drawH / 2 + offsetY, drawW, drawH);
         ctx.restore();
 
-        canvas.toBlob(
-          (blob) => {
+        const exportBlob = (quality: number): Promise<Blob | null> => {
+          return new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality));
+        };
+
+        (async () => {
+          try {
+            let blob = await exportBlob(0.90);
+            if (blob && blob.size > 5 * 1024 * 1024) {
+              blob = await exportBlob(0.80);
+            }
+            if (blob && blob.size > 5 * 1024 * 1024) {
+              blob = await exportBlob(0.70);
+            }
+
             if (blob) {
               const baseName = (item.file.name || 'photo').replace(/\.[^/.]+$/, '');
               const safeName = `${baseName}_crop_${Date.now()}.jpg`;
@@ -801,10 +821,10 @@ export default function InstagramHubPage() {
             } else {
               resolve(item.file);
             }
-          },
-          'image/jpeg',
-          0.95
-        );
+          } catch {
+            resolve(item.file);
+          }
+        })();
       };
 
       img.onload = () => {
@@ -828,6 +848,35 @@ export default function InstagramHubPage() {
     });
   };
 
+  const handleCompressCurrentItem = async () => {
+    if (!currentItem || currentItem.type !== 'video') return;
+    setIsCompressingVideo(true);
+    setCompressPercent(0);
+    try {
+      const origMB = (currentItem.file.size / (1024 * 1024)).toFixed(1);
+      toast(`⚡ Compressing video (${origMB}MB) for Instagram Reel...`, 'info');
+      const compressed = await compressVideoForInstagram(currentItem.file, 38, (pct) => {
+        setCompressPercent(pct);
+      });
+      const newMB = (compressed.size / (1024 * 1024)).toFixed(1);
+      const newUrl = URL.createObjectURL(compressed);
+
+      setMediaItems((prev) =>
+        prev.map((m, idx) =>
+          idx === activeMediaIndex
+            ? { ...m, file: compressed, previewUrl: newUrl }
+            : m
+        )
+      );
+      toast(`🎉 Compressed from ${origMB}MB to ${newMB}MB! Ready to publish.`, 'success');
+    } catch (err: any) {
+      console.warn('Manual video compression error:', err);
+      toast('Compression failed. Please export video at 1080p from your phone or send via WhatsApp.', 'error');
+    } finally {
+      setIsCompressingVideo(false);
+    }
+  };
+
   const handleDownloadCrop = async () => {
     if (!currentItem) return;
     try {
@@ -849,7 +898,7 @@ export default function InstagramHubPage() {
     const salonName = settings?.salon || 'Shree Beauty Studio';
     const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
     const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-    const nameStr = clientName.trim() ? clientName.trim() : 'our gorgeous bride';
+    const nameStr = clientName.trim() ? clientName.trim() : (captionCategory === 'babyshower' ? 'our glowing mom-to-be' : 'our gorgeous bride');
     const offerStr = specialOffer.trim() ? `\n\n🎉 Special Limited Offer: ${specialOffer.trim()}` : '';
     const customStr = customNotes.trim() ? `\n\n📝 Note: ${customNotes.trim()}` : '';
 
@@ -1156,6 +1205,62 @@ export default function InstagramHubPage() {
           '#SkinGlowClinic', '#BrideToBeSurat', '#InstaSkinCare', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
+      babyshower: {
+        hooks: {
+          hinglish: [
+            `👶 Gorgeous Baby Shower & Srimant Makeover in Surat for ${nameStr} ✨🍼`,
+            `🍼 Mom-To-Be Radiance: Soft Pastel Glam & Pregnancy-Safe Glow for ${nameStr} at ${salonName} 💖`,
+            `✨ Celebrating Motherhood! Natural Dewy Glow & Floral Hairdo for ${nameStr}'s Godh Bharai 🌸👶`,
+            `🥺 The pure joy & angelic glow of our gorgeous Mom-To-Be ${nameStr} in Surat ✨🤰`,
+            `💖 Breathable, Weightless & 100% Skin-Safe Baby Shower Makeover for ${nameStr} 🌸`,
+            `🍼 Traditional Gujarati Srimant Elegance & Modern Dewy Radiance crafted with love ✨👶`,
+          ],
+          gujarati: [
+            `👶 શ્રીમંત પ્રસંગનો મનમોહક શાહી શણગાર: ${nameStr} માટે સ્પેશિયલ સોફ્ટ એન્ડ ગ્લોઇંગ બેબી શાવર મેકઓવર 🌸✨`,
+            `🍼 ખોળો ભરવાના પવિત્ર દિવસે મેળવો 100% સુરક્ષિત, હળવો અને નેચરલ પ્રેગ્નન્સી ગ્લો! 💖`,
+            `🌸 શ્રી બ્યૂટી સ્ટુડિયો રોયલ શ્રીમંત / બેબી શાવર લુક: સુરતની મોમ-ટુ-બી માટે ખાસ 👶✨`,
+            `💖 માતૃત્વની સુંદરતામાં ચાર ચાંદ: કતારગામ, સુરતનું બેસ્ટ મેકઓવર સ્ટુડિયો 🍼`,
+          ],
+          english: [
+            `👶 Radiant Baby Shower & Maternity Makeover in Surat for ${nameStr} ✨🍼`,
+            `🌸 Soft, Breathable Glam & Angelic Maternity Radiance for ${nameStr} at ${salonName} 💖`,
+            `🍼 Glowing Mom-to-Be! Pregnancy-Safe HD Makeover for the Special Baby Shower Day ✨`,
+          ],
+        },
+        bodies: {
+          hinglish: [
+            `Motherhood is the most beautiful journey! For baby shower / srimant celebrations, we focus on lightweight, skin-safe, and breathable makeup that enhances your natural pregnancy glow while keeping you completely comfortable and camera-ready throughout the rituals.`,
+            `Pastel tones, dewy cheeks, and soft romantic floral hair styling! Crafted exclusively with premium, pregnancy-safe cosmetics for the most memorable photos of your maternity milestone.`,
+          ],
+          gujarati: [
+            `શ્રીમંત અને ખોળો ભરવાના શુભ દિવસે માતા બનતી દરેક સ્ત્રી માટે સ્પેશિયલ લુક! ત્વચા માટે 100% સેફ, કમ્ફર્ટેબલ અને લાઈટવેઇટ પ્રોડક્ટ્સ સાથે અદ્ભુત ગ્લો અને સુંદર હેરસ્ટાઇલ.`,
+          ],
+          english: [
+            `Celebrating motherhood with gentle, pregnancy-safe makeup and romantic floral styling. Designed for all-day comfort, radiant photos, and cherished family memories.`,
+          ],
+        },
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this reel for your upcoming Baby Shower / Srimant moodboard!\n👭 TAG an expecting mom-to-be who deserves to look and feel angelic! 👶💖\n💬 Drop a 🍼 or ❤️ in the comments to bless the mom-to-be! 👇✨`,
+          ],
+          gujarati: [
+            `📌 તમારા શ્રીમંત / બેબી શાવર માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારી મોમ-ટુ-બી બહેનપણી સાથે શેર (SHARE) કરો! 👶💖\n💬 કમેન્ટમાં મોમ-ટુ-બી માટે તમારા આશીર્વાદ આપો! 👇`,
+          ],
+          english: [
+            `📌 SAVE this look for your baby shower / maternity shoot inspo!\n👭 TAG an expecting mom who needs to see this glow! 👶\n💬 Drop lots of love in the comments below! 👇`,
+          ],
+        },
+        seoKeywords: 'Baby Shower Makeup Surat • Srimant Makeover Surat • Godh Bharai Look Katargam • Pregnancy Safe Makeup Surat • Maternity Makeover Surat • Best Salon Katargam',
+        hashtags: [
+          '#BabyShowerMakeupSurat', '#SrimantLookSurat', '#BabyShowerSurat', '#MomToBeSurat', '#GodhBharaiMakeup',
+          '#PregnancySafeMakeup', '#MaternityGlowSurat', '#SuratBeautyStudio', '#KatargamSalon', '#SuratMakeupArtist',
+          '#SoftGlamMakeup', '#BabyShowerGlam', '#SrimantCeremony', '#SuratSalons', '#MaternityPhotoshootSurat',
+          '#FloralHairstyleSurat', '#MomToBeGlow', '#GujaratiSrimant', '#PastelMakeup', '#TrendingReels',
+          '#ExplorePage', '#ExploreSurat', '#ViralReels', '#ReelsInstagram', '#BabyShowerOutfit',
+          '#SuratMomToBe', '#NaturalGlowSurat', '#KatargamBridal', '#IndianMomToBe', '#MotherhoodMoments',
+          '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+        ],
+      },
       review: {
         hooks: {
           hinglish: [
@@ -1365,7 +1470,23 @@ export default function InstagramHubPage() {
             const cropped = await processPhotoCrop(item);
             processedFiles.push(cropped);
           } else {
-            processedFiles.push(item.file);
+            let videoFile = item.file;
+            // Auto-compress large videos over 48MB so they fit Supabase & Instagram limits
+            if (videoFile.size > 48 * 1024 * 1024) {
+              setPublishingStep(`1/4: Auto-compressing "${videoFile.name}" (${(videoFile.size / (1024 * 1024)).toFixed(1)}MB) for Instagram Reel...`);
+              try {
+                videoFile = await compressVideoForInstagram(videoFile, 38, (pct, status) => {
+                  setPublishingStep(`1/4: ${status}`);
+                });
+                toast(`⚡ Auto-compressed "${videoFile.name}" to ${(videoFile.size / (1024 * 1024)).toFixed(1)}MB!`, 'success');
+              } catch (compErr: any) {
+                console.warn('In-browser video compression error:', compErr);
+                throw new Error(
+                  `Video "${item.file.name}" is ${(item.file.size / (1024 * 1024)).toFixed(1)}MB (exceeds 48MB limit).\n\nPlease export your video at 1080p / 30fps (or send via WhatsApp) to reduce it to ~15MB, then upload.`
+                );
+              }
+            }
+            processedFiles.push(videoFile);
           }
         }
       }
@@ -1379,6 +1500,13 @@ export default function InstagramHubPage() {
       for (let i = 0; i < processedFiles.length; i++) {
         const file = processedFiles[i];
         const isVid = file.type?.startsWith('video/') || /\.(mp4|mov|m4v|3gp|webm|avi|mkv)$/i.test(file.name || '');
+
+        if (file.size > 48 * 1024 * 1024) {
+          throw new Error(
+            `File "${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds the 48MB cloud upload limit. Please compress or trim the file before publishing.`
+          );
+        }
+
         setPublishingStep(`2/4: Uploading media ${i + 1}/${processedFiles.length} to cloud storage CDN...`);
 
         let uploaded = false;
@@ -2968,6 +3096,7 @@ export default function InstagramHubPage() {
                           { id: 'reception', label: '✨ Reception', sub: 'Party Glam' },
                           { id: 'haldi_mehndi', label: '🪔 Haldi', sub: 'Sunshine' },
                           { id: 'prebridal', label: '💧 Glow', sub: 'Facial/Skin' },
+                          { id: 'babyshower', label: '👶 Baby Shower', sub: 'Mom-to-Be' },
                         ].map((cat) => {
                           const isSel = captionCategory === cat.id;
                           return (
@@ -4146,6 +4275,57 @@ export default function InstagramHubPage() {
                   )}
                 </button>
 
+                {currentItem?.type === 'video' && currentItem.file.size > 48 * 1024 * 1024 && (
+                  <div
+                    style={{
+                      background: 'rgba(234, 186, 56, 0.12)',
+                      border: '1px solid rgba(234, 186, 56, 0.5)',
+                      borderRadius: 10,
+                      padding: '8px 10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>
+                      <span>⚠️ Video is {(currentItem.file.size / (1024 * 1024)).toFixed(1)}MB</span>
+                      <span style={{ fontSize: 9.5, opacity: 0.85 }}>Cloud Limit: 48MB</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCompressCurrentItem}
+                      disabled={isCompressingVideo}
+                      className="btn btn-xs"
+                      style={{
+                        background: '#f59e0b',
+                        color: '#000',
+                        fontWeight: 800,
+                        fontSize: 11,
+                        border: 'none',
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      {isCompressingVideo ? (
+                        <>
+                          <RefreshCw size={12} className="animate-spin" />
+                          <span>Compressing ({compressPercent}%)...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={12} />
+                          <span>⚡ 1-Click Auto Compress for Reel (~15MB)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                   <button
                     type="button"
@@ -4239,6 +4419,7 @@ export default function InstagramHubPage() {
                 { id: 'reception', label: '✨ Reception Glam' },
                 { id: 'haldi_mehndi', label: '🪔 Haldi & Mehendi' },
                 { id: 'prebridal', label: '💧 Pre-Bridal Glow' },
+                { id: 'babyshower', label: '👶 Baby Shower / Srimant' },
                 { id: 'review', label: '⭐ Bride Reviews' },
               ].map((cat) => (
                 <button

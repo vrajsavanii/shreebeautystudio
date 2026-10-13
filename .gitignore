@@ -57,3 +57,8 @@ android/app/*.iml
 android/captures/
 android/.externalNativeBuild/
 android/.cxx/
+
+# WhatsApp auth session & uploads
+whatsapp_auth/
+whatsapp_data/
+public/uploads/

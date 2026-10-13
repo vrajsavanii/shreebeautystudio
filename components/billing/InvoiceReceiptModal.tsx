@@ -22,7 +22,7 @@ import {
   QrCode,
 } from 'lucide-react';
 import { Invoice, SalonData } from '@/types/salon';
-import { SHREE_INVOICE_BILL_LOGO_BASE64 } from '@/lib/logo-base64';
+import { SHREE_ONLY_LOGO_BASE64 } from '@/lib/logo-base64';
 import {
   downloadInvoicePDF,
   formatIndianDate,
@@ -84,30 +84,46 @@ export default function InvoiceReceiptModal({
   const salon = salonData?.settings?.salon || 'Shree Beauty Studio';
   const salonAddress =
     salonData?.settings?.address ||
-    '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-  const salonPhone = salonData?.settings?.whatsapp
-    ? `${salonData.settings.whatsapp}, ${salonData.settings?.phone2 || '9824183769'}`
-    : '9198241 83769';
-  const salonEmail = 'shreebeauty.studio22@gmail.com';
+    '22, Radhika Society, Near Cancer Hospital, Katargam, Surat - 395004';
+  const salonPhone =
+    salonData?.settings?.phone && salonData?.settings?.whatsapp
+      ? `${salonData.settings.whatsapp}, ${salonData.settings.phone}`
+      : '9824183769, 9825339924';
+  const salonEmail = salonData?.settings?.email || 'shreebeauty.studio22@gmail.com';
 
   const invNo = invoice.no.replace(/^INV-/, '');
   const invDate = formatIndianDate(invoice.date);
+  const eventDate = invoice.eventDate ? formatIndianDate(invoice.eventDate) : (invoice.appointmentDate ? formatIndianDate(invoice.appointmentDate) : '');
 
   const totalAmt = Number(invoice.total || 0);
   const advanceAmt = Number(invoice.advance || 0);
+  const discountAmt = Number(invoice.discount || 0);
   const paymentPaid = Number(invoice.paid || 0);
   const balanceDue = Number(
     invoice.balance !== undefined
       ? invoice.balance
-      : Math.max(0, totalAmt - advanceAmt - paymentPaid)
+      : Math.max(0, totalAmt - advanceAmt)
   );
 
-  const handleDownloadPDF = async (formatType: 'thermal' | 'a4' = 'thermal') => {
+  const handleDownloadPDF = async () => {
     try {
       setDownloading(true);
-      setDownloadingFormat(formatType);
-      await downloadInvoicePDF(invoice, salonData, undefined, formatType);
-      toast(`✅ ${formatType === 'a4' ? 'A4 Full Page' : 'Thermal'} PDF Bill downloaded successfully!`);
+      const res = await fetch(`/api/billing/${invoice.id || '105'}/pdf`);
+      if (!res.ok) throw new Error('PDF generation failed on server');
+      const blob = await res.blob();
+      const rawCustomerName = (invoice.customer || 'invoice').trim();
+      const cleanCustomerName = rawCustomerName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
+      const filename = `${cleanCustomerName || 'invoice'}.pdf`;
+
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast(`✅ Bill PDF (${filename}) downloaded successfully!`);
     } catch (e: any) {
       toast(`PDF download error: ${e.message}`, 'error');
     } finally {
@@ -165,6 +181,7 @@ Have a wonderful day! 🙏✨`;
     if (!invoice.mobile) {
       setWaPdfResult({ status: 'failed', message: 'No mobile number on this invoice.' });
       setWaResult({ status: 'failed', message: 'No mobile number on this invoice.' });
+      toast('No mobile number on this invoice.', 'error');
       setTimeout(() => {
         setWaPdfResult({ status: 'idle', message: '' });
         setWaResult({ status: 'idle', message: '' });
@@ -172,63 +189,40 @@ Have a wonderful day! 🙏✨`;
       return;
     }
 
-    // If Meta has an active payment issue, immediately use Direct WhatsApp PDF sharing (100% free)
-    if (salonData?.settings?.whatsappPaymentIssue) {
-      setWaPdfResult({ status: 'sending', message: 'Opening WhatsApp PDF share…' });
-      try {
-        const shareRes = await shareInvoicePDFViaDirectWhatsApp(invoice, salonData);
-        setWaPdfResult({ status: shareRes.success ? 'sent' : 'idle', message: shareRes.message });
-        toast(shareRes.message);
-        setTimeout(() => setWaPdfResult({ status: 'idle', message: '' }), 5000);
-      } catch (err: any) {
-        toast(err?.message || 'Error sharing PDF', 'error');
-        setWaPdfResult({ status: 'failed', message: err?.message || 'Error sharing PDF' });
-      }
-      return;
-    }
-
-    setWaPdfResult({ status: 'sending', message: 'Sending PDF via WhatsApp Business API…' });
-    setWaResult({ status: 'sending', message: 'Sending PDF via WhatsApp Business API…' });
+    setWaPdfResult({ status: 'sending', message: 'Sending bill PDF via WhatsApp…' });
+    setWaResult({ status: 'sending', message: 'Sending bill PDF via WhatsApp…' });
 
     try {
-      const res = await sendInvoicePDFViaWhatsApp(invoice, salonData);
-      if (res.success) {
-        setWaPdfResult({ status: 'sent', message: res.message });
-        setWaResult({ status: 'sent', message: res.message });
-        toast(res.message);
+      const res = await fetch(`/api/billing/${invoice.id || invoice.no || '105'}/whatsapp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice, salonData }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setWaPdfResult({ status: 'sent', message: data.message || 'Bill PDF sent on WhatsApp!' });
+        setWaResult({ status: 'sent', message: data.message || 'Bill PDF sent on WhatsApp!' });
+        toast(data.message || 'Bill PDF sent on WhatsApp!');
         setTimeout(() => {
           setWaPdfResult({ status: 'idle', message: '' });
           setWaResult({ status: 'idle', message: '' });
         }, 5000);
       } else {
-        const isPayment = res.isPaymentRequired;
-        if (isPayment) {
-          // Meta requires payment: immediately launch direct WhatsApp PDF sharing
-          toast('Meta payment required. Opening Direct WhatsApp PDF share (Free)…', 'info');
-          const shareRes = await shareInvoicePDFViaDirectWhatsApp(invoice, salonData);
-          setWaPdfResult({ status: shareRes.success ? 'sent' : 'idle', message: shareRes.message });
-          toast(shareRes.message);
-          setTimeout(() => setWaPdfResult({ status: 'idle', message: '' }), 5000);
-          return;
+        if (data.directWaUrl) {
+          window.open(data.directWaUrl, '_blank');
+          setWaPdfResult({ status: 'sent', message: 'Opened WhatsApp with bill message.' });
+          setWaResult({ status: 'sent', message: 'Opened WhatsApp with bill message.' });
+          toast(data.message || 'Opening WhatsApp with bill message…', 'info');
+          setTimeout(() => {
+            setWaPdfResult({ status: 'idle', message: '' });
+            setWaResult({ status: 'idle', message: '' });
+          }, 5000);
+        } else {
+          const errMsg = data.error || data.message || 'WhatsApp PDF send failed.';
+          setWaPdfResult({ status: 'failed', message: errMsg });
+          setWaResult({ status: 'failed', message: errMsg });
+          toast(errMsg, 'error');
         }
-
-        const is24h = res.is24HourWindow || res.isPendingTemplate || res.message?.toLowerCase().includes('pending');
-        const fallbackMsg = is24h
-          ? 'PDF template pending review. Click "WhatsApp Text" for instant delivery or "Direct WA" to send via WhatsApp Web.'
-          : res.message || 'Meta WhatsApp delivery failed.';
-        setWaPdfResult({
-          status: 'failed',
-          message: fallbackMsg,
-          isPaymentRequired: isPayment,
-          paymentUrl: res.paymentUrl,
-        });
-        setWaResult({
-          status: 'failed',
-          message: fallbackMsg,
-          isPaymentRequired: isPayment,
-          paymentUrl: res.paymentUrl,
-        });
-        toast(fallbackMsg, is24h ? 'info' : 'error');
       }
     } catch (e: any) {
       const errMsg = e?.message || 'Unexpected error while sending WhatsApp PDF.';
@@ -367,11 +361,8 @@ Have a wonderful day! 🙏✨`;
     }
   };
 
-  const handlePrint = () => {
-    const printContent = document.getElementById('shree-invoice-sample-template');
-    if (!printContent) return;
-
-    // Direct print via hidden iframe (instant without popup)
+  const handlePrint = async () => {
+    // Direct print via hidden iframe with exact server template
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
@@ -381,132 +372,65 @@ Have a wonderful day! 🙏✨`;
     iframe.style.border = '0';
     document.body.appendChild(iframe);
 
-    const doc = iframe.contentWindow?.document;
-    if (!doc) return;
-
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Receipt - ${invoice.no} - ${invoice.customer}</title>
-          <style>
-            @page {
-              size: auto;
-              margin: 0mm !important;
-            }
-            * {
-              box-sizing: border-box !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              box-shadow: none !important;
-              text-shadow: none !important;
-            }
-            html, body {
-              width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #ffffff !important;
-              color: #000000 !important;
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-              font-size: 12px !important;
-              font-weight: 500 !important;
-              -webkit-font-smoothing: antialiased !important;
-            }
-            .thermal-container {
-              width: 100% !important;
-              max-width: 80mm !important;
-              margin: 0 auto !important;
-              padding: 4mm 4mm 2mm 4mm !important;
-              box-sizing: border-box !important;
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-              font-size: 12px !important;
-              font-weight: 500 !important;
-            }
-            .thermal-container * {
-              box-sizing: border-box !important;
-              color: #000000 !important;
-              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-            }
-            .thermal-container table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-              table-layout: fixed !important;
-              font-size: 12px !important;
-            }
-            .thermal-container th,
-            .thermal-container td {
-              word-break: break-word !important;
-              overflow-wrap: break-word !important;
-              border-color: #000000 !important;
-              border-width: 1.5px !important;
-              color: #000000 !important;
-              font-size: 12px !important;
-            }
-            .thermal-container img {
-              max-width: 200px !important;
-              width: 75% !important;
-              height: auto !important;
-              object-fit: contain !important;
-              margin: 0 auto 6px !important;
-              display: block !important;
-            }
-            .cut-feed-space {
-              height: 20mm;
-              min-height: 20mm;
-              clear: both;
-              display: block;
-              page-break-after: always;
-            }
-            @media print {
-              @page {
-                size: auto;
-                margin: 0mm !important;
-              }
-              body {
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #ffffff !important;
-                color: #000000 !important;
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-                font-size: 12px !important;
-                font-weight: 500 !important;
-              }
-              .thermal-container {
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 auto !important;
-                font-size: 12px !important;
-                font-weight: 500 !important;
-              }
-              .thermal-container * {
-                color: #000000 !important;
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="thermal-container">
-            ${printContent.innerHTML}
-            <div class="cut-feed-space"></div>
-          </div>
-        </body>
-      </html>
-    `);
-    doc.close();
-
-    // Trigger direct print immediately
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        if (document.body.contains(iframe)) {
-          document.body.removeChild(iframe);
+    try {
+      const res = await fetch(`/api/billing/${invoice.id || invoice.no || '105'}/preview`);
+      if (res.ok) {
+        const html = await res.text();
+        const doc = iframe.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write(html);
+          doc.close();
+          setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            setTimeout(() => {
+              if (document.body.contains(iframe)) document.body.removeChild(iframe);
+            }, 2500);
+          }, 350);
+          return;
         }
-      }, 2000);
-    }, 250);
+      }
+    } catch (e) {
+      console.warn('Preview print fetch error:', e);
+    }
+
+    const printContent = document.getElementById('shree-invoice-sample-template');
+    if (!printContent) {
+      if (document.body.contains(iframe)) document.body.removeChild(iframe);
+      window.print();
+      return;
+    }
+
+    const doc = iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Receipt - ${invoice.no} - ${invoice.customer}</title>
+            <style>
+              @page { size: auto; margin: 0mm !important; }
+              * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+              body { margin: 0; padding: 0; background: #fff; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
+              .print-container { width: 400px; margin: 0 auto; padding: 24px 24px 28px 24px; box-sizing: border-box; }
+            </style>
+          </head>
+          <body>
+            <div class="print-container">${printContent.innerHTML}</div>
+          </body>
+        </html>
+      `);
+      doc.close();
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setTimeout(() => {
+          if (document.body.contains(iframe)) document.body.removeChild(iframe);
+        }, 2500);
+      }, 300);
+    }
   };
 
   return (
@@ -608,187 +532,192 @@ Have a wonderful day! 🙏✨`;
             id="shree-invoice-sample-template"
             style={{
               background: '#ffffff',
-              borderRadius: 12,
-              padding: '24px 20px',
+              borderRadius: 8,
+              padding: '24px 24px 28px 24px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-              border: '1.5px solid #000000',
+              border: '1px solid #111111',
               fontFamily:
-                "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-              color: '#000000',
-              maxWidth: 440,
+                "'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif",
+              color: '#111111',
+              width: 400,
+              maxWidth: 400,
               margin: '0 auto',
             }}
           >
-            {/* Top Logo */}
-            <div style={{ textAlign: 'center', marginBottom: 10 }}>
-              <img
-                src={SHREE_INVOICE_BILL_LOGO_BASE64}
-                alt="Shree Beauty Studio"
-                style={{
-                  maxWidth: 210,
-                  width: '60%',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  margin: '0 auto 6px',
-                  display: 'block',
-                }}
-              />
-              <div
-                style={{
-                  fontSize: 12,
-                  color: '#000000',
-                  lineHeight: 1.4,
-                  maxWidth: 340,
-                  margin: '0 auto 2px',
-                  fontWeight: 500,
-                }}
-              >
-                {salonAddress}
-              </div>
-              <div style={{ fontSize: 11.5, color: '#000000', lineHeight: 1.4, fontWeight: 500 }}>
-                Email: <b>{salonEmail}</b>
-              </div>
-              <div style={{ fontSize: 12, color: '#000000', lineHeight: 1.4, fontWeight: 700, marginTop: 2 }}>
-                Phone / WhatsApp: +91 {salonPhone}
-              </div>
+            {/* 1. Top Centered Logo (Clean icon without text) */}
+            <img
+              src={SHREE_ONLY_LOGO_BASE64}
+              alt="Shree Beauty Studio Logo"
+              style={{
+                width: 200,
+                maxWidth: 200,
+                height: 'auto',
+                display: 'block',
+                margin: '0 auto 4px auto',
+              }}
+            />
+
+            {/* 2. Studio Name in script font */}
+            <div
+              style={{
+                fontFamily: "'Great Vibes', 'Allura', cursive",
+                fontSize: 46,
+                fontWeight: 'bold',
+                color: '#012a2a',
+                WebkitTextStroke: '0.8px #012a2a',
+                textAlign: 'center',
+                lineHeight: 1.05,
+                marginTop: 2,
+                marginBottom: 8,
+                letterSpacing: 0.5,
+              }}
+            >
+              Shree Beauty Studio
             </div>
 
-            {/* Header Info Left Column with subtle dividers */}
+            {/* 3. Address block */}
+            <div
+              style={{
+                textAlign: 'center',
+                fontSize: 11.5,
+                lineHeight: 1.45,
+                color: '#666666',
+                marginBottom: 14,
+              }}
+            >
+              <p style={{ margin: '1.5px 0' }}>{salonAddress}</p>
+              <p style={{ margin: '1.5px 0' }}>Email: {salonEmail}</p>
+              <p style={{ margin: '1.5px 0' }}>Phone / WhatsApp: {salonPhone}</p>
+            </div>
+
+            {/* 4. Dashed line */}
+            <div style={{ borderTop: '1px dashed #777777', margin: '14px 0 16px 0', width: '100%' }} />
+
+            {/* 5. Info rows */}
             <table
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                marginTop: 10,
-                marginBottom: 12,
+                marginBottom: 16,
                 fontSize: 13,
+                lineHeight: 1.4,
               }}
             >
               <tbody>
-                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
-                  <td
-                    style={{
-                      width: '85px',
-                      padding: '4.5px 0',
-                      fontWeight: 700,
-                      color: '#000000',
-                    }}
-                  >
+                <tr>
+                  <td style={{ width: 90, padding: '3.5px 0', fontWeight: 700, color: '#111111' }}>
                     Inv. No :
                   </td>
-                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
+                  <td style={{ padding: '3.5px 0', fontWeight: 500, color: '#111111' }}>
                     {invNo}
                   </td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
-                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
+                <tr>
+                  <td style={{ width: 90, padding: '3.5px 0', fontWeight: 700, color: '#111111' }}>
                     Date :
                   </td>
-                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
+                  <td style={{ padding: '3.5px 0', fontWeight: 500, color: '#111111' }}>
                     {invDate}
                   </td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
-                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
+                <tr>
+                  <td style={{ width: 90, padding: '3.5px 0', fontWeight: 700, color: '#111111' }}>
                     Name :
                   </td>
-                  <td
-                    style={{
-                      padding: '4.5px 0',
-                      fontWeight: 700,
-                      color: '#000000',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {invoice.customer || 'Customer'}
+                  <td style={{ padding: '3.5px 0', fontWeight: 500, color: '#111111' }}>
+                    {invoice.customer || ''}
                   </td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #eef2f6' }}>
-                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
+                <tr>
+                  <td style={{ width: 90, padding: '3.5px 0', fontWeight: 700, color: '#111111' }}>
                     Phone :
                   </td>
-                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
-                    {invoice.mobile || '—'}
+                  <td style={{ padding: '3.5px 0', fontWeight: 500, color: '#111111' }}>
+                    {invoice.mobile || ''}
                   </td>
                 </tr>
-                {invoice.mode ? (
                 <tr>
-                  <td style={{ padding: '4.5px 0', fontWeight: 700, color: '#000000' }}>
-                    Payment :
+                  <td style={{ width: 90, padding: '3.5px 0', fontWeight: 700, color: '#111111' }}>
+                    Event :
                   </td>
-                  <td style={{ padding: '4.5px 0', fontWeight: 600, color: '#000000' }}>
-                    {invoice.mode}
+                  <td style={{ padding: '3.5px 0', fontWeight: 500, color: '#111111' }}>
+                    {eventDate}
                   </td>
                 </tr>
-                ) : null}
+                <tr>
+                  <td style={{ width: 90, padding: '3.5px 0', fontWeight: 700, color: '#111111' }}>
+                    Venue :
+                  </td>
+                  <td style={{ padding: '3.5px 0', fontWeight: 500, color: '#111111' }}>
+                    {invoice.venue || ''}
+                  </td>
+                </tr>
               </tbody>
             </table>
 
-            {/* Service / Items Table */}
+            {/* 6. Services Table */}
             <table
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                border: '1.5px solid #000000',
+                border: '1px solid #111111',
                 marginBottom: 12,
-                tableLayout: 'fixed',
                 fontSize: 12.5,
               }}
             >
               <thead>
-                <tr style={{ background: '#f1f5f9' }}>
+                <tr style={{ background: '#eeeeee' }}>
                   <th
                     style={{
-                      border: '1.5px solid #000000',
-                      padding: '6px 5px',
-                      fontSize: 12,
-                      fontWeight: 800,
+                      border: '1px solid #111111',
+                      padding: '6px 4px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
                       textAlign: 'center',
-                      verticalAlign: 'middle',
-                      letterSpacing: '0.02em',
-                      width: '46%',
-                      color: '#000000',
+                      color: '#111111',
+                      letterSpacing: 0.5,
                     }}
                   >
                     SERVICE
                   </th>
                   <th
                     style={{
-                      border: '1.5px solid #000000',
-                      padding: '6px 3px',
-                      fontSize: 12,
-                      fontWeight: 800,
+                      border: '1px solid #111111',
+                      padding: '6px 4px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
                       textAlign: 'center',
-                      verticalAlign: 'middle',
-                      width: '14%',
-                      color: '#000000',
+                      width: 44,
+                      color: '#111111',
+                      letterSpacing: 0.5,
                     }}
                   >
                     QTY
                   </th>
                   <th
                     style={{
-                      border: '1.5px solid #000000',
+                      border: '1px solid #111111',
                       padding: '6px 4px',
-                      fontSize: 12,
-                      fontWeight: 800,
+                      fontSize: 11.5,
+                      fontWeight: 700,
                       textAlign: 'center',
-                      verticalAlign: 'middle',
-                      width: '18%',
-                      color: '#000000',
+                      width: 68,
+                      color: '#111111',
+                      letterSpacing: 0.5,
                     }}
                   >
                     PRICE
                   </th>
                   <th
                     style={{
-                      border: '1.5px solid #000000',
-                      padding: '6px 5px',
-                      fontSize: 12,
-                      fontWeight: 800,
+                      border: '1px solid #111111',
+                      padding: '6px 4px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
                       textAlign: 'center',
-                      verticalAlign: 'middle',
-                      width: '22%',
-                      color: '#000000',
+                      width: 78,
+                      color: '#111111',
+                      letterSpacing: 0.5,
                     }}
                   >
                     TOTAL
@@ -813,64 +742,41 @@ Have a wonderful day! 🙏✨`;
                     <tr key={idx}>
                       <td
                         style={{
-                          border: '1.5px solid #000000',
-                          padding: '6px 7px',
-                          fontSize: 12.5,
-                          fontWeight: 600,
+                          border: '1px solid #111111',
+                          padding: '6.5px 6px',
                           textAlign: 'left',
-                          verticalAlign: 'middle',
-                          color: '#000000',
-                          lineHeight: 1.3,
+                          color: '#111111',
                         }}
                       >
-                        <div>{cleanServiceNameForBill(l.name)}</div>
-                        {l.expiry && l.type === 'P' ? (
-                          <div style={{ fontSize: 10.5, color: '#444444', fontWeight: 600, marginTop: 1 }}>
-                            {l.batch ? `Lot: ${l.batch} · ` : ''}Exp: {fmtExpiry(l.expiry)}
-                          </div>
-                        ) : null}
-                        {l.staff ? <div style={{ fontSize: 11, color: '#444444', fontWeight: 500, marginTop: 1 }}>Beautician: {l.staff}</div> : null}
-                        {discAmt > 0 && (
-                          <div style={{ fontSize: 11, color: '#000000', fontWeight: 600, marginTop: 1 }}>
-                            (Disc: -₹{discAmt.toLocaleString('en-IN')})
-                          </div>
-                        )}
+                        {cleanServiceNameForBill(l.name)}
                       </td>
                       <td
                         style={{
-                          border: '1.5px solid #000000',
-                          padding: '6px 3px',
-                          fontSize: 12.5,
-                          fontWeight: 600,
+                          border: '1px solid #111111',
+                          padding: '6.5px 6px',
                           textAlign: 'center',
-                          verticalAlign: 'middle',
-                          color: '#000000',
+                          color: '#111111',
                         }}
                       >
                         {qty}
                       </td>
                       <td
                         style={{
-                          border: '1.5px solid #000000',
-                          padding: '6px 4px',
-                          fontSize: 12.5,
-                          fontWeight: 600,
-                          textAlign: 'right',
-                          verticalAlign: 'middle',
-                          color: '#000000',
+                          border: '1px solid #111111',
+                          padding: '6.5px 6px',
+                          textAlign: 'center',
+                          color: '#111111',
                         }}
                       >
                         {price.toLocaleString('en-IN')}
                       </td>
                       <td
                         style={{
-                          border: '1.5px solid #000000',
-                          padding: '6px 6px',
-                          fontSize: 13,
+                          border: '1px solid #111111',
+                          padding: '6.5px 6px',
+                          textAlign: 'center',
                           fontWeight: 700,
-                          textAlign: 'right',
-                          verticalAlign: 'middle',
-                          color: '#000000',
+                          color: '#111111',
                         }}
                       >
                         {lineTotal.toLocaleString('en-IN')}
@@ -878,161 +784,120 @@ Have a wonderful day! 🙏✨`;
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
 
-                {/* Unified Totals Rows with ColSpan 3 */}
+            {/* 7. Summary Table */}
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                border: '1px solid #111111',
+                marginBottom: 22,
+                fontSize: 13,
+              }}
+            >
+              <tbody>
                 <tr>
                   <td
-                    colSpan={3}
                     style={{
-                      border: '1.5px solid #000000',
-                      padding: '6px 7px',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      textAlign: 'left',
-                      verticalAlign: 'middle',
-                      color: '#000000',
+                      border: '1px solid #111111',
+                      padding: '6.5px 10px',
+                      background: '#fafafa',
+                      fontWeight: 700,
+                      width: '50%',
+                      color: '#111111',
                     }}
                   >
-                    Grand Total
+                    Total
                   </td>
                   <td
                     style={{
-                      border: '1.5px solid #000000',
-                      padding: '6px 6px',
-                      fontSize: 14,
-                      fontWeight: 800,
+                      border: '1px solid #111111',
+                      padding: '6.5px 10px',
                       textAlign: 'right',
-                      verticalAlign: 'middle',
-                      color: '#000000',
+                      fontWeight: 700,
+                      width: '50%',
+                      color: '#111111',
                     }}
                   >
                     ₹{totalAmt.toLocaleString('en-IN')}
                   </td>
                 </tr>
-
-                {/* Advance row */}
-                {advanceAmt > 0 ? (
+                {discountAmt > 0 && (
                   <tr>
                     <td
-                      colSpan={3}
                       style={{
-                        border: '1.5px solid #000000',
-                        padding: '6px 7px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        textAlign: 'left',
-                        verticalAlign: 'middle',
-                        color: '#000000',
+                        border: '1px solid #111111',
+                        padding: '6.5px 10px',
+                        background: '#fafafa',
+                        width: '50%',
+                        color: '#111111',
                       }}
                     >
-                      Advance Received
+                      Discount
                     </td>
                     <td
                       style={{
-                        border: '1.5px solid #000000',
-                        padding: '6px 6px',
-                        fontSize: 13,
-                        fontWeight: 700,
+                        border: '1px solid #111111',
+                        padding: '6.5px 10px',
                         textAlign: 'right',
-                        verticalAlign: 'middle',
-                        color: '#000000',
+                        fontWeight: 700,
+                        width: '50%',
+                        color: '#111111',
+                      }}
+                    >
+                      -₹{discountAmt.toLocaleString('en-IN')}
+                    </td>
+                  </tr>
+                )}
+                {advanceAmt > 0 && (
+                  <tr>
+                    <td
+                      style={{
+                        border: '1px solid #111111',
+                        padding: '6.5px 10px',
+                        background: '#fafafa',
+                        width: '50%',
+                        color: '#111111',
+                      }}
+                    >
+                      Advance
+                    </td>
+                    <td
+                      style={{
+                        border: '1px solid #111111',
+                        padding: '6.5px 10px',
+                        textAlign: 'right',
+                        width: '50%',
+                        color: '#111111',
                       }}
                     >
                       ₹{advanceAmt.toLocaleString('en-IN')}
                     </td>
                   </tr>
-                ) : null}
-
-                {/* Received / Paid row */}
-                {advanceAmt === 0 && (
-                  <tr>
-                    <td
-                      colSpan={3}
-                      style={{
-                        border: '1.5px solid #000000',
-                        padding: '6px 7px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        textAlign: 'left',
-                        verticalAlign: 'middle',
-                        color: '#000000',
-                      }}
-                    >
-                      Received / Paid ({invoice.mode || 'Cash'})
-                    </td>
-                    <td
-                      style={{
-                        border: '1.5px solid #000000',
-                        padding: '6px 6px',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        textAlign: 'right',
-                        verticalAlign: 'middle',
-                        color: '#000000',
-                      }}
-                    >
-                      ₹{paymentPaid.toLocaleString('en-IN')}
-                    </td>
-                  </tr>
                 )}
-
-                {advanceAmt > 0 && Math.max(0, paymentPaid - advanceAmt) > 0 ? (
-                  <tr>
-                    <td
-                      colSpan={3}
-                      style={{
-                        border: '1.5px solid #000000',
-                        padding: '6px 7px',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        textAlign: 'left',
-                        verticalAlign: 'middle',
-                        color: '#000000',
-                      }}
-                    >
-                      Paid Today
-                    </td>
-                    <td
-                      style={{
-                        border: '1.5px solid #000000',
-                        padding: '6px 6px',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        textAlign: 'right',
-                        verticalAlign: 'middle',
-                        color: '#000000',
-                      }}
-                    >
-                      ₹{Math.max(0, paymentPaid - advanceAmt).toLocaleString('en-IN')}
-                    </td>
-                  </tr>
-                ) : null}
-
-                {/* Balance Due row */}
-                <tr style={{ background: balanceDue > 0 ? '#fff1f2' : '#f0fdf4' }}>
+                <tr>
                   <td
-                    colSpan={3}
                     style={{
-                      border: '1.5px solid #000000',
-                      padding: '7px 7px',
-                      fontSize: 13,
-                      fontWeight: 800,
-                      textAlign: 'left',
-                      verticalAlign: 'middle',
-                      color: '#000000',
+                      border: '1px solid #111111',
+                      padding: '6.5px 10px',
+                      background: '#fafafa',
+                      fontWeight: 700,
+                      width: '50%',
+                      color: '#111111',
                     }}
                   >
-                    Balance Due
+                    Payment
                   </td>
                   <td
                     style={{
-                      border: '1.5px solid #000000',
-                      padding: '7px 6px',
-                      fontSize: 14,
-                      fontWeight: 900,
+                      border: '1px solid #111111',
+                      padding: '6.5px 10px',
                       textAlign: 'right',
-                      verticalAlign: 'middle',
-                      color: balanceDue > 0 ? '#b91c1c' : '#15803d',
+                      fontWeight: 700,
+                      width: '50%',
+                      color: '#111111',
                     }}
                   >
                     ₹{balanceDue.toLocaleString('en-IN')}
@@ -1041,30 +906,32 @@ Have a wonderful day! 🙏✨`;
               </tbody>
             </table>
 
-            {/* Heartfelt Footer with 1-row space */}
-            <div style={{ textAlign: 'center', marginTop: 22, paddingTop: 4 }}>
+            {/* 8. Footer */}
+            <div style={{ textAlign: 'center', paddingTop: 4 }}>
               <div
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 18,
                   fontWeight: 700,
-                  color: '#000000',
-                  marginBottom: 5,
-                  textAlign: 'center',
+                  color: '#111111',
+                  marginBottom: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
                 }}
               >
-                Thank you for choosing us! 🙏
+                Thank you for choosing us! <span>🙏</span>
               </div>
               <div
                 style={{
-                  fontSize: 11.5,
-                  color: '#222222',
-                  lineHeight: 1.5,
-                  maxWidth: 340,
+                  fontSize: 10.5,
+                  color: '#666666',
+                  lineHeight: 1.4,
+                  maxWidth: 320,
                   margin: '0 auto',
-                  fontWeight: 500,
                 }}
               >
-                We truly value your trust and hope your experience was wonderful !!
+                We truly value your trust and hope your experience was everything you imagined !!
               </div>
             </div>
           </div>
@@ -1415,30 +1282,30 @@ Have a wonderful day! 🙏✨`;
               gap: 8,
             }}
           >
-            {/* 1. WhatsApp PDF Send Button */}
+            {/* 1. Send on WhatsApp Button */}
             <button
               type="button"
               className="btn btn-sm"
               onClick={handleSendWhatsAppPDF}
               disabled={waPdfResult.status === 'sending'}
-              title={waPdfResult.message || 'Send PDF Invoice directly to customer WhatsApp via Meta API'}
+              title="Send invoice PDF directly to customer WhatsApp using WhatsApp Connect integration"
               style={{
                 background:
                   waPdfResult.status === 'sent'
                     ? '#16a34a'
-                    : waPdfResult.status === 'failed' || waPdfResult.status === 'not_configured'
+                    : waPdfResult.status === 'failed'
                     ? '#dc2626'
-                    : '#059669',
+                    : '#15803d',
                 color: '#ffffff',
                 fontWeight: 700,
                 border: 'none',
-                padding: '9px 10px',
+                padding: '9px 13px',
                 borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 5,
-                fontSize: 12,
+                gap: 6,
+                fontSize: 12.5,
                 cursor: waPdfResult.status === 'sending' ? 'wait' : 'pointer',
                 opacity: waPdfResult.status === 'sending' ? 0.8 : 1,
                 transition: 'all 0.2s',
@@ -1448,65 +1315,53 @@ Have a wonderful day! 🙏✨`;
               {waPdfResult.status === 'sending' ? (
                 <>
                   <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Sending PDF…</span>
+                  <span>Sending on WA…</span>
                 </>
               ) : waPdfResult.status === 'sent' ? (
                 <>
                   <CheckCircle2 size={14} />
-                  <span>PDF Sent!</span>
+                  <span>WA Sent!</span>
                 </>
               ) : (
                 <>
-                  <FileText size={15} />
-                  <span>WhatsApp PDF</span>
+                  <MessageCircle size={15} />
+                  <span>Send on WhatsApp</span>
                 </>
               )}
             </button>
 
-            {/* 2. WhatsApp Text Send Button (Approved Template) */}
+            {/* 2. Download PDF Button */}
             <button
               type="button"
               className="btn btn-sm"
-              onClick={handleSendWhatsAppText}
-              disabled={waTextResult.status === 'sending'}
-              title={waTextResult.message || 'Send official text receipt via Meta approved template (Guaranteed delivery to all numbers)'}
+              onClick={handleDownloadPDF}
+              disabled={downloading}
               style={{
-                background:
-                  waTextResult.status === 'sent'
-                    ? '#16a34a'
-                    : waTextResult.status === 'failed' || waTextResult.status === 'not_configured'
-                    ? '#dc2626'
-                    : '#2563eb',
+                background: '#012a2a',
                 color: '#ffffff',
                 fontWeight: 700,
                 border: 'none',
-                padding: '9px 10px',
+                padding: '9px 13px',
                 borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 5,
-                fontSize: 12,
-                cursor: waTextResult.status === 'sending' ? 'wait' : 'pointer',
-                opacity: waTextResult.status === 'sending' ? 0.8 : 1,
-                transition: 'all 0.2s',
+                gap: 6,
+                fontSize: 12.5,
+                cursor: downloading ? 'wait' : 'pointer',
                 whiteSpace: 'nowrap',
               }}
+              title="Download official receipt PDF"
             >
-              {waTextResult.status === 'sending' ? (
+              {downloading ? (
                 <>
                   <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Sending Text…</span>
-                </>
-              ) : waTextResult.status === 'sent' ? (
-                <>
-                  <CheckCircle2 size={14} />
-                  <span>Text Sent!</span>
+                  <span>Generating…</span>
                 </>
               ) : (
                 <>
-                  <MessageSquare size={15} />
-                  <span>WhatsApp Text</span>
+                  <Download size={14} />
+                  <span>Download PDF</span>
                 </>
               )}
             </button>
@@ -1518,7 +1373,7 @@ Have a wonderful day! 🙏✨`;
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-sm"
-                title="Send bill directly via WhatsApp (Works for all new customer numbers without 24h restrictions)"
+                title="Send bill directly via WhatsApp Web link"
                 style={{
                   background: '#f0fdf4',
                   color: '#15803d',
@@ -1579,58 +1434,6 @@ Have a wonderful day! 🙏✨`;
                   <span>Email Invoice</span>
                 </>
               )}
-            </button>
-
-            {/* Thermal PDF Button */}
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => handleDownloadPDF('thermal')}
-              disabled={downloading}
-              style={{
-                background: '#05424A',
-                color: '#ffffff',
-                fontWeight: 700,
-                border: 'none',
-                padding: '9px 10px',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                fontSize: 12,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-              title="Download Ultra-HD Thermal Receipt PDF (58mm/80mm)"
-            >
-              <Download size={14} /> {downloading && downloadingFormat === 'thermal' ? 'Creating…' : 'Thermal PDF'}
-            </button>
-
-            {/* A4 PDF Button */}
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => handleDownloadPDF('a4')}
-              disabled={downloading}
-              style={{
-                background: '#0284c7',
-                color: '#ffffff',
-                fontWeight: 700,
-                border: 'none',
-                padding: '9px 10px',
-                borderRadius: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 5,
-                fontSize: 12,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-              title="Download Ultra-HD A4 Full Page Tax Invoice PDF"
-            >
-              <FileText size={14} /> {downloading && downloadingFormat === 'a4' ? 'Creating…' : 'A4 PDF'}
             </button>
           </div>
 
