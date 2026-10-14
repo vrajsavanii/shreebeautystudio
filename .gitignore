@@ -41,6 +41,7 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 *.apk
+!public/downloads/*.apk
 new web design/
 .freebuff/
 Studio Photos/

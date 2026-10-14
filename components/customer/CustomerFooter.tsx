@@ -10,10 +10,12 @@ import {
   Instagram,
   Sparkles,
   ShieldCheck,
+  Smartphone,
 } from 'lucide-react';
 
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
+import { GooglePlayIcon, AppleIcon } from '@/components/customer/AppShowcaseSection';
 
 export default function CustomerFooter() {
   const currentYear = new Date().getFullYear();
@@ -171,6 +173,7 @@ export default function CustomerFooter() {
                 { href: '/bridal', label: 'Couture Bridal Packages' },
                 { href: '/blog', label: 'Beauty & Care Blog (300+ Expert Guides)' },
                 { href: '/faq', label: 'Frequently Asked Questions' },
+                { href: '/download', label: 'Mobile App (Download APK)' },
                 { href: '/about', label: 'About Us & Contact' },
               ].map((link, idx) => (
                 <Link
@@ -335,6 +338,143 @@ export default function CustomerFooter() {
                 <span>{instagramHandle}</span>
               </a>
             </div>
+          </div>
+        </div>
+
+        {/* Mobile App Download Banner */}
+        <div
+          style={{
+            marginBottom: 32,
+            padding: '20px 24px',
+            borderRadius: 18,
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(234, 186, 56, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 20,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, rgba(234, 186, 56, 0.2) 0%, rgba(5, 66, 74, 0.4) 100%)',
+                border: '1px solid rgba(234, 186, 56, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#EABA38',
+                flexShrink: 0,
+              }}
+            >
+              <Smartphone size={22} />
+            </div>
+            <div>
+              <h5 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#ffffff' }}>
+                Download Shree Beauty Studio App
+              </h5>
+              <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#94a3b8' }}>
+                Available on Android (v1.2 APK) · Apple App Store version coming soon
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {/* Google Play */}
+            <a
+              href="/downloads/Shree-Beauty-Studio.apk"
+              download="Shree-Beauty-Studio.apk"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                background: '#02181b',
+                border: '1.5px solid rgba(234, 186, 56, 0.4)',
+                padding: '8px 16px',
+                borderRadius: 12,
+                color: '#ffffff',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor = '#EABA38';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(234, 186, 56, 0.4)';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+              }}
+            >
+              <GooglePlayIcon size={22} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 8.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  GET IT ON
+                </span>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#ffffff', lineHeight: 1.1 }}>
+                  Google Play
+                </span>
+              </div>
+            </a>
+
+            {/* Apple App Store (Coming Soon) */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1.5px solid rgba(255, 255, 255, 0.14)',
+                padding: '8px 16px',
+                borderRadius: 12,
+                color: '#ffffff',
+                position: 'relative',
+                cursor: 'default',
+              }}
+            >
+              <AppleIcon size={22} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 8.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Download on the
+                </span>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#ffffff', lineHeight: 1.1 }}>
+                  App Store
+                </span>
+              </div>
+              <span
+                style={{
+                  position: 'absolute',
+                  top: -8,
+                  right: 6,
+                  background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',
+                  color: '#011215',
+                  fontSize: 8,
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  padding: '1px 6px',
+                  borderRadius: 999,
+                }}
+              >
+                Coming Soon
+              </span>
+            </div>
+
+            <Link
+              href="/download"
+              style={{
+                fontSize: 12,
+                color: '#f5d87a',
+                fontWeight: 600,
+                textDecoration: 'none',
+                marginLeft: 4,
+              }}
+            >
+              All Downloads →
+            </Link>
           </div>
         </div>
 

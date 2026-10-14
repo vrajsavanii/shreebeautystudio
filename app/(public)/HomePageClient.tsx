@@ -16,6 +16,7 @@ import { useSalonStore, DEFAULT_DATA } from '@/lib/store';
 import { getServicePricingBasis } from '@/lib/utils';
 import StudioMap3D from '@/components/customer/StudioMap3D';
 import InstagramFeed from '@/components/customer/InstagramFeed';
+import AppShowcaseSection from '@/components/customer/AppShowcaseSection';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -1179,6 +1180,9 @@ export default function PublicHomePage() {
           </motion.div>
         </div>
       </section>
+      
+      {/* ─── 8B. MOBILE APP SHOWCASE ─── */}
+      <AppShowcaseSection />
 
       {/* ─── 9. LOCATION & STUDIO VISIT (With 3D Map) ─────────────── */}
       <section className="cust-section" id="location">

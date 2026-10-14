@@ -1,6 +1,5 @@
 // lib/generate-pdf.ts
 // Headless browser PDF generator using puppeteer-core + system Edge/Chrome
-import puppeteer from 'puppeteer-core';
 import fs from 'fs';
 import { Invoice, SalonData } from '@/types/salon';
 import { buildReceiptHtml } from './invoice-receipt-html';
@@ -23,6 +22,16 @@ export function findBrowserExecutable(): string {
 }
 
 export async function generateInvoiceReceiptPdf(inv: Invoice, salonData?: SalonData): Promise<Buffer> {
+  let puppeteerModule: any;
+  try {
+    const pkg = 'puppeteer-core';
+    // Dynamic import with webpackIgnore to prevent bundler errors when not installed
+    puppeteerModule = await import(/* webpackIgnore: true */ pkg);
+  } catch (err) {
+    throw new Error('puppeteer-core is not installed or available on this system.');
+  }
+  const puppeteer = puppeteerModule.default || puppeteerModule;
+
   const executablePath = findBrowserExecutable();
 
   const browser = await puppeteer.launch({

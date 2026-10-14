@@ -1,0 +1,15 @@
+{
+	"appId": "com.shreebeautystudio.admin",
+	"appName": "Shree Studio Admin",
+	"webDir": "public",
+	"server": {
+		"url": "https://shreebeauty.studio/admin",
+		"cleartext": false,
+		"androidScheme": "https"
+	},
+	"android": {
+		"allowMixedContent": true,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false
+	}
+}

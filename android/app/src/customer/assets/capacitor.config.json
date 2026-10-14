@@ -1,0 +1,15 @@
+{
+	"appId": "com.shreebeautystudio.app",
+	"appName": "Shree Beauty Studio",
+	"webDir": "public",
+	"server": {
+		"url": "https://shreebeauty.studio",
+		"cleartext": false,
+		"androidScheme": "https"
+	},
+	"android": {
+		"allowMixedContent": true,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false
+	}
+}

@@ -16,6 +16,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    flavorDimensions "default"
+    productFlavors {
+        customer {
+            dimension "default"
+            applicationId "com.shreebeautystudio.app"
+            resValue "string", "app_name", "Shree Beauty Studio"
+            resValue "string", "title_activity_main", "Shree Beauty Studio"
+            resValue "string", "package_name", "com.shreebeautystudio.app"
+            resValue "string", "custom_url_scheme", "com.shreebeautystudio.app"
+        }
+        admin {
+            dimension "default"
+            applicationId "com.shreebeautystudio.admin"
+            resValue "string", "app_name", "Shree Studio Admin"
+            resValue "string", "title_activity_main", "Shree Studio Admin"
+            resValue "string", "package_name", "com.shreebeautystudio.admin"
+            resValue "string", "custom_url_scheme", "com.shreebeautystudio.admin"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
