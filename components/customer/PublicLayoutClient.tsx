@@ -98,13 +98,18 @@ export default function PublicLayoutClient({ children }: { children: React.React
           </div>
         )}
 
-        {/* ─── Unified Sticky Header (Announcement Banner + Navbar) ─── */}
+        {/* ─── Unified Sticky Header (Announcement Banner + Navbar with Dynamic Safe Area) ─── */}
         <header
+          className="cust-sticky-header"
           style={{
             position: 'sticky',
             top: 0,
             zIndex: 1000,
             background: '#032B30',
+            paddingTop: 'env(safe-area-inset-top, 0px)',
+            paddingLeft: 'env(safe-area-inset-left, 0px)',
+            paddingRight: 'env(safe-area-inset-right, 0px)',
+            boxSizing: 'border-box',
           }}
         >
           {bannerVisible && (

@@ -83,6 +83,9 @@ export default function CustomerNavbar() {
         ...navStyle,
         position: 'relative',
         zIndex: 1000,
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+        boxSizing: 'border-box',
       }}
     >
         <div
