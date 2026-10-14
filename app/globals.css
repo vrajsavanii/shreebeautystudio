@@ -53,12 +53,11 @@
   --radius-sm:    8px;
   --radius-lg:    18px;
 
-  /* ── Dynamic Safe Area Insets for All Mobile Devices ── */
+  /* ── Safe Area Tokens ── */
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
   --sar: env(safe-area-inset-right, 0px);
-  --topbar-total-h: calc(var(--topbar-h) + var(--sat));
 
   /* ── Premium Enhancement Tokens (2026 Luxury UI) ── */
   --gold-glow:       0 0 20px rgba(234, 186, 56, 0.4), 0 0 40px rgba(234, 186, 56, 0.2);
@@ -153,8 +152,8 @@ body {
 }
 
 .topbar {
-  height: calc(var(--topbar-h) + var(--sat));
-  min-height: calc(var(--topbar-h) + var(--sat));
+  height: var(--topbar-h);
+  min-height: var(--topbar-h);
   width: 100%;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
@@ -164,7 +163,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--sat) max(24px, var(--sar)) 0 max(24px, var(--sal));
+  padding: 0 24px;
   position: sticky;
   top: 0;
   z-index: 40;
@@ -1621,14 +1620,11 @@ a, button, input, select, textarea {
   .mobile-bottom-nav { display: flex !important; }
   .page-content { padding: 14px 12px 96px; }
 
-  /* Topbar Mobile Constraints (Dynamic Safe Area for Any Mobile Device) */
+  /* Topbar Mobile Constraints */
   .topbar {
-    padding-top: var(--sat) !important;
-    padding-left: max(12px, var(--sal)) !important;
-    padding-right: max(12px, var(--sar)) !important;
-    padding-bottom: 0px !important;
-    height: calc(56px + var(--sat)) !important;
-    min-height: calc(56px + var(--sat)) !important;
+    padding: 0 12px !important;
+    height: 56px !important;
+    min-height: 56px !important;
     gap: 8px !important;
     overflow: hidden !important;
     flex-wrap: nowrap !important;
@@ -2805,19 +2801,6 @@ a, button, input, select, textarea {
   box-shadow: var(--gold-glow-sm);
 }
 
-/* ─── Customer Header & Navbar Safe Area Insets (All Aspect Ratios) ─── */
-.cust-sticky-header {
-  padding-top: var(--sat) !important;
-  padding-left: var(--sal) !important;
-  padding-right: var(--sar) !important;
-  box-sizing: border-box !important;
-}
-
-.cust-navbar {
-  padding-left: var(--sal) !important;
-  padding-right: var(--sar) !important;
-  box-sizing: border-box !important;
-}
 
 /* ─── Announcement Banner (Stable Fixed Height to prevent layout jumping) ─ */
 .announcement-banner {

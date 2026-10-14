@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import CustomerNavbar from '@/components/customer/CustomerNavbar';
 import CustomerFooter from '@/components/customer/CustomerFooter';
+import AppEngagementBanner from '@/components/customer/AppEngagementBanner';
 import { useSalonStore } from '@/lib/store';
 import { CustomerAuthProvider } from '@/lib/customer-context';
 import { WifiOff, Zap } from 'lucide-react';
@@ -98,18 +99,13 @@ export default function PublicLayoutClient({ children }: { children: React.React
           </div>
         )}
 
-        {/* ─── Unified Sticky Header (Announcement Banner + Navbar with Dynamic Safe Area) ─── */}
+        {/* ─── Unified Sticky Header (Announcement Banner + Navbar) ─── */}
         <header
-          className="cust-sticky-header"
           style={{
             position: 'sticky',
             top: 0,
             zIndex: 1000,
             background: '#032B30',
-            paddingTop: 'env(safe-area-inset-top, 0px)',
-            paddingLeft: 'env(safe-area-inset-left, 0px)',
-            paddingRight: 'env(safe-area-inset-right, 0px)',
-            boxSizing: 'border-box',
           }}
         >
           {bannerVisible && (
@@ -182,6 +178,9 @@ export default function PublicLayoutClient({ children }: { children: React.React
             Book via WhatsApp
           </span>
         </a>
+
+        {/* ─── Mobile Daily Beauty Perks & Engagement Permissions ─── */}
+        <AppEngagementBanner />
       </div>
     </CustomerAuthProvider>
   );
