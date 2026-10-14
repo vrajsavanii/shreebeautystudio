@@ -29,6 +29,13 @@ let chats = new Map();
 let messages = new Map();
 let rawMessages = new Map();
 
+process.on('uncaughtException', (err) => {
+  console.error('[WhatsApp Service] Caught Unhandled Exception:', err?.message || err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[WhatsApp Service] Caught Unhandled Rejection:', reason);
+});
+
 export function toCanonicalJid(jid) {
   if (!jid) return '';
   const str = String(jid).trim();
@@ -63,6 +70,7 @@ function loadStore() {
       const idMap = new Map();
       existing.forEach((m) => idMap.set(m.id, m));
       list.forEach((m) => {
+        if (!m || m.body === 'Message') return;
         m.jid = canon;
         idMap.set(m.id, m);
       });
@@ -85,7 +93,7 @@ function loadStore() {
         jid: canon,
         name: resolvedName,
         phone: cleanPhone,
-        lastMessage: lastMsgObj?.body || c.lastMessage || 'Ready to chat',
+        lastMessage: lastMsgObj?.body || (c.lastMessage !== 'Message' ? c.lastMessage : 'Ready to chat'),
         timestamp: lastMsgObj?.timestamp || c.timestamp || new Date().toISOString(),
         unreadCount: (prev?.unreadCount || 0) + (c.unreadCount || 0),
       });
@@ -117,6 +125,15 @@ function saveStore() {
   } catch (err) {
     console.error('Error saving store:', err);
   }
+}
+
+let saveStoreTimer = null;
+function debouncedSaveStore() {
+  if (saveStoreTimer) return;
+  saveStoreTimer = setTimeout(() => {
+    saveStoreTimer = null;
+    saveStore();
+  }, 400);
 }
 
 loadStore();
@@ -152,190 +169,277 @@ function getStatusPayload() {
   };
 }
 
+let reconnectTimer = null;
+function scheduleReconnect(delayMs = 3000) {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connectToWhatsApp();
+  }, delayMs);
+}
+
+function ensureCleanAuth() {
+  try {
+    const credsFile = path.join(authDir, 'creds.json');
+    if (fs.existsSync(credsFile)) {
+      const content = fs.readFileSync(credsFile, 'utf-8').trim();
+      if (!content || content.length < 10) {
+        fs.rmSync(authDir, { recursive: true, force: true });
+        fs.mkdirSync(authDir, { recursive: true });
+        console.log('[WhatsApp Service] Purged empty/corrupted creds.json');
+      }
+    }
+  } catch {}
+}
+
 async function connectToWhatsApp() {
   try {
+    ensureCleanAuth();
+
+    if (sock) {
+      try {
+        sock.end();
+      } catch {}
+      sock = null;
+    }
+
     status = 'connecting';
     broadcast('status', getStatusPayload());
 
-    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = await import('@whiskeysockets/baileys');
+    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
+
+    let version = [2, 3000, 1043857760];
+    try {
+      const v = await fetchLatestBaileysVersion();
+      if (v?.version) version = v.version;
+    } catch {}
 
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
     sock = makeWASocket({
       auth: state,
+      version,
       logger: pino({ level: 'silent' }),
-      browser: ['Shree Beauty Studio', 'Desktop', '1.0.0'],
+      browser: Browsers.macOS('Desktop'),
       syncFullHistory: false,
       markOnlineOnConnect: true,
+      connectTimeoutMs: 60000,
+      defaultQueryTimeoutMs: 60000,
+      keepAliveIntervalMs: 25000,
       getMessage: async (key) => {
         if (key?.id && rawMessages.has(key.id)) {
           return rawMessages.get(key.id);
         }
         return undefined;
       },
-      retryRequestDelayMs: 250,
+      retryRequestDelayMs: 500,
       maxMsgRetryCount: 5,
     });
 
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', async (update) => {
-      const { connection, lastDisconnect, qr } = update;
+      try {
+        const { connection, lastDisconnect, qr } = update;
 
-      if (qr) {
-        qrString = qr;
-        try {
-          qrDataUrl = await QRCode.toDataURL(qr, {
-            margin: 2,
-            scale: 8,
-            errorCorrectionLevel: 'H',
-            color: { dark: '#05424A', light: '#ffffff' },
-          });
-        } catch {}
-        if (status !== 'waiting_qr') {
-          console.log('[WhatsApp Service] Waiting for QR scan at /admin/whatsapp...');
+        if (qr) {
+          qrString = qr;
+          try {
+            qrDataUrl = await QRCode.toDataURL(qr, {
+              margin: 2,
+              scale: 8,
+              errorCorrectionLevel: 'H',
+              color: { dark: '#05424A', light: '#ffffff' },
+            });
+          } catch {}
+          if (status !== 'waiting_qr') {
+            console.log('[WhatsApp Service] Waiting for QR scan at /admin/whatsapp...');
+          }
+          status = 'waiting_qr';
+          broadcast('qr', { qr: qrString, qrDataUrl });
+          broadcast('status', getStatusPayload());
         }
-        status = 'waiting_qr';
-        broadcast('qr', { qr: qrString, qrDataUrl });
-        broadcast('status', getStatusPayload());
-      }
 
-      if (connection === 'connecting') {
-        status = 'connecting';
-        broadcast('status', getStatusPayload());
-      }
+        if (connection === 'connecting') {
+          if (status !== 'waiting_qr') {
+            status = 'connecting';
+            broadcast('status', getStatusPayload());
+          }
+        }
 
-      if (connection === 'open') {
-        status = 'connected';
-        qrString = null;
-        qrDataUrl = null;
-        const rawId = sock.user?.id || '';
-        connectedPhone = rawId.replace(/:.*$/, '').replace(/@.*$/, '').replace(/^91/, '');
-        connectedName = sock.user?.name || 'Shree Beauty Studio';
-        console.log(`[WhatsApp Service] Connected as +91 ${connectedPhone} (${connectedName})`);
-        broadcast('status', getStatusPayload());
-      }
-
-      if (connection === 'close') {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        console.log(`[WhatsApp Service] Connection closed. StatusCode: ${statusCode}`);
-
-        if (statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403 || statusCode === 440) {
-          status = 'disconnected';
-          connectedPhone = '';
-          connectedName = '';
+        if (connection === 'open') {
+          status = 'connected';
           qrString = null;
           qrDataUrl = null;
-          sock = null;
-          try {
-            fs.rmSync(authDir, { recursive: true, force: true });
-            fs.mkdirSync(authDir, { recursive: true });
-          } catch {}
+          const rawId = sock?.user?.id || '';
+          connectedPhone = rawId.replace(/:.*$/, '').replace(/@.*$/, '').replace(/^91/, '');
+          connectedName = sock?.user?.name || 'Shree Beauty Studio';
+          console.log(`[WhatsApp Service] Connected as +91 ${connectedPhone} (${connectedName})`);
           broadcast('status', getStatusPayload());
-          console.log('[WhatsApp Service] Session terminated or replaced (440/loggedOut). Cleaned auth, waiting for fresh QR.');
-          setTimeout(() => {
-            connectToWhatsApp();
-          }, 1500);
-        } else {
-          status = 'disconnected';
-          broadcast('status', getStatusPayload());
-          console.log('[WhatsApp Service] Reconnecting in 4 seconds...');
-          setTimeout(() => {
-            connectToWhatsApp();
-          }, 4000);
         }
+
+        if (connection === 'close') {
+          const statusCode = lastDisconnect?.error?.output?.statusCode;
+          const err = lastDisconnect?.error;
+          const errMsg = err?.message || String(err || 'Unknown error');
+          console.log(`[WhatsApp Service] Connection closed. StatusCode: ${statusCode}. Details: ${errMsg}`);
+
+          if (sock) {
+            try { sock.end(); } catch {}
+            sock = null;
+          }
+
+          // ONLY 401 is an explicit logout from the user's mobile device!
+          if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
+            status = 'disconnected';
+            connectedPhone = '';
+            connectedName = '';
+            qrString = null;
+            qrDataUrl = null;
+            try {
+              fs.rmSync(authDir, { recursive: true, force: true });
+              fs.mkdirSync(authDir, { recursive: true });
+            } catch {}
+            broadcast('status', getStatusPayload());
+            console.log('[WhatsApp Service] Logged out from mobile phone (401). Session cleared. Ready for fresh QR scan.');
+            scheduleReconnect(2000);
+          } else if (statusCode === 515) {
+            // Restart required by WhatsApp protocol after initial QR pairing
+            console.log('[WhatsApp Service] Initial pairing handshake complete (515 restartRequired). Resuming session in 1.5s...');
+            scheduleReconnect(1500);
+          } else if (statusCode === 440) {
+            // Connection replaced temporarily - DO NOT DELETE CREDENTIALS!
+            console.log('[WhatsApp Service] Connection replaced (440). Keeping credentials, resuming in 4s...');
+            scheduleReconnect(4000);
+          } else if (statusCode === 408) {
+            // QR expired without scan - refresh QR
+            console.log('[WhatsApp Service] QR timed out without scan (408). Refreshing QR in 2.5s...');
+            scheduleReconnect(2500);
+          } else {
+            // Any other transient close / ping timeout / undefined status code
+            console.log(`[WhatsApp Service] Temporary connection drop (${statusCode || 'stream reset'}). Reconnecting in 3s...`);
+            scheduleReconnect(3000);
+          }
+        }
+      } catch (connErr) {
+        console.error('[WhatsApp Service] connection.update error:', connErr);
       }
     });
 
     sock.ev.on('messages.upsert', async ({ messages: newMsgs }) => {
-      if (!Array.isArray(newMsgs)) return;
+      try {
+        if (!Array.isArray(newMsgs)) return;
 
-      for (const m of newMsgs) {
-        if (m.key.remoteJid === 'status@broadcast') continue;
+        for (const m of newMsgs) {
+          try {
+            if (m.key.remoteJid === 'status@broadcast') continue;
 
-        // 1. Intercept Message Revocation (Delete for everyone)
-        const protoMsg = m.message?.protocolMessage;
-        if (protoMsg && (protoMsg.type === 0 || protoMsg.type === 'REVOKE')) {
-          const revokedKey = protoMsg.key;
-          if (revokedKey?.id && revokedKey?.remoteJid) {
-            const canon = toCanonicalJid(revokedKey.remoteJid);
-            const targetId = revokedKey.id;
-            const list = messages.get(canon) || [];
-            const target = list.find((x) => x.id === targetId);
-            if (target) {
-              target.isDeleted = true;
-              target.deletedForEveryone = true;
-              target.body = '🚫 This message was deleted';
-              saveStore();
-              broadcast('message_status', { id: targetId, jid: canon, isDeleted: true, deletedForEveryone: true });
-              const c = chats.get(canon);
-              if (c) {
-                c.lastMessage = '🚫 This message was deleted';
-                broadcast('chat_update', c);
+            // 1. Intercept Message Revocation (Delete for everyone)
+            const protoMsg = m.message?.protocolMessage;
+            if (protoMsg) {
+              if (protoMsg.type === 0 || protoMsg.type === 'REVOKE') {
+                const revokedKey = protoMsg.key;
+                if (revokedKey?.id && revokedKey?.remoteJid) {
+                  const canon = toCanonicalJid(revokedKey.remoteJid);
+                  const targetId = revokedKey.id;
+                  const list = messages.get(canon) || [];
+                  const target = list.find((x) => x.id === targetId);
+                  if (target) {
+                    target.isDeleted = true;
+                    target.deletedForEveryone = true;
+                    target.body = '🚫 This message was deleted';
+                    debouncedSaveStore();
+                    broadcast('message_status', { id: targetId, jid: canon, isDeleted: true, deletedForEveryone: true });
+                    const c = chats.get(canon);
+                    if (c) {
+                      c.lastMessage = '🚫 This message was deleted';
+                      broadcast('chat_update', c);
+                    }
+                  }
+                }
               }
+              // Any other protocolMessage is internal Baileys/WA signaling - skip
+              continue;
             }
-          }
-          continue;
-        }
 
-        // 2. Intercept Message Reaction
-        const reactionMsg = m.message?.reactionMessage;
-        if (reactionMsg && reactionMsg.key) {
-          const canon = toCanonicalJid(reactionMsg.key.remoteJid);
-          const targetId = reactionMsg.key.id;
-          const emoji = reactionMsg.text || '';
-          const senderName = m.pushName || (m.key.fromMe ? 'Me' : 'Client');
-          const list = messages.get(canon) || [];
-          const target = list.find((x) => x.id === targetId);
-          if (target) {
-            target.reactions = target.reactions || {};
-            if (emoji) {
-              target.reactions[emoji] = senderName;
-            } else {
-              delete target.reactions;
+            // Skip other internal system/sync messages
+            if (
+              m.message?.senderKeyDistributionMessage ||
+              m.message?.fastRatchetKeySenderKeyDistributionMessage ||
+              m.message?.peerDataOperationRequestResponseMessage ||
+              m.message?.peerDataOperationRequestMessage ||
+              m.message?.keyExpirationNotification ||
+              m.message?.keepAliveMessage ||
+              m.message?.appStateSyncKeyShare ||
+              m.message?.historySyncNotification
+            ) {
+              continue;
             }
-            saveStore();
-            broadcast('message_status', { id: targetId, jid: canon, reaction: { emoji, senderName } });
+
+            // 2. Intercept Message Reaction
+            const reactionMsg = m.message?.reactionMessage;
+            if (reactionMsg && reactionMsg.key) {
+              const canon = toCanonicalJid(reactionMsg.key.remoteJid);
+              const targetId = reactionMsg.key.id;
+              const emoji = reactionMsg.text || '';
+              const senderName = m.pushName || (m.key.fromMe ? 'Me' : 'Client');
+              const list = messages.get(canon) || [];
+              const target = list.find((x) => x.id === targetId);
+              if (target) {
+                target.reactions = target.reactions || {};
+                if (emoji) {
+                  target.reactions[emoji] = senderName;
+                } else {
+                  delete target.reactions;
+                }
+                debouncedSaveStore();
+                broadcast('message_status', { id: targetId, jid: canon, reaction: { emoji, senderName } });
+              }
+              continue;
+            }
+
+            if (m.key.id && m.message) {
+              rawMessages.set(m.key.id, m.message);
+            }
+
+            const parsed = await parseMsg(m);
+            if (parsed) {
+              const canonicalJid = toCanonicalJid(parsed.jid);
+              parsed.jid = canonicalJid;
+
+              const list = messages.get(canonicalJid) || [];
+              const idx = list.findIndex((x) => x.id === parsed.id);
+              if (idx >= 0) list[idx] = parsed;
+              else list.push(parsed);
+              messages.set(canonicalJid, list);
+
+              const cleanPhone = canonicalJid.replace(/@.*$/, '').replace(/^91/, '').slice(-10);
+              const existingChat = chats.get(canonicalJid);
+              const resolvedName = (existingChat?.name && existingChat.name !== cleanPhone)
+                ? existingChat.name
+                : (parsed.senderName || existingChat?.name || cleanPhone);
+              const unreadCount = !parsed.fromMe ? (existingChat?.unreadCount || 0) + 1 : (existingChat?.unreadCount || 0);
+
+              const chatEntry = {
+                jid: canonicalJid,
+                name: resolvedName,
+                phone: cleanPhone,
+                lastMessage: parsed.body,
+                timestamp: parsed.timestamp,
+                unreadCount,
+              };
+              chats.set(canonicalJid, chatEntry);
+              debouncedSaveStore();
+
+              broadcast('message', parsed);
+              broadcast('chat_update', chatEntry);
+            }
+          } catch (mErr) {
+            // Ignore single message parsing error
           }
-          continue;
         }
-
-        if (m.key.id && m.message) {
-          rawMessages.set(m.key.id, m.message);
-        }
-
-        const parsed = await parseMsg(m);
-        if (parsed) {
-          const canonicalJid = toCanonicalJid(parsed.jid);
-          parsed.jid = canonicalJid;
-
-          const list = messages.get(canonicalJid) || [];
-          const idx = list.findIndex((x) => x.id === parsed.id);
-          if (idx >= 0) list[idx] = parsed;
-          else list.push(parsed);
-          messages.set(canonicalJid, list);
-
-          const cleanPhone = canonicalJid.replace(/@.*$/, '').replace(/^91/, '').slice(-10);
-          const existingChat = chats.get(canonicalJid);
-          const resolvedName = (existingChat?.name && existingChat.name !== cleanPhone)
-            ? existingChat.name
-            : (parsed.senderName || existingChat?.name || cleanPhone);
-          const unreadCount = !parsed.fromMe ? (existingChat?.unreadCount || 0) + 1 : (existingChat?.unreadCount || 0);
-
-          const chatEntry = {
-            jid: canonicalJid,
-            name: resolvedName,
-            phone: cleanPhone,
-            lastMessage: parsed.body,
-            timestamp: parsed.timestamp,
-            unreadCount,
-          };
-          chats.set(canonicalJid, chatEntry);
-          saveStore();
-
-          broadcast('message', parsed);
-          broadcast('chat_update', chatEntry);
-        }
+      } catch (upsertErr) {
+        console.error('[WhatsApp Service] Error in messages.upsert:', upsertErr);
       }
     });
 
@@ -472,9 +576,16 @@ async function parseMsg(m) {
     } else if (c.reactionMessage) {
       type = 'reaction';
       body = c.reactionMessage.text || '❤️';
+    } else if (c.stickerMessage) {
+      type = 'sticker';
+      body = 'Sticker 🎨';
     } else {
-      type = 'text';
-      body = 'Message';
+      // Unrecognized or internal protocol message without displayable content - skip
+      return null;
+    }
+
+    if (!body && !mediaUrl) {
+      return null;
     }
 
     return {

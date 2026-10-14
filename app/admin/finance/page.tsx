@@ -525,6 +525,8 @@ export default function FinanceAccountingPage() {
     let activeAdvances = 0;
     let totalAdvancesCollected = 0;
     let activeAdvanceCount = 0;
+    let activeBalanceDue = 0;
+    let activeTotalDeal = 0;
     const advanceItems: {
       id: string;
       bookingType: 'Appointment' | 'Bridal';
@@ -558,9 +560,13 @@ export default function FinanceAccountingPage() {
                 i.date === a.date)
           )
         );
+        const apptPrice = Number(a.price || 0);
+        const apptBal = Math.max(0, apptPrice - adv);
         if (!isConverted) {
           activeAdvances += adv;
           activeAdvanceCount++;
+          activeBalanceDue += apptBal;
+          activeTotalDeal += apptPrice;
         }
         advanceItems.push({
           id: `appt-adv-${a.id}`,
@@ -570,8 +576,8 @@ export default function FinanceAccountingPage() {
           service: a.service || 'Service',
           date: a.date || todayISO(),
           advance: adv,
-          totalPrice: Number(a.price || 0),
-          balance: Math.max(0, Number(a.price || 0) - adv),
+          totalPrice: apptPrice,
+          balance: apptBal,
           mode: a.advanceMode || 'Cash',
           isConverted,
           invoiceId: a.invoiceId,
@@ -605,9 +611,13 @@ export default function FinanceAccountingPage() {
                 i.customer.toLowerCase().trim() === (b.name || '').toLowerCase().trim())
           )
         );
+        const bridalPrice = Number(b.package || b.totalAmount || 0);
+        const bridalBal = Math.max(0, bridalPrice - adv);
         if (!isConverted) {
           activeAdvances += adv;
           activeAdvanceCount++;
+          activeBalanceDue += bridalBal;
+          activeTotalDeal += bridalPrice;
         }
         advanceItems.push({
           id: `bridal-adv-${b.id}`,
@@ -617,8 +627,8 @@ export default function FinanceAccountingPage() {
           service: `${b.packageType || 'Bridal'} — ${b.packageName || 'Package'}`,
           date: b.weddingDate || b.date || todayISO(),
           advance: adv,
-          totalPrice: Number(b.package || 0),
-          balance: Math.max(0, Number(b.package || 0) - adv),
+          totalPrice: bridalPrice,
+          balance: bridalBal,
           mode: b.advanceAccount || 'Cash',
           isConverted,
           invoiceId: b.invoiceId,
@@ -672,6 +682,8 @@ export default function FinanceAccountingPage() {
       dueSupplierCount: dueSuppliers.size,
       activeAdvances,
       activeAdvanceCount,
+      activeBalanceDue,
+      activeTotalDeal,
       totalAdvancesCollected,
       advanceItems,
       cashInHand,
@@ -1774,7 +1786,7 @@ export default function FinanceAccountingPage() {
             {money(metrics.activeAdvances)}
           </div>
           <div style={{ fontSize: 10, fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {metrics.activeAdvanceCount} Active Bookings
+            {metrics.activeAdvanceCount} Bookings • Due: {money(metrics.activeBalanceDue)}
           </div>
         </div>
 
@@ -2499,6 +2511,51 @@ export default function FinanceAccountingPage() {
               </div>
             </div>
 
+            {/* NEW: BALANCE DUE (TOTAL IN BOOKING) */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+                border: '1.5px solid #fecdd3',
+                borderRadius: 14,
+                padding: '14px 18px',
+                boxShadow: '0 2px 10px rgba(225, 29, 72, 0.08)',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: '#9f1239',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <span>Balance Due (બુકિંગ બાકી રકમ)</span>
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    background: '#ffe4e6',
+                    border: '1px solid #fecdd3',
+                    color: '#be123c',
+                    padding: '1px 6px',
+                    borderRadius: 99,
+                    fontWeight: 800,
+                  }}
+                >
+                  TOTAL IN BOOKING
+                </span>
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: '#be123c', margin: '6px 0 2px' }}>
+                {money(metrics.activeBalanceDue)}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#9f1239' }}>
+                {metrics.activeAdvanceCount} Bookings Pending Balance • Deal: {money(metrics.activeTotalDeal)}
+              </div>
+            </div>
+
             <div
               style={{
                 background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
@@ -2802,6 +2859,27 @@ export default function FinanceAccountingPage() {
                     })
                   )}
                 </tbody>
+                {filteredAdvances.length > 0 && (
+                  <tfoot>
+                    <tr style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0', fontWeight: 800 }}>
+                      <td colSpan={4} style={{ padding: '12px 16px', color: '#0f172a', textAlign: 'right', fontSize: 12 }}>
+                        TOTAL IN BOOKING ({filteredAdvances.length} Records):
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: '#b45309', fontSize: 14 }}>
+                        {money(filteredAdvances.reduce((s, i) => s + Number(i.advance || 0), 0))}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: '#0f172a', fontSize: 14 }}>
+                        {money(filteredAdvances.reduce((s, i) => s + Number(i.totalPrice || 0), 0))}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: '#dc2626', fontSize: 14 }}>
+                        {money(filteredAdvances.reduce((s, i) => s + Number(i.balance || 0), 0))}
+                      </td>
+                      <td colSpan={2} style={{ padding: '12px 16px', color: '#64748b', fontSize: 11 }}>
+                        Total Remaining Due
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </div>

@@ -895,8 +895,23 @@ export default function PurchasesPage() {
             };
             updatedInventory.push(p);
           }
-          p.stock = Number(p.stock || 0) + Number(l.qty);
-          p.buy = Number(l.rate || 0);
+          const addedQty = Number(l.qty || 0);
+          const addedRate = Number(l.rate || 0);
+          const currentStock = Number(p.stock || 0);
+          const currentBuy = Number(p.buy || 0);
+          const newStock = currentStock + addedQty;
+
+          // Weighted Average Cost (WAC) to prevent buy-rate overwrite discrepancy
+          if (newStock > 0 && addedRate > 0) {
+            if (currentStock > 0 && currentBuy > 0) {
+              p.buy = Math.round(((currentStock * currentBuy) + (addedQty * addedRate)) / newStock * 100) / 100;
+            } else {
+              p.buy = addedRate;
+            }
+          } else if (addedRate > 0) {
+            p.buy = addedRate;
+          }
+          p.stock = newStock;
           if (l.mrp) p.mrp = Number(l.mrp);
           p.buyDate = l.buyDate || date;
           p.supplierId = supplier.id;
@@ -913,8 +928,17 @@ export default function PurchasesPage() {
               (b) => (l.batch && b.batch === l.batch) || (l.expiry && b.expiry === l.expiry)
             );
             if (bIdx >= 0) {
-              p.batches[bIdx].stock = Number(p.batches[bIdx].stock || 0) + Number(l.qty);
-              if (l.rate) p.batches[bIdx].buyRate = Number(l.rate);
+              const oldBStock = Number(p.batches[bIdx].stock || 0);
+              const oldBRate = Number(p.batches[bIdx].buyRate || 0);
+              const newBStock = oldBStock + addedQty;
+              if (newBStock > 0 && addedRate > 0) {
+                if (oldBStock > 0 && oldBRate > 0) {
+                  p.batches[bIdx].buyRate = Math.round(((oldBStock * oldBRate) + (addedQty * addedRate)) / newBStock * 100) / 100;
+                } else {
+                  p.batches[bIdx].buyRate = addedRate;
+                }
+              }
+              p.batches[bIdx].stock = newBStock;
               if (l.mrp) p.batches[bIdx].mrp = Number(l.mrp);
             } else {
               p.batches.push({
@@ -1034,8 +1058,23 @@ export default function PurchasesPage() {
           };
           updatedInventory.push(p);
         }
-        p.stock = Number(p.stock || 0) + Number(l.qty);
-        p.buy = Number(l.rate || 0);
+        const addedQty = Number(l.qty || 0);
+        const addedRate = Number(l.rate || 0);
+        const currentStock = Number(p.stock || 0);
+        const currentBuy = Number(p.buy || 0);
+        const newStock = currentStock + addedQty;
+
+        // Weighted Average Cost (WAC) to prevent buy-rate overwrite discrepancy
+        if (newStock > 0 && addedRate > 0) {
+          if (currentStock > 0 && currentBuy > 0) {
+            p.buy = Math.round(((currentStock * currentBuy) + (addedQty * addedRate)) / newStock * 100) / 100;
+          } else {
+            p.buy = addedRate;
+          }
+        } else if (addedRate > 0) {
+          p.buy = addedRate;
+        }
+        p.stock = newStock;
         if (l.mrp) p.mrp = Number(l.mrp);
         p.buyDate = l.buyDate || date;
         p.supplierId = supplier.id;
@@ -1052,8 +1091,17 @@ export default function PurchasesPage() {
             (b) => (l.batch && b.batch === l.batch) || (l.expiry && b.expiry === l.expiry)
           );
           if (bIdx >= 0) {
-            p.batches[bIdx].stock = Number(p.batches[bIdx].stock || 0) + Number(l.qty);
-            if (l.rate) p.batches[bIdx].buyRate = Number(l.rate);
+            const oldBStock = Number(p.batches[bIdx].stock || 0);
+            const oldBRate = Number(p.batches[bIdx].buyRate || 0);
+            const newBStock = oldBStock + addedQty;
+            if (newBStock > 0 && addedRate > 0) {
+              if (oldBStock > 0 && oldBRate > 0) {
+                p.batches[bIdx].buyRate = Math.round(((oldBStock * oldBRate) + (addedQty * addedRate)) / newBStock * 100) / 100;
+              } else {
+                p.batches[bIdx].buyRate = addedRate;
+              }
+            }
+            p.batches[bIdx].stock = newBStock;
             if (l.mrp) p.batches[bIdx].mrp = Number(l.mrp);
           } else {
             p.batches.push({

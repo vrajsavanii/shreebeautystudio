@@ -148,7 +148,7 @@ export default function WhatsAppHubPage() {
   const hasSyncedOnceRef = useRef(false);
 
   // WhatsApp Connect QR Code State
-  const [isDeviceLinked, setIsDeviceLinked] = useState<boolean>(true);
+  const [isDeviceLinked, setIsDeviceLinked] = useState<boolean>(false);
   const [carouselSlide, setCarouselSlide] = useState<number>(0);
   const [keepSignedIn, setKeepSignedIn] = useState<boolean>(true);
   const [qrRefreshTimer, setQrRefreshTimer] = useState<number>(60);
@@ -1452,7 +1452,7 @@ export default function WhatsAppHubPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {waStatus === 'connected' || isDeviceLinked ? (
+          {waStatus === 'connected' ? (
             <span
               style={{
                 fontSize: 11,
@@ -1469,6 +1469,24 @@ export default function WhatsAppHubPage() {
             >
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a' }} />
               Connected (+91 {waConnectedPhone || salonPhone.replace(/\D/g, '').slice(-10)})
+            </span>
+          ) : waStatus === 'connecting' ? (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                background: '#e0f2fe',
+                color: '#0369a1',
+                padding: '3px 9px',
+                borderRadius: 99,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                border: '1px solid #bae6fd',
+              }}
+            >
+              <RefreshCw size={11} className="animate-spin" />
+              Connecting...
             </span>
           ) : (
             <span
@@ -1635,11 +1653,11 @@ export default function WhatsAppHubPage() {
                 borderRadius: 99,
                 padding: '1px 5px',
                 marginLeft: 3,
-                background: waStatus === 'connected' ? '#22c55e' : '#f59e0b',
+                background: waStatus === 'connected' ? '#22c55e' : waStatus === 'connecting' ? '#0284c7' : '#f59e0b',
                 color: '#ffffff',
               }}
             >
-              {waStatus === 'connected' ? 'Live' : 'Scan QR'}
+              {waStatus === 'connected' ? 'Live' : waStatus === 'connecting' ? 'Connecting...' : 'Scan QR'}
             </span>
           </button>
 
@@ -1765,7 +1783,7 @@ export default function WhatsAppHubPage() {
               >
                 <QrCode size={12} />
                 <span>QR Scanner</span>
-                {waStatus !== 'connected' && (
+                {waStatus === 'waiting_qr' && (
                   <span
                     style={{
                       fontSize: 9,
@@ -1790,9 +1808,9 @@ export default function WhatsAppHubPage() {
               fontWeight: 700,
               padding: '3px 9px',
               borderRadius: 99,
-              background: waStatus === 'connected' ? '#dcfce7' : '#fffbeb',
-              color: waStatus === 'connected' ? '#15803d' : '#b45309',
-              border: `1px solid ${waStatus === 'connected' ? '#86efac' : '#fde68a'}`,
+              background: waStatus === 'connected' ? '#dcfce7' : waStatus === 'connecting' ? '#e0f2fe' : '#fffbeb',
+              color: waStatus === 'connected' ? '#15803d' : waStatus === 'connecting' ? '#0369a1' : '#b45309',
+              border: `1px solid ${waStatus === 'connected' ? '#86efac' : waStatus === 'connecting' ? '#bae6fd' : '#fde68a'}`,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 5,
@@ -1804,11 +1822,13 @@ export default function WhatsAppHubPage() {
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: waStatus === 'connected' ? '#16a34a' : '#f59e0b',
+                background: waStatus === 'connected' ? '#16a34a' : waStatus === 'connecting' ? '#0284c7' : '#f59e0b',
               }}
             />
             {waStatus === 'connected'
               ? `WhatsApp Online (+91 ${waConnectedPhone || salonPhone.replace(/\D/g, '').slice(-10)})`
+              : waStatus === 'connecting'
+              ? 'Connecting...'
               : 'QR Scan Required'}
           </span>
         </div>
@@ -1851,7 +1871,10 @@ export default function WhatsAppHubPage() {
             <WhatsAppQRScannerTab
               waStatus={waStatus}
               waQrDataUrl={waQrDataUrl}
+              waConnectedPhone={waConnectedPhone}
+              waConnectedName={waConnectedName}
               onRefreshQR={handleBackendReconnect}
+              onOpenChat={() => setConnectSubView('chat')}
             />
           )}
         </div>

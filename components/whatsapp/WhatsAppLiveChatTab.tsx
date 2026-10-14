@@ -484,7 +484,7 @@ export default function WhatsAppLiveChatTab({
 
   const activeMessages = useMemo(() => {
     if (!activeChat) return [];
-    return messagesMap[activeChat.jid] || [];
+    return (messagesMap[activeChat.jid] || []).filter((m) => m && m.body !== 'Message');
   }, [messagesMap, activeChat]);
 
   // Filtered chats list
@@ -1048,9 +1048,9 @@ export default function WhatsAppLiveChatTab({
         background: '#ffffff',
         borderRadius: 10,
         border: '1px solid #e2e8f0',
-        height: 'calc(100vh - 120px)',
-        minHeight: 600,
-        maxHeight: 'calc(100vh - 110px)',
+        height: 'calc(100vh - 195px)',
+        minHeight: 520,
+        maxHeight: 'calc(100vh - 190px)',
         overflow: 'hidden',
         boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
         position: 'relative',
@@ -1339,7 +1339,7 @@ export default function WhatsAppLiveChatTab({
                       >
                         <CheckCheck size={14} color="#53bdeb" style={{ flexShrink: 0 }} />
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {c.lastMessage ? c.lastMessage : 'Messages are end-to-end encrypted.'}
+                          {c.lastMessage && c.lastMessage !== 'Message' ? c.lastMessage : 'Messages are end-to-end encrypted.'}
                         </span>
                       </div>
 

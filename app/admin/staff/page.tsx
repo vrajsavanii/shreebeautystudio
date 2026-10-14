@@ -20,6 +20,34 @@ import { UserAccount, UserRole } from '@/types/salon';
 
 type StaffTab = 'all' | 'performance' | 'attendance' | 'commission' | 'users';
 
+const DEFAULT_STAFF_ROLES = [
+  'Senior Beautician',
+  'Beautician',
+  'Junior Beautician',
+  'Hair Stylist',
+  'Senior Hair Stylist',
+  'Bridal Makeup Artist',
+  'Makeup Artist',
+  'Nail Artist / Technician',
+  'Skin Specialist / Aesthetician',
+  'Mehendi Artist',
+  'Owner & Beautician',
+  'Salon Manager',
+  'Front Desk / Receptionist',
+  'Assistant / Trainee',
+];
+
+const QUICK_SERVICES = [
+  'Hair Spa',
+  'Facial',
+  'Keratin',
+  'HD Bridal',
+  'Cleanup',
+  'Waxing & Threading',
+  'Nail Art',
+  'Mehendi',
+];
+
 export default function StaffPage() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
@@ -35,6 +63,10 @@ export default function StaffPage() {
   const [checkIn, setCheckIn] = useState('10:00');
   const [checkOut, setCheckOut] = useState('19:00');
 
+  // Custom role state
+  const [isCustomRole, setIsCustomRole] = useState(false);
+  const [customRoleInput, setCustomRoleInput] = useState('');
+
   // User account modal state
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [userName, setUserName] = useState('');
@@ -47,7 +79,9 @@ export default function StaffPage() {
   const monthFrom = format(startOfMonth(today), 'yyyy-MM-dd');
   const monthTo = format(endOfMonth(today), 'yyyy-MM-dd');
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Staff>();
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<Staff>();
+  const currentRole = watch('role');
+  const currentServices = watch('services') || '';
 
   const staffList = data?.staff || [];
 
@@ -92,25 +126,53 @@ export default function StaffPage() {
       .sort((a, b) => b.date.localeCompare(a.date));
   }, [data?.attendance, monthFrom, monthTo]);
 
+  const roleOptions = useMemo(() => {
+    const list = new Set(DEFAULT_STAFF_ROLES);
+    (data?.staff || []).forEach((s) => {
+      if (s.role && s.role.trim()) {
+        list.add(s.role.trim());
+      }
+    });
+    return Array.from(list);
+  }, [data?.staff]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return staffList.filter((s) => {
       return !q ||
         s.name.toLowerCase().includes(q) ||
         s.mobile.includes(q) ||
-        s.role.toLowerCase().includes(q) ||
+        (s.role || '').toLowerCase().includes(q) ||
         (s.services && s.services.toLowerCase().includes(q));
     });
   }, [staffList, search]);
 
   const openNew = () => {
     setEditId(null);
-    reset({ id: '', name: '', mobile: '', role: 'Senior Beautician', services: 'Hair Spa, Facial, Cleanup', serviceCommission: 0, productCommission: 0 });
+    setIsCustomRole(false);
+    setCustomRoleInput('');
+    reset({
+      id: '',
+      name: '',
+      mobile: '',
+      role: 'Senior Beautician',
+      services: 'Hair Spa, Facial, Cleanup',
+      serviceCommission: 0,
+      productCommission: 0,
+    });
     setModalOpen(true);
   };
 
   const openEdit = (s: Staff) => {
     setEditId(s.id);
+    const inList = roleOptions.includes(s.role);
+    if (s.role && !inList) {
+      setIsCustomRole(true);
+      setCustomRoleInput(s.role);
+    } else {
+      setIsCustomRole(false);
+      setCustomRoleInput('');
+    }
     reset(s);
     setModalOpen(true);
   };
@@ -532,12 +594,103 @@ export default function StaffPage() {
           </div>
         </div>
         <div className="form-group">
-          <label className="label">Designation / Role</label>
-          <input type="text" className="input" placeholder="e.g. Senior Beautician, Nail Artist" {...register('role')} />
+          <label className="label" htmlFor="staff-role-select">
+            <span>Designation / Role</span>
+            <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 'normal' }}>
+              (Select from dropdown)
+            </span>
+          </label>
+          <select
+            id="staff-role-select"
+            className="input"
+            value={isCustomRole ? '__custom__' : (currentRole || 'Senior Beautician')}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === '__custom__') {
+                setIsCustomRole(true);
+                setValue('role', customRoleInput || '');
+              } else {
+                setIsCustomRole(false);
+                setValue('role', val, { shouldValidate: true, shouldDirty: true });
+              }
+            }}
+          >
+            <option value="" disabled>-- Select Designation / Role --</option>
+            {roleOptions.map((role) => (
+              <option key={role} value={role}>{role}</option>
+            ))}
+            <option value="__custom__">✎ + Other / Custom Designation...</option>
+          </select>
+
+          {isCustomRole && (
+            <div style={{ marginTop: 8 }}>
+              <input
+                type="text"
+                className="input"
+                placeholder="Enter custom designation / role (e.g. Cosmetologist, Draping Expert)"
+                value={customRoleInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCustomRoleInput(val);
+                  setValue('role', val, { shouldValidate: true, shouldDirty: true });
+                }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>Type custom designation</span>
+                <button
+                  type="button"
+                  style={{
+                    fontSize: 11,
+                    color: '#0369a1',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0,
+                  }}
+                  onClick={() => {
+                    setIsCustomRole(false);
+                    setValue('role', 'Senior Beautician', { shouldValidate: true, shouldDirty: true });
+                  }}
+                >
+                  ← Back to standard list
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="form-group">
           <label className="label">Specialized Services (comma separated)</label>
           <input type="text" className="input" placeholder="e.g. Hair Spa, Keratin, Facial, HD Bridal" {...register('services')} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+            {QUICK_SERVICES.map((svc) => (
+              <button
+                key={svc}
+                type="button"
+                onClick={() => {
+                  const parts = (currentServices || '').split(',').map((p) => p.trim()).filter(Boolean);
+                  if (!parts.includes(svc)) {
+                    parts.push(svc);
+                    setValue('services', parts.join(', '), { shouldValidate: true, shouldDirty: true });
+                  }
+                }}
+                className="badge"
+                style={{
+                  cursor: 'pointer',
+                  background: (currentServices || '').includes(svc) ? '#e0f2fe' : '#f1f5f9',
+                  color: (currentServices || '').includes(svc) ? '#0369a1' : '#475569',
+                  border: (currentServices || '').includes(svc) ? '1px solid #7dd3fc' : '1px solid #e2e8f0',
+                  fontSize: 11,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                }}
+                title={`Click to add ${svc}`}
+              >
+                + {svc}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="form-grid">
           <div className="form-group">
