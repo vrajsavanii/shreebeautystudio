@@ -253,6 +253,53 @@ async function connectToWhatsApp() {
       for (const m of newMsgs) {
         if (m.key.remoteJid === 'status@broadcast') continue;
 
+        // 1. Intercept Message Revocation (Delete for everyone)
+        const protoMsg = m.message?.protocolMessage;
+        if (protoMsg && (protoMsg.type === 0 || protoMsg.type === 'REVOKE')) {
+          const revokedKey = protoMsg.key;
+          if (revokedKey?.id && revokedKey?.remoteJid) {
+            const canon = toCanonicalJid(revokedKey.remoteJid);
+            const targetId = revokedKey.id;
+            const list = messages.get(canon) || [];
+            const target = list.find((x) => x.id === targetId);
+            if (target) {
+              target.isDeleted = true;
+              target.deletedForEveryone = true;
+              target.body = '🚫 This message was deleted';
+              saveStore();
+              broadcast('message_status', { id: targetId, jid: canon, isDeleted: true, deletedForEveryone: true });
+              const c = chats.get(canon);
+              if (c) {
+                c.lastMessage = '🚫 This message was deleted';
+                broadcast('chat_update', c);
+              }
+            }
+          }
+          continue;
+        }
+
+        // 2. Intercept Message Reaction
+        const reactionMsg = m.message?.reactionMessage;
+        if (reactionMsg && reactionMsg.key) {
+          const canon = toCanonicalJid(reactionMsg.key.remoteJid);
+          const targetId = reactionMsg.key.id;
+          const emoji = reactionMsg.text || '';
+          const senderName = m.pushName || (m.key.fromMe ? 'Me' : 'Client');
+          const list = messages.get(canon) || [];
+          const target = list.find((x) => x.id === targetId);
+          if (target) {
+            target.reactions = target.reactions || {};
+            if (emoji) {
+              target.reactions[emoji] = senderName;
+            } else {
+              delete target.reactions;
+            }
+            saveStore();
+            broadcast('message_status', { id: targetId, jid: canon, reaction: { emoji, senderName } });
+          }
+          continue;
+        }
+
         if (m.key.id && m.message) {
           rawMessages.set(m.key.id, m.message);
         }
@@ -341,6 +388,31 @@ async function parseMsg(m) {
     let mediaUrl = undefined;
     let fileName = undefined;
     let mimetype = undefined;
+    let quotedMessage = undefined;
+
+    const ctx =
+      c.extendedTextMessage?.contextInfo ||
+      c.imageMessage?.contextInfo ||
+      c.documentMessage?.contextInfo ||
+      c.audioMessage?.contextInfo ||
+      c.videoMessage?.contextInfo;
+
+    if (ctx?.stanzaId) {
+      let qText = '';
+      if (ctx.quotedMessage?.conversation) qText = ctx.quotedMessage.conversation;
+      else if (ctx.quotedMessage?.extendedTextMessage?.text) qText = ctx.quotedMessage.extendedTextMessage.text;
+      else if (ctx.quotedMessage?.imageMessage) qText = ctx.quotedMessage.imageMessage.caption || '📷 Photo';
+      else if (ctx.quotedMessage?.documentMessage) qText = ctx.quotedMessage.documentMessage.fileName || '📄 Document';
+      else if (ctx.quotedMessage?.audioMessage) qText = '🎵 Audio';
+      else if (ctx.quotedMessage?.videoMessage) qText = '🎥 Video';
+      else qText = 'Quoted message';
+
+      quotedMessage = {
+        id: ctx.stanzaId,
+        body: qText,
+        senderName: ctx.participant ? (ctx.participant.includes(connectedPhone) ? 'You' : undefined) : undefined,
+      };
+    }
 
     if (c.conversation) {
       type = 'text';
@@ -417,6 +489,7 @@ async function parseMsg(m) {
       status: fromMe ? 'delivered' : 'read',
       timestamp,
       senderName: m.pushName || undefined,
+      quotedMessage,
     };
   } catch (e) {
     return null;
@@ -544,7 +617,7 @@ const server = http.createServer(async (req, res) => {
   // 6. Send message
   if (pathname === '/send' && req.method === 'POST') {
     const body = await readBody();
-    let { jid, text, mediaUrl, mediaType, fileName, caption } = body;
+    let { jid, text, mediaUrl, mediaType, fileName, caption, quotedId, ptt } = body;
 
     if (!sock || status !== 'connected') {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -569,6 +642,26 @@ const server = http.createServer(async (req, res) => {
       let finalType = 'text';
       let finalBody = (text || caption || '').trim();
 
+      // Handle quoted reply
+      let sendOptions = {};
+      let storedQuoted = null;
+      if (quotedId) {
+        const rawQuoted = rawMessages.get(quotedId);
+        const msgList = messages.get(targetJid) || [];
+        storedQuoted = msgList.find((x) => x.id === quotedId);
+        if (rawQuoted) {
+          sendOptions.quoted = {
+            key: { remoteJid: targetJid, fromMe: storedQuoted?.fromMe ?? false, id: quotedId },
+            message: rawQuoted,
+          };
+        } else if (storedQuoted) {
+          sendOptions.quoted = {
+            key: { remoteJid: targetJid, fromMe: storedQuoted.fromMe, id: storedQuoted.id },
+            message: { conversation: storedQuoted.body },
+          };
+        }
+      }
+
       if (mediaUrl) {
         const fullLocalPath = mediaUrl.startsWith('/uploads/')
           ? path.join(rootDir, 'public', mediaUrl)
@@ -579,30 +672,42 @@ const server = http.createServer(async (req, res) => {
 
         if (mediaType === 'image') {
           finalType = 'image';
-          sentResult = await sock.sendMessage(targetJid, {
-            image: mediaBuffer.length > 0 ? mediaBuffer : { url: mediaUrl },
-            caption: finalBody,
-          });
+          sentResult = await sock.sendMessage(
+            targetJid,
+            {
+              image: mediaBuffer.length > 0 ? mediaBuffer : { url: mediaUrl },
+              caption: finalBody,
+            },
+            sendOptions
+          );
         } else if (mediaType === 'document') {
           finalType = 'document';
-          sentResult = await sock.sendMessage(targetJid, {
-            document: mediaBuffer.length > 0 ? mediaBuffer : { url: mediaUrl },
-            fileName: fileName || 'document.pdf',
-            mimetype: 'application/pdf',
-            caption: finalBody,
-          });
+          sentResult = await sock.sendMessage(
+            targetJid,
+            {
+              document: mediaBuffer.length > 0 ? mediaBuffer : { url: mediaUrl },
+              fileName: fileName || 'document.pdf',
+              mimetype: 'application/pdf',
+              caption: finalBody,
+            },
+            sendOptions
+          );
         } else if (mediaType === 'audio') {
           finalType = 'audio';
-          sentResult = await sock.sendMessage(targetJid, {
-            audio: mediaBuffer.length > 0 ? mediaBuffer : { url: mediaUrl },
-            mimetype: 'audio/mp4',
-            ptt: true,
-          });
+          sentResult = await sock.sendMessage(
+            targetJid,
+            {
+              audio: mediaBuffer.length > 0 ? mediaBuffer : { url: mediaUrl },
+              mimetype: 'audio/mp4',
+              ptt: ptt ?? true,
+            },
+            sendOptions
+          );
         } else {
-          sentResult = await sock.sendMessage(targetJid, { text: finalBody });
+          sentResult = await sock.sendMessage(targetJid, { text: finalBody }, sendOptions);
         }
       } else {
-        sentResult = await sock.sendMessage(targetJid, { text: finalBody });
+        sentResult = await sock.sendMessage(targetJid, { text: finalBody }, sendOptions);
       }
 
       const msgId = sentResult?.key?.id || `sent_${Date.now()}`;
@@ -617,6 +722,13 @@ const server = http.createServer(async (req, res) => {
         status: 'delivered',
         timestamp: new Date().toISOString(),
         senderName: 'Me',
+        quotedMessage: storedQuoted
+          ? {
+              id: storedQuoted.id,
+              body: storedQuoted.body,
+              senderName: storedQuoted.senderName || (storedQuoted.fromMe ? 'You' : undefined),
+            }
+          : undefined,
       };
 
       const list = messages.get(targetJid) || [];
@@ -632,6 +744,9 @@ const server = http.createServer(async (req, res) => {
         lastMessage: finalBody,
         timestamp: storedMsg.timestamp,
         unreadCount: existingChat?.unreadCount || 0,
+        isPinned: existingChat?.isPinned || false,
+        isArchived: existingChat?.isArchived || false,
+        isMuted: existingChat?.isMuted || false,
       };
       chats.set(targetJid, chatEntry);
       saveStore();
@@ -646,6 +761,166 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, error: err?.message || 'Send failed' }));
     }
+    return;
+  }
+
+  // 6b. Delete message (Delete for me vs Delete for everyone)
+  if (pathname === '/delete-message' && req.method === 'POST') {
+    const { jid, id, forEveryone } = await readBody();
+    const canon = toCanonicalJid(jid);
+
+    if (forEveryone && sock && status === 'connected') {
+      try {
+        await sock.sendMessage(canon, { delete: { remoteJid: canon, fromMe: true, id } });
+      } catch (e) {
+        console.error('[WhatsApp Service] socket revocation error:', e);
+      }
+    }
+
+    const list = messages.get(canon) || [];
+    if (forEveryone) {
+      const msg = list.find((m) => m.id === id);
+      if (msg) {
+        msg.isDeleted = true;
+        msg.deletedForEveryone = true;
+        msg.body = '🚫 This message was deleted';
+      }
+    } else {
+      const next = list.filter((m) => m.id !== id);
+      messages.set(canon, next);
+    }
+    saveStore();
+
+    broadcast('message_status', { id, jid: canon, isDeleted: true, deletedForEveryone: Boolean(forEveryone) });
+    const last = (messages.get(canon) || []).slice(-1)[0];
+    const c = chats.get(canon);
+    if (c) {
+      c.lastMessage = last ? (last.isDeleted ? '🚫 This message was deleted' : last.body) : '';
+      c.timestamp = last?.timestamp || c.timestamp;
+      broadcast('chat_update', c);
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // 6c. Send Emoji Reaction
+  if (pathname === '/react' && req.method === 'POST') {
+    const { jid, id, emoji, fromMe = true } = await readBody();
+    const canon = toCanonicalJid(jid);
+
+    if (sock && status === 'connected') {
+      try {
+        await sock.sendMessage(canon, { react: { text: emoji, key: { remoteJid: canon, fromMe, id } } });
+      } catch (e) {
+        console.error('[WhatsApp Service] react error:', e);
+      }
+    }
+
+    const list = messages.get(canon) || [];
+    const target = list.find((m) => m.id === id);
+    if (target) {
+      target.reactions = target.reactions || {};
+      if (emoji) target.reactions[emoji] = 'Me';
+      else delete target.reactions;
+      saveStore();
+      broadcast('message_status', { id, jid: canon, reaction: { emoji, senderName: 'Me' } });
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // 6d. Clear Chat History
+  if (pathname === '/clear-chat' && req.method === 'POST') {
+    const { jid } = await readBody();
+    const canon = toCanonicalJid(jid);
+    messages.set(canon, []);
+    const c = chats.get(canon);
+    if (c) {
+      c.lastMessage = '';
+      c.unreadCount = 0;
+      saveStore();
+      broadcast('chat_update', c);
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // 6e. Delete Conversation
+  if (pathname === '/delete-chat' && req.method === 'POST') {
+    const { jid } = await readBody();
+    const canon = toCanonicalJid(jid);
+    messages.delete(canon);
+    chats.delete(canon);
+    saveStore();
+    broadcast('chat_update', { jid: canon, isDeleted: true });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // 6f. Chat Actions (Pin, Archive, Mute)
+  if (pathname === '/chat-actions' && req.method === 'POST') {
+    const { jid, action, value } = await readBody();
+    const canon = toCanonicalJid(jid);
+    const c = chats.get(canon);
+    if (c) {
+      if (action === 'pin') c.isPinned = Boolean(value);
+      else if (action === 'archive') c.isArchived = Boolean(value);
+      else if (action === 'mute') {
+        c.isMuted = Boolean(value);
+        c.muteUntil = value || null;
+      }
+      saveStore();
+      broadcast('chat_update', c);
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, chat: c }));
+    return;
+  }
+
+  // 6g. File / Media Upload
+  if (pathname === '/upload' && req.method === 'POST') {
+    const { base64Data, fileName, mimetype } = await readBody();
+    if (!base64Data) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, error: 'base64Data is required' }));
+      return;
+    }
+    const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    let buffer;
+    if (matches && matches.length === 3) {
+      buffer = Buffer.from(matches[2], 'base64');
+    } else {
+      buffer = Buffer.from(base64Data, 'base64');
+    }
+    const ext =
+      path.extname(fileName || 'file') ||
+      (mimetype?.includes('image')
+        ? '.jpg'
+        : mimetype?.includes('pdf')
+        ? '.pdf'
+        : mimetype?.includes('audio')
+        ? '.mp3'
+        : '.bin');
+    const fname = `upload_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${ext}`;
+    const savePath = path.join(uploadsDir, fname);
+    fs.writeFileSync(savePath, buffer);
+    const mediaUrl = `/uploads/whatsapp/${fname}`;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        success: true,
+        url: mediaUrl,
+        fileName: fileName || fname,
+        mimetype,
+        size: buffer.length,
+      })
+    );
     return;
   }
 

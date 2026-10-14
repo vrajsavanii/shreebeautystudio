@@ -1,5 +1,5 @@
 // lib/whatsapp-backend-store.ts
-// Persistent storage for WhatsApp Web (Baileys) chats, messages, and raw message cache
+// Persistent storage for WhatsApp Web (Baileys) chats, messages, reactions, and raw message cache
 
 import fs from 'fs';
 import path from 'path';
@@ -13,9 +13,19 @@ export interface StoredWhatsAppMessage {
   mediaUrl?: string;
   fileName?: string;
   mimetype?: string;
-  status: 'sent' | 'delivered' | 'read' | 'pending';
+  status: 'sent' | 'delivered' | 'read' | 'pending' | 'failed';
   timestamp: string; // ISO string
   senderName?: string;
+  isDeleted?: boolean;
+  deletedForEveryone?: boolean;
+  isStarred?: boolean;
+  reactions?: Record<string, string>; // emoji -> senderName / senderId
+  quotedMessage?: {
+    id: string;
+    body: string;
+    senderName?: string;
+    type?: string;
+  };
 }
 
 export interface StoredWhatsAppChat {
@@ -25,6 +35,12 @@ export interface StoredWhatsAppChat {
   lastMessage: string;
   timestamp: string; // ISO string
   unreadCount: number;
+  isPinned?: boolean;
+  isArchived?: boolean;
+  isMuted?: boolean;
+  muteUntil?: string | null;
+  profilePicUrl?: string;
+  isGroup?: boolean;
 }
 
 class WhatsAppBackendStore {
@@ -83,10 +99,7 @@ class WhatsAppBackendStore {
         }
       }
 
-      this.chats.delete('919601014899@s.whatsapp.net');
-      this.messages.delete('919601014899@s.whatsapp.net');
       this.saveNow();
-
       this.initialized = true;
     } catch (err) {
       console.error('[WhatsAppStore] Failed to initialize store:', err);
@@ -106,16 +119,19 @@ class WhatsAppBackendStore {
         fs.mkdirSync(this.dataDir, { recursive: true });
       }
 
-      // Save chats
-      const chatsList = Array.from(this.chats.values()).sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      // Save chats (pinned chats first, then newest timestamp)
+      const chatsList = Array.from(this.chats.values()).sort((a, b) => {
+        if (Boolean(a.isPinned) !== Boolean(b.isPinned)) {
+          return a.isPinned ? -1 : 1;
+        }
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
       fs.writeFileSync(this.chatsFile, JSON.stringify(chatsList, null, 2), 'utf-8');
 
-      // Save messages
+      // Save messages (keep latest 300 messages per chat)
       const msgsObj: Record<string, StoredWhatsAppMessage[]> = {};
       this.messages.forEach((msgs, jid) => {
-        msgsObj[jid] = msgs.slice(-200); // keep up to 200 messages per chat
+        msgsObj[jid] = msgs.slice(-300);
       });
       fs.writeFileSync(this.messagesFile, JSON.stringify(msgsObj, null, 2), 'utf-8');
 
@@ -131,7 +147,6 @@ class WhatsAppBackendStore {
   public saveRawMessage(id: string, rawMessage: any) {
     if (!id || !rawMessage) return;
     this.rawMessages.set(id, rawMessage);
-    // Prune if over 2000
     if (this.rawMessages.size > 2000) {
       const firstKeys = Array.from(this.rawMessages.keys()).slice(0, 500);
       firstKeys.forEach((k) => this.rawMessages.delete(k));
@@ -143,7 +158,7 @@ class WhatsAppBackendStore {
     return this.rawMessages.get(id);
   }
 
-  public saveMessage(msg: StoredWhatsAppMessage, contactName?: string) {
+  public saveMessage(msg: StoredWhatsAppMessage, contactName?: string): StoredWhatsAppMessage {
     const list = this.messages.get(msg.jid) || [];
     const existingIndex = list.findIndex((m) => m.id === msg.id);
 
@@ -155,9 +170,10 @@ class WhatsAppBackendStore {
     this.messages.set(msg.jid, list);
 
     // Update Chat Entry
-    const cleanPhone = msg.jid.replace(/@.*$/, '').replace(/^91/, '').slice(-10);
+    const isGroup = msg.jid.endsWith('@g.us');
+    const cleanPhone = isGroup ? '' : msg.jid.replace(/@.*$/, '').replace(/^91/, '').slice(-10);
     const existingChat = this.chats.get(msg.jid);
-    const resolvedName = contactName || existingChat?.name || msg.senderName || cleanPhone;
+    const resolvedName = contactName || existingChat?.name || msg.senderName || cleanPhone || (isGroup ? 'WhatsApp Group' : 'Contact');
 
     const unreadCount = !msg.fromMe && msg.status !== 'read'
       ? (existingChat?.unreadCount || 0) + 1
@@ -167,9 +183,16 @@ class WhatsAppBackendStore {
       jid: msg.jid,
       name: resolvedName,
       phone: cleanPhone,
-      lastMessage: msg.body || (msg.type !== 'text' ? `[${msg.type}]` : ''),
+      lastMessage: msg.isDeleted
+        ? '🚫 This message was deleted'
+        : msg.body || (msg.type !== 'text' ? `[${msg.type}]` : ''),
       timestamp: msg.timestamp || new Date().toISOString(),
       unreadCount,
+      isPinned: existingChat?.isPinned || false,
+      isArchived: existingChat?.isArchived || false,
+      isMuted: existingChat?.isMuted || false,
+      muteUntil: existingChat?.muteUntil || null,
+      isGroup,
     };
 
     this.chats.set(msg.jid, chatEntry);
@@ -193,9 +216,12 @@ class WhatsAppBackendStore {
   }
 
   public getChats(): StoredWhatsAppChat[] {
-    return Array.from(this.chats.values()).sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
+    return Array.from(this.chats.values()).sort((a, b) => {
+      if (Boolean(a.isPinned) !== Boolean(b.isPinned)) {
+        return a.isPinned ? -1 : 1;
+      }
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
   }
 
   public markChatRead(jid: string) {
@@ -214,10 +240,135 @@ class WhatsAppBackendStore {
     this.scheduleSave();
   }
 
-  public deleteChat(jid: string) {
+  // ── DELETION & MESSAGE ACTIONS ─────────────────────────────────────
+  public deleteMessage(jid: string, messageId: string, forEveryone = false): boolean {
+    const list = this.messages.get(jid);
+    if (!list) return false;
+
+    if (forEveryone) {
+      // Mark as deleted for everyone (WhatsApp Web protocol behaviour)
+      const msg = list.find((m) => m.id === messageId);
+      if (msg) {
+        msg.isDeleted = true;
+        msg.deletedForEveryone = true;
+        msg.body = '🚫 You deleted this message';
+        msg.mediaUrl = undefined;
+      }
+    } else {
+      // Delete for me (remove from view)
+      const nextList = list.filter((m) => m.id !== messageId);
+      this.messages.set(jid, nextList);
+    }
+
+    // Refresh lastMessage in chat
+    const remaining = this.messages.get(jid) || [];
+    const last = remaining[remaining.length - 1];
+    const chat = this.chats.get(jid);
+    if (chat) {
+      chat.lastMessage = last ? (last.isDeleted ? '🚫 This message was deleted' : last.body) : '';
+      if (last?.timestamp) chat.timestamp = last.timestamp;
+    }
+
+    this.scheduleSave();
+    return true;
+  }
+
+  public deleteMessages(jid: string, messageIds: string[]): boolean {
+    const idSet = new Set(messageIds);
+    const list = this.messages.get(jid);
+    if (!list) return false;
+
+    const nextList = list.filter((m) => !idSet.has(m.id));
+    this.messages.set(jid, nextList);
+
+    const remaining = this.messages.get(jid) || [];
+    const last = remaining[remaining.length - 1];
+    const chat = this.chats.get(jid);
+    if (chat) {
+      chat.lastMessage = last ? (last.isDeleted ? '🚫 This message was deleted' : last.body) : '';
+      if (last?.timestamp) chat.timestamp = last.timestamp;
+    }
+
+    this.scheduleSave();
+    return true;
+  }
+
+  public clearChat(jid: string): boolean {
+    this.messages.set(jid, []);
+    const chat = this.chats.get(jid);
+    if (chat) {
+      chat.lastMessage = '';
+      chat.unreadCount = 0;
+    }
+    this.scheduleSave();
+    return true;
+  }
+
+  public deleteChat(jid: string): boolean {
     this.chats.delete(jid);
     this.messages.delete(jid);
     this.scheduleSave();
+    return true;
+  }
+
+  public setChatPin(jid: string, isPinned: boolean): boolean {
+    const chat = this.chats.get(jid);
+    if (chat) {
+      chat.isPinned = isPinned;
+      this.scheduleSave();
+      return true;
+    }
+    return false;
+  }
+
+  public setChatArchive(jid: string, isArchived: boolean): boolean {
+    const chat = this.chats.get(jid);
+    if (chat) {
+      chat.isArchived = isArchived;
+      this.scheduleSave();
+      return true;
+    }
+    return false;
+  }
+
+  public setChatMute(jid: string, muteUntil: string | null): boolean {
+    const chat = this.chats.get(jid);
+    if (chat) {
+      chat.isMuted = Boolean(muteUntil);
+      chat.muteUntil = muteUntil;
+      this.scheduleSave();
+      return true;
+    }
+    return false;
+  }
+
+  public addReaction(jid: string, messageId: string, emoji: string, senderName = 'Me'): boolean {
+    const list = this.messages.get(jid);
+    if (!list) return false;
+    const msg = list.find((m) => m.id === messageId);
+    if (msg) {
+      if (!msg.reactions) msg.reactions = {};
+      if (!emoji) {
+        delete msg.reactions[senderName];
+      } else {
+        msg.reactions[senderName] = emoji;
+      }
+      this.scheduleSave();
+      return true;
+    }
+    return false;
+  }
+
+  public toggleStarMessage(jid: string, messageId: string): boolean {
+    const list = this.messages.get(jid);
+    if (!list) return false;
+    const msg = list.find((m) => m.id === messageId);
+    if (msg) {
+      msg.isStarred = !msg.isStarred;
+      this.scheduleSave();
+      return true;
+    }
+    return false;
   }
 }
 

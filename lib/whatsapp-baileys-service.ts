@@ -230,6 +230,43 @@ class WhatsAppBaileysService {
           // Ignore status broadcasts
           if (m.key.remoteJid === 'status@broadcast') continue;
 
+          // 1. Intercept Message Revocation (Delete for everyone)
+          const protoMsg = m.message?.protocolMessage;
+          if (protoMsg && (protoMsg.type === 0 || protoMsg.type === 'REVOKE')) {
+            const revokedKey = protoMsg.key;
+            if (revokedKey?.id && revokedKey?.remoteJid) {
+              const targetJid = revokedKey.remoteJid;
+              const targetId = revokedKey.id;
+              whatsappStore.deleteMessage(targetJid, targetId, true);
+              this.emit({
+                type: 'message_status',
+                data: { id: targetId, jid: targetJid, isDeleted: true, deletedForEveryone: true },
+              });
+              const matchingChat = whatsappStore.getChats().find((c) => c.jid === targetJid);
+              if (matchingChat) {
+                this.emit({ type: 'chat_update', data: matchingChat });
+              }
+            }
+            continue;
+          }
+
+          // 2. Intercept Message Reaction
+          const reactionMsg = m.message?.reactionMessage;
+          if (reactionMsg && reactionMsg.key) {
+            const targetJid = reactionMsg.key.remoteJid;
+            const targetId = reactionMsg.key.id;
+            const emoji = reactionMsg.text || '';
+            const senderName = m.pushName || (m.key.fromMe ? 'Me' : 'Client');
+            if (targetJid && targetId) {
+              whatsappStore.addReaction(targetJid, targetId, emoji, senderName);
+              this.emit({
+                type: 'message_status',
+                data: { id: targetId, jid: targetJid, reaction: { emoji, senderName } },
+              });
+            }
+            continue;
+          }
+
           // Save raw message for getMessage retry decryption
           if (m.key.id && m.message) {
             whatsappStore.saveRawMessage(m.key.id, m.message);
@@ -309,6 +346,32 @@ class WhatsAppBaileysService {
       let mediaUrl: string | undefined;
       let fileName: string | undefined;
       let mimetype: string | undefined;
+      let quotedMessage: StoredWhatsAppMessage['quotedMessage'] = undefined;
+
+      // Extract quoted message context info
+      const ctx =
+        messageContent.extendedTextMessage?.contextInfo ||
+        messageContent.imageMessage?.contextInfo ||
+        messageContent.documentMessage?.contextInfo ||
+        messageContent.audioMessage?.contextInfo ||
+        messageContent.videoMessage?.contextInfo;
+
+      if (ctx?.stanzaId) {
+        let qText = '';
+        if (ctx.quotedMessage?.conversation) qText = ctx.quotedMessage.conversation;
+        else if (ctx.quotedMessage?.extendedTextMessage?.text) qText = ctx.quotedMessage.extendedTextMessage.text;
+        else if (ctx.quotedMessage?.imageMessage) qText = ctx.quotedMessage.imageMessage.caption || '📷 Photo';
+        else if (ctx.quotedMessage?.documentMessage) qText = ctx.quotedMessage.documentMessage.fileName || '📄 Document';
+        else if (ctx.quotedMessage?.audioMessage) qText = '🎵 Audio';
+        else if (ctx.quotedMessage?.videoMessage) qText = '🎥 Video';
+        else qText = 'Quoted message';
+
+        quotedMessage = {
+          id: ctx.stanzaId,
+          body: qText,
+          senderName: ctx.participant ? (ctx.participant.includes(this.connectedPhone) ? 'You' : undefined) : undefined,
+        };
+      }
 
       // 1. Text message
       if (messageContent.conversation) {
@@ -413,6 +476,7 @@ class WhatsAppBaileysService {
         status: fromMe ? 'delivered' : 'read',
         timestamp,
         senderName: m.pushName || undefined,
+        quotedMessage,
       };
     } catch (err) {
       console.error('[WhatsAppService] Error parsing message:', err);
@@ -420,7 +484,7 @@ class WhatsAppBaileysService {
     }
   }
 
-  // ── SEND MESSAGE ───────────────────────────────────────────────
+  // ── SEND MESSAGE (WITH QUOTED REPLIES & PTT AUDIO) ─────────────
   public async sendMessage(params: {
     jid: string;
     text?: string;
@@ -428,6 +492,8 @@ class WhatsAppBaileysService {
     mediaType?: 'image' | 'document' | 'audio' | 'video';
     fileName?: string;
     caption?: string;
+    quotedId?: string;
+    ptt?: boolean;
   }): Promise<{ success: boolean; message?: StoredWhatsAppMessage; error?: string }> {
     if (!this.sock || this.status !== 'connected') {
       return { success: false, error: 'WhatsApp not connected – scan QR first.' };
@@ -447,6 +513,33 @@ class WhatsAppBaileysService {
       let finalMediaUrl = params.mediaUrl;
       let finalFileName = params.fileName;
 
+      // Handle Quoted Message Option
+      let sendOptions: any = {};
+      let storedQuoted: StoredWhatsAppMessage | undefined;
+      if (params.quotedId) {
+        const rawQuoted = whatsappStore.getRawMessage(params.quotedId);
+        storedQuoted = whatsappStore.getMessages(targetJid).find((m) => m.id === params.quotedId);
+        if (rawQuoted) {
+          sendOptions.quoted = {
+            key: {
+              remoteJid: targetJid,
+              fromMe: storedQuoted?.fromMe ?? false,
+              id: params.quotedId,
+            },
+            message: rawQuoted,
+          };
+        } else if (storedQuoted) {
+          sendOptions.quoted = {
+            key: {
+              remoteJid: targetJid,
+              fromMe: storedQuoted.fromMe,
+              id: storedQuoted.id,
+            },
+            message: { conversation: storedQuoted.body },
+          };
+        }
+      }
+
       // Handle media message
       if (params.mediaUrl) {
         const fullLocalPath = params.mediaUrl.startsWith('/uploads/')
@@ -459,36 +552,48 @@ class WhatsAppBaileysService {
 
         if (params.mediaType === 'image') {
           finalType = 'image';
-          sentResult = await this.sock.sendMessage(targetJid, {
-            image: mediaBuffer.length > 0 ? mediaBuffer : { url: params.mediaUrl },
-            caption: finalBody,
-          });
+          sentResult = await this.sock.sendMessage(
+            targetJid,
+            {
+              image: mediaBuffer.length > 0 ? mediaBuffer : { url: params.mediaUrl },
+              caption: finalBody,
+            },
+            sendOptions
+          );
         } else if (params.mediaType === 'document') {
           finalType = 'document';
           finalFileName = params.fileName || 'document.pdf';
-          sentResult = await this.sock.sendMessage(targetJid, {
-            document: mediaBuffer.length > 0 ? mediaBuffer : { url: params.mediaUrl },
-            fileName: finalFileName,
-            mimetype: 'application/pdf',
-            caption: finalBody,
-          });
+          sentResult = await this.sock.sendMessage(
+            targetJid,
+            {
+              document: mediaBuffer.length > 0 ? mediaBuffer : { url: params.mediaUrl },
+              fileName: finalFileName,
+              mimetype: 'application/pdf',
+              caption: finalBody,
+            },
+            sendOptions
+          );
         } else if (params.mediaType === 'audio') {
           finalType = 'audio';
-          sentResult = await this.sock.sendMessage(targetJid, {
-            audio: mediaBuffer.length > 0 ? mediaBuffer : { url: params.mediaUrl },
-            mimetype: 'audio/mp4',
-            ptt: true,
-          });
+          sentResult = await this.sock.sendMessage(
+            targetJid,
+            {
+              audio: mediaBuffer.length > 0 ? mediaBuffer : { url: params.mediaUrl },
+              mimetype: 'audio/mp4',
+              ptt: params.ptt ?? true,
+            },
+            sendOptions
+          );
         } else {
           // Default text fallback
-          sentResult = await this.sock.sendMessage(targetJid, { text: finalBody });
+          sentResult = await this.sock.sendMessage(targetJid, { text: finalBody }, sendOptions);
         }
       } else {
         // Plain text message
         if (!finalBody) {
           return { success: false, error: 'Message body cannot be empty.' };
         }
-        sentResult = await this.sock.sendMessage(targetJid, { text: finalBody });
+        sentResult = await this.sock.sendMessage(targetJid, { text: finalBody }, sendOptions);
       }
 
       const msgId = sentResult?.key?.id || `sent_${Date.now()}`;
@@ -503,11 +608,18 @@ class WhatsAppBaileysService {
         status: 'delivered',
         timestamp: new Date().toISOString(),
         senderName: 'Me',
+        quotedMessage: storedQuoted
+          ? {
+              id: storedQuoted.id,
+              body: storedQuoted.body,
+              senderName: storedQuoted.senderName || (storedQuoted.fromMe ? 'You' : undefined),
+            }
+          : undefined,
       };
 
       whatsappStore.saveMessage(storedMsg);
 
-      // Save raw message for retry
+      // Save raw message for retry / decryption
       if (sentResult?.message) {
         whatsappStore.saveRawMessage(msgId, sentResult.message);
       }
@@ -524,6 +636,126 @@ class WhatsAppBaileysService {
       console.error('[WhatsAppService] Error sending message:', err);
       return { success: false, error: err?.message || 'Failed to send message' };
     }
+  }
+
+  // ── DELETE MESSAGE (FOR ME OR FOR EVERYONE VIA BAILEYS PROTOCOL) ─
+  public async deleteMessage(params: {
+    jid: string;
+    id: string;
+    forEveryone?: boolean;
+  }): Promise<{ success: boolean; error?: string }> {
+    const { jid, id, forEveryone = false } = params;
+    try {
+      if (forEveryone && this.sock && this.status === 'connected') {
+        const key = {
+          remoteJid: jid,
+          fromMe: true,
+          id: id,
+        };
+        await this.sock.sendMessage(jid, { delete: key });
+      }
+
+      whatsappStore.deleteMessage(jid, id, forEveryone);
+      this.emit({
+        type: 'message_status',
+        data: { id, jid, isDeleted: true, deletedForEveryone: forEveryone },
+      });
+
+      const matchingChat = whatsappStore.getChats().find((c) => c.jid === jid);
+      if (matchingChat) {
+        this.emit({ type: 'chat_update', data: matchingChat });
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('[WhatsAppService] Error deleting message:', err);
+      // Fallback: delete locally even if revocation socket frame failed
+      whatsappStore.deleteMessage(jid, id, forEveryone);
+      return { success: true };
+    }
+  }
+
+  // ── EMOJI REACTION (SEND & SYNC REACTION VIA BAILEYS) ───────────
+  public async sendReaction(params: {
+    jid: string;
+    id: string;
+    emoji: string;
+    fromMe?: boolean;
+  }): Promise<{ success: boolean; error?: string }> {
+    const { jid, id, emoji, fromMe = true } = params;
+    try {
+      if (this.sock && this.status === 'connected') {
+        const key = {
+          remoteJid: jid,
+          fromMe: fromMe,
+          id: id,
+        };
+        await this.sock.sendMessage(jid, {
+          react: {
+            text: emoji,
+            key: key,
+          },
+        });
+      }
+
+      whatsappStore.addReaction(jid, id, emoji, 'Me');
+      this.emit({
+        type: 'message_status',
+        data: { id, jid, reaction: { emoji, senderName: 'Me' } },
+      });
+
+      return { success: true };
+    } catch (err: any) {
+      console.error('[WhatsAppService] Error sending reaction:', err);
+      whatsappStore.addReaction(jid, id, emoji, 'Me');
+      return { success: true };
+    }
+  }
+
+  // ── CLEAR CHAT HISTORY ─────────────────────────────────────────
+  public async clearChat(jid: string): Promise<{ success: boolean }> {
+    try {
+      whatsappStore.clearChat(jid);
+      const matchingChat = whatsappStore.getChats().find((c) => c.jid === jid);
+      if (matchingChat) {
+        this.emit({ type: 'chat_update', data: matchingChat });
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false };
+    }
+  }
+
+  // ── DELETE CONVERSATION ────────────────────────────────────────
+  public async deleteChat(jid: string): Promise<{ success: boolean }> {
+    try {
+      whatsappStore.deleteChat(jid);
+      this.emit({ type: 'chat_update', data: { jid, isDeleted: true } });
+      return { success: true };
+    } catch (err) {
+      return { success: false };
+    }
+  }
+
+  // ── CHAT ACTIONS (PIN / ARCHIVE / MUTE) ─────────────────────────
+  public async chatAction(params: {
+    jid: string;
+    action: 'pin' | 'archive' | 'mute';
+    value: any;
+  }): Promise<{ success: boolean; chat?: StoredWhatsAppChat }> {
+    const { jid, action, value } = params;
+    if (action === 'pin') {
+      whatsappStore.setChatPin(jid, Boolean(value));
+    } else if (action === 'archive') {
+      whatsappStore.setChatArchive(jid, Boolean(value));
+    } else if (action === 'mute') {
+      whatsappStore.setChatMute(jid, value || null);
+    }
+    const chat = whatsappStore.getChats().find((c) => c.jid === jid) || null;
+    if (chat) {
+      this.emit({ type: 'chat_update', data: chat });
+    }
+    return { success: true, chat: chat || undefined };
   }
 
   // ── MARK CHAT AS READ ──────────────────────────────────────────
