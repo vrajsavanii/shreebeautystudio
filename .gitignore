@@ -51,6 +51,7 @@ scratch/
 android/.gradle/
 android/build/
 android/app/build/
+android/**/build/
 android/.idea/
 android/*.iml
 android/app/*.iml

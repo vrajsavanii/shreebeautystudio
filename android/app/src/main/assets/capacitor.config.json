@@ -3,10 +3,13 @@
 	"appName": "Shree Beauty Studio",
 	"webDir": "public",
 	"server": {
-		"url": "http://192.168.1.7:3000",
-		"cleartext": true
+		"url": "https://shreebeauty.studio",
+		"cleartext": false,
+		"androidScheme": "https"
 	},
 	"android": {
-		"allowMixedContent": true
+		"allowMixedContent": true,
+		"captureInput": true,
+		"webContentsDebuggingEnabled": false
 	}
 }

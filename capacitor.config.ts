@@ -5,12 +5,15 @@ const config: CapacitorConfig = {
   appName: 'Shree Beauty Studio',
   webDir: 'public',
   server: {
-    // Connects mobile app directly to the live hosted Vercel deployment
-    url: 'https://shree-beauty-studio.vercel.app',
+    // Connects mobile app directly to the official production domain
+    url: 'https://shreebeauty.studio',
     cleartext: false,
+    androidScheme: 'https',
   },
   android: {
     allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
   },
 };
 
