@@ -15,6 +15,7 @@ import { initSupabaseRealtime } from '@/lib/realtime';
 import { playNewBookingChime } from '@/lib/notification-sound';
 import { fadeSlideUp } from '@/variants';
 import { useSalonStore } from '@/lib/store';
+import { initApkSessionTracker } from '@/lib/apk-tracker';
 
 const ALLOWED_SALES_ROUTES = [
   '/admin/appointments',
@@ -47,6 +48,9 @@ function DashboardShell({ children }: { children: ReactNode }) {
 
     // Cloud sync on mount unconditionally to load latest live salon state
     cloudSync().catch(() => {});
+
+    // Telemetry for Admin APK native session
+    initApkSessionTracker('admin');
 
     // Periodic 15-second background sync to keep admin dashboard fresh & sound triggers ready
     const syncInterval = setInterval(() => {

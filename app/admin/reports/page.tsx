@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3,
@@ -19,6 +20,7 @@ import {
   Scale,
   Sparkles,
   Printer,
+  Smartphone,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { money, fmtDate, todayISO } from '@/lib/utils';
@@ -287,9 +289,19 @@ export default function ReportsPage() {
             <input type="date" className="input" value={to} onChange={(e) => setTo(e.target.value)} style={{ width: 145, padding: '7px 10px' }} />
           </div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={() => window.print()}>
-          <Printer size={14} /> Print Report
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link
+            href="/admin/mobile-app"
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <Smartphone size={14} color="#05424A" />
+            <span>Mobile App & APK Analytics →</span>
+          </Link>
+          <button className="btn btn-ghost btn-sm" onClick={() => window.print()}>
+            <Printer size={14} /> Print Report
+          </button>
+        </div>
       </div>
 
       {/* Sub Tabs */}

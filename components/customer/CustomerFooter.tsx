@@ -16,6 +16,7 @@ import {
 import { useSalonStore } from '@/lib/store';
 import { SHREE_LOGO_BASE64 } from '@/lib/logo-base64';
 import { GooglePlayIcon, AppleIcon } from '@/components/customer/AppShowcaseSection';
+import { trackApkDownload } from '@/lib/apk-tracker';
 
 export default function CustomerFooter() {
   const currentYear = new Date().getFullYear();
@@ -389,6 +390,7 @@ export default function CustomerFooter() {
             <a
               href="/downloads/Shree-Beauty-Studio.apk"
               download="Shree-Beauty-Studio.apk"
+              onClick={() => trackApkDownload('customer')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

@@ -19,6 +19,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { GooglePlayIcon, AppleIcon, AndroidIcon } from '@/components/customer/AppShowcaseSection';
+import { trackApkDownload } from '@/lib/apk-tracker';
 
 export default function DownloadClient() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -260,6 +261,7 @@ export default function DownloadClient() {
               <a
                 href="/downloads/Shree-Beauty-Studio.apk"
                 download="Shree-Beauty-Studio.apk"
+                onClick={() => trackApkDownload('customer')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -404,6 +406,7 @@ export default function DownloadClient() {
               <a
                 href="/downloads/Shree-Admin-Portal.apk"
                 download="Shree-Admin-Portal.apk"
+                onClick={() => trackApkDownload('admin')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -480,6 +483,7 @@ export default function DownloadClient() {
               <a
                 href="/downloads/Shree-Beauty-Studio.apk"
                 download="Shree-Beauty-Studio.apk"
+                onClick={() => trackApkDownload('customer')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

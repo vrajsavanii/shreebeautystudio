@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Info,
 } from 'lucide-react';
+import { trackApkDownload } from '@/lib/apk-tracker';
 
 /* ─── Google Play SVG Icon (Official Multi-Color) ─── */
 export function GooglePlayIcon({ size = 26 }: { size?: number }) {
@@ -268,6 +269,7 @@ export default function AppShowcaseSection({ id = 'mobile-app', showAdminLink = 
               <a
                 href="/downloads/Shree-Beauty-Studio.apk"
                 download="Shree-Beauty-Studio.apk"
+                onClick={() => trackApkDownload('customer')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -682,6 +684,7 @@ export default function AppShowcaseSection({ id = 'mobile-app', showAdminLink = 
                   <a
                     href="/downloads/Shree-Beauty-Studio.apk"
                     download="Shree-Beauty-Studio.apk"
+                    onClick={() => trackApkDownload('customer')}
                     style={{
                       marginTop: 'auto',
                       background: 'linear-gradient(135deg, #EABA38 0%, #D4AF37 100%)',

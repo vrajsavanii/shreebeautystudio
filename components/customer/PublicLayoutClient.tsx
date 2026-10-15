@@ -5,6 +5,7 @@ import CustomerNavbar from '@/components/customer/CustomerNavbar';
 import CustomerFooter from '@/components/customer/CustomerFooter';
 import AppEngagementBanner from '@/components/customer/AppEngagementBanner';
 import CookieConsentBanner from '@/components/customer/CookieConsentBanner';
+import { initApkSessionTracker } from '@/lib/apk-tracker';
 import { useSalonStore } from '@/lib/store';
 import { CustomerAuthProvider } from '@/lib/customer-context';
 import { WifiOff, Zap } from 'lucide-react';
@@ -46,6 +47,11 @@ export default function PublicLayoutClient({ children }: { children: React.React
         window.removeEventListener('offline', handleOffline);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    // Automatically initialize APK session telemetry if running inside native shell
+    initApkSessionTracker('customer');
   }, []);
 
   useEffect(() => {

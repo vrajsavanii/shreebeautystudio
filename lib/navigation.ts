@@ -2,7 +2,7 @@
 import {
   LayoutDashboard, Calendar, Users, Receipt, Package,
   ShoppingBag, Building2, Heart, UserCog, Bell, BarChart3, Settings,
-  Sparkles, MessageCircle, BookOpen, Instagram, MapPin, Tv, LucideIcon
+  Sparkles, MessageCircle, BookOpen, Instagram, MapPin, Tv, Smartphone, LucideIcon
 } from 'lucide-react';
 
 export interface NavItem {
@@ -178,6 +178,17 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
     iconName: 'BarChart3',
     role: 'admin',
     description: 'Monthly business analytics, revenue charts & GST export',
+  },
+  {
+    id: 'mobile-app',
+    href: '/admin/mobile-app',
+    label: 'Mobile App & APK',
+    gujarati: 'મોબાઇલ એપ & APK',
+    icon: Smartphone,
+    iconName: 'Smartphone',
+    role: 'admin',
+    description: 'APK downloads, live in-app sessions, installs, devices & mobile revenue',
+    badge: 'LIVE',
   },
   {
     id: 'settings',
