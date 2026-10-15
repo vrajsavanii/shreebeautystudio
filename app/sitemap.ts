@@ -63,6 +63,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly',
       priority: 0.95,
     },
+    {
+      url: `${BASE_URL}/cookies-policy`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
   ];
 
   const servicePages: MetadataRoute.Sitemap = ALL_SERVICE_SEO_SLUGS.map((slug) => ({

@@ -175,6 +175,7 @@ export default function CustomerFooter() {
                 { href: '/faq', label: 'Frequently Asked Questions' },
                 { href: '/download', label: 'Mobile App (Download APK)' },
                 { href: '/about', label: 'About Us & Contact' },
+                { href: '/cookies-policy', label: 'Cookie Policy & Privacy' },
               ].map((link, idx) => (
                 <Link
                   key={idx}
@@ -484,16 +485,57 @@ export default function CustomerFooter() {
             paddingTop: 26,
             borderTop: '1px solid rgba(255, 255, 255, 0.08)',
             display: 'flex',
-            justifyContent: 'center',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            textAlign: 'center',
+            flexWrap: 'wrap',
+            gap: 16,
             fontSize: 13,
-            color: '#64748b',
+            color: '#94a3b8',
           }}
         >
-          <p style={{ margin: 0 }}>
+          <p style={{ margin: 0, color: '#64748b' }}>
             &copy; {currentYear} {salonName}. All rights reserved. Dedicated to Ladies Beauty Mastery in Surat.
           </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', fontSize: 12 }}>
+            <Link
+              href="/cookies-policy"
+              style={{
+                color: '#cbd5e1',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#EABA38')}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#cbd5e1')}
+            >
+              Cookie Policy
+            </Link>
+            <span style={{ color: '#475569' }}>•</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new Event('open-cookie-settings'));
+                }
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                color: '#f5d87a',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 600,
+                textDecoration: 'underline',
+                textUnderlineOffset: 3,
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#ffffff')}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#f5d87a')}
+            >
+              Cookie Settings
+            </button>
+          </div>
         </div>
       </div>
 
