@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { SalonData, SalonSettings } from '@/types/salon';
 
 export async function POST(req: NextRequest) {
@@ -24,9 +24,10 @@ export async function POST(req: NextRequest) {
     const nowIso = new Date().toISOString();
 
     // 1. Fetch current settings from Supabase
+    const supabaseAdmin = getSupabaseAdmin();
     let salonData: SalonData | null = null;
     try {
-      const { data: dbRow } = await supabase
+      const { data: dbRow } = await supabaseAdmin
         .from('salon_state')
         .select('data')
         .limit(1)
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        await supabase
+        await supabaseAdmin
           .from('salon_state')
           .update({ data: updatedData, updated_at: nowIso })
           .eq('id', 'singleton');

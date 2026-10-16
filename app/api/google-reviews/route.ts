@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { SalonData } from '@/types/salon';
 
 export interface GoogleReviewItem {
@@ -13,10 +13,8 @@ export interface GoogleReviewItem {
   authorUrl?: string;
 }
 
-const nowSec = Math.floor(Date.now() / 1000);
-
 // Real verified 5-Star reviews from Shree Beauty Studio (Surat) Google Maps profile
-const FALLBACK_REVIEWS: GoogleReviewItem[] = [
+const getFallbackReviews = (nowSec = Math.floor(Date.now() / 1000)): GoogleReviewItem[] => [
   {
     text: "Great experience and professional salon services in Katargam! 100% genuine care and very hygienic setup. Best parlour experience in Surat.",
     name: "Purusharth filter",
@@ -202,10 +200,15 @@ export async function GET(req: NextRequest) {
 
     let customReviews: GoogleReviewItem[] = [];
     let googleApiError: string | null = null;
+    let liveReviews: GoogleReviewItem[] = [];
+    let rating = 4.9;
+    let totalReviews = 210;
+    let source: 'google_places_api' | 'curated_fallback' = 'curated_fallback';
 
     // Fetch from Supabase salon settings (API keys & custom reviews)
     try {
-      const { data: dbRow } = await supabase
+      const supabaseAdmin = getSupabaseAdmin();
+      const { data: dbRow } = await supabaseAdmin
         .from('salon_state')
         .select('data')
         .limit(1)
@@ -213,24 +216,26 @@ export async function GET(req: NextRequest) {
 
       if (dbRow?.data) {
         const salonData = dbRow.data as SalonData;
-        if (!placeId && salonData.settings?.googlePlaceId) {
-          placeId = salonData.settings.googlePlaceId;
+        const settingsAny = (salonData.settings || {}) as any;
+        if (!placeId && settingsAny.googlePlaceId) {
+          placeId = settingsAny.googlePlaceId;
         }
-        if (!apiKey && salonData.settings?.googlePlacesApiKey) {
-          apiKey = salonData.settings.googlePlacesApiKey;
+        if (!apiKey && settingsAny.googlePlacesApiKey) {
+          apiKey = settingsAny.googlePlacesApiKey;
         }
-        if (Array.isArray(salonData.settings?.customGoogleReviews)) {
-          customReviews = salonData.settings.customGoogleReviews;
+        if (Array.isArray(settingsAny.customGoogleReviews)) {
+          customReviews = settingsAny.customGoogleReviews;
+        }
+        if (settingsAny.googleRating) {
+          rating = Number(settingsAny.googleRating) || rating;
+        }
+        if (settingsAny.googleReviewCount) {
+          totalReviews = Number(settingsAny.googleReviewCount) || totalReviews;
         }
       }
     } catch (e) {
       // Fall back gracefully
     }
-
-    let liveReviews: GoogleReviewItem[] = [];
-    let rating = 4.9;
-    let totalReviews = 210;
-    let source: 'google_places_api' | 'curated_fallback' = 'curated_fallback';
 
     // If API Key and Place ID are provided, fetch directly from Google Places API
     if (apiKey && placeId) {
@@ -373,8 +378,11 @@ export async function GET(req: NextRequest) {
       return `${Math.floor(days / 30)} months ago`;
     };
 
+    const currentSec = Math.floor(Date.now() / 1000);
+    const fallbackReviews = getFallbackReviews(currentSec);
+
     // Combine custom database reviews, live reviews from API, and curated fallback reviews
-    const combinedReviews = [...customReviews, ...liveReviews, ...FALLBACK_REVIEWS].map((item) => ({
+    const combinedReviews = [...customReviews, ...liveReviews, ...fallbackReviews].map((item) => ({
       ...item,
       relativeTime: formatRelativeTime(item.time, item.relativeTime),
     }));
@@ -390,9 +398,9 @@ export async function GET(req: NextRequest) {
 
     // Sort strictly by timestamp descending (Most Recent Reviews First)
     uniqueReviews.sort((a, b) => {
-      const currentSec = Math.floor(Date.now() / 1000);
-      const tA = a.time ? (a.time > 10000000000 ? Math.floor(a.time / 1000) : a.time) : (currentSec - 60 * 86400);
-      const tB = b.time ? (b.time > 10000000000 ? Math.floor(b.time / 1000) : b.time) : (currentSec - 60 * 86400);
+      const now = Math.floor(Date.now() / 1000);
+      const tA = a.time ? (a.time > 10000000000 ? Math.floor(a.time / 1000) : a.time) : (now - 60 * 86400);
+      const tB = b.time ? (b.time > 10000000000 ? Math.floor(b.time / 1000) : b.time) : (now - 60 * 86400);
       return tB - tA; // Newest first
     });
 
@@ -422,14 +430,87 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error: any) {
+    const fallback = getFallbackReviews();
     return NextResponse.json(
       {
         success: false,
         error: error?.message || 'Failed to fetch Google reviews',
-        row1: FALLBACK_REVIEWS.slice(0, 8),
-        row2: FALLBACK_REVIEWS.slice(8),
+        row1: fallback.slice(0, 8),
+        row2: fallback.slice(8),
       },
       { status: 500 }
     );
+  }
+}
+
+// POST: Add or sync a latest review into database
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { name, text, rating = 5, role = 'Verified Client · Surat', timeAgo = 'now', avatar = '' } = body;
+
+    if (!name || !name.trim() || !text || !text.trim()) {
+      return NextResponse.json({ success: false, error: 'Name and review text are required' }, { status: 400 });
+    }
+
+    const currentSec = Math.floor(Date.now() / 1000);
+    let timeSec = currentSec;
+    let relTime = 'Just now';
+    if (timeAgo === 'today') {
+      timeSec = currentSec - 3600 * 2;
+      relTime = 'Today';
+    } else if (timeAgo === 'yesterday') {
+      timeSec = currentSec - 86400;
+      relTime = 'Yesterday';
+    } else if (timeAgo === '2d') {
+      timeSec = currentSec - 86400 * 2;
+      relTime = '2 days ago';
+    } else if (timeAgo === '1w') {
+      timeSec = currentSec - 86400 * 7;
+      relTime = '1 week ago';
+    } else if (timeAgo === '1m') {
+      timeSec = currentSec - 86400 * 30;
+      relTime = '1 month ago';
+    }
+
+    const newRev: GoogleReviewItem = {
+      name: name.trim(),
+      text: text.trim(),
+      rating: Number(rating) || 5,
+      role: role.trim() || 'Verified Client · Surat',
+      avatar: avatar.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(name.trim())}&background=05424A&color=EABA38&bold=true`,
+      time: timeSec,
+      relativeTime: relTime,
+    };
+
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: dbRow } = await supabaseAdmin
+      .from('salon_state')
+      .select('id, data')
+      .limit(1)
+      .single();
+
+    if (dbRow?.data) {
+      const salonData = dbRow.data as SalonData;
+      const existing = salonData.settings?.customGoogleReviews || [];
+      const updated = [newRev, ...existing.filter((r: any) => !(r.name === newRev.name && r.text === newRev.text))];
+
+      await supabaseAdmin
+        .from('salon_state')
+        .update({
+          data: {
+            ...salonData,
+            settings: {
+              ...salonData.settings,
+              customGoogleReviews: updated,
+            },
+          },
+        })
+        .match({ id: dbRow.id || 1 });
+    }
+
+    return NextResponse.json({ success: true, review: newRev });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, error: err?.message || 'Failed to save review' }, { status: 500 });
   }
 }

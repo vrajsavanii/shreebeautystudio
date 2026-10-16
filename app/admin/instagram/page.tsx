@@ -41,6 +41,7 @@ import {
   Users,
   Tag,
   Hash,
+  AtSign,
   Download,
   Crop,
   ZoomIn,
@@ -195,7 +196,10 @@ export default function InstagramHubPage() {
   const [publishMessage, setPublishMessage] = useState<string>('');
 
   // AI Caption Studio & Post Metadata State
-  const [captionCategory, setCaptionCategory] = useState<'bridal' | 'sagai' | 'reception' | 'haldi_mehndi' | 'prebridal' | 'babyshower' | 'review'>('bridal');
+  const [captionCategory, setCaptionCategory] = useState<
+    'bridal' | 'sagai' | 'reception' | 'haldi_mehndi' | 'sangeet_garba' | 'bridetobe' | 'prebridal' | 'hair_nails' | 'babyshower' | 'review' | 'custom'
+  >('bridal');
+  const [customCategoryName, setCustomCategoryName] = useState('Cocktail Glam');
   const [captionLanguage, setCaptionLanguage] = useState<'english' | 'hinglish' | 'gujarati'>('hinglish');
   const [generationCount, setGenerationCount] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -898,7 +902,19 @@ export default function InstagramHubPage() {
     const salonName = settings?.salon || 'Shree Beauty Studio';
     const phone = settings?.phone2 || settings?.whatsapp || '9824183769';
     const address = settings?.address || '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004';
-    const nameStr = clientName.trim() ? clientName.trim() : (captionCategory === 'babyshower' ? 'our glowing mom-to-be' : 'our gorgeous bride');
+    const nameStr = clientName.trim()
+      ? clientName.trim()
+      : captionCategory === 'babyshower'
+        ? 'our glowing mom-to-be'
+        : captionCategory === 'bridetobe'
+          ? 'our beautiful bride-to-be'
+          : captionCategory === 'hair_nails'
+            ? 'our lovely client'
+            : captionCategory === 'custom'
+              ? 'our gorgeous client'
+              : 'our gorgeous bride';
+    const customTitle = (customCategoryName && customCategoryName.trim()) ? customCategoryName.trim() : 'Special Occasion';
+    const customSlug = customTitle.replace(/[^a-zA-Z0-9]/g, '');
     const offerStr = specialOffer.trim() ? `\n\n🎉 Special Limited Offer: ${specialOffer.trim()}` : '';
     const customStr = customNotes.trim() ? `\n\n📝 Note: ${customNotes.trim()}` : '';
 
@@ -1319,6 +1335,204 @@ export default function InstagramHubPage() {
           '#VerifiedReview', '#BrideApproved', '#InstaReview', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
         ],
       },
+      sangeet_garba: {
+        hooks: {
+          hinglish: [
+            `💃 Sangeet & Garba Night Glam for ${nameStr} | High-Energy Dance Proof Artistry ✨🔥`,
+            `✨ Sweat-proof, non-cakey & radiant Sangeet look crafted for ${nameStr} in Surat 💃`,
+            `🔥 Ready to rock the dance floor! Ultra-glam Sangeet look with signature smokey eyes & bouncy curls 🌟`,
+            `🪔 Vibrant Gujarati Garba & Raas Glam at ${salonName} for ${nameStr} ✨`,
+            `👑 From stage lights to the last dance: 100% transfer-resistant Sangeet makeover 💖💃`,
+          ],
+          gujarati: [
+            `💃 સંગીત સંધ્યા અને રાસ-ગરબા સ્પેશિયલ ગ્લેમરસ મેકઓવર: ${nameStr} માટે ખાસ ✨`,
+            `🔥 આખી રાત ગરબા રમો તો પણ મેકઅપ રહે ફ્રેશ અને સ્વેટપ્રૂફ! શ્રી બ્યૂટી સ્ટુડિયો, સુરત 💖`,
+            `✨ સંગીત નાઈટ પર સ્ટેજ ચમકાવતો પરફેક્ટ ગ્લો અને ટ્રેન્ડી હેરસ્ટાઇલ 💃👑`,
+          ],
+          english: [
+            `💃 High-Energy Sangeet & Garba Glam for ${nameStr} | Sweat-Proof Artistry ✨`,
+            `✨ Vibrant Sangeet Night Makeover in Surat crafted for dancing the night away 💖`,
+            `🔥 Bold eyes, glowing skin, and voluminous styling for ${nameStr}'s Sangeet ceremony 💃`,
+          ],
+        },
+        bodies: {
+          hinglish: [
+            `Sangeet & Garba nights call for maximum drama and unbeatable hold! We crafted an ultra-lightweight, sweat-resistant, and high-definition glam that keeps you radiant under heavy stage lights and through non-stop dancing.`,
+          ],
+          gujarati: [
+            `સંગીત અને ગરબા નાઈટ માટે ખાસ વોટરપ્રૂફ અને સ્વેટ-રેઝિસ્ટન્ટ મેકઓવર! ડાન્સ અને ફંક્શન દરમિયાન મેકઅપ ક્યારેય ફીકો પડતો નથી અને ત્વચા કુદરતી રીતે ચમકે છે.`,
+          ],
+          english: [
+            `Engineered for high-energy celebrations! Our sweat-resistant formulas and setting techniques ensure your Sangeet glam stays picture-perfect through every spin and dance move.`,
+          ],
+        },
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this look for your Sangeet or Garba night inspo!\n👭 TAG your bride tribe & dance partners! 💃✨\n💬 Which dance song are you performing on? Tell us below! 👇🔥`,
+          ],
+          gujarati: [
+            `📌 તમારા સંગીત કે ગરબા ફંક્શન માટે આ લુક સેવ (SAVE) કરી લો!\n👭 તમારા ડાન્સ ગ્રૂપ સાથે શેર કરો! 💃💖\n💬 કમેન્ટમાં જણાવો તમારું ફેવરિટ ગરબા ગીત! 👇`,
+          ],
+          english: [
+            `📌 SAVE this reel for your Sangeet moodboard!\n👭 TAG your bridesmaids & dance crew! 💃✨\n💬 Drop your favorite celebration emoji below! 👇`,
+          ],
+        },
+        seoKeywords: 'Sangeet Makeup Surat • Garba Makeover Katargam • Dance Proof Bridal Makeup • Surat Sangeet Styling',
+        hashtags: [
+          '#SangeetMakeupSurat', '#GarbaGlamSurat', '#SangeetNight', '#DanceProofMakeup', '#SuratMakeupArtist',
+          '#KatargamSalon', '#GujaratiSangeet', '#SmokeyEyeSurat', '#SangeetLook', '#TrendingReels',
+          '#ExplorePage', '#ExploreSurat', '#ReelsInstagram', '#ViralReels', '#DesiWeddingDiaries',
+          '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+        ],
+      },
+      bridetobe: {
+        hooks: {
+          hinglish: [
+            `👰 Future Bride Alert! Pre-Wedding Trials, Trousseau & Bridal Prep with ${nameStr} ✨💍`,
+            `💍 2026-2027 Brides: Secure your dream wedding dates with Surat's trusted bridal studio! 👑`,
+            `✨ "Planning my wedding glam was completely stress-free!" — Future Bride consultation at ${salonName} 💖`,
+            `👰 For every Bride-to-Be: Bespoke skin prep, personalized trials & custom luxury makeovers 💫`,
+          ],
+          gujarati: [
+            `👰 સુરતની ભાવિ કન્યાઓ (Brides-to-Be) માટે ખાસ પ્રી-બ્રાઇડલ કન્સલ્ટેશન અને સ્કીન ટ્રાયલ! ✨`,
+            `💍 લગ્નની તારીખો માટે અગાઉથી બુકિંગ કરાવો અને મેળવો સ્પેશિયલ બ્રાઇડલ પેકેજ ઓફર્સ 👑`,
+            `🌸 તમારી ડ્રીમ વેડિંગ માટે સુરતનું મોસ્ટ ટ્રસ્ટેડ સ્ટુડિયો: શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ 💖`,
+          ],
+          english: [
+            `👰 Future Bride Glow: Personalized Consultations & Trials for ${nameStr} at ${salonName} ✨`,
+            `💍 Calling all Brides-to-Be! Lock in your 2026-2027 wedding dates early with Surat's finest 👑`,
+            `✨ From vision board to aisle-ready perfection: Complete Bridal Trousseau Prep in Surat 💖`,
+          ],
+        },
+        bodies: {
+          hinglish: [
+            `Becoming a bride begins months before the wedding day! At Shree Beauty Studio, we walk with every bride-to-be from skin wellness and custom pre-bridal regimes to trial drapes and personalized HD makeup mapping.`,
+          ],
+          gujarati: [
+            `લગ્નના દિવસની સંપૂર્ણ તૈયારી! શ્રી બ્યૂટી સ્ટુડિયોમાં દરેક ભાવિ કન્યાને મળે છે પર્સનલાઈઝ્ડ સ્કીન કન્સલ્ટેશન, પ્રી-બ્રાઇડલ ટ્રીટમેન્ટ્સ અને ટ્રાયલ મેકઓવર જેથી લગ્નના દિવસે તે પરી જેવી શોભે.`,
+          ],
+          english: [
+            `Your bridal journey deserves attentive, expert care. From deep skin prep and custom trials to final outfit draping, we craft an effortless, confident experience for every bride-to-be.`,
+          ],
+        },
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this post to start your bridal countdown!\n👭 TAG a future bride tying the knot soon! 👰💍\n💬 What month is your wedding? Tell us below! 👇✨`,
+          ],
+          gujarati: [
+            `📌 તમારા લગ્નની તૈયારીઓ માટે આ પોસ્ટ સેવ (SAVE) કરી લો!\n👭 જે બહેનપણીના લગ્ન આવવાના હોય તેને ટેગ (TAG) કરો! 👰💍\n💬 કમેન્ટમાં જણાવો તમારા લગ્નનો મહિનો! 👇`,
+          ],
+          english: [
+            `📌 SAVE this checklist for your wedding prep!\n👭 TAG an upcoming bride who needs to see this! 👰\n💬 Drop a 💍 if you're getting married this year! 👇`,
+          ],
+        },
+        seoKeywords: 'Bride to Be Surat • Future Bride Makeup Surat • Bridal Trials Katargam • Wedding Booking Surat',
+        hashtags: [
+          '#BrideToBeSurat', '#FutureBride', '#SuratBrides2026', '#BridalBookingOpen', '#KatargamSalon',
+          '#PreBridalPackage', '#BridalConsultation', '#SuratMakeupArtist', '#BridalTrialSurat', '#ExplorePage',
+          '#ExploreSurat', '#TrendingReels', '#WeddingCountdown', '#ShreeBeautyStudiobride', '#ShreeBeautyStudio'
+        ],
+      },
+      hair_nails: {
+        hooks: {
+          hinglish: [
+            `✂️ Complete Hair & Nail Transformation for ${nameStr} | Mirror Shine & Luxury Art 💅✨`,
+            `💅 Fresh Luxury Gel Extensions & French Ombre Nail Art crafted at ${salonName} 💖`,
+            `✨ Goodbye Frizz, Hello Glass Hair: Hair Botox & Nanoplastia Therapy in Surat 🌿💇‍♀️`,
+            `💎 Head-to-toe perfection: Designer nail extensions + bespoke bridal hair styling ✨`,
+          ],
+          gujarati: [
+            `✂️ સુરતની બેસ્ટ હેર બોટોક્સ અને નેઇલ આર્ટ સર્વિસ: ${nameStr} માટે ગ્લેમરસ ટ્રાન્સફોર્મેશન 💅✨`,
+            `💅 ટ્રેન્ડી જેલ નેઇલ એક્સટેન્શન અને શાહી નેઇલ આર્ટ શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ પર! 💖`,
+            `✨ ફ્રિઝ-ફ્રી સિલ્કી સ્મૂથ વાળ અને અદભુત શાઇન માટે સુરતનું શ્રેષ્ઠ સ્ટુડિયો 💇‍♀️`,
+          ],
+          english: [
+            `✂️ High-Gloss Hair Therapy & Couture Nail Art for ${nameStr} at ${salonName} 💅✨`,
+            `💅 Precision Gel Extensions & Bridal Nail Architecture in Surat 💖`,
+            `✨ Silky, Frizz-Free Transformation: Hair Botox & Advanced Salon Care 💇‍♀️🌿`,
+          ],
+        },
+        bodies: {
+          hinglish: [
+            `Great hair and chic nails complete every aesthetic! Whether you need restorative hair therapies like Botox/Nanoplastia or camera-ready bridal gel nail extensions with durable Swarovski crystals, our certified stylists deliver flawless results.`,
+          ],
+          gujarati: [
+            `તમારા વાળ અને નખની સુંદરતામાં ચાર ચાંદ! પ્રીમિયમ હેર બોટોક્સ, કેરાટિન, અને આકર્ષક જેલ નેઇલ એક્સટેન્શન સાથે મેળવો સેલિબ્રિટી જેવો પ્રીમિયમ લુક.`,
+          ],
+          english: [
+            `Flawless styling from hair roots to fingertips. Using top-grade international formulas for deep hair rejuvenation and ultra-durable, hand-painted designer nail art.`,
+          ],
+        },
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this for your next salon self-care appointment!\n👭 TAG your friend who urgently needs a hair or nail pamper session! 💅✂️\n💬 Which nail shape is your favorite? Almond, Square or Coffin? 👇`,
+          ],
+          gujarati: [
+            `📌 તમારા આગામી સલૂન વિઝિટ માટે આ પોસ્ટ સેવ (SAVE) કરી લો!\n👭 તમારી બેસ્ટ ફ્રેન્ડ સાથે શેર કરો! 💅✨\n💬 કમેન્ટમાં જણાવો તમારી ફેવરિટ નેઇલ સ્ટાઇલ! 👇`,
+          ],
+          english: [
+            `📌 SAVE this for your salon moodboard!\n👭 TAG someone obsessed with pretty nails! 💅\n💬 Drop your favorite nail color below! 👇`,
+          ],
+        },
+        seoKeywords: 'Nail Art Surat • Hair Botox Surat • Gel Extensions Katargam • Hair Treatment Surat • Best Hair Salon Katargam',
+        hashtags: [
+          '#NailArtSurat', '#HairBotoxSurat', '#GelExtensionsSurat', '#KatargamSalon', '#HairTransformationSurat',
+          '#NailsOfInstagram', '#SuratSalons', '#GlossyHair', '#NailInspo', '#ExplorePage',
+          '#ExploreSurat', '#TrendingReels', '#ReelsInstagram', '#ViralReels', '#ShreeBeautyStudio'
+        ],
+      },
+      custom: {
+        hooks: {
+          hinglish: [
+            `✨ Stunning ${customTitle} Makeover for ${nameStr} at ${salonName}! 💖`,
+            `🔥 Flawless & Long-lasting Glam for ${nameStr}'s ${customTitle} in Surat ✨`,
+            `💎 Radiance that turns heads: Gorgeous ${customTitle} Look crafted with love 👑`,
+            `🌟 Behind The Glam: Bespoke ${customTitle} transformation on ${nameStr} ✨`,
+            `🥺 The pure elegance & timeless beauty of ${nameStr} for ${customTitle} at ${salonName} 💖`,
+          ],
+          gujarati: [
+            `✨ ${customTitle} પ્રસંગ માટે એકદમ ખાસ અને ગ્લોઇંગ લુક ${nameStr} માટે! 💖`,
+            `🌸 સુરતનું બેસ્ટ બ્યૂટી સ્ટુડિયો: ${customTitle} માટે પર્ફેક્ટ શાહી શણગાર ✨`,
+            `👑 શ્રી બ્યૂટી સ્ટુડિયો, કતારગામ: ${customTitle} સ્પેશિયલ મેકઓવર 💄`,
+            `💖 દરેક ખાસ પ્રસંગમાં મેળવો અદ્ભુત કુદરતી નિખાર અને ફ્રેશ લુક! ✨`,
+          ],
+          english: [
+            `✨ Bespoke ${customTitle} Makeover & Styling for ${nameStr} at ${salonName} 💖`,
+            `🔥 Turning heads with this flawless ${customTitle} Glam in Surat ✨`,
+            `👑 Customized, radiant artistry for ${nameStr}'s special ${customTitle} celebration 💫`,
+            `🌟 Effortless elegance and long-wearing glow for ${nameStr}'s ${customTitle} ✨`,
+          ],
+        },
+        bodies: {
+          hinglish: [
+            `Every milestone deserves a signature look! For ${customTitle}, our master artists created a customized, weightless, and high-definition finish that stays flawless and photo-ready all day long.`,
+            `Crafted with premium cosmetics tailored to your skin tone and event lighting, bringing out your natural confidence and camera-ready radiance.`,
+          ],
+          gujarati: [
+            `દરેક ખાસ પ્રસંગ માટે પરફેક્ટ સુંદરતા! ${customTitle} માટે પ્રીમિયમ પ્રોડક્ટ્સ અને આધુનિક ટેકનિકથી તૈયાર કરેલો આકર્ષક, લાઈટવેઇટ અને લોંગ-લાસ્ટિંગ લુક.`,
+          ],
+          english: [
+            `Tailored to perfection for ${customTitle}! Using premium, skin-loving products to ensure lasting radiance, confidence, and flawless photos across all angles.`,
+          ],
+        },
+        viralTriggers: {
+          hinglish: [
+            `📌 SAVE this look for your upcoming ${customTitle} inspo!\n👭 TAG someone looking for the best salon in Surat! 💖\n💬 Drop a ✨ in the comments if you love this vibe! 👇`,
+          ],
+          gujarati: [
+            `📌 તમારા આગામી ${customTitle} પ્રસંગ માટે આ પોસ્ટ સેવ (SAVE) કરી લો!\n👭 ફ્રેન્ડ્સ સાથે શેર (SHARE) કરો!\n💬 કમેન્ટમાં જણાવો તમને આ લુક કેવો લાગ્યો! 👇`,
+          ],
+          english: [
+            `📌 SAVE this reel for your ${customTitle} moodboard!\n👭 SHARE with your besties in Surat! 💖\n💬 Let us know what you think in the comments! 👇`,
+          ],
+        },
+        seoKeywords: `${customTitle} Makeup Surat • ${customTitle} Styling Katargam • Best Salon Surat • Luxury Makeover Katargam`,
+        hashtags: [
+          `#${customSlug || 'Occasion'}Surat`, `#${customSlug || 'Special'}Glam`, `#SuratMakeupArtist`, `#KatargamSalon`,
+          `#SuratBeautyStudio`, `#SuratSalons`, `#FlawlessLookSurat`, `#TrendingReels`, `#ExplorePage`,
+          `#ExploreSurat`, `#ViralReels`, `#ReelsInstagram`, `#MUAofInstagram`, `#ShreeBeautyStudiobride`, `#ShreeBeautyStudio`
+        ],
+      },
     };
 
     const catData = DATA[captionCategory] || DATA.bridal;
@@ -1333,10 +1547,24 @@ export default function InstagramHubPage() {
     const chosenBody = pickRandom(bodiesList);
     const chosenTrigger = pickRandom(triggersList);
     
-    // Guarantee permanent brand hashtags + 23 viral category hashtags = 25 total (strictly under IG 30 limit)
+    // ── DYNAMIC 2026 LATEST HASHTAGS GENERATOR ──
+    // Permanent core brand tags
     const permanentTags = ['#ShreeBeautyStudiobride', '#ShreeBeautyStudio'];
-    const filteredCatTags = catData.hashtags.filter((t) => !permanentTags.includes(t));
-    const finalTags = [...permanentTags, ...filteredCatTags.slice(0, 23)];
+    const filteredCatTags = Array.from(new Set(catData.hashtags.filter((t) => !permanentTags.includes(t))));
+
+    // Curated 2026 high-reach viral & reel discovery tags
+    const LATEST_VIRAL_TAGS = [
+      '#TrendingReels', '#ViralReels', '#ReelsInstagram', '#ExplorePage', '#ExploreSurat',
+      '#SuratMUA', '#SuratCity', '#SuratSalons', '#GujaratiBride2026', '#WeddingGram',
+      '#FYP', '#InstaGood', '#TrendingAudio', '#ReelItFeelIt', '#MUAofInstagram',
+      '#BridalTrends2026', '#SuratInfluencer', '#DesiWeddingDiaries', '#BridalTransformation'
+    ];
+
+    // Fresh random sampling on every generate: 18 unique category tags + 6 latest viral tags
+    const sampledCatTags = pickMultipleRandom(filteredCatTags, 18);
+    const remainingViral = LATEST_VIRAL_TAGS.filter((t) => !sampledCatTags.includes(t) && !permanentTags.includes(t));
+    const sampledViralTags = pickMultipleRandom(remainingViral, 6);
+    const finalTags = Array.from(new Set([...permanentTags, ...sampledCatTags, ...sampledViralTags])).slice(0, 26);
     const chosenHashtags = finalTags.join(' ');
 
     const ctas = [
@@ -1345,11 +1573,31 @@ export default function InstagramHubPage() {
     ];
     const chosenCta = pickRandom(ctas);
 
-    const viralMentions = `@wedmegood @weddingsutra @gujaratibrides @surat_weddings @shreebeauty.studio`;
+    // ── DYNAMIC ROTATING CURATORS & COLLABORATOR MENTIONS ──
+    const CURATOR_HANDLES = [
+      '@wedmegood', '@weddingsutra', '@gujaratibrides', '@surat_weddings',
+      '@shaadisaga', '@theweddingbrigade', '@witty_wedding', '@indianweddingbuzz',
+      '@weddingwireindia', '@zooraweddings', '@suratcitylife', '@surat_diaries',
+      '@dulhaniyaa', '@bridesofgujarat'
+    ];
+
+    const collabHandles = collaborator.trim()
+      ? collaborator
+          .trim()
+          .split(/[\s,]+/)
+          .filter(Boolean)
+          .map((c) => (c.startsWith('@') ? c : `@${c}`))
+      : [];
+
+    const sampledCurators = pickMultipleRandom(CURATOR_HANDLES, 4);
+    const mentionsList = Array.from(new Set([...collabHandles, ...sampledCurators, '@shreebeauty.studio']));
+    const viralMentions = mentionsList.join(' ');
+
     const seoLine = catData.seoKeywords || 'Surat Bridal Makeup • Katargam Salon • Gujarati Bride Makeover';
 
-    return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n${viralMentions}\n\n${seoLine}\n\n${chosenHashtags}`;
-  }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes, settings, lastHookUsed]);
+    // Mentions & Hashtags placed at the very LAST / BOTTOM of the caption ("LASTED")
+    return `${chosenHook}\n\n${chosenBody}${customStr}${offerStr}\n\n${chosenTrigger}\n\n${chosenCta}\n\n${seoLine}\n\n${viralMentions}\n\n${chosenHashtags}`;
+  }, [captionCategory, customCategoryName, captionLanguage, clientName, specialOffer, customNotes, collaborator, generationCount, settings, lastHookUsed]);
 
   // Master Generation
   const handleGenerateFresh = async () => {
@@ -1359,14 +1607,14 @@ export default function InstagramHubPage() {
 
     const dynamicCaption = generateInfiniteCaption();
     setGeneratedCaption(dynamicCaption);
-    toast(`✨ Generated unique caption #${newCount}!`, 'success');
+    toast(`✨ Generated fresh hashtags, mentions & caption #${newCount}!`, 'success');
     setIsGenerating(false);
   };
 
   useEffect(() => {
     const initial = generateInfiniteCaption();
     setGeneratedCaption(initial);
-  }, [captionCategory, captionLanguage, clientName, specialOffer, customNotes]);
+  }, [captionCategory, customCategoryName, captionLanguage, clientName, specialOffer, customNotes, collaborator]);
 
   // ── 1-CLICK DIRECT PUBLISH TO INSTAGRAM (WITH EXACT HIGH-RES CROP & MULTI-PHOTO CAROUSEL) ──
   const handlePublishToInstagram = async () => {
@@ -3089,14 +3337,19 @@ export default function InstagramHubPage() {
                       </div>
 
                       {/* Category Chips */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(85px, 1fr))', gap: 5 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(82px, 1fr))', gap: 5 }}>
                         {[
                           { id: 'bridal', label: '👑 Wedding', sub: 'Bridal' },
                           { id: 'sagai', label: '💍 Sagai', sub: 'Engagement' },
                           { id: 'reception', label: '✨ Reception', sub: 'Party Glam' },
                           { id: 'haldi_mehndi', label: '🪔 Haldi', sub: 'Sunshine' },
-                          { id: 'prebridal', label: '💧 Glow', sub: 'Facial/Skin' },
+                          { id: 'sangeet_garba', label: '💃 Sangeet', sub: 'Garba / Dance' },
+                          { id: 'bridetobe', label: '👰 Bride-to-Be', sub: 'Future Bride' },
+                          { id: 'prebridal', label: '💧 Glow', sub: 'Facial & Skin' },
+                          { id: 'hair_nails', label: '✂️ Hair & Nails', sub: 'Styling & Art' },
                           { id: 'babyshower', label: '👶 Baby Shower', sub: 'Mom-to-Be' },
+                          { id: 'review', label: '⭐ Reviews', sub: 'Real Brides' },
+                          { id: 'custom', label: '➕ Custom', sub: 'Future / Any' },
                         ].map((cat) => {
                           const isSel = captionCategory === cat.id;
                           return (
@@ -3124,6 +3377,91 @@ export default function InstagramHubPage() {
                           );
                         })}
                       </div>
+
+                      {/* Dynamic Custom / Future Category Input & Presets */}
+                      {captionCategory === 'custom' && (
+                        <div
+                          style={{
+                            marginTop: 8,
+                            padding: '9px 11px',
+                            background: 'rgba(225, 48, 108, 0.08)',
+                            borderRadius: 10,
+                            border: '1.5px dashed #E1306C',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 6,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                            <span style={{ fontSize: 10, fontWeight: 800, color: '#E1306C', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              ✨ Custom / Future Category Topic:
+                            </span>
+                            <span style={{ fontSize: 8.5, color: 'var(--muted-foreground)' }}>
+                              Type any future occasion or pick a preset
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <input
+                              type="text"
+                              value={customCategoryName}
+                              onChange={(e) => setCustomCategoryName(e.target.value)}
+                              placeholder="e.g. Cocktail Party, Diwali Glam, Masterclass, Photoshoot..."
+                              style={{
+                                flex: 1,
+                                padding: '5px 9px',
+                                fontSize: 11,
+                                fontWeight: 600,
+                                borderRadius: 6,
+                                border: '1px solid var(--border)',
+                                background: 'var(--card)',
+                                color: 'var(--foreground)',
+                              }}
+                            />
+                            {customCategoryName && (
+                              <button
+                                type="button"
+                                onClick={() => setCustomCategoryName('')}
+                                className="btn btn-secondary btn-xs"
+                                style={{ fontSize: 9.5, padding: '2px 8px' }}
+                                title="Clear"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                          {/* Quick Preset Ideas */}
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ fontSize: 8.5, fontWeight: 700, color: 'var(--muted-foreground)' }}>Quick Ideas:</span>
+                            {[
+                              'Cocktail Party',
+                              'Maternity Photoshoot',
+                              'Diwali & Festive Glam',
+                              'Bridal Masterclass',
+                              'Editorial Model Shoot',
+                              'Ring Ceremony Trousseau',
+                              'Engagement Shoot',
+                            ].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => setCustomCategoryName(preset)}
+                                style={{
+                                  fontSize: 8.5,
+                                  padding: '2px 6px',
+                                  borderRadius: 4,
+                                  border: customCategoryName === preset ? '1px solid #E1306C' : '1px solid var(--border)',
+                                  background: customCategoryName === preset ? '#E1306C' : 'var(--card)',
+                                  color: customCategoryName === preset ? '#fff' : 'var(--foreground)',
+                                  cursor: 'pointer',
+                                  fontWeight: customCategoryName === preset ? 800 : 500,
+                                }}
+                              >
+                                {preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* 2. Compact Post Metadata Inputs (2x2 Grid) */}
@@ -3228,9 +3566,22 @@ export default function InstagramHubPage() {
                       {/* Quick Action Buttons */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, flexWrap: 'wrap', gap: 6 }}>
                         <span style={{ fontSize: 9.5, color: 'var(--muted-foreground)', fontWeight: 600 }}>
-                          {generatedCaption.length} chars • {(generatedCaption.match(/#[a-zA-Z0-9_]+/g) || []).length} hashtags
+                          {generatedCaption.length} chars • {(generatedCaption.match(/#[a-zA-Z0-9_]+/g) || []).length} hashtags • {(generatedCaption.match(/@[a-zA-Z0-9_.]+/g) || []).length} mentions
                         </span>
-                        <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const mentions = (generatedCaption.match(/@[a-zA-Z0-9_.]+/g) || []).join(' ');
+                              copyToClipboard(mentions || generatedCaption, 'copy-mentions');
+                            }}
+                            className="btn btn-secondary btn-xs"
+                            style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}
+                            title="Copy only mentions / collaborator handles"
+                          >
+                            {copiedId === 'copy-mentions' ? <Check size={10} color="#16a34a" /> : <AtSign size={10} />}
+                            <span>Copy Mentions</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => {
@@ -3239,6 +3590,7 @@ export default function InstagramHubPage() {
                             }}
                             className="btn btn-secondary btn-xs"
                             style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}
+                            title="Copy only hashtags"
                           >
                             {copiedId === 'copy-tags' ? <Check size={10} color="#16a34a" /> : <Tag size={10} />}
                             <span>Copy Hashtags</span>
@@ -4418,9 +4770,13 @@ export default function InstagramHubPage() {
                 { id: 'sagai', label: '💍 Sagai / Engagement' },
                 { id: 'reception', label: '✨ Reception Glam' },
                 { id: 'haldi_mehndi', label: '🪔 Haldi & Mehendi' },
+                { id: 'sangeet_garba', label: '💃 Sangeet & Garba' },
+                { id: 'bridetobe', label: '👰 Bride-to-Be (Future)' },
                 { id: 'prebridal', label: '💧 Pre-Bridal Glow' },
+                { id: 'hair_nails', label: '✂️ Hair & Nails' },
                 { id: 'babyshower', label: '👶 Baby Shower / Srimant' },
                 { id: 'review', label: '⭐ Bride Reviews' },
+                { id: 'custom', label: '➕ Custom / Future' },
               ].map((cat) => (
                 <button
                   key={cat.id}
@@ -4433,6 +4789,60 @@ export default function InstagramHubPage() {
                 </button>
               ))}
             </div>
+
+            {/* Custom Category Input if active in Studio Modal */}
+            {captionCategory === 'custom' && (
+              <div
+                style={{
+                  marginTop: 6,
+                  padding: '9px 12px',
+                  background: 'rgba(225, 48, 108, 0.08)',
+                  borderRadius: 10,
+                  border: '1.5px dashed #E1306C',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#E1306C' }}>
+                    ✨ Custom / Future Category Topic:
+                  </span>
+                  <span style={{ fontSize: 9.5, color: 'var(--muted-foreground)' }}>
+                    Enter any future occasion to generate captions &amp; hashtags
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={customCategoryName}
+                  onChange={(e) => setCustomCategoryName(e.target.value)}
+                  placeholder="e.g. Cocktail Party, Maternity Shoot, Diwali Glam, Masterclass..."
+                  className="input input-sm"
+                  style={{ width: '100%', fontSize: 12, fontWeight: 600 }}
+                />
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--muted-foreground)' }}>Presets:</span>
+                  {[
+                    'Cocktail Party',
+                    'Maternity Photoshoot',
+                    'Diwali & Festive Glam',
+                    'Bridal Masterclass',
+                    'Editorial Model Shoot',
+                    'Engagement Shoot',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setCustomCategoryName(preset)}
+                      className={`btn btn-xs ${customCategoryName === preset ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: 9.5, padding: '2px 8px' }}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Language Chips */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
@@ -4514,8 +4924,34 @@ export default function InstagramHubPage() {
 
           <div className="card" style={{ borderRadius: 16, padding: 22, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
-              <span style={{ fontSize: 13, fontWeight: 800 }}>📜 Generated Caption & Hashtags ({generatedCaption.length} chars)</span>
-              <div style={{ display: 'flex', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 800 }}>
+                📜 Generated Caption ({generatedCaption.length} chars • {(generatedCaption.match(/#[a-zA-Z0-9_]+/g) || []).length} hashtags • {(generatedCaption.match(/@[a-zA-Z0-9_.]+/g) || []).length} mentions)
+              </span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const mentions = (generatedCaption.match(/@[a-zA-Z0-9_.]+/g) || []).join(' ');
+                    copyToClipboard(mentions || generatedCaption, 'copy-studio-mentions');
+                  }}
+                  className="btn btn-secondary btn-xs"
+                  style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  {copiedId === 'copy-studio-mentions' ? <Check size={12} color="#16a34a" /> : <AtSign size={12} />}
+                  Copy Mentions
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tags = (generatedCaption.match(/#[a-zA-Z0-9_]+/g) || []).join(' ');
+                    copyToClipboard(tags || generatedCaption, 'copy-studio-tags');
+                  }}
+                  className="btn btn-secondary btn-xs"
+                  style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  {copiedId === 'copy-studio-tags' ? <Check size={12} color="#16a34a" /> : <Tag size={12} />}
+                  Copy Hashtags
+                </button>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(generatedCaption, 'copy-studio')}

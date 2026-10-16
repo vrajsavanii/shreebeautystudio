@@ -206,7 +206,7 @@ async function connectToWhatsApp() {
     status = 'connecting';
     broadcast('status', getStatusPayload());
 
-    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, Browsers, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
+    const { default: makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore, DisconnectReason, Browsers, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
 
     let version = [2, 3000, 1043857760];
     try {
@@ -217,7 +217,10 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
 
     sock = makeWASocket({
-      auth: state,
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+      },
       version,
       logger: pino({ level: 'silent' }),
       browser: Browsers.macOS('Desktop'),
@@ -227,8 +230,14 @@ async function connectToWhatsApp() {
       defaultQueryTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
       getMessage: async (key) => {
-        if (key?.id && rawMessages.has(key.id)) {
-          return rawMessages.get(key.id);
+        if (key?.id) {
+          if (rawMessages.has(key.id)) return rawMessages.get(key.id);
+          const canon = toCanonicalJid(key.remoteJid);
+          const list = messages.get(canon) || (key.remoteJid ? messages.get(key.remoteJid) : null);
+          const found = list?.find((m) => m.id === key.id);
+          if (found) {
+            return { conversation: found.body };
+          }
         }
         return undefined;
       },
@@ -268,13 +277,19 @@ async function connectToWhatsApp() {
         }
 
         if (connection === 'open') {
-          status = 'connected';
-          qrString = null;
-          qrDataUrl = null;
           const rawId = sock?.user?.id || '';
           connectedPhone = rawId.replace(/:.*$/, '').replace(/@.*$/, '').replace(/^91/, '');
           connectedName = sock?.user?.name || 'Shree Beauty Studio';
           console.log(`[WhatsApp Service] Connected as +91 ${connectedPhone} (${connectedName})`);
+
+          if (sock?.authState?.creds && !sock.authState.creds.registered) {
+            sock.authState.creds.registered = true;
+            try { await saveCreds(); } catch {}
+          }
+
+          status = 'connected';
+          qrString = null;
+          qrDataUrl = null;
           broadcast('status', getStatusPayload());
         }
 
@@ -446,19 +461,46 @@ async function connectToWhatsApp() {
     sock.ev.on('messages.update', (updates) => {
       if (!Array.isArray(updates)) return;
       for (const u of updates) {
-        const jid = u.key.remoteJid;
-        const id = u.key.id;
+        const rawJid = u.key?.remoteJid;
+        const canon = toCanonicalJid(rawJid);
+        const id = u.key?.id;
         let newStatus = null;
         if (u.update?.status === 3) newStatus = 'delivered';
         if (u.update?.status === 4) newStatus = 'read';
 
-        if (newStatus && jid && id && messages.has(jid)) {
-          const list = messages.get(jid);
-          const item = list.find((m) => m.id === id);
-          if (item) {
-            item.status = newStatus;
-            saveStore();
-            broadcast('message_status', { id, jid, status: newStatus });
+        if (newStatus && canon && id) {
+          const list = messages.get(canon) || (rawJid ? messages.get(rawJid) : null);
+          if (list) {
+            const item = list.find((m) => m.id === id);
+            if (item) {
+              item.status = newStatus;
+              debouncedSaveStore();
+              broadcast('message_status', { id, jid: canon, status: newStatus });
+            }
+          }
+        }
+      }
+    });
+
+    sock.ev.on('message-receipt.update', (receipts) => {
+      if (!Array.isArray(receipts)) return;
+      for (const r of receipts) {
+        const rawJid = r.key?.remoteJid;
+        const canon = toCanonicalJid(rawJid);
+        const id = r.key?.id;
+        let newStatus = null;
+        if (r.receipt?.readTimestamp) newStatus = 'read';
+        else if (r.receipt?.receiptTimestamp || r.receipt?.userJid) newStatus = 'delivered';
+
+        if (newStatus && canon && id) {
+          const list = messages.get(canon) || (rawJid ? messages.get(rawJid) : null);
+          if (list) {
+            const item = list.find((m) => m.id === id);
+            if (item && item.status !== 'read') {
+              item.status = newStatus;
+              debouncedSaveStore();
+              broadcast('message_status', { id, jid: canon, status: newStatus });
+            }
           }
         }
       }
@@ -653,6 +695,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 2b. Check number on WhatsApp
+  if (pathname === '/check-number') {
+    const phone = url.searchParams.get('phone') || '7952019707';
+    if (!sock || status !== 'connected') {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'not connected' }));
+      return;
+    }
+    try {
+      const clean = phone.replace(/\D/g, '').slice(-10);
+      const jid1 = `91${clean}@s.whatsapp.net`;
+      const jid2 = `${clean}@s.whatsapp.net`;
+      const results = await sock.onWhatsApp(jid1, jid2);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ phone, clean, results }));
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+
   // 3. QR
   if (pathname === '/qr') {
     if (!sock && status === 'disconnected') {
@@ -822,6 +886,9 @@ const server = http.createServer(async (req, res) => {
       }
 
       const msgId = sentResult?.key?.id || `sent_${Date.now()}`;
+      if (sentResult?.message) {
+        rawMessages.set(msgId, sentResult.message);
+      }
       const storedMsg = {
         id: msgId,
         jid: targetJid,

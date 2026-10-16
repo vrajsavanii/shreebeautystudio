@@ -45,6 +45,7 @@ import {
   ArrowUp,
   ChevronRight,
   Ban,
+  ExternalLink,
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import {
@@ -394,7 +395,17 @@ export default function WhatsAppLiveChatTab({
                 [msg.jid]: list.map((m) => (m.id === msg.id ? { ...m, ...msg } : m)),
               };
             }
-            const updated = [...list, msg];
+            // Check if there's a pending temp message with same body
+            const tempIdx = list.findIndex(
+              (m) => m.id.startsWith('temp_') && m.fromMe && m.body === msg.body
+            );
+            let updated: ChatMessage[];
+            if (tempIdx >= 0) {
+              updated = [...list];
+              updated[tempIdx] = msg;
+            } else {
+              updated = [...list, msg];
+            }
             saveCachedMessages(msg.jid, updated);
             return { ...prev, [msg.jid]: updated };
           });
@@ -675,9 +686,15 @@ export default function WhatsAppLiveChatTab({
         if (json.success && json.message) {
           setMessagesMap((prev) => {
             const list = prev[activeChat.jid] || [];
-            const updated = list.map((m) =>
-              m.id === tempId ? { ...json.message, status: 'delivered' } : m
-            );
+            const hasReal = list.some((m) => m.id === json.message.id);
+            let updated: ChatMessage[];
+            if (hasReal) {
+              updated = list.filter((m) => m.id !== tempId);
+            } else {
+              updated = list.map((m) =>
+                m.id === tempId ? { ...json.message, status: json.message.status || 'delivered' } : m
+              );
+            }
             saveCachedMessages(activeChat.jid, updated);
             return { ...prev, [activeChat.jid]: updated };
           });
@@ -1510,6 +1527,28 @@ export default function WhatsAppLiveChatTab({
                 title={activeChat.isPinned ? 'Unpin chat' : 'Pin chat'}
               >
                 {activeChat.isPinned ? <PinOff size={18} /> : <Pin size={18} />}
+              </button>
+
+              {/* Direct Open in Official WhatsApp Web fallback */}
+              <button
+                type="button"
+                onClick={() => {
+                  const clean = (activeChat.phone || activeChat.jid).replace(/\D/g, '').slice(-10);
+                  if (clean) {
+                    window.open(`https://web.whatsapp.com/send?phone=91${clean}`, '_blank');
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 8,
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  color: '#54656f',
+                }}
+                title="Open in Official WhatsApp Web (External)"
+              >
+                <ExternalLink size={18} />
               </button>
 
               {/* 3-dots Menu Button */}

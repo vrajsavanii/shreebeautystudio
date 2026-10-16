@@ -42,6 +42,7 @@ import {
   AlertCircle,
   Sparkles,
   Scale,
+  Calculator,
 } from 'lucide-react';
 import { useSalonStore } from '@/lib/store';
 import { scheduleSave } from '@/lib/sync';
@@ -135,6 +136,7 @@ export default function FinanceAccountingPage() {
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [partyModalOpen, setPartyModalOpen] = useState(false);
   const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [totalBalanceModalOpen, setTotalBalanceModalOpen] = useState(false);
 
   // Receipt Modal
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
@@ -469,9 +471,11 @@ export default function FinanceAccountingPage() {
       }
     });
 
-    // Cash In Hand Calculation
+    // Cash & Bank In/Out Calculation
     let cashIn = 0;
     let cashOut = 0;
+    let bankIn = 0;
+    let bankOut = 0;
     let bankUpiBalance = 0;
 
     // Sales
@@ -488,6 +492,7 @@ export default function FinanceAccountingPage() {
       if (mode.includes('cash')) {
         cashIn += actualPaid;
       } else {
+        bankIn += actualPaid;
         bankUpiBalance += actualPaid;
       }
     });
@@ -498,10 +503,16 @@ export default function FinanceAccountingPage() {
       const mode = (v.mode || 'Cash').toLowerCase();
       if (v.type === 'Payment-In') {
         if (mode.includes('cash')) cashIn += amt;
-        else bankUpiBalance += amt;
+        else {
+          bankIn += amt;
+          bankUpiBalance += amt;
+        }
       } else {
         if (mode.includes('cash')) cashOut += amt;
-        else bankUpiBalance -= amt;
+        else {
+          bankOut += amt;
+          bankUpiBalance -= amt;
+        }
       }
     });
 
@@ -510,7 +521,10 @@ export default function FinanceAccountingPage() {
       const paid = Number(p.paid || 0);
       const mode = (p.mode || 'Cash').toLowerCase();
       if (mode.includes('cash')) cashOut += paid;
-      else bankUpiBalance -= paid;
+      else {
+        bankOut += paid;
+        bankUpiBalance -= paid;
+      }
     });
 
     // Expenses
@@ -518,7 +532,10 @@ export default function FinanceAccountingPage() {
       const amt = Number(e.amount || 0);
       const mode = (e.mode || 'Cash').toLowerCase();
       if (mode.includes('cash')) cashOut += amt;
-      else bankUpiBalance -= amt;
+      else {
+        bankOut += amt;
+        bankUpiBalance -= amt;
+      }
     });
 
     // Advance Payments tracking (Appointments & Bridal)
@@ -585,15 +602,7 @@ export default function FinanceAccountingPage() {
           raw: a,
         });
 
-        // Add to cash in hand / bank only if not yet part of an invoice
-        if (!isConverted) {
-          const mode = (a.advanceMode || 'Cash').toLowerCase();
-          if (mode.includes('cash')) {
-            cashIn += adv;
-          } else {
-            bankUpiBalance += adv;
-          }
-        }
+        // Advances are only added to cashIn/bankIn after an invoice/bill is created (per user requirement)
       }
     });
 
@@ -636,19 +645,12 @@ export default function FinanceAccountingPage() {
           raw: b,
         });
 
-        // Add to cash in hand / bank only if not yet part of an invoice
-        if (!isConverted) {
-          const mode = (b.advanceAccount || 'Cash').toLowerCase();
-          if (mode.includes('cash')) {
-            cashIn += adv;
-          } else {
-            bankUpiBalance += adv;
-          }
-        }
+        // Advances are only added to cashIn/bankIn after an invoice/bill is created (per user requirement)
       }
     });
 
     const cashInHand = Math.max(0, cashIn - cashOut);
+    const safeBankBalance = Math.max(0, bankUpiBalance);
 
     // Sales Today & This Month
     const today = todayISO();
@@ -675,6 +677,14 @@ export default function FinanceAccountingPage() {
       stockValuation += qty * cost;
     });
 
+    // Total Balance = Ready Liquid Cash + Bank (Net in Hand)
+    const totalLiquidBalance = cashInHand + safeBankBalance;
+    const totalBalance = totalLiquidBalance;
+
+    // Net Position = (Cash + Bank + Stock Valuation + Receivables) - Payables
+    const netPosition = (totalLiquidBalance + stockValuation + receivables) - payables;
+    const netBalance = netPosition;
+
     return {
       receivables,
       dueCustomerCount: dueCustomers.size,
@@ -687,7 +697,17 @@ export default function FinanceAccountingPage() {
       totalAdvancesCollected,
       advanceItems,
       cashInHand,
-      bankUpiBalance: Math.max(0, bankUpiBalance),
+      bankUpiBalance: safeBankBalance,
+      totalLiquidBalance,
+      totalBalance,
+      netPosition,
+      netBalance,
+      totalCashIn: cashIn,
+      totalCashOut: cashOut,
+      totalBankIn: bankIn,
+      totalBankOut: bankOut,
+      totalInflow: cashIn + bankIn,
+      totalOutflow: cashOut + bankOut,
       todaySales,
       thisMonthSales,
       stockValuation,
@@ -1630,13 +1650,13 @@ export default function FinanceAccountingPage() {
         </button>
       </div>
 
-      {/* ─── 7 COLORFUL KPI METRIC CARDS (COMPACT SINGLE ROW FIT) ─── */}
+      {/* ─── 9 COLORFUL KPI METRIC CARDS (COMPACT SINGLE ROW FIT) ─── */}
       <div
         className="finance-kpis-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-          gap: 8,
+          gridTemplateColumns: 'repeat(9, minmax(0, 1fr))',
+          gap: 7,
           marginBottom: 20,
         }}
       >
@@ -1786,7 +1806,57 @@ export default function FinanceAccountingPage() {
             {money(metrics.activeAdvances)}
           </div>
           <div style={{ fontSize: 10, fontWeight: 600, color: '#b45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {metrics.activeAdvanceCount} Bookings • Due: {money(metrics.activeBalanceDue)}
+            {metrics.activeAdvanceCount} Active Bookings
+          </div>
+        </div>
+
+        {/* 4. BALANCE DUE (TOTAL IN BOOKINGS) */}
+        <div
+          onClick={() => setActiveTab('advances')}
+          title="Click to view Bookings Balance Due"
+          style={{
+            background: 'linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%)',
+            border: activeTab === 'advances' ? '2px solid #e11d48' : '1.5px solid #fecdd3',
+            borderRadius: 12,
+            padding: '10px 8px',
+            position: 'relative',
+            boxShadow: activeTab === 'advances' ? '0 4px 12px rgba(225, 29, 72, 0.22)' : '0 2px 6px rgba(225, 29, 72, 0.08)',
+            minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#9f1239', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              BALANCE DUE
+            </span>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                minWidth: 20,
+                borderRadius: '50%',
+                background: '#ffe4e6',
+                color: '#e11d48',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Clock size={11} />
+            </div>
+          </div>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#881337', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {money(metrics.activeBalanceDue)}
+          </div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#be123c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            Total in Booking
           </div>
         </div>
 
@@ -1895,35 +1965,33 @@ export default function FinanceAccountingPage() {
           </div>
         </div>
 
-        {/* 6. TODAY'S SALE */}
+        {/* 7. TOTAL BALANCE */}
         <div
-          onClick={() => {
-            setActiveTab('transactions');
-            setTypeFilter('Sale');
-            setTimeFilter('today');
-          }}
-          title="Click to view Today's Sales"
+          onClick={() => setTotalBalanceModalOpen(true)}
+          title="Click to view Total Balance Breakdown"
           style={{
-            background: '#faf5ff',
-            border: activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '2px solid #9333ea' : '1.5px solid #e9d5ff',
+            background: 'linear-gradient(180deg, #eef2ff 0%, #e0e7ff 100%)',
+            border: totalBalanceModalOpen ? '2px solid #4f46e5' : '1.5px solid #c7d2fe',
             borderRadius: 12,
             padding: '10px 8px',
             position: 'relative',
-            boxShadow: activeTab === 'transactions' && typeFilter === 'Sale' && timeFilter === 'today' ? '0 4px 12px rgba(168, 85, 247, 0.18)' : '0 2px 6px rgba(168, 85, 247, 0.05)',
+            boxShadow: totalBalanceModalOpen ? '0 4px 14px rgba(79, 70, 229, 0.25)' : '0 2px 6px rgba(79, 70, 229, 0.08)',
             minWidth: 0,
             cursor: 'pointer',
             transition: 'all 0.15s ease',
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 4px 14px rgba(79, 70, 229, 0.22)';
           }}
           onMouseOut={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = totalBalanceModalOpen ? '0 4px 14px rgba(79, 70, 229, 0.25)' : '0 2px 6px rgba(79, 70, 229, 0.08)';
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#6b21a8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              TODAY&apos;S SALE
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#3730a3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              TOTAL BALANCE
             </span>
             <div
               style={{
@@ -1931,21 +1999,73 @@ export default function FinanceAccountingPage() {
                 height: 20,
                 minWidth: 20,
                 borderRadius: '50%',
-                background: '#f3e8ff',
-                color: '#9333ea',
+                background: '#e0e7ff',
+                color: '#4f46e5',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <TrendingUp size={11} />
+              <Scale size={11} />
             </div>
           </div>
-          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#581c87', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {money(metrics.todaySales)}
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: '#312e81', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {money(metrics.totalBalance)}
           </div>
-          <div style={{ fontSize: 10, fontWeight: 600, color: '#7e22ce', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Month: {money(metrics.thisMonthSales)}
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: '#4338ca', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={`Cash In Hand (${money(metrics.cashInHand)}) + Bank & UPI (${money(metrics.bankUpiBalance)})`}>
+            Liquid Cash &amp; Bank
+          </div>
+        </div>
+
+        {/* 8. NET POSITION */}
+        <div
+          onClick={() => setTotalBalanceModalOpen(true)}
+          title="Click to view Net Position Breakdown"
+          style={{
+            background: metrics.netPosition >= 0 ? 'linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%)' : 'linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%)',
+            border: metrics.netPosition >= 0 ? '1.5px solid #86efac' : '1.5px solid #fda4af',
+            borderRadius: 12,
+            padding: '10px 8px',
+            position: 'relative',
+            boxShadow: metrics.netPosition >= 0 ? '0 2px 6px rgba(34, 197, 94, 0.08)' : '0 2px 6px rgba(225, 29, 72, 0.08)',
+            minWidth: 0,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = metrics.netPosition >= 0 ? '0 4px 14px rgba(34, 197, 94, 0.22)' : '0 4px 14px rgba(225, 29, 72, 0.22)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = metrics.netPosition >= 0 ? '0 2px 6px rgba(34, 197, 94, 0.08)' : '0 2px 6px rgba(225, 29, 72, 0.08)';
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 800, color: metrics.netPosition >= 0 ? '#166534' : '#9f1239', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              NET POSITION
+            </span>
+            <div
+              style={{
+                width: 20,
+                height: 20,
+                minWidth: 20,
+                borderRadius: '50%',
+                background: metrics.netPosition >= 0 ? '#bbf7d0' : '#fecdd3',
+                color: metrics.netPosition >= 0 ? '#15803d' : '#e11d48',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Scale size={11} />
+            </div>
+          </div>
+          <div style={{ fontSize: 'clamp(15px, 1.2vw, 18px)', fontWeight: 900, color: metrics.netPosition >= 0 ? '#14532d' : '#881337', margin: '4px 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {metrics.netPosition >= 0 ? `+${money(metrics.netPosition)}` : money(metrics.netPosition)}
+          </div>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: metrics.netPosition >= 0 ? '#15803d' : '#be123c', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title="Assets (Stock + Liquid Balance) minus Supplier Liabilities">
+            {metrics.netPosition >= 0 ? 'Assets Equal Liabilities' : 'Net Business Deficit'}
           </div>
         </div>
 
@@ -2249,11 +2369,11 @@ export default function FinanceAccountingPage() {
                 }}
               >
                 <option value="All">All Types</option>
-                <option value="Sale">Sale (વેચાણ)</option>
-                <option value="Purchase">Purchase (ખરીદી)</option>
-                <option value="Payment In">Payment In (આવક)</option>
-                <option value="Payment Out">Payment Out (ચુકવણી)</option>
-                <option value="Expense">Expense (ખર્ચ)</option>
+                <option value="Sale">Sale</option>
+                <option value="Purchase">Purchase</option>
+                <option value="Payment In">Payment In</option>
+                <option value="Payment Out">Payment Out</option>
+                <option value="Expense">Expense</option>
               </select>
 
               {/* Time Filter Dropdown */}
@@ -2501,7 +2621,7 @@ export default function FinanceAccountingPage() {
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 800, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Active Unadjusted Advances (અનામત એડવાન્સ)
+                Active Unadjusted Advances
               </div>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#78350f', margin: '6px 0 2px' }}>
                 {money(metrics.activeAdvances)}
@@ -2533,7 +2653,7 @@ export default function FinanceAccountingPage() {
                   alignItems: 'center',
                 }}
               >
-                <span>Balance Due (બુકિંગ બાકી રકમ)</span>
+                <span>Balance Due</span>
                 <span
                   style={{
                     fontSize: 9.5,
@@ -2566,7 +2686,7 @@ export default function FinanceAccountingPage() {
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 800, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Converted to Completed Sales (વેચાણમાં જમા)
+                Converted to Completed Sales
               </div>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#14532d', margin: '6px 0 2px' }}>
                 {money(metrics.totalAdvancesCollected - metrics.activeAdvances)}
@@ -2586,7 +2706,7 @@ export default function FinanceAccountingPage() {
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Total Lifetime Advance Received (કુલ એડવાન્સ)
+                Total Lifetime Advances Received
               </div>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', margin: '6px 0 2px' }}>
                 {money(metrics.totalAdvancesCollected)}
@@ -3244,7 +3364,7 @@ export default function FinanceAccountingPage() {
         </div>
       )}
 
-      {/* ─── TAB CONTENT 5: DAILY CASH BOOK (ROJMEL / રોજમેળ) ─── */}
+      {/* ─── TAB CONTENT 5: DAILY CASH BOOK (ROJMEL) ─── */}
       {activeTab === 'rojmel' && (
         <div style={{ background: '#ffffff', borderRadius: 16, border: '1px solid #e2e8f0', padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
           {/* Rojmel Header & Date / Mode Selector */}
@@ -3262,10 +3382,10 @@ export default function FinanceAccountingPage() {
           >
             <div>
               <h2 style={{ margin: 0, fontSize: 21, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <BookOpen size={22} color="#0284c7" /> Daily Cash Book (Rojmel / રોજમેળ)
+                <BookOpen size={22} color="#0284c7" /> Daily Cash Book (Rojmel)
               </h2>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
-                દૈનિક જમા (આવક), ઉધાર (ખર્ચ) અને સિલક (બેલેન્સ) નો સંપૂર્ણ ચોખ્ખો હિસાબ.
+                Daily record of cash inflows, expenses, and closing balance.
               </p>
             </div>
 
@@ -3328,13 +3448,13 @@ export default function FinanceAccountingPage() {
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: '#64748b', marginRight: 4 }}>
                 <Filter size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                પેમેન્ટ મોડ:
+                Payment Mode:
               </span>
               {[
-                { id: 'all', label: '🔘 All Payments (બધા જ પેમેન્ટ)', color: '#0f172a' },
-                { id: 'cash', label: '💵 Cash Only (રોકડ)', color: '#166534' },
-                { id: 'online', label: '📱 UPI / Online (ઓનલાઇન)', color: '#0284c7' },
-                { id: 'bank', label: '🏦 Bank (બેંક)', color: '#7c3aed' },
+                { id: 'all', label: '🔘 All Payments', color: '#0f172a' },
+                { id: 'cash', label: '💵 Cash Only', color: '#166534' },
+                { id: 'online', label: '📱 UPI / Online', color: '#0284c7' },
+                { id: 'bank', label: '🏦 Bank Transfer', color: '#7c3aed' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -3384,7 +3504,7 @@ export default function FinanceAccountingPage() {
               alignItems: 'stretch',
             }}
           >
-            {/* 📥 COLUMN 1 (LEFT): JAMA / CASH & ONLINE IN (જમા - આવક) */}
+            {/* 📥 COLUMN 1 (LEFT): JAMA / CASH & ONLINE IN */}
             <div
               style={{
                 background: '#f0fdf4',
@@ -3407,10 +3527,10 @@ export default function FinanceAccountingPage() {
               >
                 <div>
                   <span style={{ fontSize: 13.5, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <ArrowDownLeft size={16} color="#16a34a" /> 📥 JAMA / INFLOW (જમા)
+                    <ArrowDownLeft size={16} color="#16a34a" /> 📥 JAMA / CASH &amp; ONLINE IN
                   </span>
                   <div style={{ fontSize: 11.5, color: '#15803d', marginTop: 2 }}>
-                    {rojmelData.cashInList.length} આવકના વ્યવહારો
+                    {rojmelData.cashInList.length} Inflow Transactions
                   </div>
                 </div>
                 <span style={{ fontSize: 18, fontWeight: 900, color: '#14532d' }}>
@@ -3421,7 +3541,7 @@ export default function FinanceAccountingPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 460, overflowY: 'auto', flex: 1, paddingRight: 4 }}>
                 {rojmelData.cashInList.length === 0 ? (
                   <div style={{ fontSize: 13, color: '#86efac', textAlign: 'center', padding: '40px 0' }}>
-                    આ તારીખે કોઈ જમા (આવક) એન્ટ્રી નથી.
+                    No inflow entries recorded for this date.
                   </div>
                 ) : (
                   rojmelData.cashInList.map((item) => {
@@ -3477,7 +3597,7 @@ export default function FinanceAccountingPage() {
               </div>
             </div>
 
-            {/* ⚖️ COLUMN 2 (MIDDLE - બંને વચ્ચે): BALANCE (સિલક / ચોખ્ખો હિસાબ) */}
+            {/* ⚖️ COLUMN 2 (MIDDLE): NET DAILY BALANCE */}
             <div
               style={{
                 background: 'linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%)',
@@ -3501,7 +3621,7 @@ export default function FinanceAccountingPage() {
                   }}
                 >
                   <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Scale size={16} color="#0284c7" /> ⚖️ BALANCE (સિલક / હિસાબ)
+                    <Scale size={16} color="#0284c7" /> ⚖️ NET DAILY BALANCE
                   </span>
                   <span
                     style={{
@@ -3531,7 +3651,7 @@ export default function FinanceAccountingPage() {
                   }}
                 >
                   <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    આજની ચોખ્ખી સિલક (Today's Net Movement)
+                    Today's Net Movement
                   </div>
                   <div
                     style={{
@@ -3544,20 +3664,20 @@ export default function FinanceAccountingPage() {
                     {rojmelData.netDayChange >= 0 ? `+${money(rojmelData.netDayChange)}` : money(rojmelData.netDayChange)}
                   </div>
                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                    જમા (+{money(rojmelData.totalIn)}) — ઉધાર (-{money(rojmelData.totalOut)})
+                    Inflow (+{money(rojmelData.totalIn)}) — Outflow (-{money(rojmelData.totalOut)})
                   </div>
                 </div>
 
                 {/* Opening & Closing Balance Badges */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
                   <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 10, border: '1px solid #e0f2fe' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>શરૂઆતની સિલક (Op. Bal)</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>Opening Balance</div>
                     <div style={{ fontSize: 13.5, fontWeight: 800, color: '#334155', marginTop: 2 }}>
                       {money(rojmelData.openingBalance)}
                     </div>
                   </div>
                   <div style={{ background: '#ffffff', padding: '10px 12px', borderRadius: 10, border: '1px solid #e0f2fe' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0369a1' }}>કુલ આખર સિલક (Closing)</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#0369a1' }}>Closing Balance</div>
                     <div style={{ fontSize: 13.5, fontWeight: 900, color: rojmelData.closingBalance >= 0 ? '#0284c7' : '#dc2626', marginTop: 2 }}>
                       {money(rojmelData.closingBalance)}
                     </div>
@@ -3568,7 +3688,7 @@ export default function FinanceAccountingPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                   {/* Cash in Hand */}
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>💵 રોકડ સિલક (Cash in Drawer):</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>💵 Cash In Drawer:</span>
                     <span style={{ fontSize: 13, fontWeight: 800, color: rojmelData.todayCashNet >= 0 ? '#16a34a' : '#dc2626' }}>
                       {rojmelData.todayCashNet >= 0 ? `+${money(rojmelData.todayCashNet)}` : money(rojmelData.todayCashNet)}
                     </span>
@@ -3576,7 +3696,7 @@ export default function FinanceAccountingPage() {
 
                   {/* UPI / Online */}
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>📱 UPI / GPay (ઓનલાઇન સિલક):</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>📱 UPI / Online:</span>
                     <span style={{ fontSize: 13, fontWeight: 800, color: rojmelData.todayUpiNet >= 0 ? '#0284c7' : '#dc2626' }}>
                       {rojmelData.todayUpiNet >= 0 ? `+${money(rojmelData.todayUpiNet)}` : money(rojmelData.todayUpiNet)}
                     </span>
@@ -3584,7 +3704,7 @@ export default function FinanceAccountingPage() {
 
                   {/* Bank Account */}
                   <div style={{ background: '#ffffff', padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>🏦 બેંક એકાઉન્ટ (Bank Balance):</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>🏦 Bank Account:</span>
                     <span style={{ fontSize: 13, fontWeight: 800, color: rojmelData.todayBankNet >= 0 ? '#7c3aed' : '#dc2626' }}>
                       {rojmelData.todayBankNet >= 0 ? `+${money(rojmelData.todayBankNet)}` : money(rojmelData.todayBankNet)}
                     </span>
@@ -3594,11 +3714,11 @@ export default function FinanceAccountingPage() {
 
               {/* Bottom Quick Footer */}
               <div style={{ padding: '8px 10px', background: '#ffffff', borderRadius: 8, border: '1px dashed #7dd3fc', fontSize: 11.5, color: '#0369a1', textAlign: 'center', fontWeight: 700 }}>
-                📊 કુલ {rojmelData.cashInList.length} આવક એન્ટ્રી • {rojmelData.cashOutList.length} ખર્ચ એન્ટ્રી
+                📊 Total {rojmelData.cashInList.length} Inflows • {rojmelData.cashOutList.length} Outflows
               </div>
             </div>
 
-            {/* 📤 COLUMN 3 (RIGHT): UDHAR / CASH & ONLINE OUT (ઉધાર - ખર્ચ) */}
+            {/* 📤 COLUMN 3 (RIGHT): UDHAR / CASH & ONLINE OUT */}
             <div
               style={{
                 background: '#fff1f2',
@@ -3621,10 +3741,10 @@ export default function FinanceAccountingPage() {
               >
                 <div>
                   <span style={{ fontSize: 13.5, fontWeight: 800, color: '#9f1239', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <ArrowUpRight size={16} color="#e11d48" /> 📤 UDHAR / OUTFLOW (ઉધાર)
+                    <ArrowUpRight size={16} color="#e11d48" /> 📤 UDHAR / CASH &amp; ONLINE OUT
                   </span>
                   <div style={{ fontSize: 11.5, color: '#be123c', marginTop: 2 }}>
-                    {rojmelData.cashOutList.length} ખર્ચના વ્યવહારો
+                    {rojmelData.cashOutList.length} Outflow Transactions
                   </div>
                 </div>
                 <span style={{ fontSize: 18, fontWeight: 900, color: '#881337' }}>
@@ -3635,7 +3755,7 @@ export default function FinanceAccountingPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 460, overflowY: 'auto', flex: 1, paddingRight: 4 }}>
                 {rojmelData.cashOutList.length === 0 ? (
                   <div style={{ fontSize: 13, color: '#fda4af', textAlign: 'center', padding: '40px 0' }}>
-                    આ તારીખે કોઈ ઉધાર (ખર્ચ) એન્ટ્રી નથી.
+                    No outflow entries recorded for this date.
                   </div>
                 ) : (
                   rojmelData.cashOutList.map((item) => {
@@ -4511,6 +4631,182 @@ export default function FinanceAccountingPage() {
                 <span>Balance Due</span>
                 <span>{money(viewPurchase.balance || 0)}</span>
               </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* ─── TOTAL BALANCE BREAKDOWN MODAL ─── */}
+      {totalBalanceModalOpen && (
+        <Modal
+          isOpen={totalBalanceModalOpen}
+          onClose={() => setTotalBalanceModalOpen(false)}
+          title="TOTAL BALANCE — Mathematical Breakdown"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Top 2 Big Hero Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+              {/* Card 1: Ready Cash, Bank & Stock */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
+                  border: '2px solid #818cf8',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  boxShadow: '0 4px 14px rgba(99, 102, 241, 0.15)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#3730a3', textTransform: 'uppercase' }}>
+                    Total Liquid Balance
+                  </span>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#c7d2fe', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4338ca' }}>
+                    <Wallet size={14} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: '#312e81', margin: '6px 0 2px' }}>
+                  {money(metrics.totalBalance)}
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#4338ca' }}>
+                  Liquid Cash &amp; Bank (Net in Hand)
+                </div>
+                <div style={{ fontSize: 11, color: '#6366f1', marginTop: 4, fontWeight: 600 }}>
+                  Cash: {money(metrics.cashInHand)} • Bank &amp; UPI: {money(metrics.bankUpiBalance)}
+                </div>
+              </div>
+
+              {/* Card 2: Net Position after Payables */}
+              <div
+                style={{
+                  background: metrics.netPosition >= 0 ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' : 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)',
+                  border: metrics.netPosition >= 0 ? '2px solid #86efac' : '2px solid #fda4af',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  boxShadow: metrics.netPosition >= 0 ? '0 4px 14px rgba(34, 197, 94, 0.15)' : '0 4px 14px rgba(225, 29, 72, 0.15)',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: metrics.netPosition >= 0 ? '#166534' : '#9f1239', textTransform: 'uppercase' }}>
+                    NET POSITION
+                  </span>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: metrics.netPosition >= 0 ? '#bbf7d0' : '#fecdd3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: metrics.netPosition >= 0 ? '#15803d' : '#e11d48' }}>
+                    <Scale size={14} />
+                  </div>
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: metrics.netPosition >= 0 ? '#14532d' : '#881337', margin: '6px 0 2px' }}>
+                  {metrics.netPosition >= 0 ? `+${money(metrics.netPosition)}` : money(metrics.netPosition)}
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: metrics.netPosition >= 0 ? '#15803d' : '#be123c' }}>
+                  {metrics.netPosition >= 0 ? 'Surplus / Balanced after all supplier liabilities' : 'Deficit after paying supplier liabilities'}
+                </div>
+                <div style={{ fontSize: 11, color: metrics.netPosition >= 0 ? '#16a34a' : '#f43f5e', marginTop: 4, fontWeight: 600 }}>
+                  Total Assets (Cash + Stock): +{money(metrics.totalLiquidBalance + metrics.stockValuation)} • Liabilities: -{money(metrics.payables)}
+                </div>
+              </div>
+            </div>
+
+            {/* Step-by-Step Mathematical Formula */}
+            <div
+              style={{
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 12,
+                padding: '12px 16px',
+                fontSize: 12,
+                color: '#334155',
+              }}
+            >
+              <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Calculator size={14} color="#6366f1" />
+                <span>Step-by-Step Mathematical Calculation:</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #cbd5e1' }}>
+                  <span style={{ color: '#0284c7', fontWeight: 700 }}>[+] Cash In Hand (Drawer):</span>
+                  <span style={{ fontWeight: 800, color: '#0284c7' }}>+{money(metrics.cashInHand)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #cbd5e1' }}>
+                  <span style={{ color: '#0d9488', fontWeight: 700 }}>[+] Bank &amp; UPI Balance:</span>
+                  <span style={{ fontWeight: 800, color: '#0d9488' }}>+{money(metrics.bankUpiBalance)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '2px solid #cbd5e1', fontWeight: 800 }}>
+                  <span style={{ color: '#312e81' }}>[=] Total Liquid Balance (Net in Hand):</span>
+                  <span style={{ color: '#312e81', fontSize: 14 }}>{money(metrics.totalBalance)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #cbd5e1' }}>
+                  <span style={{ color: '#d97706', fontWeight: 700 }}>[+] Warehouse Stock Inventory Value:</span>
+                  <span style={{ fontWeight: 800, color: '#d97706' }}>+{money(metrics.stockValuation)}</span>
+                </div>
+                {metrics.activeAdvances > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #cbd5e1', fontSize: 11.5, background: '#fffbeb', borderRadius: 6, margin: '2px 0' }}>
+                    <span style={{ color: '#b45309', fontWeight: 700 }}>[ℹ] Booking Advances (Added to Cash upon Invoice generation):</span>
+                    <span style={{ fontWeight: 800, color: '#b45309' }}>{money(metrics.activeAdvances)} ({metrics.activeAdvanceCount} Bookings)</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #cbd5e1', fontSize: 11.5 }}>
+                  <span style={{ color: '#0284c7' }}>[+] Customer Receivables (You'll Get):</span>
+                  <span style={{ fontWeight: 700, color: '#0284c7' }}>+{money(metrics.receivables)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #cbd5e1', fontSize: 11.5 }}>
+                  <span style={{ color: '#b45309' }}>[+] Booking Balance Due (Future Inflow):</span>
+                  <span style={{ fontWeight: 700, color: '#b45309' }}>+{money(metrics.activeBalanceDue)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px dashed #cbd5e1', fontSize: 11.5 }}>
+                  <span style={{ color: '#e11d48' }}>[-] Supplier Payables (You'll Pay):</span>
+                  <span style={{ fontWeight: 700, color: '#e11d48' }}>-{money(metrics.payables)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontWeight: 900, fontSize: 13 }}>
+                  <span style={{ color: metrics.netPosition >= 0 ? '#15803d' : '#881337' }}>
+                    [=] NET POSITION:
+                  </span>
+                  <span style={{ color: metrics.netPosition >= 0 ? '#15803d' : '#881337' }}>
+                    {metrics.netPosition >= 0 ? `+${money(metrics.netPosition)}` : money(metrics.netPosition)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setTotalBalanceModalOpen(false);
+                  setActiveTab('rojmel');
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: '1.5px solid #0284c7',
+                  background: '#f0f9ff',
+                  color: '#0369a1',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <BookOpen size={14} /> <span>Open Daily Cashbook</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTotalBalanceModalOpen(false)}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </Modal>

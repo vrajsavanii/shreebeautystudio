@@ -6,7 +6,7 @@ import { whatsappService } from '@/lib/whatsapp-baileys-service';
 
 export const dynamic = 'force-dynamic';
 
-const WA_SERVICE_URL = process.env.WHATSAPP_SERVICE_URL || 'http://localhost:3001';
+const WA_SERVICE_URL = process.env.WHATSAPP_SERVICE_URL || 'http://127.0.0.1:3001';
 
 export async function POST(req: NextRequest) {
   try {

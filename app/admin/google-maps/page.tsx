@@ -115,13 +115,13 @@ export default function GoogleMapAutoHubPage() {
   const [hideReplied, setHideReplied] = useState<boolean>(
     settings?.googleReviewsHideReplied ?? false
   );
-  // Hide Old Reviews (> 30 Days) - Defaults to true so old reviews do not show there
+  // Hide Old Reviews (> 30 Days) - Defaults to false so all reviews show
   const [hideOldReviews, setHideOldReviews] = useState<boolean>(
-    settings?.googleReviewsHideOld ?? true
+    settings?.googleReviewsHideOld ?? false
   );
-  // Date filter (all | 7d | 30d | 90d | recent)
+  // Date filter (all | 7d | 30d | 90d | recent) - Defaults to 'all' so all reviews show
   const [dateFilter, setDateFilter] = useState<'all' | '7d' | '30d' | '90d' | 'recent'>(
-    settings?.googleReviewsDateFilter || '30d'
+    settings?.googleReviewsDateFilter || 'all'
   );
   // Sort order (recent | rating | oldest) - Defaults to 'recent' (Most Recent Reviews First)
   const [sortOrder, setSortOrder] = useState<'recent' | 'rating' | 'oldest'>('recent');
@@ -758,6 +758,13 @@ export default function GoogleMapAutoHubPage() {
     setData(updatedData);
     scheduleSave();
 
+    // Directly persist to server database via API
+    fetch('/api/google-reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newRev),
+    }).catch(() => {});
+
     // Update active reviews list and prepend at the very top
     setReviews((prev) => [newRev, ...prev.filter((r) => !(r.name === newRev.name && r.text === newRev.text))]);
 
@@ -1272,7 +1279,9 @@ Your review helps other brides and ladies in Surat find authentic salon care! �
                   </div>
                   <div style={{ fontSize: 12, color: '#b45309', lineHeight: 1.4 }}>
                     {googleApiError.toLowerCase().includes('billing')
-                      ? 'Google Cloud Places API requires Billing/Credit to be linked in Google Cloud Console for automatic live syncing. You can add any latest review in 5 seconds using "➕ Add New Review".'
+                      ? 'Google Cloud Places API requires Billing to be linked in Google Cloud Console for automatic background sync. You can add any latest review in 5 seconds using "➕ Add New Review".'
+                      : googleApiError.toLowerCase().includes('legacy') || googleApiError.toLowerCase().includes('permission')
+                      ? 'Google Places API (New) needs to be activated in your Google Cloud Console for automatic background syncing. All verified reviews are currently active, and you can add any latest review in 5 seconds using "+ Add New Review"!'
                       : `Google API Notice: ${googleApiError}`}
                   </div>
                 </div>
