@@ -16,6 +16,7 @@ import { playNewBookingChime } from '@/lib/notification-sound';
 import { fadeSlideUp } from '@/variants';
 import { useSalonStore } from '@/lib/store';
 import { initApkSessionTracker } from '@/lib/apk-tracker';
+import AdminNotificationDaemon from '@/components/admin/AdminNotificationDaemon';
 
 const ALLOWED_SALES_ROUTES = [
   '/admin/appointments',
@@ -64,6 +65,14 @@ function DashboardShell({ children }: { children: ReactNode }) {
         `🔔 New Booking Request: ${newAppt.customer} booked ${newAppt.service} for ${newAppt.date} at ${newAppt.time}!`,
         'success'
       );
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(`🔔 New Booking: ${newAppt.customer}`, {
+            body: `${newAppt.service} on ${newAppt.date} at ${newAppt.time}`,
+            icon: '/icons/icon-192x192.png',
+          });
+        } catch {}
+      }
     });
 
     return () => {
@@ -77,6 +86,7 @@ function DashboardShell({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="main-area">
         <Topbar />
+        <AdminNotificationDaemon />
         <main className="page-content">
           <AnimatePresence mode="wait">
             <motion.div

@@ -25,7 +25,14 @@ import { format } from 'date-fns';
 import { useSalonStore } from '@/lib/store';
 import { todayISO } from '@/lib/utils';
 import { clearAdminSession } from '@/lib/admin-auth';
-import { playNewBookingChime, isAudioNotificationMuted, setAudioNotificationMuted } from '@/lib/notification-sound';
+import {
+  playNewBookingChime,
+  playAdminAppointmentReminderSound,
+  playAdminPendingBillSound,
+  playCustomerNotificationSound,
+  isAudioNotificationMuted,
+  setAudioNotificationMuted,
+} from '@/lib/notification-sound';
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/admin':             { title: 'Dashboard Overview', subtitle: 'Real-time studio KPIs & analytics' },
@@ -61,10 +68,30 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   const [timeStr, setTimeStr] = useState('');
   const [soundMuted, setSoundMuted] = useState(false);
+  const [soundMenuOpen, setSoundMenuOpen] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<'default' | 'granted' | 'denied'>('default');
+  const soundMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setSoundMuted(isAudioNotificationMuted());
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotifPermission(Notification.permission);
+    }
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (soundMenuRef.current && !soundMenuRef.current.contains(event.target as Node)) {
+        setSoundMenuOpen(false);
+      }
+    }
+    if (soundMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [soundMenuOpen]);
 
   useEffect(() => {
     const updateTime = () => setTimeStr(format(new Date(), 'hh:mm a'));
@@ -363,35 +390,178 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
             <ExternalLink size={12} /> <span className="topbar-action-label">Site</span>
           </Link>
 
-          {/* Sound Notification Chime Test / Mute Button */}
-          <button
-            type="button"
-            onClick={() => {
-              const nextMuted = !soundMuted;
-              setSoundMuted(nextMuted);
-              setAudioNotificationMuted(nextMuted);
-              if (!nextMuted) playNewBookingChime(true);
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              borderRadius: 6,
-              background: soundMuted ? '#fef2f2' : '#f0fdf4',
-              border: `1px solid ${soundMuted ? '#fecaca' : '#bbf7d0'}`,
-              color: soundMuted ? '#dc2626' : '#16a34a',
-              cursor: 'pointer',
-              flexShrink: 0,
-              padding: 0,
-              transition: 'all 0.15s ease',
-            }}
-            title={soundMuted ? 'Notification Sound is MUTED. Click to un-mute.' : 'Notification Sound is ACTIVE. Click to test / mute.'}
-            aria-label={soundMuted ? 'Unmute booking notification sounds' : 'Mute booking notification sounds'}
-          >
-            {soundMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          </button>
+          {/* Studio Sound Center Menu */}
+          <div ref={soundMenuRef} style={{ position: 'relative', display: 'inline-flex' }}>
+            <button
+              type="button"
+              onClick={() => setSoundMenuOpen((prev) => !prev)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: soundMuted ? '#fef2f2' : '#f0fdf4',
+                border: `1px solid ${soundMuted ? '#fecaca' : '#bbf7d0'}`,
+                color: soundMuted ? '#dc2626' : '#16a34a',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0,
+                transition: 'all 0.15s ease',
+              }}
+              title={soundMuted ? 'Notification Sound is MUTED. Click to open Sound Center.' : 'Notification Sound is ACTIVE. Click to test & configure.'}
+              aria-label="Studio Audio & Notification Sound Center"
+            >
+              {soundMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            </button>
+
+            {/* Sound Center Popover */}
+            {soundMenuOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '34px',
+                  right: 0,
+                  width: '290px',
+                  background: '#032B30',
+                  border: '1px solid rgba(234, 186, 56, 0.45)',
+                  borderRadius: '14px',
+                  padding: '14px',
+                  boxShadow: '0 16px 40px rgba(0,0,0,0.5)',
+                  zIndex: 9999,
+                  color: '#FFFFFF',
+                  animation: 'fadeInDown 0.2s ease-out forwards',
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Volume2 size={16} color="#EABA38" />
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF' }}>Studio Sound Center</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextMuted = !soundMuted;
+                      setSoundMuted(nextMuted);
+                      setAudioNotificationMuted(nextMuted);
+                      if (!nextMuted) playNewBookingChime(true);
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: soundMuted ? '#ef4444' : '#10b981',
+                      color: '#ffffff',
+                    }}
+                  >
+                    {soundMuted ? 'Unmute' : 'Mute All'}
+                  </button>
+                </div>
+
+                {/* Sound Profiles */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '10.5px', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
+                    Unique Audio Signatures
+                  </div>
+
+                  {/* 1. New Booking */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.06)', padding: '6px 8px', borderRadius: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#FFFFFF' }}>🔔 New Booking</div>
+                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.65)' }}>4-Tone Concierge Chime</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playNewBookingChime(true)}
+                      style={{ fontSize: '11px', fontWeight: 700, background: '#EABA38', color: '#032B30', border: 'none', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer' }}
+                    >
+                      ▶ Test
+                    </button>
+                  </div>
+
+                  {/* 2. Appointment Reminder */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.06)', padding: '6px 8px', borderRadius: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#FFFFFF' }}>⏰ Appointment Due</div>
+                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.65)' }}>Salon Paging Chime (15-30m)</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playAdminAppointmentReminderSound(true)}
+                      style={{ fontSize: '11px', fontWeight: 700, background: '#EABA38', color: '#032B30', border: 'none', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer' }}
+                    >
+                      ▶ Test
+                    </button>
+                  </div>
+
+                  {/* 3. Pending Bill Alert */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.06)', padding: '6px 8px', borderRadius: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#FFFFFF' }}>💰 Pending Bill / Dues</div>
+                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.65)' }}>Gold Metallic Coin Ding</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playAdminPendingBillSound(true)}
+                      style={{ fontSize: '11px', fontWeight: 700, background: '#EABA38', color: '#032B30', border: 'none', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer' }}
+                    >
+                      ▶ Test
+                    </button>
+                  </div>
+
+                  {/* 4. Customer Sparkle */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.06)', padding: '6px 8px', borderRadius: '8px' }}>
+                    <div>
+                      <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#FFFFFF' }}>✨ Customer Sparkle</div>
+                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.65)' }}>5-Note Luxury Arpeggio</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playCustomerNotificationSound(true)}
+                      style={{ fontSize: '11px', fontWeight: 700, background: '#EABA38', color: '#032B30', border: 'none', borderRadius: '5px', padding: '3px 8px', cursor: 'pointer' }}
+                    >
+                      ▶ Test
+                    </button>
+                  </div>
+                </div>
+
+                {/* Device Push Status */}
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.7)' }}>
+                    Device Push: {notifPermission === 'granted' ? '🟢 Active' : notifPermission === 'denied' ? '🔴 Blocked' : '🟡 Inactive'}
+                  </span>
+                  {notifPermission === 'default' && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (typeof window !== 'undefined' && 'Notification' in window) {
+                          const res = await Notification.requestPermission();
+                          setNotifPermission(res);
+                        }
+                      }}
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        background: 'rgba(234, 186, 56, 0.2)',
+                        border: '1px solid #EABA38',
+                        color: '#EABA38',
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Enable
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Active User Pill (28px height) */}

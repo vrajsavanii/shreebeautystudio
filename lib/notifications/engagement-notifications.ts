@@ -2,6 +2,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { playCustomerNotificationSound } from '@/lib/notification-sound';
 
 export interface BeautyNotification {
   id: number;
@@ -292,3 +293,28 @@ export function setupNotificationListeners(navigate: (url: string) => void) {
     console.warn('Error setting up notification click listener:', err);
   }
 }
+
+/**
+ * Dispatches an instant customer app alert, plays the signature sparkle chime,
+ * and shows native web/system notification if supported.
+ */
+export function dispatchCustomerNotification(options: {
+  title: string;
+  body: string;
+  actionUrl?: string;
+  forceSound?: boolean;
+}) {
+  // Always trigger signature luxury sparkle arpeggio
+  playCustomerNotificationSound(options.forceSound ?? true);
+
+  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    try {
+      new Notification(options.title, {
+        body: options.body,
+        icon: '/icons/icon-192x192.png',
+        tag: 'shree-customer-notification',
+      });
+    } catch {}
+  }
+}
+

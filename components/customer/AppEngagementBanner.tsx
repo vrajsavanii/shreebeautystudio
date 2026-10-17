@@ -9,6 +9,7 @@ import {
   scheduleDailyNotifications,
   setupNotificationListeners,
 } from '@/lib/notifications/engagement-notifications';
+import { playCustomerNotificationSound } from '@/lib/notification-sound';
 
 export default function AppEngagementBanner() {
   const router = useRouter();
@@ -55,6 +56,7 @@ export default function AppEngagementBanner() {
     setShowPrompt(false);
 
     if (granted) {
+      playCustomerNotificationSound(true);
       setGrantedToast(true);
       setTimeout(() => setGrantedToast(false), 4500);
     } else {

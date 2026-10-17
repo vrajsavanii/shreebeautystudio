@@ -43,6 +43,7 @@ import { getServiceImage } from '@/lib/customer-images';
 
 import { getAppointmentGoogleCalendarUrl, getBridalGoogleCalendarUrl } from '@/lib/calendar';
 import { checkDateHolidayOrBlocked } from '@/lib/holidays';
+import { playCustomerNotificationSound } from '@/lib/notification-sound';
 
 const TIME_SLOTS = [
   '09:00 AM',
@@ -456,6 +457,7 @@ function PublicBookingPageContent() {
         if (typeof window !== 'undefined') {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+        playCustomerNotificationSound(true);
         setConfirmedAppt(newAppt);
       } else {
         // Bridal Booking Mode
@@ -556,6 +558,7 @@ function PublicBookingPageContent() {
         if (typeof window !== 'undefined') {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+        playCustomerNotificationSound(true);
         setConfirmedBridal(newBridalBooking);
       }
     } catch (err: any) {
