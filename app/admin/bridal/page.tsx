@@ -1002,18 +1002,71 @@ const OTHER_EVENT_OPTIONS = [
   };
 
   // Generate an official Invoice with package line items
+  // Generate an official Invoice with package line items
   const handleGenerateInvoice = (b: BridalBooking) => {
     const totalPkg = Number(b.package || 0) || resolveBridalBookingPrice(b, bridalPackages, data?.services);
-    const lines: InvoiceLine[] = (b.selectedPackages && b.selectedPackages.length > 0)
-      ? b.selectedPackages.map((p) => ({
-          type: 'S',
-          name: p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
-          qty: 1,
-          price: Number(p.price || 0) || resolveBridalBookingPrice({ packageName: p.name }, bridalPackages, data?.services),
-          discount: 0,
-          discountType: '%',
-        }))
-      : [
+    
+    // 1. Build line items with full support for selectedPackages and ticked multi-events
+    let lines: InvoiceLine[] = [];
+
+    if (b.selectedPackages && b.selectedPackages.length > 0) {
+      lines = b.selectedPackages.map((p) => ({
+        type: 'S',
+        name: p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
+        qty: 1,
+        price: Number(p.price || 0) || resolveBridalBookingPrice({ packageName: p.name }, bridalPackages, data?.services),
+        discount: 0,
+        discountType: '%',
+      }));
+    } else {
+      // Collect all ticked / dated events
+      const events: { name: string; date?: string; time?: string }[] = [];
+      if (b.includeWedding !== false && b.weddingDate) {
+        events.push({ name: 'Wedding Day Bridal Makeup & Draping', date: b.weddingDate, time: b.weddingTime });
+      }
+      if (b.includeSagai && b.sagaiDate) {
+        events.push({ name: 'Sagai / Engagement Ceremony Makeup & Styling', date: b.sagaiDate, time: b.sagaiTime });
+      }
+      if (b.includeMandap !== false && b.mandapDate) {
+        events.push({ name: 'Mandap Muhurat Makeup & Styling', date: b.mandapDate, time: b.mandapTime });
+      }
+      if (b.includeMusic !== false && b.musicDate) {
+        events.push({ name: 'Music / Sangeet Night Makeup & Hair Styling', date: b.musicDate, time: b.musicTime });
+      }
+      if (b.includeOther && b.otherDate) {
+        events.push({ name: `${b.otherEventName || 'Pre-Wedding Ceremony'} Makeup & Styling`, date: b.otherDate, time: b.otherTime });
+      }
+
+      if (events.length > 0) {
+        const perEventPrice = Math.round(totalPkg / events.length);
+        lines = events.map((ev, idx) => {
+          const isLast = idx === events.length - 1;
+          const price = isLast ? totalPkg - perEventPrice * (events.length - 1) : perEventPrice;
+          return {
+            type: 'S',
+            name: `${b.packageName ? `[${b.packageName}] ` : ''}${ev.name}${ev.date ? ` (${fmtDate(ev.date)}${ev.time ? ` @ ${ev.time}` : ''})` : ''}`,
+            qty: 1,
+            price,
+            discount: 0,
+            discountType: '%',
+          };
+        });
+      } else if (b.selectedEvents && b.selectedEvents.length > 0) {
+        const perEventPrice = Math.round(totalPkg / b.selectedEvents.length);
+        lines = b.selectedEvents.map((evName, idx) => {
+          const isLast = idx === b.selectedEvents!.length - 1;
+          const price = isLast ? totalPkg - perEventPrice * (b.selectedEvents!.length - 1) : perEventPrice;
+          return {
+            type: 'S',
+            name: `${b.packageName ? `[${b.packageName}] ` : ''}${evName} Makeup & Styling`,
+            qty: 1,
+            price,
+            discount: 0,
+            discountType: '%',
+          };
+        });
+      } else {
+        lines = [
           {
             type: 'S',
             name: b.packageName 
@@ -1025,6 +1078,8 @@ const OTHER_EVENT_OPTIONS = [
             discountType: '%',
           },
         ];
+      }
+    }
 
     const existingInv = (data?.invoices || []).find(
       (i) => i.bridalBookingId === b.id || (i.mobile === b.mobile && i.customer === b.name)
@@ -1043,6 +1098,8 @@ const OTHER_EVENT_OPTIONS = [
       customer: b.name,
       mobile: b.mobile || '',
       bridalBookingId: b.id,
+      eventDate: b.weddingDate || b.date,
+      venue: b.venue || '',
       lines,
       subtotal: totalPkg,
       discount: 0,
@@ -1070,11 +1127,15 @@ const OTHER_EVENT_OPTIONS = [
     scheduleSave();
     toast(`🧾 Bill ${invNo} generated for ${b.name}!`);
 
-    // Auto-send WhatsApp PDF
+    // Auto-send WhatsApp PDF if possible (safe catch to avoid silent crash)
     if (newInv.mobile) {
-      sendInvoicePDFViaWhatsApp(newInv, data).then((res) => {
-        if (res.method === 'cloud_api') toast('✅ PDF Bill sent automatically via WhatsApp!');
-      });
+      sendInvoicePDFViaWhatsApp(newInv, data)
+        .then((res) => {
+          if (res?.method === 'cloud_api') toast('✅ PDF Bill sent automatically via WhatsApp!');
+        })
+        .catch(() => {
+          // Handled gracefully - user can download or share in receipt modal
+        });
     }
 
     setReceiptModalInv(newInv);
@@ -1212,12 +1273,39 @@ const OTHER_EVENT_OPTIONS = [
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             <button
                               className="btn btn-sm btn-ghost"
-                              style={{ fontSize: 11, padding: '3px 8px', color: '#0d9488', borderColor: '#99f6e4', background: '#f0fdfa', fontWeight: 700 }}
-                              title="Generate Bill for Ticked Functions"
+                              style={{
+                                fontSize: 11,
+                                padding: '3px 8px',
+                                color: b.invoiceId ? '#047857' : '#0d9488',
+                                borderColor: b.invoiceId ? '#6ee7b7' : '#99f6e4',
+                                background: b.invoiceId ? '#ecfdf5' : '#f0fdfa',
+                                fontWeight: 700,
+                              }}
+                              title={b.invoiceId ? 'View & Print Official Bill Receipt' : 'Generate Bill for Ticked Functions'}
                               onClick={() => handleGenerateInvoice(b)}
                             >
-                              <Receipt size={12} /> Bill
+                              <Receipt size={12} /> {b.invoiceId ? 'View Bill' : 'Bill'}
                             </button>
+
+                            <a
+                              href={`/admin/billing?bridalId=${b.id}`}
+                              className="btn btn-sm btn-ghost"
+                              style={{
+                                fontSize: 11,
+                                padding: '3px 7px',
+                                color: '#4338ca',
+                                borderColor: '#c7d2fe',
+                                background: '#eef2ff',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                              }}
+                              title="Open in Billing (POS) to edit bill, add products/services, or collect payment"
+                            >
+                              POS
+                            </a>
 
                             <button className="btn-icon edit" onClick={() => openEdit(b)} title="Edit">
                               <Pencil size={13} />

@@ -21,24 +21,26 @@ import {
   MapPin,
   Percent
 } from 'lucide-react';
-import { Service, SalonSettings } from '@/types/salon';
+import { Service, SalonSettings, BridalPackage } from '@/types/salon';
 import { openWAApp, openWAWeb } from '@/lib/whatsapp';
+import { createPortal } from 'react-dom';
 
 interface HeaderServiceSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   services: Service[];
+  bridalPackages?: BridalPackage[];
   settings?: SalonSettings;
 }
 
 const CATEGORY_TABS = [
-  { id: 'all', label: '🌟 All Services', icon: '🌟' },
-  { id: 'Bridal & Makeup', label: 'Bridal & Makeup', icon: '👑' },
-  { id: 'Skin Care & Facials', label: 'Skin & Facials', icon: '💧' },
-  { id: 'Hair Care & Styling', label: 'Hair & Botox', icon: '💇' },
-  { id: 'Hands, Feet & Nails', label: 'Hands & Nails', icon: '💅' },
-  { id: 'Body Spa & Bleach', label: 'Body Spa & Polish', icon: '🌸' },
-  { id: 'Waxing & Threading', label: 'Waxing & Thread', icon: '🌿' },
+  { id: 'all', label: '🌟 All Services', icon: '🌟', matchKeys: [] },
+  { id: 'bridal', label: 'Bridal & Makeup', icon: '👑', matchKeys: ['bridal', 'makeup', 'dulhan', 'wedding', 'sagai', 'engagement', 'panetar', 'siders'] },
+  { id: 'skin', label: 'Skin & Facials', icon: '💧', matchKeys: ['skin', 'facial', 'd-tan', 'cleanup', 'glow', 'acne', 'detox'] },
+  { id: 'hair', label: 'Hair & Botox', icon: '💇', matchKeys: ['hair', 'botox', 'keratin', 'nanoplastia', 'spa', 'cut', 'colour', 'color'] },
+  { id: 'nails', label: 'Hands & Nails', icon: '💅', matchKeys: ['hand', 'feet', 'nail', 'manicure', 'pedicure', 'gel'] },
+  { id: 'body', label: 'Body Spa & Polish', icon: '🌸', matchKeys: ['body', 'spa', 'bleach', 'polish'] },
+  { id: 'waxing', label: 'Waxing & Thread', icon: '🌿', matchKeys: ['wax', 'thread', 'eyebrow'] },
 ];
 
 const TRENDING_TAGS = [
@@ -63,14 +65,20 @@ export default function HeaderServiceSearchModal({
   isOpen,
   onClose,
   services = [],
+  bridalPackages = [],
   settings,
 }: HeaderServiceSearchModalProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPriceFilter, setSelectedPriceFilter] = useState('all');
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Focus input when modal opens
   useEffect(() => {
@@ -104,16 +112,43 @@ export default function HeaderServiceSearchModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Unified Catalog: Combine regular treatments + bridal & siders packages
+  const unifiedServices = useMemo<Service[]>(() => {
+    const list: Service[] = [...services];
+
+    if (bridalPackages && bridalPackages.length > 0) {
+      bridalPackages.forEach((pkg) => {
+        if (!list.some((s) => s.id === pkg.id)) {
+          list.push({
+            id: pkg.id,
+            name: `${pkg.name} (${pkg.type || 'Bridal Package'})`,
+            price: pkg.price,
+            category: 'Makeup & Bridal',
+            duration: (pkg.sessions || 1) * 60,
+            description: pkg.includes || 'Complete bridal makeover, hairstyle, draping & premium luxury cosmetics',
+            pricingType: 'fixed',
+          });
+        }
+      });
+    }
+
+    return list;
+  }, [services, bridalPackages]);
+
   // Filtered Services List
   const filteredServices = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
 
-    return services.filter((svc) => {
+    return unifiedServices.filter((svc) => {
       // 1. Category Filter
       if (selectedCategory !== 'all') {
+        const catTab = CATEGORY_TABS.find((t) => t.id === selectedCategory);
         const svcCat = (svc.category || '').toLowerCase();
-        const selCat = selectedCategory.toLowerCase();
-        if (!svcCat.includes(selCat) && !selCat.includes(svcCat)) {
+        const svcName = svc.name.toLowerCase();
+        const matchesCategory = catTab?.matchKeys?.some(
+          (k) => svcCat.includes(k) || svcName.includes(k)
+        );
+        if (!matchesCategory) {
           return false;
         }
       }
@@ -126,35 +161,52 @@ export default function HeaderServiceSearchModal({
       // 3. Query Filter
       if (!q) return true;
 
-      const nameMatch = svc.name.toLowerCase().includes(q);
-      const catMatch = (svc.category || '').toLowerCase().includes(q);
-      const descMatch = (svc.description || '').toLowerCase().includes(q);
+      const searchableText = `${svc.name} ${svc.category || ''} ${svc.description || ''}`.toLowerCase();
+      const terms = q.split(/\s+/).filter(Boolean);
 
-      // Smart synonyms mapping
-      let synMatch = false;
-      if (q.includes('makeup') || q.includes('make up') || q.includes('bridal') || q.includes('dulhan')) {
-        synMatch = (svc.category || '').toLowerCase().includes('bridal') || svc.name.toLowerCase().includes('makeup');
-      } else if (q.includes('hair') || q.includes('botox') || q.includes('keratin') || q.includes('nanoplastia') || q.includes('smooth')) {
-        synMatch = (svc.category || '').toLowerCase().includes('hair') || svc.name.toLowerCase().includes('botox') || svc.name.toLowerCase().includes('keratin');
-      } else if (q.includes('skin') || q.includes('facial') || q.includes('glow') || q.includes('d-tan') || q.includes('cleanup')) {
-        synMatch = (svc.category || '').toLowerCase().includes('skin') || svc.name.toLowerCase().includes('facial') || svc.name.toLowerCase().includes('d-tan');
-      } else if (q.includes('wax') || q.includes('waxing') || q.includes('threading') || q.includes('eyebrow')) {
-        synMatch = (svc.category || '').toLowerCase().includes('wax') || svc.name.toLowerCase().includes('wax');
+      // Check if all search words match in service text
+      const directMatch = terms.every((t) => searchableText.includes(t));
+      if (directMatch) return true;
+
+      // Smart synonyms mapping for fast discovery
+      const isBridalQuery = terms.some((t) => ['bridal', 'bride', 'makeup', 'make up', 'dulhan', 'wedding', 'sagai', 'engagement', 'panetar', 'siders'].includes(t));
+      if (isBridalQuery && (searchableText.includes('bridal') || searchableText.includes('makeup') || searchableText.includes('make-up') || searchableText.includes('package'))) {
+        return true;
       }
 
-      return nameMatch || catMatch || descMatch || synMatch;
+      const isHairQuery = terms.some((t) => ['hair', 'botox', 'keratin', 'nanoplastia', 'smooth', 'spa', 'cut', 'colour', 'color'].includes(t));
+      if (isHairQuery && (searchableText.includes('hair') || searchableText.includes('botox') || searchableText.includes('keratin') || searchableText.includes('nanoplastia') || searchableText.includes('spa'))) {
+        return true;
+      }
+
+      const isSkinQuery = terms.some((t) => ['skin', 'facial', 'glow', 'hydra', 'clean', 'acne', 'detox', 'pigmentation', 'd-tan'].includes(t));
+      if (isSkinQuery && (searchableText.includes('skin') || searchableText.includes('facial') || searchableText.includes('clean') || searchableText.includes('glow'))) {
+        return true;
+      }
+
+      const isWaxQuery = terms.some((t) => ['wax', 'waxing', 'thread', 'threading', 'eyebrow', 'arms', 'legs', 'rica'].includes(t));
+      if (isWaxQuery && (searchableText.includes('wax') || searchableText.includes('thread') || searchableText.includes('eyebrow'))) {
+        return true;
+      }
+
+      return false;
     });
-  }, [services, searchQuery, selectedCategory, selectedPriceFilter]);
+  }, [unifiedServices, searchQuery, selectedCategory, selectedPriceFilter]);
 
   // Category counts
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: services.length };
-    services.forEach((s) => {
-      const cat = s.category || 'Other';
-      counts[cat] = (counts[cat] || 0) + 1;
+    const counts: Record<string, number> = { all: unifiedServices.length };
+    CATEGORY_TABS.forEach((cat) => {
+      if (cat.id === 'all') return;
+      const cnt = unifiedServices.filter((s) => {
+        const catLower = (s.category || '').toLowerCase();
+        const nameLower = s.name.toLowerCase();
+        return cat.matchKeys.some((k) => catLower.includes(k) || nameLower.includes(k));
+      }).length;
+      counts[cat.id] = cnt;
     });
     return counts;
-  }, [services]);
+  }, [unifiedServices]);
 
   // Quick WhatsApp Booking Handler
   const handleWhatsAppInquire = (svc: Service) => {
@@ -179,19 +231,19 @@ export default function HeaderServiceSearchModal({
     router.push(`/book?service=${encodeURIComponent(svc.id)}`);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted || typeof document === 'undefined' || !document.body) return null;
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 99999,
+        zIndex: 999999,
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
         padding: '16px',
-        background: 'rgba(2, 20, 22, 0.82)',
+        background: 'rgba(2, 20, 22, 0.85)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         animation: 'fadeIn 0.2s ease-out',
@@ -312,6 +364,11 @@ export default function HeaderServiceSearchModal({
               placeholder="Search treatments (e.g. Bridal Makeup, Hydra Facial, Hair Botox, Nanoplastia, Waxing)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && filteredServices.length > 0) {
+                  setExpandedServiceId(filteredServices[0].id);
+                }
+              }}
               style={{
                 width: '100%',
                 padding: '14px 44px 14px 48px',
@@ -382,7 +439,7 @@ export default function HeaderServiceSearchModal({
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2, scrollbarWidth: 'none' }}>
             {CATEGORY_TABS.map((cat) => {
               const isSelected = selectedCategory === cat.id;
-              const count = cat.id === 'all' ? services.length : categoryCounts[cat.id] || 0;
+              const count = cat.id === 'all' ? unifiedServices.length : categoryCounts[cat.id] || 0;
 
               return (
                 <button
@@ -859,6 +916,7 @@ export default function HeaderServiceSearchModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

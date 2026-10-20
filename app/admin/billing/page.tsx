@@ -83,6 +83,7 @@ type BillingViewTab = 'builder' | 'history';
 function BillingContent() {
   const searchParams = useSearchParams();
   const convertApptId = searchParams.get('convertApptId');
+  const importBridalId = searchParams.get('bridalId') || searchParams.get('importBridalId') || searchParams.get('convertBridalId');
 
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
@@ -163,22 +164,29 @@ function BillingContent() {
     try {
       const rawName = (inv.customer || 'invoice').trim();
       const cleanName = rawName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
-      const filename = `${cleanName || 'invoice'}.pdf`;
+      const filename = `${cleanName || 'invoice'}_${inv.no || 'bill'}.pdf`;
       toast(`Generating ${filename}…`);
-      const res = await fetch(`/api/billing/${inv.id}/pdf`);
-      if (!res.ok) throw new Error('PDF generation failed on server');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await downloadInvoicePDF(inv, data, filename, 'a4');
       toast(`✅ Downloaded ${filename}!`);
     } catch (e: any) {
-      toast(`Download error: ${e.message}`, 'error');
+      // Fallback
+      try {
+        const res = await fetch(`/api/billing/${inv.id}/pdf`);
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${inv.customer || 'invoice'}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast(`✅ Downloaded PDF!`);
+          return;
+        }
+      } catch {}
+      toast(`Download error: ${e?.message || e || 'Failed to download bill'}`, 'error');
     }
   };
 
@@ -504,6 +512,17 @@ function BillingContent() {
       }
     }
   }, [convertApptId, data?.appointments, data?.services]);
+
+  // Pre-load from Bridal Booking if bridalId query param is present
+  useEffect(() => {
+    if (importBridalId && data?.bridal) {
+      const b = data.bridal.find((x) => x.id === importBridalId);
+      if (b) {
+        handleImportBridal(b);
+        setActiveTab('builder');
+      }
+    }
+  }, [importBridalId, data?.bridal]);
 
   const handleImportBridal = (b: BridalBooking) => {
     const resolvedTotal = resolveBridalBookingPrice(b, data?.bridalPackages, data?.services);
@@ -1528,6 +1547,10 @@ function BillingContent() {
 
     const no = `INV-${data?.invoiceSeq || 1001}`;
     const invId = uid();
+    const matchedBridal = (data?.bridal || []).find((b) =>
+      (importBridalId && b.id === importBridalId) ||
+      (appointmentRef?.includes(b.name) || (b.name.trim().toLowerCase() === customer.trim().toLowerCase() && (b.mobile === mobile || !mobile)))
+    );
     const inv: Invoice = {
       id: invId,
       no,
@@ -1535,6 +1558,9 @@ function BillingContent() {
       customer,
       mobile,
       appointmentId: convertApptId || undefined,
+      bridalBookingId: matchedBridal?.id || undefined,
+      eventDate: matchedBridal?.weddingDate || matchedBridal?.date || undefined,
+      venue: matchedBridal?.venue || undefined,
       lines: validLines,
       subtotal: rawSubtotal,
       discount: Number(discount || 0),
@@ -1708,6 +1734,14 @@ function BillingContent() {
         walletTx.push({ id: uid(), date: todayISO(), customerId: customer, customerName: customer, type: 'Redeemed', amount: -Number(useWallet || 0), balanceAfter: custAfter?.walletBalance || 0, invoiceNo: no });
       }
 
+      // Update bridal booking invoice ID if linked
+      let bridal = [...(d.bridal || [])];
+      if (matchedBridal) {
+        bridal = bridal.map((b) =>
+          b.id === matchedBridal.id ? { ...b, invoiceId: invId } : b
+        );
+      }
+
       return {
         ...d,
         customers,
@@ -1715,6 +1749,7 @@ function BillingContent() {
         inventory,
         inventoryTx: [...(d.inventoryTx || []), ...invTxs],
         appointments,
+        bridal,
         invoiceSeq: (d.invoiceSeq || 1001) + 1,
         loyaltyTx,
         walletTx,
@@ -4830,7 +4865,7 @@ function BillingContent() {
                       ? '⛔ Below Buy Price — Cannot Sell'
                       : editingInvoiceId
                       ? 'Update Invoice & Print'
-                      : 'Save & Print Receipt (Ctrl+Enter)'}
+                      : 'Generate & Save Bill (Ctrl+Enter)'}
                   </span>
                 </button>
               </div>

@@ -101,29 +101,43 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    const pdfBuffer = await generateInvoiceReceiptPdf(invoice, salonData);
+    try {
+      const pdfBuffer = await generateInvoiceReceiptPdf(invoice, salonData);
 
-    // Format filename: "{customerName}.pdf", e.g. "niti.pdf"
-    const rawCustomerName = (invoice.customer || 'invoice').trim();
-    const cleanCustomerName = rawCustomerName
-      .replace(/[^a-zA-Z0-9_\-]/g, '_')
-      .replace(/_+/g, '_')
-      .toLowerCase();
-    const filename = `${cleanCustomerName || 'invoice'}.pdf`;
+      // Format filename: "{customerName}.pdf", e.g. "niti.pdf"
+      const rawCustomerName = (invoice.customer || 'invoice').trim();
+      const cleanCustomerName = rawCustomerName
+        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/_+/g, '_')
+        .toLowerCase();
+      const filename = `${cleanCustomerName || 'invoice'}.pdf`;
 
-    const disposition = isPreview
-      ? `inline; filename="${filename}"`
-      : `attachment; filename="${filename}"`;
+      const disposition = isPreview
+        ? `inline; filename="${filename}"`
+        : `attachment; filename="${filename}"`;
 
-    return new NextResponse(new Uint8Array(pdfBuffer), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': disposition,
-        'Content-Length': String(pdfBuffer.length),
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      },
-    });
+      return new NextResponse(new Uint8Array(pdfBuffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': disposition,
+          'Content-Length': String(pdfBuffer.length),
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      });
+    } catch (pdfErr) {
+      console.warn('[PDF Route] Puppeteer unavailable (serverless/Vercel), serving auto-print HTML receipt fallback:', pdfErr);
+      const { buildReceiptHtml } = await import('@/lib/invoice-receipt-html');
+      const html = buildReceiptHtml(invoice, salonData);
+      const autoPrintHtml = html.replace('</body>', '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),300));</script></body>');
+      return new NextResponse(autoPrintHtml, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      });
+    }
   } catch (error: any) {
     console.error('[PDF Route] Generation error:', error);
     return NextResponse.json(

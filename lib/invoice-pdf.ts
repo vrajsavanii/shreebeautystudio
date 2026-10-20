@@ -56,8 +56,8 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
     ? `${salonData.settings.whatsapp}, ${salonData.settings?.phone2 || '9824183769'}`
     : '9198241 83769';
 
-  const invNo = inv.no.replace(/^INV-/, '');
-  const invDate = formatIndianDate(inv.date);
+  const invNo = (inv.no || inv.id || 'INV-001').replace(/^INV-/, '');
+  const invDate = inv.date ? formatIndianDate(inv.date) : formatIndianDate(new Date().toISOString());
 
   const linesHtml = (inv.lines || [])
     .map((l) => {
@@ -307,7 +307,8 @@ export async function generateInvoicePDFBlob(
     }
 
     const safeCustomer = (inv.customer || 'Client').replace(/[^a-zA-Z0-9]/g, '_');
-    const filename = `Invoice_${inv.no}_${safeCustomer}.pdf`;
+    const safeNo = (inv.no || inv.id || 'INV').replace(/[^a-zA-Z0-9_-]/g, '');
+    const filename = `Invoice_${safeNo}_${safeCustomer}.pdf`;
 
     return { pdf, filename };
   } finally {
@@ -512,7 +513,7 @@ export function buildInvoicePDFShareCaption(inv: Invoice, salonData?: SalonData)
   );
 
   return `✨ *${salon.toUpperCase()}* ✨
-🧾 *Official Invoice Receipt #${inv.no}*
+🧾 *Official Invoice Receipt #${inv.no || 'INV'}*
 
 Dear *${inv.customer || 'Valued Customer'}*,
 Thank you for visiting ${salon}! 💖
@@ -557,7 +558,7 @@ export function buildPublicInvoiceMessage(inv: Invoice, salonData?: SalonData): 
   const publicPdfUrl = `${origin}/invoice/view?no=${encodeURIComponent(inv.no || 'INV-1001')}`;
 
   return `✨ *${salon.toUpperCase()}* ✨
-🧾 *OFFICIAL INVOICE #${inv.no}*
+🧾 *OFFICIAL INVOICE #${inv.no || 'INV'}*
 ────────────────────────────
 Dear *${inv.customer || 'Valued Customer'}*,
 Thank you for visiting ${salon}! 💖
@@ -617,7 +618,7 @@ export async function shareInvoicePDFViaDirectWhatsApp(
         if (navigator.canShare({ files: [pdfFile] })) {
           await navigator.share({
             files: [pdfFile],
-            title: `${salon} Invoice #${inv.no}`,
+            title: `${salon} Invoice #${inv.no || 'INV'}`,
             text: pdfCaption,
           });
           return {

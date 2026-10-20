@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
     const auth = await getAuthenticatedCustomer(req);
     if (!auth) {
       return NextResponse.json(
-        { success: false, authenticated: false, error: 'Not authenticated.' },
-        { status: 401 }
+        { success: true, authenticated: false, profile: null },
+        { status: 200 }
       );
     }
 

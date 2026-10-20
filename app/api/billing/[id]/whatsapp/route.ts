@@ -116,7 +116,40 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // 1. Generate PDF
-    const pdfBuffer = await generateInvoiceReceiptPdf(invoice, salonData);
+    let pdfBuffer: Buffer | null = null;
+    try {
+      pdfBuffer = await generateInvoiceReceiptPdf(invoice, salonData);
+    } catch (pdfErr) {
+      console.warn('[WhatsApp Route] Puppeteer unavailable (Vercel serverless), falling back to Direct WA link:', pdfErr);
+    }
+
+    const rawCustomerName = (invoice.customer || 'customer').trim();
+    const invNo = (invoice.no || '').replace(/^INV-/, '');
+    const cleanCustomerName = rawCustomerName
+      .replace(/[^a-zA-Z0-9_\-]/g, '_')
+      .replace(/_+/g, '_')
+      .toLowerCase();
+    const filename = `${cleanCustomerName || 'invoice'}_${invNo || 'receipt'}.pdf`;
+    const targetPhone = `+91${cleanDigits}`;
+    const directWaUrl = `https://wa.me/91${cleanDigits}?text=${encodeURIComponent(
+      `✨ *SHREE BEAUTY STUDIO — OFFICIAL BILL #${invoice.no}* ✨\n` +
+      `Dear ${rawCustomerName}, thank you for visiting Shree Beauty Studio! 💖\n\n` +
+      `📄 Invoice: ${invoice.no}\n` +
+      `📅 Date: ${invoice.date}\n` +
+      `💰 Total Amount: ₹${Number(invoice.total || 0).toLocaleString('en-IN')}\n` +
+      (Number(invoice.balance || 0) > 0 ? `💳 Balance Due: ₹${Number(invoice.balance).toLocaleString('en-IN')}\n` : '✅ Paid in Full\n') +
+      `\n🔗 View & Print Official Receipt:\nhttps://shree-beauty-studio.vercel.app/api/billing/${invoice.id || invoice.no}/pdf\n\n` +
+      `📍 22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat\n📞 +91 98241 83769`
+    )}`;
+
+    if (!pdfBuffer) {
+      return NextResponse.json({
+        success: false,
+        directWaUrl,
+        filename,
+        message: 'Opened direct WhatsApp link with official bill details.',
+      });
+    }
 
     // 2. Save PDF file to public/uploads/whatsapp
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'whatsapp');
@@ -124,55 +157,54 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const rawCustomerName = (invoice.customer || 'customer').trim();
-    const cleanCustomerName = rawCustomerName
-      .replace(/[^a-zA-Z0-9_\-]/g, '_')
-      .replace(/_+/g, '_')
-      .toLowerCase();
-    const invNo = (invoice.no || '').replace(/^INV-/, '');
-    const filename = `${cleanCustomerName || 'invoice'}_${invNo || 'receipt'}.pdf`;
     const filePath = path.join(uploadsDir, filename);
-
     fs.writeFileSync(filePath, pdfBuffer);
 
     // 3. Send via WhatsApp Connect service (Baileys daemon on port 3001)
     const caption = `Namaste ${rawCustomerName}, aapnu bill attached chhe 🙏`;
-    const targetPhone = `+91${cleanDigits}`;
 
-    const waRes = await fetch(`${WA_SERVICE_URL}/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    try {
+      const waRes = await fetch(`${WA_SERVICE_URL}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: targetPhone,
+          mediaUrl: `/uploads/whatsapp/${filename}`,
+          mediaType: 'document',
+          fileName: `${cleanCustomerName || 'invoice'}.pdf`,
+          caption,
+        }),
+      });
+
+      const waJson = await waRes.json();
+
+      if (!waRes.ok || !waJson.success) {
+        return NextResponse.json({
+          success: false,
+          serviceError: waJson?.error || 'WhatsApp service not connected yet',
+          directWaUrl,
+          filename,
+          message: waJson?.error
+            ? `WhatsApp Connect: ${waJson.error}`
+            : 'WhatsApp service is connecting. Use Direct WhatsApp link.',
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Bill PDF sent to ${rawCustomerName} (${targetPhone}) on WhatsApp!`,
+        fileName: filename,
         phone: targetPhone,
-        mediaUrl: `/uploads/whatsapp/${filename}`,
-        mediaType: 'document',
-        fileName: `${cleanCustomerName || 'invoice'}.pdf`,
-        caption,
-      }),
-    });
-
-    const waJson = await waRes.json();
-
-    if (!waRes.ok || !waJson.success) {
-      // Return direct WhatsApp Web link as reliable fallback
-      const directWaUrl = `https://wa.me/91${cleanDigits}?text=${encodeURIComponent(caption)}`;
+      });
+    } catch (daemonErr) {
+      console.warn('[WhatsApp Route] WhatsApp daemon offline on port 3001, returning directWaUrl:', daemonErr);
       return NextResponse.json({
         success: false,
-        serviceError: waJson?.error || 'WhatsApp service not connected yet',
         directWaUrl,
         filename,
-        message: waJson?.error
-          ? `WhatsApp Connect: ${waJson.error}`
-          : 'WhatsApp service is connecting. Use Direct WhatsApp link.',
+        message: 'WhatsApp service offline. Tap to open Direct WhatsApp message.',
       });
     }
-
-    return NextResponse.json({
-      success: true,
-      message: `Bill PDF sent to ${rawCustomerName} (${targetPhone}) on WhatsApp!`,
-      fileName: filename,
-      phone: targetPhone,
-    });
   } catch (error: any) {
     console.error('[WhatsApp Route] Send error:', error);
     return NextResponse.json(
