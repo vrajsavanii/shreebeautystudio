@@ -32,6 +32,7 @@ import {
   shareInvoicePDFViaDirectWhatsApp,
   buildPublicInvoiceMessage,
 } from '@/lib/invoice-pdf';
+import { getQuickBillGoogleCalendarUrl } from '@/lib/calendar';
 import { isCustomerIn24HourWindow } from '@/lib/whatsapp';
 import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import { money, fmtExpiry } from '@/lib/utils';
@@ -112,8 +113,8 @@ export default function InvoiceReceiptModal({
       const cleanCustomerName = rawCustomerName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
       const filename = `${cleanCustomerName || 'invoice'}_${invoice.no || 'bill'}.pdf`;
 
-      // Generate razor-sharp PDF directly in browser via jsPDF (100% reliable, zero server dependency)
-      await downloadInvoicePDF(invoice, salonData, filename, downloadingFormat || 'a4');
+      // Generate razor-sharp Mobile-Fit PDF directly in browser via jsPDF (100% reliable, zero server dependency)
+      await downloadInvoicePDF(invoice, salonData, filename, downloadingFormat || 'thermal');
       toast(`✅ Bill PDF (${filename}) downloaded successfully!`);
     } catch (e: any) {
       // Fallback to server route if client-side rendering fails
@@ -499,7 +500,7 @@ Have a wonderful day! 🙏✨`;
             </div>
             <div>
               <div style={{ fontWeight: 700, fontSize: 14 }}>
-                Bill Generated &amp; Sent!
+                Official Invoice Receipt
               </div>
               <div style={{ fontSize: 11, opacity: 0.85 }}>
                 Invoice #{invoice.no} • {invoice.customer}
@@ -1403,6 +1404,49 @@ Have a wonderful day! 🙏✨`;
               </a>
             )}
 
+            {/* Google Calendar button for Advance Bookings / Event Bills */}
+            {(invoice.eventDate || Number(invoice.advance || 0) > 0 || invoice.bridalBookingId) && (
+              <a
+                href={getQuickBillGoogleCalendarUrl(
+                  {
+                    customerName: invoice.customer,
+                    customerPhone: invoice.mobile,
+                    eventDate: invoice.eventDate || invoice.date,
+                    venue: invoice.venue,
+                    items: (invoice.lines || []).map((l) => ({ service: l.name, qty: l.qty, price: l.price })),
+                    total: invoice.total,
+                    advance: invoice.advance || 0,
+                    balance: invoice.balance || 0,
+                    invoiceNo: invoice.no,
+                  },
+                  salon,
+                  salonAddress
+                )}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-sm"
+                title="Open in Google Calendar to view scheduled event & reminders"
+                style={{
+                  background: '#eff6ff',
+                  color: '#2563eb',
+                  fontWeight: 700,
+                  border: '1px solid #bfdbfe',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  fontSize: 12,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <ExternalLink size={13} />
+                <span>📅 Google Cal</span>
+              </a>
+            )}
+
             {/* Email Invoice Button */}
             <button
               type="button"
@@ -1455,26 +1499,51 @@ Have a wonderful day! 🙏✨`;
               borderTop: '1px solid #e2e8f0',
             }}
           >
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={handlePrint}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 16px',
-                fontWeight: 700,
-                fontSize: 12.5,
-                border: '1.5px solid #cbd5e1',
-                borderRadius: 8,
-                background: '#ffffff',
-                color: '#334155',
-                cursor: 'pointer',
-              }}
-            >
-              <Printer size={14} /> Print Bill
-            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <a
+                href={`/api/billing/${invoice.id || invoice.no}/pdf?inline=1`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost btn-sm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 14px',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  border: '1.5px solid #a7f3d0',
+                  borderRadius: 8,
+                  background: '#ecfdf5',
+                  color: '#047857',
+                  textDecoration: 'none',
+                }}
+                title="Open high-definition PDF in new browser tab"
+              >
+                <FileText size={14} /> Open Full PDF
+              </a>
+
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={handlePrint}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  border: '1.5px solid #cbd5e1',
+                  borderRadius: 8,
+                  background: '#ffffff',
+                  color: '#334155',
+                  cursor: 'pointer',
+                }}
+              >
+                <Printer size={14} /> Print Bill
+              </button>
+            </div>
 
             <button
               type="button"

@@ -179,6 +179,11 @@ export default function BridalPage() {
         const pkg = Number(key === 'package' ? val : updated.package) || 0;
         const adv = Number(key === 'advance' ? val : updated.advance) || 0;
         updated.balance = Math.max(0, pkg - adv);
+
+        // If package price changed and there is exactly 1 package, sync its individual price
+        if (key === 'package' && Array.isArray(updated.selectedPackages) && updated.selectedPackages.length === 1) {
+          updated.selectedPackages = [{ ...updated.selectedPackages[0], price: pkg }];
+        }
       }
       return updated;
     });
@@ -359,7 +364,7 @@ const OTHER_EVENT_OPTIONS = [
       otherTime: '11:00',
       packageType: 'Bridal Package',
       packageName: defaultPkg ? defaultPkg.name : '',
-      selectedPackages: defaultPkg ? [defaultPkg] : [],
+      selectedPackages: defaultPkg ? [{ ...defaultPkg, customerName: '' }] : [],
       package: defaultPkg ? defaultPkg.price : 0,
       advance: 0,
       advanceAccount: data?.settings?.payments?.[0] || 'Cash',
@@ -392,7 +397,7 @@ const OTHER_EVENT_OPTIONS = [
       const exactMatch = bridalPackages.find((p) => p.name.trim().toLowerCase() === b.packageName?.trim().toLowerCase()) ||
         DEFAULT_BRIDAL_PACKAGES.find((p) => p.name.trim().toLowerCase() === b.packageName?.trim().toLowerCase());
       if (exactMatch) {
-        initialSelected = [{ ...exactMatch, customerName: b.name || '' }];
+        initialSelected = [{ ...exactMatch, customerName: '' }];
       } else {
         const names = b.packageName.split(/\s*\+\s*|\s*,\s*/);
         initialSelected = names
@@ -459,9 +464,8 @@ const OTHER_EVENT_OPTIONS = [
           (p) => !(p.name.trim().toLowerCase() === pkg.name.trim().toLowerCase() || (p.id && pkg.id && p.id === pkg.id))
         );
       } else {
-        // Add it
-        const defaultCustomer = currentList.length === 0 ? (prev.name || '') : '';
-        updatedList = [...currentList, { ...pkg, customerName: defaultCustomer }];
+        // Add it with customerName empty - user can choose to add name if they want
+        updatedList = [...currentList, { ...pkg, customerName: '' }];
       }
 
       const totalCalculated = updatedList.reduce((sum, p) => sum + Number(p.price || 0), 0);
@@ -487,7 +491,7 @@ const OTHER_EVENT_OPTIONS = [
   const addPackageInstance = (pkg: BridalPackage) => {
     setForm((prev) => {
       const currentList: any[] = (prev.selectedPackages as any[]) || [];
-      const updatedList = [...currentList, { ...pkg, customerName: '' }];
+      const updatedList = [...currentList, { ...pkg, customerName: '', hasCustomName: true }];
       const totalCalculated = updatedList.reduce((sum, p) => sum + Number(p.price || 0), 0);
       const combinedNames = updatedList
         .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
@@ -532,11 +536,15 @@ const OTHER_EVENT_OPTIONS = [
     });
   };
 
-  const updatePackageCustomerName = (index: number, customerName: string) => {
+  const updatePackageCustomerName = (index: number, customerName: string, hasCustomName?: boolean) => {
     setForm((prev) => {
       const currentList: any[] = [...((prev.selectedPackages as any[]) || [])];
       if (!currentList[index]) return prev;
-      currentList[index] = { ...currentList[index], customerName };
+      currentList[index] = {
+        ...currentList[index],
+        customerName,
+        hasCustomName: hasCustomName !== undefined ? hasCustomName : (currentList[index].hasCustomName || !!customerName),
+      };
       const combinedNames = currentList
         .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
         .join(' + ');
@@ -544,6 +552,66 @@ const OTHER_EVENT_OPTIONS = [
         ...prev,
         selectedPackages: currentList,
         packageName: combinedNames,
+      };
+    });
+  };
+
+  const updatePackagePrice = (index: number, newPrice: number) => {
+    setForm((prev) => {
+      const currentList: any[] = [...((prev.selectedPackages as any[]) || [])];
+      if (!currentList[index]) return prev;
+      currentList[index] = { ...currentList[index], price: isNaN(newPrice) ? 0 : newPrice };
+      const totalCalculated = currentList.reduce((sum, p) => sum + Number(p.price || 0), 0);
+      const adv = Number(prev.advance || 0);
+      return {
+        ...prev,
+        selectedPackages: currentList,
+        package: totalCalculated,
+        balance: Math.max(0, totalCalculated - adv),
+      };
+    });
+  };
+
+  const updatePackageName = (index: number, newName: string) => {
+    setForm((prev) => {
+      const currentList: any[] = [...((prev.selectedPackages as any[]) || [])];
+      if (!currentList[index]) return prev;
+      currentList[index] = { ...currentList[index], name: newName };
+      const combinedNames = currentList
+        .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
+        .join(' + ');
+      return {
+        ...prev,
+        selectedPackages: currentList,
+        packageName: combinedNames,
+      };
+    });
+  };
+
+  const addCustomPackage = () => {
+    setForm((prev) => {
+      const currentList: any[] = (prev.selectedPackages as any[]) || [];
+      const newPkg: BridalPackage = {
+        id: uid(),
+        name: 'Custom Makeup / Package',
+        type: 'Custom Package',
+        price: 0,
+        includes: '',
+        sessions: 1,
+        customerName: prev.name || '',
+      };
+      const updatedList = [...currentList, newPkg];
+      const totalCalculated = updatedList.reduce((sum, p) => sum + Number(p.price || 0), 0);
+      const combinedNames = updatedList
+        .map((p) => (p.customerName?.trim() ? `${p.name} (${p.customerName.trim()})` : p.name))
+        .join(' + ');
+      const adv = Number(prev.advance || 0);
+      return {
+        ...prev,
+        selectedPackages: updatedList,
+        packageName: combinedNames,
+        package: totalCalculated,
+        balance: Math.max(0, totalCalculated - adv),
       };
     });
   };
@@ -652,7 +720,7 @@ const OTHER_EVENT_OPTIONS = [
           const invLines: InvoiceLine[] = (booking.selectedPackages && booking.selectedPackages.length > 0)
             ? booking.selectedPackages.map((p) => ({
                 type: 'S',
-                name: p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
+                name: (booking.includeClientNamesInBill !== false && p.customerName?.trim()) ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
                 qty: 1,
                 price: Number(p.price || 0),
                 discount: 0,
@@ -1012,7 +1080,7 @@ const OTHER_EVENT_OPTIONS = [
     if (b.selectedPackages && b.selectedPackages.length > 0) {
       lines = b.selectedPackages.map((p) => ({
         type: 'S',
-        name: p.customerName?.trim() ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
+        name: (b.includeClientNamesInBill !== false && p.customerName?.trim()) ? `${p.name} — 👤 ${p.customerName.trim()}` : p.name,
         qty: 1,
         price: Number(p.price || 0) || resolveBridalBookingPrice({ packageName: p.name }, bridalPackages, data?.services),
         discount: 0,
@@ -1082,7 +1150,7 @@ const OTHER_EVENT_OPTIONS = [
     }
 
     const existingInv = (data?.invoices || []).find(
-      (i) => i.bridalBookingId === b.id || (i.mobile === b.mobile && i.customer === b.name)
+      (i) => (b.invoiceId && i.id === b.invoiceId) || i.bridalBookingId === b.id || (i.mobile === b.mobile && i.customer === b.name)
     );
 
     const invId = existingInv ? existingInv.id : uid();
@@ -1139,6 +1207,26 @@ const OTHER_EVENT_OPTIONS = [
     }
 
     setReceiptModalInv(newInv);
+  };
+
+  const handleViewPDF = (b: BridalBooking) => {
+    const existingInv = (data?.invoices || []).find(
+      (i) => (b.invoiceId && i.id === b.invoiceId) || i.bridalBookingId === b.id || (i.mobile === b.mobile && i.customer === b.name)
+    );
+
+    if (existingInv) {
+      if (!b.invoiceId || existingInv.bridalBookingId !== b.id) {
+        updateData((d) => ({
+          ...d,
+          bridal: (d.bridal || []).map((item) => (item.id === b.id ? { ...item, invoiceId: existingInv.id } : item)),
+          invoices: (d.invoices || []).map((inv) => (inv.id === existingInv.id ? { ...inv, bridalBookingId: b.id } : inv)),
+        }));
+        scheduleSave();
+      }
+      setReceiptModalInv(existingInv);
+    } else {
+      handleGenerateInvoice(b);
+    }
   };
 
   const TAB_STEPS = [
@@ -1272,19 +1360,24 @@ const OTHER_EVENT_OPTIONS = [
                         <td>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             <button
-                              className="btn btn-sm btn-ghost"
+                              className="btn btn-sm"
                               style={{
-                                fontSize: 11,
-                                padding: '3px 8px',
-                                color: b.invoiceId ? '#047857' : '#0d9488',
-                                borderColor: b.invoiceId ? '#6ee7b7' : '#99f6e4',
-                                background: b.invoiceId ? '#ecfdf5' : '#f0fdfa',
+                                fontSize: 11.5,
+                                padding: '4px 9px',
+                                color: '#047857',
+                                borderColor: '#a7f3d0',
+                                background: '#ecfdf5',
                                 fontWeight: 700,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                borderRadius: 6,
+                                boxShadow: '0 1px 2px rgba(4,120,87,0.06)',
                               }}
-                              title={b.invoiceId ? 'View & Print Official Bill Receipt' : 'Generate Bill for Ticked Functions'}
-                              onClick={() => handleGenerateInvoice(b)}
+                              title="📄 View, Download or Print Official PDF Bill Receipt"
+                              onClick={() => handleViewPDF(b)}
                             >
-                              <Receipt size={12} /> {b.invoiceId ? 'View Bill' : 'Bill'}
+                              <FileText size={13} /> View PDF
                             </button>
 
                             <a
@@ -1419,26 +1512,28 @@ const OTHER_EVENT_OPTIONS = [
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <motion.button
-                type="button"
+              <motion.a
+                href="/shree-bridal-rate-card.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn btn-ghost btn-sm"
-                onClick={() => window.open('/shree-bridal-rate-card.pdf', '_blank')}
-                style={{ background: '#ffffff', borderColor: '#86efac', color: '#15803d', fontWeight: 700 }}
+                style={{ background: '#ffffff', borderColor: '#86efac', color: '#15803d', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 whileTap={{ scale: 0.96 }}
                 title="View 100% original uploaded PDF rate card"
               >
                 <Eye size={14} /> View Original PDF
-              </motion.button>
+              </motion.a>
 
-              <motion.button
-                type="button"
+              <motion.a
+                href="/shree-bridal-rate-card.pdf"
+                download="Shree_Beauty_Studio_Bridal_Rate_Card.pdf"
                 className="btn btn-ghost btn-sm"
-                onClick={handleDownloadPDF}
-                style={{ background: '#ffffff', borderColor: '#86efac', color: '#15803d', fontWeight: 700 }}
+                style={{ background: '#ffffff', borderColor: '#86efac', color: '#15803d', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 whileTap={{ scale: 0.96 }}
+                title="Direct download Bridal Rate Card PDF"
               >
                 <Download size={14} /> Download Rate Card PDF
-              </motion.button>
+              </motion.a>
 
               <motion.button
                 type="button"
@@ -2258,34 +2353,81 @@ const OTHER_EVENT_OPTIONS = [
                   boxShadow: '0 2px 8px rgba(13, 148, 136, 0.08)',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: '#0f766e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span>✨ Selected Packages ({(form.selectedPackages || []).length}) &amp; Clients:</span>
+                      <span>✨ Selected Packages ({(form.selectedPackages || []).length}):</span>
                     </span>
                     <span style={{ fontSize: 13, color: '#0d9488', fontWeight: 900, background: '#ffffff', padding: '2px 8px', borderRadius: 99, border: '1px solid #99f6e4' }}>
                       Total: {money((form.selectedPackages || []).reduce((s, p) => s + Number(p.price || 0), 0))}
                     </span>
+
+                    {/* Toggle: Show Client Names in Bill */}
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: form.includeClientNamesInBill !== false ? '#0f766e' : '#64748b',
+                        cursor: 'pointer',
+                        background: '#ffffff',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        border: '1px solid #ccfbf1',
+                      }}
+                      title="બિલ / રસીદમાં દરેક પેકેજ સાથે કસ્ટમરનું નામ દર્શાવવું છે કે નહીં?"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.includeClientNamesInBill !== false}
+                        onChange={(e) => set('includeClientNamesInBill', e.target.checked)}
+                      />
+                      <span>બિલમાં કસ્ટમર નામ દર્શાવો</span>
+                    </label>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => {
-                      setForm((prev) => ({
-                        ...prev,
-                        selectedPackages: [],
-                        packageName: '',
-                        package: 0,
-                        balance: 0,
-                      }));
-                    }}
-                    style={{ fontSize: 11, color: '#e11d48', padding: '2px 8px', height: 'auto', fontWeight: 700 }}
-                  >
-                    Clear All
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      onClick={addCustomPackage}
+                      style={{
+                        fontSize: 11,
+                        color: '#0d9488',
+                        borderColor: '#99f6e4',
+                        background: '#f0fdfa',
+                        padding: '2px 8px',
+                        height: 28,
+                        fontWeight: 700,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                      title="Add a custom package or service with your own name & price"
+                    >
+                      <Plus size={12} /> Add Custom Name / Package
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          selectedPackages: [],
+                          packageName: '',
+                          package: 0,
+                          balance: 0,
+                        }));
+                      }}
+                      style={{ fontSize: 11, color: '#e11d48', padding: '2px 8px', height: 'auto', fontWeight: 700 }}
+                    >
+                      Clear All
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 220, overflowY: 'auto', paddingRight: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 250, overflowY: 'auto', paddingRight: 4 }}>
                   {(form.selectedPackages || []).map((pkg, idx) => {
                     const isBridal = pkg.type === 'Bridal Package';
                     return (
@@ -2303,9 +2445,9 @@ const OTHER_EVENT_OPTIONS = [
                           flexWrap: 'wrap',
                         }}
                       >
-                        {/* Package Info */}
-                        <div style={{ flex: '1 1 180px', minWidth: 160 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {/* Package Info + Editable Name + Editable Price */}
+                        <div style={{ flex: '1 1 210px', minWidth: 190 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span
                               style={{
                                 fontSize: 10,
@@ -2318,28 +2460,197 @@ const OTHER_EVENT_OPTIONS = [
                             >
                               {pkg.type || 'Package'}
                             </span>
-                            <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>
-                              {pkg.name}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 3, flex: 1 }}>
+                              <input
+                                type="text"
+                                className="input"
+                                style={{
+                                  padding: '2px 8px',
+                                  fontSize: 12.5,
+                                  height: 26,
+                                  fontWeight: 800,
+                                  color: 'var(--text)',
+                                  border: '1.5px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  borderRadius: 5,
+                                  minWidth: 120,
+                                  flex: 1,
+                                }}
+                                value={pkg.name || ''}
+                                onChange={(e) => updatePackageName(idx, e.target.value)}
+                                placeholder="Package Name"
+                                title="Edit package or service name"
+                              />
+                              <span style={{ fontSize: 9.5, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>
+                                (Edit Name)
+                              </span>
+                            </div>
                           </div>
-                          <div style={{ fontSize: 11.5, color: '#0d9488', fontWeight: 800, marginTop: 2 }}>
-                            {money(pkg.price)}
+
+                          {/* Editable Price Input directly below */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                            <span style={{ fontSize: 13, fontWeight: 900, color: '#0d9488' }}>
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              className="input"
+                              style={{
+                                padding: '2px 8px',
+                                fontSize: 13,
+                                height: 28,
+                                width: 105,
+                                fontWeight: 800,
+                                color: '#0d9488',
+                                border: '1.5px solid #0d9488',
+                                background: '#f0fdfa',
+                                borderRadius: 6,
+                              }}
+                              placeholder="0"
+                              value={pkg.price !== undefined && pkg.price !== null ? pkg.price : ''}
+                              onChange={(e) => updatePackagePrice(idx, Math.max(0, Number(e.target.value)))}
+                              title="Edit price for this package (Auto-updates total)"
+                            />
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#0f766e' }}>
+                              (Edit Price)
+                            </span>
                           </div>
                         </div>
 
-                        {/* Customer / Person Name Input */}
-                        <div style={{ flex: '2 1 240px', minWidth: 200, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#0f766e', whiteSpace: 'nowrap' }}>
-                            👤 Customer Name:
-                          </span>
-                          <input
-                            type="text"
-                            className="input"
-                            style={{ padding: '4px 8px', fontSize: 12, height: 32 }}
-                            placeholder={`e.g. ${idx === 0 ? (form.name || 'Bride Name') : 'Sister, Mother, Friend name'}`}
-                            value={pkg.customerName || ''}
-                            onChange={(e) => updatePackageCustomerName(idx, e.target.value)}
-                          />
+                        {/* Customer / Person Name Option (Add Name or Clean Package) */}
+                        <div style={{ flex: '2 1 240px', minWidth: 200, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          {(pkg.hasCustomName || pkg.customerName) ? (
+                            <>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: '#0f766e', whiteSpace: 'nowrap' }}>
+                                  👤 Client Name:
+                                </span>
+                                <input
+                                  type="text"
+                                  className="input"
+                                  list="bridal-package-clients-datalist"
+                                  style={{
+                                    padding: '4px 10px',
+                                    fontSize: 12.5,
+                                    height: 30,
+                                    flex: 1,
+                                    border: '1.5px solid #0d9488',
+                                    borderRadius: 6,
+                                    background: '#ffffff',
+                                    color: '#0f172a',
+                                    fontWeight: 600,
+                                  }}
+                                  placeholder="Type name here, or pick Bride / Sister below…"
+                                  value={pkg.customerName || ''}
+                                  onChange={(e) => updatePackageCustomerName(idx, e.target.value, true)}
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => updatePackageCustomerName(idx, '', false)}
+                                  style={{
+                                    fontSize: 10,
+                                    padding: '4px 8px',
+                                    borderRadius: 4,
+                                    background: '#fef2f2',
+                                    color: '#b91c1c',
+                                    border: '1px solid #fecaca',
+                                    cursor: 'pointer',
+                                    fontWeight: 700,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  title="Don't add client name for this package"
+                                >
+                                  ✕ Remove Name
+                                </button>
+                              </div>
+
+                              {/* Quick 1-Click Name Pills (Can write custom name AND click pills) */}
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                                {form.name && (
+                                  <button
+                                    type="button"
+                                    onClick={() => updatePackageCustomerName(idx, form.name || '', true)}
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      padding: '2px 7px',
+                                      borderRadius: 4,
+                                      border: '1px solid #a7f3d0',
+                                      background: pkg.customerName === form.name ? '#047857' : '#ecfdf5',
+                                      color: pkg.customerName === form.name ? '#ffffff' : '#047857',
+                                      cursor: 'pointer',
+                                    }}
+                                    title={`Set name to bride (${form.name})`}
+                                  >
+                                    👰 Bride ({form.name})
+                                  </button>
+                                )}
+                                {[
+                                  { label: 'Sister', bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
+                                  { label: 'Mother', bg: '#fdf2f8', color: '#be185d', border: '#fbcfe8' },
+                                  { label: 'Bhabhi', bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+                                  { label: 'Masi', bg: '#f0f9ff', color: '#0369a1', border: '#bae6fd' },
+                                  { label: 'Kaki', bg: '#f0fdfa', color: '#0f766e', border: '#99f6e4' },
+                                  { label: 'Friend', bg: '#eef2ff', color: '#4338ca', border: '#c7d2fe' },
+                                ].map((rel) => (
+                                  <button
+                                    key={rel.label}
+                                    type="button"
+                                    onClick={() => {
+                                      const current = (pkg.customerName || '').trim();
+                                      if (!current) {
+                                        updatePackageCustomerName(idx, rel.label, true);
+                                      } else if (!current.toLowerCase().includes(rel.label.toLowerCase())) {
+                                        updatePackageCustomerName(idx, `${current} (${rel.label})`, true);
+                                      }
+                                    }}
+                                    style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      padding: '2px 6px',
+                                      borderRadius: 4,
+                                      border: `1px solid ${rel.border}`,
+                                      background: rel.bg,
+                                      color: rel.color,
+                                      cursor: 'pointer',
+                                    }}
+                                    title={`Add "${rel.label}" to customer name`}
+                                  >
+                                    + {rel.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-ghost"
+                                onClick={() => updatePackageCustomerName(idx, '', true)}
+                                style={{
+                                  fontSize: 11,
+                                  padding: '4px 10px',
+                                  color: '#0f766e',
+                                  background: '#f0fdfa',
+                                  borderColor: '#99f6e4',
+                                  fontWeight: 700,
+                                  borderRadius: 6,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  cursor: 'pointer',
+                                }}
+                                title="Click to add client / person name for this package"
+                              >
+                                <User size={12} /> + Add Person Name
+                              </button>
+                              <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                                (Optional · નામ ઉમેરવું હોય તો જ ક્લિક કરો)
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Actions: Add Another Person / Remove */}
@@ -2388,6 +2699,16 @@ const OTHER_EVENT_OPTIONS = [
                     );
                   })}
                 </div>
+
+                {/* Datalist for picking any customer or bride name */}
+                <datalist id="bridal-package-clients-datalist">
+                  {form.name && <option value={form.name}>{form.name} (Bride)</option>}
+                  {(data?.customers || []).map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name} — 📞 {c.mobile}
+                    </option>
+                  ))}
+                </datalist>
               </div>
             )}
 

@@ -71,7 +71,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: res.message });
     }
 
-    if (!appointment && !bridal && !holiday && !appointments && !bridals && !holidays) {
+    if (
+      type !== 'bulk' &&
+      !appointment &&
+      !bridal &&
+      !holiday &&
+      !appointments &&
+      !bridals &&
+      !holidays
+    ) {
       return NextResponse.json(
         { success: false, error: 'Appointment, Bridal, Holiday, or Bulk payload required' },
         { status: 400 }

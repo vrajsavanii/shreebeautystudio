@@ -766,3 +766,67 @@ export function downloadCancellationICS(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Generate 1-click direct Google Calendar URL for Quick Bill / Advance Bookings.
+ */
+export function getQuickBillGoogleCalendarUrl(
+  bill: {
+    customerName: string;
+    customerPhone?: string;
+    eventDate?: string;
+    venue?: string;
+    items?: Array<{ name?: string; service: string; qty?: number; price?: number }>;
+    total?: number;
+    advance?: number;
+    balance?: number;
+    invoiceNo?: string;
+  },
+  salon: string = 'Shree Beauty Studio',
+  address: string = '22, Radhika Society, Opp. Cancer Hospital, Katargam, Surat, Gujarat 395004'
+): string {
+  const cleanDate = toStandardYYYYMMDD(bill.eventDate || todayDateString());
+  const timeStr = '10:00';
+  const dtStart = formatICSDate(cleanDate, timeStr);
+  const dtEnd = addMinutes(cleanDate, timeStr, 180);
+
+  const servicesSummary = (bill.items || [])
+    .filter((i) => i.service && i.service.trim())
+    .map((i) => `${i.name && i.name.trim() ? `${i.name.trim()} - ` : ''}${i.service} (x${i.qty || 1})`)
+    .join(', ') || 'Advance Booking';
+
+  const clientName = bill.customerName?.trim() || 'Client';
+  const location = bill.venue?.trim() || address;
+  const title = `👑 ${clientName} — Advance Booking (${servicesSummary})`;
+
+  const details = [
+    `👑 ${salon.toUpperCase()} — ADVANCE BOOKING`,
+    `─────────────────────────────────`,
+    `👰 Client / Bride: ${clientName}`,
+    bill.customerPhone ? `📞 Mobile: +91 ${bill.customerPhone}` : '',
+    `👑 Service / Package: ${servicesSummary}`,
+    `📅 Event Date: ${cleanDate} at ${timeStr}`,
+    `📍 Venue / Location: ${location}`,
+    `🏢 Studio Address: ${address}`,
+    bill.total !== undefined ? `💰 Total Bill: ₹${bill.total.toLocaleString('en-IN')}` : '',
+    bill.advance ? `💵 Advance Paid: ₹${bill.advance.toLocaleString('en-IN')}` : '',
+    bill.balance !== undefined ? `⚖️ Remaining Balance: ₹${bill.balance.toLocaleString('en-IN')}` : '',
+    bill.invoiceNo ? `🧾 Quick Bill No: #${bill.invoiceNo}` : '',
+    `📍 Google Maps: https://maps.app.goo.gl/cwP9HTnqTFzVPYDW8`,
+    `📸 Instagram: @shreebeauty.studio`,
+    `📞 Studio Contact: +91 98241 83769 / 98253 39924`,
+  ].filter(Boolean).join('\n');
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: title,
+    dates: `${dtStart}/${dtEnd}`,
+    details: details,
+    location: location,
+    crm: 'BUSY',
+    ctz: 'Asia/Kolkata',
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+

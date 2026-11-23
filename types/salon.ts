@@ -495,7 +495,7 @@ export interface BridalBooking {
   packageType?: string;
   packageId?: string;
   packageName?: string;
-  selectedPackages?: Array<{ id?: string; name: string; type: string; price: number; includes?: string; qty?: number; customerName?: string }>;
+  selectedPackages?: Array<{ id?: string; name: string; type: string; price: number; includes?: string; qty?: number; customerName?: string; hasCustomName?: boolean }>;
   packageSessions?: number;
   packageIncludes?: string;
   package: number;
@@ -508,6 +508,7 @@ export interface BridalBooking {
   notes?: string;
   invoiceId?: string;
   isCompleted?: boolean;
+  includeClientNamesInBill?: boolean;
 }
 
 // ── Loyalty ──────────────────────────────────────────────────────────────────

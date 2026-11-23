@@ -37,15 +37,15 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
   container.style.position = 'fixed';
   container.style.top = '-9999px';
   container.style.left = '-9999px';
-  container.style.width = '450px';
+  container.style.width = '380px';
   container.style.background = '#ffffff';
   container.style.fontFamily =
     "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
   container.style.color = '#000000';
-  container.style.padding = '24px 20px';
+  container.style.padding = '18px 14px';
   container.style.boxSizing = 'border-box';
-  container.style.borderRadius = '14px';
-  container.style.border = '1.5px solid #000000';
+  container.style.borderRadius = '0';
+  container.style.border = '1px solid #333333';
   container.style.letterSpacing = '-0.01em';
 
   const salonAddress =
@@ -136,6 +136,18 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
           <td style="padding: 4.5px 0; font-weight: 700; color: #000000;">Phone :</td>
           <td style="padding: 4.5px 0; font-weight: 600; color: #000000;">${inv.mobile || '—'}</td>
         </tr>
+        ${inv.eventDate ? `
+        <tr style="border-bottom: 1px solid #eef2f6;">
+          <td style="padding: 4.5px 0; font-weight: 700; color: #000000;">Event :</td>
+          <td style="padding: 4.5px 0; font-weight: 600; color: #000000;">${formatIndianDate(inv.eventDate)}</td>
+        </tr>
+        ` : ''}
+        ${inv.venue ? `
+        <tr style="border-bottom: 1px solid #eef2f6;">
+          <td style="padding: 4.5px 0; font-weight: 700; color: #000000;">Venue :</td>
+          <td style="padding: 4.5px 0; font-weight: 600; color: #000000;">${inv.venue}</td>
+        </tr>
+        ` : ''}
         <tr>
           <td style="padding: 4.5px 0; font-weight: 700; color: #000000;">Payment :</td>
           <td style="padding: 4.5px 0; font-weight: 600; color: #000000;">${inv.mode || 'Cash'}</td>
@@ -165,6 +177,28 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
         ${linesHtml}
 
         <!-- Total Rows -->
+        ${
+          Number(inv.discount || 0) > 0
+            ? `
+        <tr>
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13px; font-weight: 700; text-align: left; vertical-align: middle; color: #000000;">
+            Subtotal
+          </td>
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: right; vertical-align: middle; color: #000000;">
+            ₹${Number(inv.subtotal || totalAmt + Number(inv.discount)).toLocaleString('en-IN')}
+          </td>
+        </tr>
+        <tr>
+          <td colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13px; font-weight: 700; text-align: left; vertical-align: middle; color: #15803d;">
+            Discount
+          </td>
+          <td style="border: 1.5px solid #000000; padding: 6px 8px; font-size: 13.5px; font-weight: 700; text-align: right; vertical-align: middle; color: #15803d;">
+            -₹${Number(inv.discount).toLocaleString('en-IN')}
+          </td>
+        </tr>
+        `
+            : ''
+        }
         <tr>
           <td colspan="3" style="border: 1.5px solid #000000; padding: 7px 8px; font-size: 13.5px; font-weight: 800; text-align: left; vertical-align: middle; color: #000000;">
             Grand Total
@@ -254,7 +288,7 @@ function buildInvoiceReceiptHtml(inv: Invoice, salonData?: SalonData): HTMLEleme
 export async function generateInvoicePDFBlob(
   inv: Invoice,
   salonData?: SalonData,
-  formatType: 'thermal' | 'a4' = 'a4'
+  formatType: 'thermal' | 'a4' = 'thermal'
 ): Promise<{ pdf: jsPDF; filename: string }> {
   const container = buildInvoiceReceiptHtml(inv, salonData);
   document.body.appendChild(container);
@@ -290,9 +324,11 @@ export async function generateInvoicePDFBlob(
 
       pdf.addImage(imgData, 'PNG', posX, posY, cardWidthOnA4, cardHeightOnA4, undefined, 'FAST');
     } else {
-      // Direct Receipt / Mobile PDF format (fits phone screen & WhatsApp perfectly without white bars!)
-      const receiptWidthMm = 110;
-      const margin = 2;
+      // 📱 Mobile Screen Fit Format:
+      // Exact 82mm width matches smartphone viewport proportions edge-to-edge!
+      // No horizontal scroll, no tiny fonts, no wide empty margins on WhatsApp / mobile viewers.
+      const receiptWidthMm = 82;
+      const margin = 0.5; // Minimal 0.5mm edge margin for 100% full screen utilization
       const contentWidthMm = receiptWidthMm - margin * 2;
       const contentHeightMm = (canvas.height * contentWidthMm) / canvas.width;
       const receiptHeightMm = contentHeightMm + margin * 2;
@@ -325,7 +361,7 @@ export async function downloadInvoicePDF(
   inv: Invoice,
   salonData?: SalonData,
   fileName?: string,
-  formatType: 'thermal' | 'a4' = 'a4'
+  formatType: 'thermal' | 'a4' = 'thermal'
 ): Promise<void> {
   const { pdf, filename } = await generateInvoicePDFBlob(inv, salonData, formatType);
   pdf.save(fileName || filename);
@@ -408,7 +444,7 @@ export async function sendInvoiceTextViaWhatsApp(
 export async function sendInvoicePDFViaWhatsApp(
   inv: Invoice,
   salonData?: SalonData,
-  formatType: 'thermal' | 'a4' = 'a4'
+  formatType: 'thermal' | 'a4' = 'thermal'
 ): Promise<{
   success: boolean;
   method: string;
@@ -591,7 +627,7 @@ Have a wonderful day! 🙏✨`;
 export async function shareInvoicePDFViaDirectWhatsApp(
   inv: Invoice,
   salonData?: SalonData,
-  formatType: 'thermal' | 'a4' = 'a4'
+  formatType: 'thermal' | 'a4' = 'thermal'
 ): Promise<{
   success: boolean;
   method: 'native_share' | 'download_and_redirect' | 'cancelled';

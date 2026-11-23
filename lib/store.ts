@@ -1401,7 +1401,67 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
     expenseSeq: typeof incoming.expenseSeq === 'number' ? incoming.expenseSeq : 1001,
     bridalPackages: Array.isArray(incoming.bridalPackages) && incoming.bridalPackages.length ? incoming.bridalPackages : DEFAULT_BRIDAL_PACKAGES,
     bridal: (() => {
-      const inc = Array.isArray(incoming.bridal) ? incoming.bridal : [];
+      const inc = Array.isArray(incoming.bridal) ? [...incoming.bridal] : [];
+      const invoices = Array.isArray(incoming.invoices) ? incoming.invoices : [];
+
+      // Auto-bridge: Any invoice with an advance payment or eventDate that isn't yet in bridal
+      for (const inv of invoices) {
+        if (!inv) continue;
+        const hasAdvOrEvent = Number(inv.advance) > 0 || (inv.eventDate && inv.eventDate !== inv.date);
+        if (hasAdvOrEvent) {
+          const alreadyExists = inc.some(
+            (b: any) =>
+              b.invoiceId === inv.id ||
+              (inv.bridalBookingId && b.id === inv.bridalBookingId) ||
+              (b.name &&
+                inv.customer &&
+                b.name.toLowerCase().trim() === inv.customer.toLowerCase().trim() &&
+                (b.weddingDate === inv.eventDate || b.date === inv.eventDate))
+          );
+          if (!alreadyExists) {
+            const bookingId = inv.bridalBookingId || `b_${inv.id || Date.now()}`;
+            const pkgSummary =
+              (inv.lines || [])
+                .map((l: any) => l.name)
+                .filter(Boolean)
+                .join(', ') || 'Advance Booking';
+            const primaryDate = inv.eventDate || inv.date || new Date().toISOString().split('T')[0];
+            const newBooking = {
+              id: bookingId,
+              name: inv.customer || 'Client',
+              mobile: (inv.mobile || '').replace(/\D/g, '').slice(-10),
+              venue: inv.venue || 'Katargam Studio',
+              event: 'Advance Booking',
+              date: primaryDate,
+              weddingDate: primaryDate,
+              weddingTime: '10:00',
+              includeWedding: true,
+              packageName: pkgSummary,
+              selectedPackages: (inv.lines || []).map((l: any, idx: number) => ({
+                id: `pkg-${idx}`,
+                name: l.name || 'Service',
+                type: (l.name || '').toLowerCase().includes('package') ? 'Bridal' : 'Service',
+                price: Number(l.price) || 0,
+                qty: Number(l.qty) || 1,
+                customerName: inv.customer || 'Client',
+              })),
+              package: Number(inv.total) || 0,
+              totalAmount: Number(inv.total) || 0,
+              advance: Number(inv.advance) || 0,
+              balance: Number(
+                inv.balance !== undefined ? inv.balance : Math.max(0, (inv.total || 0) - (inv.advance || 0))
+              ),
+              status: 'Confirmed',
+              notes: `Created from Invoice #${inv.no || 'bill'} · Advance Booking`,
+              invoiceId: inv.id,
+              isCompleted: false,
+            };
+            inc.push(newBooking);
+            inv.bridalBookingId = bookingId;
+          }
+        }
+      }
+
       return inc
         .filter((b: any) => b.id !== 'mtvk1se1xiypt')
         .map((b: any) => {

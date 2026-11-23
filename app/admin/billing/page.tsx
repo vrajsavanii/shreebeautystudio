@@ -32,6 +32,7 @@ import {
   RotateCcw,
   Smartphone,
   UserPlus,
+  Zap,
 } from 'lucide-react';
 import { useSalonStore, resolveBridalBookingPrice } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
@@ -166,7 +167,7 @@ function BillingContent() {
       const cleanName = rawName.replace(/[^a-zA-Z0-9_\-]/g, '_').toLowerCase();
       const filename = `${cleanName || 'invoice'}_${inv.no || 'bill'}.pdf`;
       toast(`Generating ${filename}…`);
-      await downloadInvoicePDF(inv, data, filename, 'a4');
+      await downloadInvoicePDF(inv, data, filename, 'thermal');
       toast(`✅ Downloaded ${filename}!`);
     } catch (e: any) {
       // Fallback
@@ -1759,6 +1760,49 @@ function BillingContent() {
     scheduleSave();
     toast(`Invoice ${no} saved & sent!`);
 
+    // Auto-sync to Google Calendar if linked to bridal or advance booking
+    if (matchedBridal) {
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'bridal',
+          bridal: { ...matchedBridal, invoiceId: invId },
+          settings: data?.settings,
+        }),
+      }).catch(() => {});
+    } else if (Number(advance || 0) > 0 || inv.eventDate) {
+      // Auto-sync advance booking to Google Calendar
+      const autoBridalBooking = {
+        id: inv.bridalBookingId || uid(),
+        name: customer,
+        mobile: mobile || '',
+        venue: inv.venue || 'Katargam Studio',
+        event: 'Advance Booking',
+        date: inv.eventDate || inv.date,
+        weddingDate: inv.eventDate || inv.date,
+        weddingTime: '10:00',
+        includeWedding: true,
+        packageName: validLines.map((l) => l.name).join(', '),
+        package: roundedTotal,
+        totalAmount: roundedTotal,
+        advance: Number(advance || 0),
+        balance,
+        status: 'Confirmed',
+        notes: `POS Invoice #${no} · Advance Booking`,
+        invoiceId: invId,
+      };
+      fetch('/api/calendar/auto-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'bridal',
+          bridal: autoBridalBooking,
+          settings: data?.settings,
+        }),
+      }).catch(() => {});
+    }
+
     // Reset form
     setCustomer('');
     setMobile('');
@@ -2074,7 +2118,7 @@ function BillingContent() {
         </div>
       )}
 
-      {/* VIEW: 2-Column POS Builder (Items on Left, Checkout & Settlement on Right — Fits Screen) */}
+      {/* VIEW: 2-Column POS Builder or Full-width History */}
       <div className={activeTab === 'history' ? '' : 'billing-layout'}>
         {/* 1. BUILDER MODE: 2-Column Balanced POS (Items on Left, Checkout on Right) */}
         {activeTab === 'builder' && (

@@ -47,7 +47,7 @@ async function fetchInvoiceAndSalonData(id: string): Promise<{ invoice: Invoice 
   }
 
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/salon_sync?select=*&limit=1`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/salon_state?select=data&order=updated_at.desc&limit=1`, {
       headers: {
         apikey: SERVICE_KEY,
         Authorization: `Bearer ${SERVICE_KEY}`,
