@@ -1236,7 +1236,6 @@ function BillingContent() {
 
     // 4. User is typing name directly
     setCustomer(val);
-    setActiveCustSuggest('name');
 
     // 5. Automatic real-time matching as they write!
     autoMatchCustomerByName(val, false);
@@ -2118,20 +2117,19 @@ function BillingContent() {
         </div>
       )}
 
-      {/* VIEW: 2-Column POS Builder or Full-width History */}
+      {/* VIEW: Single Unified POS Builder or Full-width History */}
       <div className={activeTab === 'history' ? '' : 'billing-layout'}>
-        {/* 1. BUILDER MODE: 2-Column Balanced POS (Items on Left, Checkout on Right) */}
+        {/* 1. BUILDER MODE: Single Unified POS Box (2 Boxes Mixed Into 1) */}
         {activeTab === 'builder' && (
           <>
-            {/* Left Column: Client Details & Line Items List */}
             <div
-              className="card billing-builder-card billing-items-panel"
+              className="card billing-builder-card billing-unified-card"
               style={{
-                padding: '10px 12px',
+                padding: '12px 14px',
                 border: '1px solid #e2e8f0',
                 borderRadius: 12,
                 background: '#ffffff',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
                 display: 'flex',
                 flexDirection: 'column',
               }}
@@ -2210,76 +2208,14 @@ function BillingContent() {
                 </div>
               </div>
 
-              {/* Quick Import Bridal Booking (Compact single-line) */}
-              {data?.bridal && data.bridal.length > 0 && (
-                <div
-                  style={{
-                    marginBottom: 6,
-                    padding: '3px 8px',
-                    background: 'linear-gradient(135deg, #fdf2f8 0%, #fff1f2 100%)',
-                    borderRadius: 6,
-                    border: '1px solid #fbcfe8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: '#9d174d',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 3,
-                    }}
-                  >
-                    👑 Bridal:
-                  </span>
-                  <select
-                    className="input"
-                    style={{
-                      flex: 1,
-                      height: 26,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      borderColor: '#f472b6',
-                      background: '#ffffff',
-                      color: '#831843',
-                      cursor: 'pointer',
-                      padding: '0 6px',
-                      borderRadius: 5,
-                    }}
-                    onChange={(e) => {
-                      const b = data.bridal?.find((x) => x.id === e.target.value);
-                      if (b) {
-                        handleImportBridal(b);
-                      }
-                    }}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>
-                      Select bride booking to load into bill…
-                    </option>
-                    {data.bridal.map((b) => {
-                      const pPrice = resolveBridalBookingPrice(b, data?.bridalPackages, data?.services);
-                      return (
-                        <option key={b.id} value={b.id}>
-                          {b.name} ({b.mobile || 'No mobile'}) — {b.packageName || 'Bridal'} ({money(pPrice)})
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-              )}
 
-              {/* Customer Information (Compact 2-column layout) */}
+
+              {/* Customer Information (Up & Down Layout) */}
               <div
                 className="billing-customer-grid"
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 1fr)',
+                  display: 'flex',
+                  flexDirection: 'column',
                   gap: 6,
                   marginBottom: 6,
                 }}
@@ -2291,6 +2227,7 @@ function BillingContent() {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       marginBottom: 2,
+                      height: 20,
                     }}
                   >
                     <label
@@ -2335,16 +2272,15 @@ function BillingContent() {
                   </div>
                   <input
                     type="text"
-                    name="customerName"
-                    autoComplete="name"
+                    name="billing_customer_name_no_pop"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                     className="input"
-                    list="billing-cust-name-list"
                     placeholder="Start typing name or contact…"
                     value={customer}
-                    onFocus={() => setActiveCustSuggest('name')}
                     onBlur={() => {
                       setTimeout(() => {
-                        setActiveCustSuggest(null);
                         autoMatchCustomerByName(customer, true);
                       }, 250);
                     }}
@@ -2352,116 +2288,59 @@ function BillingContent() {
                       if (e.key === 'Enter') {
                         e.preventDefault();
                         autoMatchCustomerByName(customer, true);
-                        setActiveCustSuggest(null);
                       }
                     }}
                     onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
                     style={{
-                      height: 30,
-                      fontSize: 11.5,
-                      borderRadius: 6,
-                      padding: '0 8px',
-                      border: '1px solid #cbd5e1',
+                      height: 38,
+                      fontSize: 13.5,
+                      borderRadius: 8,
+                      padding: '0 10px',
+                      border: '1.5px solid #cbd5e1',
                       textTransform: 'capitalize',
+                      fontWeight: 600,
                     }}
                   />
-                  <datalist id="billing-cust-name-list">
-                    {(data?.customers || []).map((c) => (
-                      <option
-                        key={c.id}
-                        value={`${formatCustomerContactName(c.name)} (${c.mobile})`}
-                      >
-                        {formatCustomerContactName(c.name)} — 📞 {c.mobile}
-                      </option>
-                    ))}
-                  </datalist>
-
-                  {/* Touch-Friendly Auto-Suggest Dropdown for Android & iPhone */}
-                  {activeCustSuggest === 'name' && custNameSuggestions.length > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        zIndex: 60,
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: 7,
-                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.18)',
-                        marginTop: 2,
-                        maxHeight: 190,
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {custNameSuggestions.map((c) => (
-                        <div
-                          key={c.id}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleImportContact(c.name, c.mobile);
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            handleImportContact(c.name, c.mobile);
-                          }}
-                          style={{
-                            padding: '6px 8px',
-                            borderBottom: '1px solid #f1f5f9',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            fontSize: 11,
-                          }}
-                        >
-                          <div>
-                            <span style={{ fontWeight: 600, color: '#0f172a' }}>{c.name}</span>
-                            {c.loyaltyPoints ? (
-                              <span style={{ marginLeft: 5, fontSize: 9.5, color: '#d97706', fontWeight: 600 }}>
-                                🪙 {c.loyaltyPoints} pts
-                              </span>
-                            ) : null}
-                          </div>
-                          <span style={{ color: '#05424A', fontSize: 10, background: '#E2F7F4', padding: '1px 6px', borderRadius: 4, fontWeight: 500 }}>
-                            📞 {c.mobile}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 <div className="form-group" style={{ margin: 0, position: 'relative' }}>
-                  <label
-                    className="label"
+                  <div
                     style={{
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      marginBottom: 2,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 4,
-                      color: '#1e293b',
+                      marginBottom: 2,
+                      height: 20,
                     }}
                   >
-                    <span>Mobile Number</span>
-                    <span style={{ fontSize: 9.5, fontWeight: 400, color: '#64748b' }}>
-                      (10-digit)
-                    </span>
-                  </label>
+                    <label
+                      className="label"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        margin: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        color: '#1e293b',
+                      }}
+                    >
+                      <span>Mobile Number</span>
+                      <span style={{ fontSize: 9.5, fontWeight: 400, color: '#64748b' }}>
+                        (10-digit)
+                      </span>
+                    </label>
+                  </div>
                   <input
                     type="tel"
                     inputMode="tel"
-                    name="customerMobile"
-                    autoComplete="tel"
+                    name="billing_customer_mobile_no_pop"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                     className="input"
-                    list="billing-cust-mob-list"
                     placeholder="10-digit mobile number"
                     value={mobile}
-                    onFocus={() => setActiveCustSuggest('mobile')}
                     onBlur={() => {
                       setTimeout(() => {
-                        setActiveCustSuggest(null);
                         const clean = mobile.replace(/\D/g, '').slice(-10);
                         if (clean.length === 10) {
                           const c = (data?.customers || []).find(
@@ -2478,160 +2357,44 @@ function BillingContent() {
                     }}
                     onChange={(e) => handleMobileSelect(e.target.value)}
                     style={{
-                      height: 30,
-                      fontSize: 11.5,
-                      borderRadius: 6,
-                      padding: '0 8px',
-                      border: '1px solid #cbd5e1',
+                      height: 38,
+                      fontSize: 13.5,
+                      borderRadius: 8,
+                      padding: '0 10px',
+                      border: '1.5px solid #cbd5e1',
+                      fontWeight: 600,
                     }}
                   />
-                  <datalist id="billing-cust-mob-list">
-                    {(data?.customers || []).map((c) => (
-                      <option
-                        key={c.id}
-                        value={`${c.mobile} (${formatCustomerContactName(c.name)})`}
-                      >
-                        {c.mobile} — 👤 {formatCustomerContactName(c.name)}
-                      </option>
-                    ))}
-                  </datalist>
-
-                  {/* Touch-Friendly Auto-Suggest Dropdown for Mobile Number */}
-                  {activeCustSuggest === 'mobile' && custMobSuggestions.length > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        zIndex: 60,
-                        background: '#ffffff',
-                        border: '1px solid #cbd5e1',
-                        borderRadius: 7,
-                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.18)',
-                        marginTop: 2,
-                        maxHeight: 190,
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {custMobSuggestions.map((c) => (
-                        <div
-                          key={c.id}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleImportContact(c.name, c.mobile);
-                          }}
-                          onTouchStart={(e) => {
-                            e.preventDefault();
-                            handleImportContact(c.name, c.mobile);
-                          }}
-                          style={{
-                            padding: '6px 8px',
-                            borderBottom: '1px solid #f1f5f9',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            fontSize: 11,
-                          }}
-                        >
-                          <span style={{ fontWeight: 600, color: '#05424A' }}>📞 {c.mobile}</span>
-                          <span style={{ color: '#475569', fontSize: 10.5 }}>{c.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   {/* 24-Hour Free Customer Service Window Status */}
-                  {mobile.length === 10 ? (
+                  {mobile.length === 10 && cust24hStatus.active ? (
                     <div
                       style={{
-                        marginTop: 4,
+                        marginTop: 2,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: 10.5,
-                        gap: 6,
+                        fontSize: 9.5,
                       }}
                     >
-                      {cust24hStatus.active ? (
-                        <span
-                          style={{
-                            color: '#16a34a',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 3,
-                            background: '#f0fdf4',
-                            padding: '1.5px 6px',
-                            borderRadius: 5,
-                            border: '1px solid #bbf7d0',
-                          }}
-                          title={`Incoming message received. Meta Cloud API dispatch is ₹0 until ${cust24hStatus.expiresAt}`}
-                        >
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                          🟢 24h Free ({cust24hStatus.formattedRemaining})
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            color: '#64748b',
-                            fontSize: 10.5,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 3,
-                          }}
-                          title="Customer has not messaged recently."
-                        >
-                          <span>⚪ Outside 24h</span>
-                        </span>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setQrModalOpen(true)}
+                      <span
                         style={{
-                          background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 5,
-                          padding: '1.5px 6px',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          color: '#05424A',
-                          cursor: 'pointer',
+                          color: '#16a34a',
+                          fontWeight: 700,
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 3,
+                          background: '#f0fdf4',
+                          padding: '1px 5px',
+                          borderRadius: 4,
+                          border: '1px solid #bbf7d0',
                         }}
-                        title="Show Reception Desk QR Code to customer"
+                        title={`Incoming message received. Meta Cloud API dispatch is ₹0 until ${cust24hStatus.expiresAt}`}
                       >
-                        <QrCode size={10} />
-                        <span>{cust24hStatus.active ? 'Desk QR' : '📱 Desk QR'}</span>
-                      </button>
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                        🟢 24h Free ({cust24hStatus.formattedRemaining})
+                      </span>
                     </div>
-                  ) : (
-                    <div style={{ marginTop: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                      <button
-                        type="button"
-                        onClick={() => setQrModalOpen(true)}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          fontSize: 10,
-                          fontWeight: 600,
-                          color: '#05424A',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          padding: 0,
-                        }}
-                      >
-                        <QrCode size={10} />
-                        <span>Reception Desk QR</span>
-                      </button>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
 
@@ -2640,31 +2403,31 @@ function BillingContent() {
                 className="billing-barcode-container"
                 style={{
                   display: 'flex',
-                  gap: 5,
+                  gap: 6,
                   alignItems: 'center',
                   background: '#f8fafc',
-                  border: '1px dashed #cbd5e1',
-                  borderRadius: 7,
-                  padding: '3px 7px',
-                  margin: '3px 0 6px',
+                  border: '1.5px dashed #cbd5e1',
+                  borderRadius: 8,
+                  padding: '4px 6px',
+                  margin: '4px 0 8px',
                 }}
               >
                 <div
                   className="billing-barcode-input-row"
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, flex: 1, minWidth: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}
                 >
-                  <Barcode size={15} color="#05424A" style={{ flexShrink: 0 }} />
+                  <Barcode size={18} color="#05424A" style={{ flexShrink: 0 }} />
                   <input
                     type="text"
                     className="input billing-barcode-input"
                     style={{
                       flex: 1,
                       minWidth: 0,
-                      height: 28,
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 5,
-                      padding: '0 7px',
-                      fontSize: 11,
+                      height: 38,
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 7,
+                      padding: '0 10px',
+                      fontSize: 13,
                     }}
                     placeholder="Scan barcode or type item & press Enter…"
                     value={barcodeInput}
@@ -2685,97 +2448,81 @@ function BillingContent() {
                     className="btn btn-primary btn-sm"
                     type="button"
                     style={{
-                      height: 28,
-                      padding: '0 9px',
-                      fontSize: 11,
+                      height: 38,
+                      padding: '0 12px',
+                      fontSize: 12,
                       fontWeight: 700,
-                      borderRadius: 5,
+                      borderRadius: 7,
                     }}
                     onClick={() => handleScanBarcode()}
                   >
-                    Scan Item
+                    <span className="hide-on-mobile">Scan Item</span>
+                    <span className="show-on-mobile">Scan</span>
                   </button>
                   <button
                     className="btn btn-ghost btn-sm"
                     type="button"
                     style={{
-                      height: 28,
-                      padding: '0 7px',
-                      fontSize: 11,
+                      height: 38,
+                      padding: '0 10px',
+                      fontSize: 12,
                       border: '1px solid #cbd5e1',
-                      borderRadius: 5,
+                      borderRadius: 7,
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 3,
                     }}
                     onClick={() => setCameraModalOpen(true)}
                   >
-                    <Camera size={12} /> <span>Camera</span>
+                    <Camera size={14} /> <span className="hide-on-mobile">Camera</span>
                   </button>
+
+                  {/* 👑 Bridal Booking Import (Placed right next to Camera) */}
+                  {data?.bridal && data.bridal.length > 0 && (
+                    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                      <select
+                        style={{
+                          height: 38,
+                          padding: '0 8px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          border: '1.5px solid #f472b6',
+                          background: '#fff1f2',
+                          color: '#9d174d',
+                          borderRadius: 7,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          maxWidth: 135,
+                        }}
+                        onChange={(e) => {
+                          const b = data.bridal?.find((x) => x.id === e.target.value);
+                          if (b) {
+                            handleImportBridal(b);
+                            e.target.value = '';
+                          }
+                        }}
+                        defaultValue=""
+                        title="Load Bridal Booking into bill"
+                      >
+                        <option value="" disabled>
+                          👑 Bridal ({data.bridal.length})
+                        </option>
+                        {data.bridal.map((b) => {
+                          const pPrice = resolveBridalBookingPrice(b, data?.bridalPackages, data?.services);
+                          return (
+                            <option key={b.id} value={b.id}>
+                              {b.name} ({b.mobile || 'No mob'}) — {b.packageName || 'Bridal'} ({money(pPrice)})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ⚡ Quick Services Speed Bar (1-Click Instant Add) */}
-              {popularServices.length > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    marginBottom: 7,
-                    padding: '5px 7px',
-                    background: '#f8fafc',
-                    borderRadius: 8,
-                    border: '1px solid #e2e8f0',
-                    overflowX: 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      color: '#05424A',
-                      whiteSpace: 'nowrap',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 3,
-                    }}
-                  >
-                    ⚡ Quick Add:
-                  </span>
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'nowrap' }}>
-                    {popularServices.map((s) => (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => handleQuickAddService(s)}
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          padding: '2px 7px',
-                          borderRadius: 6,
-                          border: '1px solid #cbd5e1',
-                          background: '#ffffff',
-                          color: '#0f172a',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          transition: 'all 0.15s ease',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                        }}
-                        title={`Click to instantly add ${s.name} (${money(s.price)}) to bill`}
-                      >
-                        <Plus size={10} color="#16a34a" strokeWidth={3} />
-                        <span>{s.name}</span>
-                        <span style={{ color: '#05424A', fontWeight: 800, fontSize: 9.5 }}>{money(s.price)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+
 
               {/* Line Items Section */}
               <div style={{ marginBottom: 4, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -3324,7 +3071,7 @@ function BillingContent() {
                 </div>
 
                 {/* 2. Mobile Responsive Cards View */}
-                <div className="billing-lines-mobile" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                <div className="billing-lines-mobile" style={{ maxHeight: '260px', overflowY: 'auto' }}>
                   {lines.map((line, idx) => {
                     const buyInfo = getLineProductBuyInfo(line);
                     const isBelowBuy = buyInfo?.isBelowBuy;
@@ -3334,12 +3081,12 @@ function BillingContent() {
                         style={{
                           background: isBelowBuy ? '#fff7f7' : '#ffffff',
                           border: isBelowBuy ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
-                          borderRadius: 8,
-                          padding: 8,
+                          borderRadius: 7,
+                          padding: '5px 7px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: 6,
-                          boxShadow: isBelowBuy ? '0 1px 4px rgba(239, 68, 68, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
+                          gap: 4,
+                          boxShadow: isBelowBuy ? '0 1px 4px rgba(239, 68, 68, 0.15)' : '0 1px 2px rgba(0,0,0,0.02)',
                         }}
                       >
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -3347,11 +3094,16 @@ function BillingContent() {
                           type="button"
                           className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
                           style={{
-                            fontSize: 10,
-                            padding: '2px 5px',
+                            fontSize: 13,
+                            padding: '0 6px',
                             border: 'none',
-                            borderRadius: 5,
+                            borderRadius: 6,
                             flexShrink: 0,
+                            height: 38,
+                            width: 36,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                           onClick={() => setLine(idx, { type: line.type === 'P' ? 'S' : 'P' })}
                         >
@@ -3365,12 +3117,12 @@ function BillingContent() {
                           value={line.name}
                           onChange={(e) => handleItemSelect(idx, e.target.value)}
                           onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                          style={{ flex: 1, height: 32, fontSize: 11.5, padding: '0 8px' }}
+                          style={{ flex: 1, height: 38, fontSize: 13.5, padding: '0 10px', borderRadius: 7 }}
                         />
                         <button
                           type="button"
                           className="btn-icon danger"
-                          style={{ width: 26, height: 26, borderRadius: 5, flexShrink: 0 }}
+                          style={{ width: 36, height: 38, borderRadius: 6, flexShrink: 0 }}
                           onClick={() =>
                             setLines((p) => {
                               const remaining = p.filter((_, i) => i !== idx);
@@ -3380,7 +3132,7 @@ function BillingContent() {
                           disabled={lines.length === 1 && !lines[0].name}
                           title="Remove item"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={13} />
                         </button>
                       </div>
 
@@ -3397,10 +3149,10 @@ function BillingContent() {
                         const isExpired = expDate ? expDate < todayISO() : false;
 
                         return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9.5, flexWrap: 'wrap' }}>
                             <span
                               style={{
-                                padding: '1px 5px',
+                                padding: '1px 4px',
                                 borderRadius: 4,
                                 fontWeight: 700,
                                 background: isOutOfStock ? '#fef2f2' : isLowStock ? '#fff7ed' : '#f0fdf4',
@@ -3415,7 +3167,7 @@ function BillingContent() {
                             {expDate && (
                               <span
                                 style={{
-                                  padding: '1px 5px',
+                                  padding: '1px 4px',
                                   borderRadius: 4,
                                   fontWeight: 700,
                                   background: isExpired ? '#fef2f2' : '#f8fafc',
@@ -3464,7 +3216,7 @@ function BillingContent() {
                             {buyInfo?.isBelowBuy && (
                               <span
                                 style={{
-                                  padding: '1.5px 6px',
+                                  padding: '1px 5px',
                                   borderRadius: 4,
                                   fontWeight: 800,
                                   background: '#fee2e2',
@@ -3472,12 +3224,12 @@ function BillingContent() {
                                   border: '1.5px solid #ef4444',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: 3,
-                                  fontSize: 10,
+                                  gap: 2,
+                                  fontSize: 9.5,
                                 }}
                                 title={`Cannot sell below buy price! Buy Rate: ₹${buyInfo.buyPrice}, Net Sell Rate: ₹${buyInfo.unitNet.toFixed(1)}`}
                               >
-                                🚨 BELOW BUY PRICE (Buy: {money(buyInfo.buyPrice)} &gt; Net: {money(buyInfo.unitNet)} | Loss: -{money(buyInfo.lossPerUnit)}/pc) — DO NOT SELL
+                                🚨 BELOW BUY PRICE (Buy: {money(buyInfo.buyPrice)} &gt; Net: {money(buyInfo.unitNet)} | Loss: -{money(buyInfo.lossPerUnit)}/pc)
                               </span>
                             )}
                           </div>
@@ -3487,19 +3239,19 @@ function BillingContent() {
                       <div
                         style={{
                           display: 'grid',
-                          gridTemplateColumns: '50px 68px 1fr auto',
-                          gap: 5,
+                          gridTemplateColumns: '56px 74px 1fr auto',
+                          gap: 6,
                           alignItems: 'center',
                         }}
                       >
                         <div>
-                          <span style={{ fontSize: 9, color: '#64748b', display: 'block', fontWeight: 700 }}>
+                          <span style={{ fontSize: 9.5, color: '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                             QTY
                           </span>
                           <div
                             className="qty-up-down-box"
                             style={{
-                              height: 28,
+                              height: 32,
                               position: 'relative',
                             }}
                           >
@@ -3516,9 +3268,9 @@ function BillingContent() {
                                 textAlign: 'center',
                                 height: '100%',
                                 width: '100%',
-                                fontSize: 11.5,
-                                fontWeight: 700,
-                                padding: '0 15px 0 2px',
+                                fontSize: 13,
+                                fontWeight: 800,
+                                padding: '0 16px 0 2px',
                                 border: 'none',
                                 background: 'transparent',
                                 boxShadow: 'none',
@@ -3530,7 +3282,7 @@ function BillingContent() {
                                 right: 0,
                                 top: 0,
                                 bottom: 0,
-                                width: 14,
+                                width: 16,
                                 display: 'flex',
                                 flexDirection: 'column',
                                 borderLeft: '1px solid #e2e8f0',
@@ -3555,7 +3307,7 @@ function BillingContent() {
                                   borderBottom: '1px solid #e2e8f0',
                                 }}
                               >
-                                <ChevronUp size={8} strokeWidth={2.5} />
+                                <ChevronUp size={9} strokeWidth={2.5} />
                               </button>
                               <button
                                 type="button"
@@ -3574,7 +3326,7 @@ function BillingContent() {
                                   color: '#475569',
                                 }}
                               >
-                                <ChevronDown size={8} strokeWidth={2.5} />
+                                <ChevronDown size={9} strokeWidth={2.5} />
                               </button>
                             </div>
                           </div>
@@ -3585,7 +3337,7 @@ function BillingContent() {
                           return (
                             <>
                               <div>
-                                <span style={{ fontSize: 9, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700 }}>
+                                <span style={{ fontSize: 9.5, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                                   RATE (₹)
                                 </span>
                                 <input
@@ -3599,18 +3351,18 @@ function BillingContent() {
                                   onKeyDown={(e) => handleLineKeyDown(e, idx)}
                                   style={{
                                     textAlign: 'right',
-                                    height: 28,
-                                    fontSize: 11.5,
-                                    padding: '0 4px',
+                                    height: 32,
+                                    fontSize: 13,
+                                    padding: '0 6px',
                                     border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
                                     background: isLoss ? '#fef2f2' : '#ffffff',
                                     color: isLoss ? '#dc2626' : 'inherit',
-                                    fontWeight: isLoss ? 800 : 400,
+                                    fontWeight: isLoss ? 800 : 600,
                                   }}
                                 />
                               </div>
                               <div>
-                                <span style={{ fontSize: 9, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700 }}>
+                                <span style={{ fontSize: 9.5, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                                   DISCOUNT
                                 </span>
                                 <div style={{ display: 'flex', gap: 2 }}>
@@ -3627,10 +3379,11 @@ function BillingContent() {
                                     onKeyDown={(e) => handleLineKeyDown(e, idx)}
                                     style={{
                                       textAlign: 'right',
-                                      height: 28,
-                                      fontSize: 11.5,
-                                      padding: '0 4px',
+                                      height: 32,
+                                      fontSize: 13,
+                                      padding: '0 6px',
                                       flex: 1,
+                                      minWidth: 0,
                                       border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
                                       background: isLoss ? '#fef2f2' : '#ffffff',
                                       color: isLoss ? '#dc2626' : (Number(line.discount || 0) > 0 ? '#16a34a' : 'inherit'),
@@ -3642,10 +3395,10 @@ function BillingContent() {
                                     className="btn btn-ghost btn-sm"
                                     style={{
                                       padding: 0,
-                                      width: 20,
-                                      height: 28,
-                                      fontSize: 10,
-                                      fontWeight: 700,
+                                      width: 24,
+                                      height: 32,
+                                      fontSize: 12,
+                                      fontWeight: 800,
                                       borderRadius: 4,
                                       color: isLoss ? '#dc2626' : ((line.discountType || '%') === '%' ? '#2563eb' : '#05424A'),
                                       background: isLoss ? '#fee2e2' : ((line.discountType || '%') === '%' ? '#eff6ff' : '#f0fdf4'),
@@ -3661,14 +3414,14 @@ function BillingContent() {
                                   </button>
                                 </div>
                               </div>
-                              <div style={{ textAlign: 'right', minWidth: 55 }}>
-                                <span style={{ fontSize: 9, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700 }}>
+                              <div style={{ textAlign: 'right', minWidth: 54 }}>
+                                <span style={{ fontSize: 9.5, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                                   TOTAL
                                 </span>
                                 <span
                                   style={{
-                                    fontSize: 12,
-                                    fontWeight: 800,
+                                    fontSize: 13.5,
+                                    fontWeight: 900,
                                     color: isLoss ? '#dc2626' : '#0f172a',
                                     background: isLoss ? '#fee2e2' : 'transparent',
                                     padding: isLoss ? '1px 4px' : '0',
@@ -3682,14 +3435,14 @@ function BillingContent() {
                                   <span
                                     style={{
                                       display: 'block',
-                                      fontSize: 8,
+                                      fontSize: 7.5,
                                       fontWeight: 800,
                                       color: '#b91c1c',
                                       lineHeight: 1.1,
                                       marginTop: 1,
                                     }}
                                   >
-                                    ⛔ BELOW BUY
+                                    ⛔ BELOW
                                   </span>
                                 )}
                               </div>
@@ -3710,53 +3463,9 @@ function BillingContent() {
                   ))}
                 </datalist>
               </div>
-            </div>
 
-            {/* Right Column: Checkout, Discounts, Payment & Instant Print */}
-            <div
-              className="card billing-builder-card billing-checkout-panel"
-              style={{
-                padding: '10px 12px',
-                border: '1px solid #e2e8f0',
-                borderRadius: 12,
-                background: '#ffffff',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                <h2
-                  style={{
-                    fontWeight: 800,
-                    fontSize: 15,
-                    margin: 0,
-                    color: '#0f172a',
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  Checkout &amp; Settlement
-                </h2>
-                <span
-                  style={{
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    background: 'var(--teal-subtle)',
-                    color: 'var(--teal)',
-                    padding: '2px 7px',
-                    borderRadius: 99,
-                  }}
-                >
-                  {lines.filter((l) => l.name && l.name.trim() !== '').length} items • {money(rawSubtotal)}
-                </span>
-              </div>
+              {/* ─── Integrated Settlement Section ─── */}
+              <div id="billing-checkout-section" style={{ marginTop: 4 }}>
 
               {/* Loyalty & Wallet Banner */}
               {selectedCustomerObj &&
@@ -3811,794 +3520,221 @@ function BillingContent() {
 
               {/* Checkout Two-Column Grid (Active in Up & Down Layout) */}
               <div className="billing-checkout-grid">
-                {/* Totals & Discounts Summary Card */}
-                <div className="billing-totals" style={{ marginTop: 0 }}>
-                <div className="total-row">
-                  <span>Gross Subtotal</span>
-                  <span style={{ fontWeight: 600 }}>{money(rawSubtotal)}</span>
-                </div>
-
-                {serviceDiscountTotal > 0 && (
-                  <div className="total-row" style={{ color: '#16a34a', fontSize: 11.5 }}>
-                    <span>💄 Service Discounts</span>
-                    <span style={{ fontWeight: 700 }}>−{money(serviceDiscountTotal)}</span>
-                  </div>
-                )}
-
-                {productDiscountTotal > 0 && (
-                  <div className="total-row" style={{ color: '#16a34a', fontSize: 11.5 }}>
-                    <span>📦 Product Discounts</span>
-                    <span style={{ fontWeight: 700 }}>−{money(productDiscountTotal)}</span>
-                  </div>
-                )}
-
-                {itemDiscountTotal > 0 && (
-                  <div
-                    className="total-row"
-                    style={{
-                      color: '#05424A',
-                      fontWeight: 600,
-                      fontSize: 11.5,
-                      borderTop: '1px dashed #e2e8f0',
-                      paddingTop: 3,
-                    }}
-                  >
-                    <span>Net Items Subtotal</span>
-                    <span>{money(lineNetTotal)}</span>
-                  </div>
-                )}
-
-                {/* Bill Discount: 2 Options (1. Editing Box % and 2. Writing Box ₹) */}
+                {/* Total Payable (Clean Display, No Box) */}
                 <div
                   style={{
-                    background: '#f8fafc',
-                    padding: '6px 8px',
-                    borderRadius: 7,
-                    border: '1px solid #e2e8f0',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 5,
+                    gap: 3,
+                    margin: '4px 0 2px',
+                    padding: '2px 4px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#05424A', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      🏷️ Bill Discount
-                    </span>
-                    {(discount > 0 || (billDiscountPercent !== '' && billDiscountPercent !== 0)) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDiscount(0);
-                          setBillDiscountPercent('');
-                          setDiscountMode('amount');
-                        }}
-                        style={{
-                          fontSize: 9.5,
-                          fontWeight: 700,
-                          color: '#dc2626',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '0 2px',
-                        }}
-                        title="Clear discount"
-                      >
-                        ✕ Clear
-                      </button>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                    {/* % Editing Box */}
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        className="input"
-                        style={{
-                          width: '100%',
-                          height: 26,
-                          padding: '0 20px 0 6px',
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          borderRadius: 6,
-                          textAlign: 'right',
-                          borderColor: discountMode === 'percent' && billDiscountPercent !== '' ? '#05424A' : '#cbd5e1',
-                          background: discountMode === 'percent' && billDiscountPercent !== '' ? 'rgba(5, 66, 74, 0.04)' : '#ffffff',
-                        }}
-                        placeholder="0"
-                        value={billDiscountPercent !== '' ? billDiscountPercent : ''}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? '' : Math.max(0, Math.min(100, Number(e.target.value)));
-                          setDiscountMode('percent');
-                          setBillDiscountPercent(val);
-                          if (val === '' || val === 0) {
-                            setDiscount(0);
-                          } else {
-                            const calcAmt = Math.round((rawSubtotal * Number(val)) / 100);
-                            setDiscount(calcAmt);
-                          }
-                        }}
-                      />
-                      <span
-                        style={{
-                          position: 'absolute',
-                          right: 6,
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          color: '#64748b',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        %
-                      </span>
+                  {/* Conditional Discounts/Advance/Loyalty/Wallet badges if active */}
+                  {totalAllDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#16a34a', fontWeight: 600 }}>
+                      <span>Discounts:</span>
+                      <span>−{money(totalAllDiscount)}</span>
                     </div>
-
-                    {/* ₹ Writing Box */}
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <span
-                        style={{
-                          position: 'absolute',
-                          left: 6,
-                          fontSize: 10.5,
-                          fontWeight: 700,
-                          color: '#64748b',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        min={0}
-                        className="input"
-                        style={{
-                          width: '100%',
-                          height: 26,
-                          padding: '0 6px 0 18px',
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          borderRadius: 6,
-                          textAlign: 'right',
-                          borderColor: discountMode === 'amount' && discount > 0 ? '#05424A' : '#cbd5e1',
-                          background: discountMode === 'amount' && discount > 0 ? 'rgba(5, 66, 74, 0.04)' : '#ffffff',
-                        }}
-                        placeholder="0"
-                        value={discount || ''}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? 0 : Math.max(0, Number(e.target.value));
-                          setDiscountMode('amount');
-                          setDiscount(val);
-                          if (val === 0 || rawSubtotal <= 0) {
-                            setBillDiscountPercent('');
-                          } else {
-                            const pct = Number(((val / rawSubtotal) * 100).toFixed(1));
-                            setBillDiscountPercent(pct === Math.round(pct) ? Math.round(pct) : pct);
-                          }
-                        }}
-                      />
+                  )}
+                  {pointsDiscountAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#16a34a', fontWeight: 600 }}>
+                      <span>Redeemed Points:</span>
+                      <span>−{money(pointsDiscountAmount)}</span>
                     </div>
-                  </div>
-                </div>
-
-                {totalAllDiscount > 0 && (
-                  <div
-                    className="total-row"
-                    style={{ color: '#16a34a', fontWeight: 700, fontSize: 11.5 }}
-                  >
-                    <span>Total Savings &amp; Discounts</span>
-                    <span>−{money(totalAllDiscount)}</span>
-                  </div>
-                )}
-
-                {/* Loyalty Points Redemption */}
-                {selectedCustomerObj &&
-                  data?.settings?.loyaltyEnabled &&
-                  (selectedCustomerObj.loyaltyPoints || 0) >=
-                    (data?.settings?.loyaltyMinRedeem || 50) && (
-                    <div
-                      className="total-row"
-                      style={{
-                        alignItems: 'center',
-                        background: '#fefce8',
-                        borderRadius: 7,
-                        padding: '3px 6px',
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          color: '#92741a',
-                        }}
-                      >
-                        ⭐ Redeem Points ({selectedCustomerObj.loyaltyPoints || 0} pts)
-                      </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <input
-                          type="number"
-                          min={0}
-                          max={selectedCustomerObj.loyaltyPoints || 0}
-                          step={data?.settings?.loyaltyMinRedeem || 50}
-                          className="input"
-                          style={{ width: 68, height: 24, padding: '0 4px', fontSize: 11 }}
-                          value={redeemPoints || ''}
-                          placeholder="0 pts"
-                          onChange={(e) =>
-                            setRedeemPoints(
-                              Math.min(
-                                Number(e.target.value) || 0,
-                                selectedCustomerObj.loyaltyPoints || 0
-                              )
-                            )
-                          }
-                        />
-                        {pointsDiscountAmount > 0 && (
-                          <span style={{ fontSize: 10, color: '#16a34a', fontWeight: 700 }}>
-                            = −{money(pointsDiscountAmount)}
-                          </span>
-                        )}
-                      </div>
+                  )}
+                  {Number(useWallet || 0) > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#15803d', fontWeight: 600 }}>
+                      <span>Paid from Wallet:</span>
+                      <span>−{money(Number(useWallet || 0))}</span>
+                    </div>
+                  )}
+                  {advance > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#05424A', fontWeight: 600 }}>
+                      <span>Advance Deducted:</span>
+                      <span>−{money(advance)}</span>
                     </div>
                   )}
 
-                {/* Wallet Usage */}
-                {selectedCustomerObj &&
-                  data?.settings?.walletEnabled &&
-                  (selectedCustomerObj.walletBalance || 0) > 0 && (
-                    <div
-                      className="total-row"
-                      style={{
-                        alignItems: 'center',
-                        background: '#f0fdf4',
-                        borderRadius: 7,
-                        padding: '3px 6px',
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          color: '#15803d',
-                        }}
-                      >
-                        💳 Pay from Wallet ({money(selectedCustomerObj.walletBalance || 0)})
-                      </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <input
-                          type="number"
-                          min={0}
-                          max={Math.min(
-                            selectedCustomerObj.walletBalance || 0,
-                            roundedTotal - pointsDiscountAmount
-                          )}
-                          className="input"
-                          style={{ width: 75, height: 24, padding: '0 4px', fontSize: 11 }}
-                          value={useWallet || ''}
-                          placeholder="₹ 0"
-                          onChange={(e) =>
-                            setUseWallet(
-                              Math.min(
-                                Number(e.target.value) || 0,
-                                selectedCustomerObj.walletBalance || 0,
-                                roundedTotal
-                              )
-                            )
-                          }
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                {advance > 0 && (
+                  {/* Clean Total Display Row (No Box, Just Clean Prominent Total) */}
                   <div
-                    className="total-row"
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
+                      padding: '4px 0',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span>Advance Deducted:</span>
-                      <select
-                        value={advanceMode}
-                        onChange={(e) => setAdvanceMode(e.target.value)}
-                        style={{
-                          fontSize: 10,
-                          padding: '1px 4px',
-                          borderRadius: 4,
-                          border: '1px solid #cbd5e1',
-                          background: '#ffffff',
-                        }}
-                      >
-                        <option value="Cash">💵 Cash</option>
-                        <option value="GPay UPI">📱 GPay</option>
-                        <option value="PhonePe UPI">📲 PhonePe</option>
-                        <option value="Card">💳 Card</option>
-                        <option value="Bank Transfer">🏦 Bank</option>
-                      </select>
-                    </div>
-                    <span style={{ color: '#05424A', fontWeight: 700 }}>−{money(advance)}</span>
-                  </div>
-                )}
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+                      Total Payable:
+                    </span>
 
-                {/* Vyapar Round Off & Manual Price Adjustment (+ YA -) */}
-                <div
-                  className="total-row"
-                  style={{
-                    fontSize: 11,
-                    color: '#475569',
-                    padding: '3px 0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 6,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <label
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        fontWeight: 600,
-                      }}
-                      title="Toggle automatic mathematical round off to nearest rupee"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={autoRoundOff && !isManualRoundOff}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setAutoRoundOff(true);
-                            setIsManualRoundOff(false);
-                            setCustomRoundOffValue('');
-                          } else {
-                            setAutoRoundOff(false);
-                            setIsManualRoundOff(false);
-                            setCustomRoundOffValue('');
-                          }
-                        }}
-                        style={{ accentColor: '#05424A', cursor: 'pointer', width: 13, height: 13 }}
-                      />
-                      <span style={{ color: isManualRoundOff ? '#b45309' : '#475569' }}>
-                        {isManualRoundOff ? 'Custom Round Off' : 'Auto Round Off (₹0.50)'}
-                      </span>
-                    </label>
-
-                    {isManualRoundOff && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAutoRoundOff(true);
-                          setIsManualRoundOff(false);
-                          setCustomRoundOffValue('');
-                        }}
-                        title="Reset back to Auto Round Off"
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 700,
-                          padding: '1px 5px',
-                          borderRadius: 3,
-                          background: '#f1f5f9',
-                          border: '1px solid #cbd5e1',
-                          color: '#05424A',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Reset Auto ↺
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Interactive + YA - Price Edit Controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    {/* Toggle Button for (+) YA (-) */}
-                    <button
-                      type="button"
-                      title={`Click to switch between + (Add) and − (Minus / Discount). Currently: ${
-                        (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
-                          ? '+ (Add)'
-                          : '− (Minus)'
-                      }`}
-                      onClick={() => {
-                        const currentSign = isManualRoundOff
-                          ? customRoundOffSign
-                          : roundOffDiff >= 0
-                          ? '+'
-                          : '-';
-                        const newSign = currentSign === '+' ? '-' : '+';
-                        const currentAmt =
-                          isManualRoundOff && customRoundOffValue !== ''
-                            ? Number(customRoundOffValue)
-                            : Math.abs(roundOffDiff);
-                        setIsManualRoundOff(true);
-                        setAutoRoundOff(false);
-                        setCustomRoundOffSign(newSign);
-                        setCustomRoundOffValue(currentAmt > 0 ? Number(currentAmt.toFixed(2)) : '');
-                      }}
-                      style={{
-                        height: 24,
-                        width: 26,
-                        padding: 0,
-                        fontSize: 13,
-                        fontWeight: 900,
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border:
-                          (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
-                            ? '1.5px solid #16a34a'
-                            : '1.5px solid #dc2626',
-                        background:
-                          (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
-                            ? '#f0fdf4'
-                            : '#fef2f2',
-                        color:
-                          (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
-                            ? '#15803d'
-                            : '#b91c1c',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      {(isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+' ? '+' : '−'}
-                    </button>
-
-                    {/* Editable Price / Round-off Amount Input */}
-                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                      <span
-                        style={{
-                          position: 'absolute',
-                          left: 5,
-                          fontSize: 10,
-                          fontWeight: 700,
-                          color: '#64748b',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min={0}
-                        className="input"
-                        placeholder="0.00"
-                        title="Edit round off / price adjustment amount (Type custom + or - adjustment)"
-                        value={
-                          isManualRoundOff
-                            ? customRoundOffValue === ''
-                              ? ''
-                              : customRoundOffValue
-                            : Math.abs(roundOffDiff) > 0
-                            ? Math.abs(roundOffDiff).toFixed(2)
-                            : '0.00'
-                        }
-                        onFocus={() => {
-                          if (!isManualRoundOff) {
+                    {isEditingFinalPayable ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ fontSize: 13, fontWeight: 900, color: '#05424A' }}>₹</span>
+                        <input
+                          type="number"
+                          step="1"
+                          min={0}
+                          autoFocus
+                          className="input"
+                          placeholder="Final Price"
+                          value={Math.max(0, totalAfterLoyalty - Number(advance || 0))}
+                          onChange={(e) => {
+                            const targetFinal = Math.max(0, Number(e.target.value) || 0);
+                            const base = Math.max(0, discounted - pointsDiscountAmount - Number(useWallet || 0) - Number(advance || 0));
+                            const diff = Number((targetFinal - base).toFixed(2));
                             setIsManualRoundOff(true);
                             setAutoRoundOff(false);
-                            setCustomRoundOffSign(roundOffDiff >= 0 ? '+' : '-');
-                            setCustomRoundOffValue(
-                              Math.abs(roundOffDiff) > 0 ? Number(Math.abs(roundOffDiff).toFixed(2)) : ''
-                            );
-                          }
-                        }}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? '' : Math.max(0, Number(e.target.value));
-                          setIsManualRoundOff(true);
-                          setAutoRoundOff(false);
-                          setCustomRoundOffValue(val);
-                        }}
-                        style={{
-                          height: 24,
-                          width: 62,
-                          textAlign: 'right',
-                          padding: '0 4px 0 14px',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          borderRadius: 4,
-                          border: isManualRoundOff ? '1.5px solid #05424A' : '1px solid #cbd5e1',
-                          background: isManualRoundOff ? '#f0fdfa' : '#ffffff',
-                          color:
-                            (isManualRoundOff ? customRoundOffSign : roundOffDiff >= 0 ? '+' : '-') === '+'
-                              ? '#15803d'
-                              : '#b91c1c',
-                        }}
-                      />
-                    </div>
+                            if (diff >= 0) {
+                              setCustomRoundOffSign('+');
+                              setCustomRoundOffValue(diff);
+                            } else {
+                              setCustomRoundOffSign('-');
+                              setCustomRoundOffValue(Math.abs(diff));
+                            }
+                          }}
+                          style={{
+                            height: 30,
+                            width: 88,
+                            textAlign: 'right',
+                            fontSize: 14,
+                            fontWeight: 900,
+                            color: '#05424A',
+                            border: '2px solid #05424A',
+                            borderRadius: 6,
+                            padding: '0 5px',
+                            background: '#f0fdfa',
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span
+                        style={{ fontSize: 20, fontWeight: 900, color: '#05424A', cursor: 'pointer' }}
+                        title="Click to edit final payable price directly"
+                        onClick={() => setIsEditingFinalPayable(true)}
+                      >
+                        {money(totalAfterLoyalty - Number(advance || 0))}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                {/* Final Payable — Primary visual register emphasis */}
-                <div
-                  className="total-row grand"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(5, 66, 74, 0.08) 0%, rgba(234, 186, 56, 0.12) 100%)',
-                    padding: '6px 8px',
-                    borderRadius: 7,
-                    border: '1.5px solid #05424A',
-                    margin: '2px 0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a' }}>
-                      Final Payable
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingFinalPayable((v) => !v)}
-                      title="Directly edit Final Payable amount (auto-adjusts Round Off difference)"
-                      style={{
-                        fontSize: 9.5,
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: 4,
-                        border: '1px solid #cbd5e1',
-                        background: isEditingFinalPayable ? '#05424A' : '#ffffff',
-                        color: isEditingFinalPayable ? '#ffffff' : '#64748b',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 2,
-                      }}
-                    >
-                      <Pencil size={9} /> Edit
-                    </button>
-                  </div>
-
-                  {isEditingFinalPayable ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                      <span style={{ fontSize: 13, fontWeight: 900, color: '#05424A' }}>₹</span>
-                      <input
-                        type="number"
-                        step="1"
-                        min={0}
-                        autoFocus
-                        className="input"
-                        placeholder="Final Price"
-                        value={Math.max(0, totalAfterLoyalty - Number(advance || 0))}
-                        onChange={(e) => {
-                          const targetFinal = Math.max(0, Number(e.target.value) || 0);
-                          const base = Math.max(0, discounted - pointsDiscountAmount - Number(useWallet || 0) - Number(advance || 0));
-                          const diff = Number((targetFinal - base).toFixed(2));
-                          setIsManualRoundOff(true);
-                          setAutoRoundOff(false);
-                          if (diff >= 0) {
-                            setCustomRoundOffSign('+');
-                            setCustomRoundOffValue(diff);
-                          } else {
-                            setCustomRoundOffSign('-');
-                            setCustomRoundOffValue(Math.abs(diff));
-                          }
-                        }}
-                        style={{
-                          height: 28,
-                          width: 88,
-                          textAlign: 'right',
-                          fontSize: 14,
-                          fontWeight: 900,
-                          color: '#05424A',
-                          border: '2px solid #05424A',
-                          borderRadius: 5,
-                          padding: '0 5px',
-                          background: '#f0fdfa',
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <span
-                      style={{ fontSize: 19, fontWeight: 900, color: '#05424A', cursor: 'pointer' }}
-                      title="Click to edit final payable price directly"
-                      onClick={() => setIsEditingFinalPayable(true)}
-                    >
-                      {money(totalAfterLoyalty - Number(advance || 0))}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Right Section: Payment Method, Settlement & Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Lower Section: Payment Method, Settlement & Actions (Up & Down Layout) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
                 {/* Payment Section (Split or Single Method) */}
                 <div
                   style={{
-                    marginTop: 2,
+                    marginTop: 0,
                     background: '#ffffff',
-                    padding: '6px 8px',
-                    borderRadius: 7,
+                    padding: '8px 10px',
+                    borderRadius: 8,
                     border: '1px solid #e2e8f0',
                   }}
                 >
+                  {/* Mixed Header & Status Row (2 Rows Mixed Into 1) */}
                   <div
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: 4,
+                      marginBottom: 6,
+                      flexWrap: 'wrap',
+                      gap: 6,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#1e293b' }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 800, color: '#1e293b' }}>
                         Payment Method
                       </span>
-                      {balance === 0 && effectivePaid > 0 ? (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                          ✓ Paid {money(effectivePaid)}
-                        </span>
-                      ) : balance > 0 ? (
-                        <button
-                          type="button"
-                          onClick={handleSetFullPayment}
-                          title="Auto-fill Full Payable Amount"
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: 700,
-                            padding: '1.5px 6px',
-                            borderRadius: 4,
-                            background: 'rgba(5, 66, 74, 0.08)',
-                            color: '#05424A',
-                            border: '1px solid rgba(5, 66, 74, 0.2)',
-                            cursor: 'pointer',
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: balance > 0 ? '#dc2626' : '#16a34a',
+                          background: balance > 0 ? '#fee2e2' : '#f0fdf4',
+                          border: balance > 0 ? '1px solid #fca5a5' : '1px solid #bbf7d0',
+                          padding: '1px 6px',
+                          borderRadius: 4,
+                        }}
+                      >
+                        {balance > 0 ? `Due: ${money(balance)}` : `Status: ₹0.00`}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <label
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: balance === 0 ? '#16a34a' : '#05424A',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={balance === 0 && effectivePaid > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              handleSetFullPayment();
+                            } else {
+                              if (isSplitPayment) {
+                                setSplitCash('');
+                                setSplitUpi('');
+                                setSplitCard('');
+                              } else {
+                                setPaid('');
+                              }
+                            }
                           }}
-                        >
-                          ⚡ Full ({money(Math.max(0, totalAfterLoyalty - Number(advance || 0)))})
-                        </button>
-                      ) : null}
+                          style={{ accentColor: '#16a34a', cursor: 'pointer', width: 13, height: 13 }}
+                        />
+                        <span>Fully Paid</span>
+                      </label>
+
+                      {/* Split Payment Checkbox Toggle */}
+                      <label
+                        style={{
+                          fontSize: 10.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          cursor: 'pointer',
+                          color: isSplitPayment ? '#05424A' : '#64748b',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSplitPayment}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setIsSplitPayment(checked);
+                            setSplitCash('');
+                            setSplitUpi('');
+                            setSplitCard('');
+                            if (!checked) {
+                              setPaid(Math.max(0, totalAfterLoyalty - Number(advance || 0)));
+                            }
+                          }}
+                          style={{ accentColor: '#05424A', width: 13, height: 13, cursor: 'pointer' }}
+                        />
+                        <span>🔀 Split Payment</span>
+                      </label>
                     </div>
                   </div>
 
-                  {/* Fast 1-Click Payment Mode Buttons (Speedy & Quick, No Duplicates) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 6 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode('Cash');
-                        setIsSplitPayment(false);
-                        const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
-                        setPaid(payAmt);
-                        setSplitCash('');
-                        setSplitUpi('');
-                        setSplitCard('');
-                      }}
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '4px 2px',
-                        borderRadius: 6,
-                        border: (!isSplitPayment && mode === 'Cash') ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                        background: (!isSplitPayment && mode === 'Cash') ? '#f0fdf4' : '#ffffff',
-                        color: (!isSplitPayment && mode === 'Cash') ? '#16a34a' : '#334155',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 2,
-                      }}
-                      title="1-Click: Mark 100% full payment in Cash"
-                    >
-                      💵 Cash
-                    </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode('GPay UPI');
-                        setIsSplitPayment(false);
-                        const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
-                        setPaid(payAmt);
-                        setSplitCash('');
-                        setSplitUpi('');
-                        setSplitCard('');
-                      }}
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '4px 2px',
-                        borderRadius: 6,
-                        border: (!isSplitPayment && (mode === 'GPay UPI' || mode === 'PhonePe UPI' || mode === 'UPI')) ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                        background: (!isSplitPayment && (mode === 'GPay UPI' || mode === 'PhonePe UPI' || mode === 'UPI')) ? '#f0fdf4' : '#ffffff',
-                        color: (!isSplitPayment && (mode === 'GPay UPI' || mode === 'PhonePe UPI' || mode === 'UPI')) ? '#16a34a' : '#334155',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 2,
-                      }}
-                      title="1-Click: Mark 100% full payment in UPI / GPay"
-                    >
-                      📱 UPI
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode('Card');
-                        setIsSplitPayment(false);
-                        const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
-                        setPaid(payAmt);
-                        setSplitCash('');
-                        setSplitUpi('');
-                        setSplitCard('');
-                      }}
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '4px 2px',
-                        borderRadius: 6,
-                        border: (!isSplitPayment && mode === 'Card') ? '1.5px solid #16a34a' : '1px solid #cbd5e1',
-                        background: (!isSplitPayment && mode === 'Card') ? '#f0fdf4' : '#ffffff',
-                        color: (!isSplitPayment && mode === 'Card') ? '#16a34a' : '#334155',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 2,
-                      }}
-                      title="1-Click: Mark 100% full payment via Card"
-                    >
-                      💳 Card
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const totalPay = Math.max(0, totalAfterLoyalty - Number(advance || 0));
-                        if (isSplitPayment) {
-                          // Toggle back to single Cash payment
-                          setIsSplitPayment(false);
-                          setMode('Cash');
-                          setPaid(totalPay);
-                        } else {
-                          // Toggle into Split mode and auto-split 50/50 between Cash & UPI
-                          setIsSplitPayment(true);
-                          const half1 = Math.floor(totalPay / 2);
-                          const half2 = totalPay - half1;
-                          setSplitCash(half1);
-                          setSplitUpi(half2);
-                          setSplitCard('');
-                        }
-                      }}
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '4px 2px',
-                        borderRadius: 6,
-                        border: isSplitPayment ? '1.5px solid #05424A' : '1px solid #cbd5e1',
-                        background: isSplitPayment ? 'rgba(5, 66, 74, 0.1)' : '#ffffff',
-                        color: isSplitPayment ? '#05424A' : '#334155',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 2,
-                      }}
-                      title="1-Click: Split payment between Cash & UPI (Click again to switch back)"
-                    >
-                      🔀 Split
-                    </button>
-                  </div>
 
                   {isSplitPayment ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
-                          <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                          <label style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>
                             Cash (₹)
                           </label>
                           <button
@@ -4608,7 +3744,7 @@ function BillingContent() {
                               setSplitCash(remaining);
                             }}
                             title="Fill remaining into Cash"
-                            style={{ fontSize: 8, padding: '0 3px', borderRadius: 3, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A' }}
+                            style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
                           >
                             Fill
                           </button>
@@ -4617,10 +3753,10 @@ function BillingContent() {
                           type="number"
                           min={0}
                           className="input"
-                          placeholder="Cash"
+                          placeholder="0"
                           value={splitCash}
                           onChange={(e) => setSplitCash(Number(e.target.value) || '')}
-                          style={{ padding: '0 4px', height: 28, fontSize: 11 }}
+                          style={{ padding: '0 8px', height: 38, fontSize: 13.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
                         />
                       </div>
                       <div>
@@ -4629,19 +3765,19 @@ function BillingContent() {
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginBottom: 1,
+                            marginBottom: 2,
                           }}
                         >
                           <select
                             value={splitUpiMode}
                             onChange={(e) => setSplitUpiMode(e.target.value)}
                             style={{
-                              fontSize: 8.5,
-                              padding: '1px 2px',
+                              fontSize: 9.5,
+                              padding: '1px 4px',
                               borderRadius: 4,
                               border: '1px solid #cbd5e1',
                               background: '#ffffff',
-                              fontWeight: 600,
+                              fontWeight: 700,
                             }}
                           >
                             <option value="GPay UPI">GPay (₹)</option>
@@ -4654,7 +3790,7 @@ function BillingContent() {
                               setSplitUpi(remaining);
                             }}
                             title="Fill remaining into UPI"
-                            style={{ fontSize: 8, padding: '0 3px', borderRadius: 3, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A' }}
+                            style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
                           >
                             Fill
                           </button>
@@ -4663,15 +3799,15 @@ function BillingContent() {
                           type="number"
                           min={0}
                           className="input"
-                          placeholder="UPI"
+                          placeholder="0"
                           value={splitUpi}
                           onChange={(e) => setSplitUpi(Number(e.target.value) || '')}
-                          style={{ padding: '0 4px', height: 28, fontSize: 11 }}
+                          style={{ padding: '0 8px', height: 38, fontSize: 13.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
                         />
                       </div>
                       <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
-                          <label style={{ fontSize: 9, color: '#64748b', fontWeight: 600 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                          <label style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>
                             Card (₹)
                           </label>
                           <button
@@ -4681,7 +3817,7 @@ function BillingContent() {
                               setSplitCard(remaining);
                             }}
                             title="Fill remaining into Card"
-                            style={{ fontSize: 8, padding: '0 3px', borderRadius: 3, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A' }}
+                            style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
                           >
                             Fill
                           </button>
@@ -4690,10 +3826,10 @@ function BillingContent() {
                           type="number"
                           min={0}
                           className="input"
-                          placeholder="Card"
+                          placeholder="0"
                           value={splitCard}
                           onChange={(e) => setSplitCard(Number(e.target.value) || '')}
-                          style={{ padding: '0 4px', height: 28, fontSize: 11 }}
+                          style={{ padding: '0 8px', height: 38, fontSize: 13.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
                         />
                       </div>
                     </div>
@@ -4705,12 +3841,12 @@ function BillingContent() {
                           onChange={(e) => setMode(e.target.value)}
                           style={{
                             flex: 1,
-                            height: 28,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '0 6px',
-                            borderRadius: 6,
-                            border: '1px solid #cbd5e1',
+                            height: 38,
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                            padding: '0 10px',
+                            borderRadius: 8,
+                            border: '1.5px solid #cbd5e1',
                             background: '#ffffff',
                             color: '#0f172a',
                           }}
@@ -4730,13 +3866,13 @@ function BillingContent() {
                             </option>
                           ))}
                         </select>
-                        <div style={{ width: 110, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <div style={{ width: 135, position: 'relative', display: 'flex', alignItems: 'center' }}>
                           <span
                             style={{
                               position: 'absolute',
-                              left: 6,
-                              fontSize: 10,
-                              fontWeight: 700,
+                              left: 8,
+                              fontSize: 11,
+                              fontWeight: 800,
                               color: '#64748b',
                               pointerEvents: 'none',
                             }}
@@ -4752,12 +3888,13 @@ function BillingContent() {
                             onChange={(e) => setPaid(Number(e.target.value) || '')}
                             style={{
                               textAlign: 'right',
-                              height: 28,
-                              fontSize: 11.5,
-                              fontWeight: 700,
-                              padding: '0 6px 0 16px',
+                              height: 38,
+                              fontSize: 13.5,
+                              fontWeight: 800,
+                              padding: '0 8px 0 20px',
                               width: '100%',
-                              borderRadius: 6,
+                              borderRadius: 8,
+                              border: '1.5px solid #cbd5e1',
                             }}
                           />
                         </div>
@@ -4766,68 +3903,7 @@ function BillingContent() {
                   )}
                 </div>
 
-                {/* Balance Due Status / Full Payment Mark Row */}
-                <div
-                  className="total-row"
-                  style={{
-                    marginTop: 4,
-                    padding: '5px 8px',
-                    borderRadius: 6,
-                    background: balance > 0 ? '#fef2f2' : '#f0fdf4',
-                    border: balance > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontWeight: 700,
-                    fontSize: 11,
-                    color: balance > 0 ? '#dc2626' : '#16a34a',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>{balance > 0 ? 'Balance Due:' : 'Status:'}</span>
-                    <span style={{ fontSize: 12, fontWeight: 800 }}>
-                      {balance > 0 ? money(balance) : '₹0.00'}
-                    </span>
-                  </div>
 
-                  <label
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 5,
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                      background: balance === 0 ? 'rgba(22, 163, 74, 0.12)' : '#ffffff',
-                      padding: '2px 8px',
-                      borderRadius: 99,
-                      border: balance === 0 ? '1px solid #16a34a' : '1px solid #cbd5e1',
-                      fontSize: 10.5,
-                      fontWeight: 700,
-                      color: balance === 0 ? '#16a34a' : '#05424A',
-                      boxShadow: balance > 0 ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={balance === 0 && effectivePaid > 0}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          handleSetFullPayment();
-                        } else {
-                          if (isSplitPayment) {
-                            setSplitCash('');
-                            setSplitUpi('');
-                            setSplitCard('');
-                          } else {
-                            setPaid('');
-                          }
-                        }
-                      }}
-                      style={{ accentColor: '#16a34a', cursor: 'pointer', width: 13, height: 13 }}
-                    />
-                    <span>{balance === 0 ? 'Fully Paid' : 'Mark Full Payment'}</span>
-                  </label>
-                </div>
               </div>
 
               {/* Below Buy Price Loss Alert Banner */}
@@ -4861,29 +3937,29 @@ function BillingContent() {
               )}
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <button
                   type="button"
                   className="btn btn-outline"
                   style={{
-                    padding: '6px 12px',
-                    height: 38,
-                    fontSize: 12,
+                    padding: '0 14px',
+                    height: 42,
+                    fontSize: 13,
                     fontWeight: 700,
-                    borderRadius: 7,
+                    borderRadius: 8,
                     color: '#e11d48',
                     borderColor: '#fecdd3',
                     background: '#fff1f2',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 5,
+                    gap: 6,
                     cursor: 'pointer',
                     whiteSpace: 'nowrap',
                   }}
                   onClick={editingInvoiceId ? cancelEditInvoice : handleAllClearInvoice}
                   title={editingInvoiceId ? 'Cancel editing invoice' : 'Clear all fields & reset invoice (All Clear)'}
                 >
-                  <RotateCcw size={13} />
+                  <RotateCcw size={14} />
                   <span>{editingInvoiceId ? 'Cancel Edit' : 'All Clear'}</span>
                 </button>
                 <button
@@ -4891,11 +3967,11 @@ function BillingContent() {
                   className="btn btn-primary"
                   style={{
                     flex: 1,
-                    height: 38,
-                    padding: '8px 14px',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    borderRadius: 7,
+                    height: 42,
+                    padding: '8px 16px',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    borderRadius: 8,
                     cursor: 'pointer',
                     background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
                     boxShadow: hasBelowBuyLines ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 66, 74, 0.25)',
@@ -4903,7 +3979,7 @@ function BillingContent() {
                   onClick={handleSave}
                   title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : 'Save invoice and print receipt (Ctrl+Enter)'}
                 >
-                  <Printer size={15} />{' '}
+                  <Printer size={16} />{' '}
                   <span>
                     {hasBelowBuyLines
                       ? '⛔ Below Buy Price — Cannot Sell'
@@ -4913,6 +3989,96 @@ function BillingContent() {
                   </span>
                 </button>
               </div>
+              </div>
+            </div>
+            {/* End billing-checkout-section */}
+          </div>
+          {/* End billing-unified-card */}
+
+            {/* 3. Smart Mobile Sticky Bottom Action Bar (< 768px, Builder Only) */}
+            <div className="billing-mobile-bar no-print">
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  cursor: 'pointer',
+                  minWidth: 0,
+                }}
+                onClick={() => {
+                  const el = document.getElementById('billing-checkout-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                title="Click to jump to Settlement"
+              >
+                <div style={{ fontSize: 9.5, color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <span>{lines.filter((l) => l.name && l.name.trim() !== '').length} items</span>
+                  <span>•</span>
+                  <span style={{ color: '#05424A', fontWeight: 700 }}>
+                    {isSplitPayment ? '🔀 Split' : mode === 'Cash' ? '💵 Cash' : '📱 ' + mode}
+                  </span>
+                  <span style={{ fontSize: 9, color: '#05424A' }}>↓</span>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: '#05424A', lineHeight: 1.15 }}>
+                  {money(totalAfterLoyalty - Number(advance || 0))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                {/* Fast Payment Mode Switch Pill */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newMode = mode === 'Cash' ? 'GPay UPI' : 'Cash';
+                    setMode(newMode);
+                    setIsSplitPayment(false);
+                    const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+                    setPaid(payAmt);
+                  }}
+                  title="Switch between Cash and UPI"
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '3px 7px',
+                    borderRadius: 6,
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    color: '#05424A',
+                    cursor: 'pointer',
+                    height: 32,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                  }}
+                >
+                  <span>{mode === 'Cash' ? '💵 Cash' : '📱 UPI'}</span>
+                  <span style={{ fontSize: 8.5, opacity: 0.7 }}>↺</span>
+                </button>
+
+                {/* 1-Tap Bill Generation */}
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={hasBelowBuyLines}
+                  style={{
+                    height: 34,
+                    padding: '0 12px',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    borderRadius: 7,
+                    border: 'none',
+                    background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    boxShadow: hasBelowBuyLines ? 'none' : '0 2px 8px rgba(5, 66, 74, 0.3)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Printer size={13} />
+                  <span>{editingInvoiceId ? 'Update & Print' : 'Bill'}</span>
+                </button>
               </div>
             </div>
           </>
