@@ -24,20 +24,28 @@ export default function CloudStatusBadge() {
       className={`cloud-badge ${cls}`}
       onClick={() => cloudSave()}
       title={lastSynced ? `Cloud DB Synced: ${format(new Date(lastSynced), 'dd MMM HH:mm')}` : 'Click to sync with Cloud'}
+      style={{
+        width: 114,
+        minWidth: 114,
+        maxWidth: 114,
+        height: 28,
+        minHeight: 28,
+        maxHeight: 28,
+        padding: '0 8px',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 5,
+        boxSizing: 'border-box',
+        flexShrink: 0,
+      }}
     >
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={cloudStatus}
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.7 }}
-          transition={{ duration: 0.2 }}
-          style={{ display: 'flex', alignItems: 'center' }}
-        >
-          {icon}
-        </motion.span>
-      </AnimatePresence>
-      <span className="cloud-badge-label">{label}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, flexShrink: 0 }}>
+        {icon}
+      </span>
+      <span className="cloud-badge-label" style={{ fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
     </button>
   );
 }

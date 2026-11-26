@@ -68,7 +68,20 @@ export function mergeSalonData(cloud: SalonData, local: SalonData): SalonData {
     inventory: Array.from(invMap.values()),
     customers: mergeById(cloud.customers, local.customers),
     appointments: mergeById(cloud.appointments, local.appointments),
-    invoices: mergeById(cloud.invoices, local.invoices),
+    invoices: (() => {
+      const merged = mergeById(cloud.invoices, local.invoices);
+      const seenNos = new Set<string>();
+      const seenBridal = new Set<string>();
+      const deduped: any[] = [];
+      for (const inv of merged) {
+        if (inv.no && seenNos.has(inv.no)) continue;
+        if (inv.bridalBookingId && seenBridal.has(inv.bridalBookingId)) continue;
+        if (inv.no) seenNos.add(inv.no);
+        if (inv.bridalBookingId) seenBridal.add(inv.bridalBookingId);
+        deduped.push(inv);
+      }
+      return deduped;
+    })(),
     bridal: mergeById(cloud.bridal, local.bridal),
     expenses: mergeById(cloud.expenses, local.expenses),
     purchases: mergeById(cloud.purchases, local.purchases),

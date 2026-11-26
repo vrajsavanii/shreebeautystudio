@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -33,11 +33,15 @@ import {
   Smartphone,
   UserPlus,
   Zap,
+  Calendar,
+  Heart,
 } from 'lucide-react';
+import { AppointmentsPanel } from '@/app/admin/appointments/AppointmentsView';
+import { BridalPanel } from '@/app/admin/bridal/BridalView';
 import { useSalonStore, resolveBridalBookingPrice } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
 import { uid, todayISO, money, fmtDate, formatCustomerContactName, autoCapitalizeName, getServicePricingBasis, fmtExpiry } from '@/lib/utils';
-import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransaction, BridalBooking } from '@/types/salon';
+import { Invoice, InvoiceLine, PaymentVoucher, LoyaltyTransaction, WalletTransaction, BridalBooking, SharedCustomerBridge } from '@/types/salon';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -49,6 +53,12 @@ import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import ContactImportModal from '@/components/billing/ContactImportModal';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
+import {
+  getPaymentOptions,
+  getDefaultPaymentOption,
+  getUpiOrOnlinePaymentOptions,
+  getPaymentOptionIcon,
+} from '@/lib/payments';
 
 const EMPTY_LINE = (): InvoiceLine => ({
   type: 'S',
@@ -79,18 +89,411 @@ const calcLineTotal = (l: InvoiceLine): number => {
   return Math.max(0, gross - discAmt);
 };
 
-type BillingViewTab = 'builder' | 'history';
+type BillingViewTab = 'appointments' | 'bridal' | 'builder' | 'history';
+const TAB_ORDER: BillingViewTab[] = ['appointments', 'bridal', 'builder', 'history'];
+
+const isSwipeBlockedTarget = (target: HTMLElement | null, boundary: HTMLElement | null): boolean => {
+  if (!target) return false;
+  if (
+    target.closest(
+      'input, textarea, select, [contenteditable="true"], .no-swipe, [data-no-swipe], .barcode-slider, .modal-backdrop, .modal-panel, .modal-overlay, [role="dialog"], [aria-modal="true"], .tabs, .billing-tabs, [role="tablist"]'
+    )
+  ) {
+    return true;
+  }
+  let el: HTMLElement | null = target;
+  while (el && el !== boundary) {
+    if (window.getComputedStyle(el).position === 'fixed') {
+      return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
+};
+
+const canScrollHorizontallyInDirection = (
+  target: HTMLElement | null,
+  boundary: HTMLElement | null,
+  deltaX: number
+): boolean => {
+  let el: HTMLElement | null = target;
+  while (el && el !== boundary) {
+    const overflowX = window.getComputedStyle(el).overflowX;
+    if ((overflowX === 'auto' || overflowX === 'scroll') && el.scrollWidth > el.clientWidth + 2) {
+      if (deltaX < 0 && el.scrollLeft + el.clientWidth < el.scrollWidth - 2) {
+        return true;
+      }
+      if (deltaX > 0 && el.scrollLeft > 2) {
+        return true;
+      }
+    }
+    el = el.parentElement;
+  }
+  return false;
+};
+
+const getBridalDetailsForInvoice = (
+  inv: Invoice,
+  bridalList?: BridalBooking[],
+  bridalPackages?: any[],
+  services?: any[]
+) => {
+  const b = (bridalList || []).find(
+    (item) =>
+      (inv.bridalBookingId && item.id === inv.bridalBookingId) ||
+      (item.invoiceId && (item.invoiceId === inv.id || item.invoiceId === inv.no)) ||
+      (inv.no && item.notes && item.notes.includes(inv.no)) ||
+      (item.name && inv.customer && item.name.trim().toLowerCase() === inv.customer.trim().toLowerCase() &&
+        ((item.mobile && inv.mobile && item.mobile.replace(/\D/g, '').endsWith(inv.mobile.replace(/\D/g, '').slice(-10))) ||
+         (inv.lines || []).some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('make-up') || l.name?.toLowerCase().includes('makeup'))))
+  );
+
+  const isBridal = Boolean(
+    b ||
+    inv.bridalBookingId ||
+    (inv.lines || []).some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup') || l.name?.toLowerCase().includes('make-up'))
+  );
+
+  if (!isBridal) {
+    return {
+      isBridal: false,
+      booking: undefined,
+      brideName: inv.customer,
+      brideMobile: inv.mobile || '—',
+      birthday: '',
+      primaryDate: inv.eventDate || inv.date,
+      eventsString: '',
+      packageName: (inv.lines || []).map((l) => l.name).slice(0, 2).join(', '),
+      packagePrice: inv.total,
+      advancePaid: inv.advance || inv.paid || Math.max(0, inv.total - Number(inv.balance || 0)),
+      advanceAccount: inv.advanceMode || inv.mode || 'Cash',
+      dueBalance: Number(inv.balance || 0),
+    };
+  }
+
+  const brideName = b?.name || inv.customer;
+  const brideMobile = b?.mobile || inv.mobile || '—';
+  const birthday = b?.birthday || '';
+  const primaryDate = b?.weddingDate || b?.date || inv.eventDate || inv.date;
+
+  const eventsList: string[] = [];
+  if (b) {
+    if (b.includeWedding !== false && b.weddingDate) {
+      eventsList.push(`Wedding: ${fmtDate(b.weddingDate)}${b.weddingTime ? ` @ ${b.weddingTime}` : ''}`);
+    }
+    if (b.includeSagai && b.sagaiDate) {
+      eventsList.push(`Sagai: ${fmtDate(b.sagaiDate)}${b.sagaiTime ? ` @ ${b.sagaiTime}` : ''}`);
+    }
+    if (b.includeMandap !== false && b.mandapDate) {
+      eventsList.push(`Mandap: ${fmtDate(b.mandapDate)}${b.mandapTime ? ` @ ${b.mandapTime}` : ''}`);
+    }
+    if (b.includeMusic !== false && b.musicDate) {
+      eventsList.push(`Music: ${fmtDate(b.musicDate)}${b.musicTime ? ` @ ${b.musicTime}` : ''}`);
+    }
+    if (b.includeOther && b.otherDate) {
+      eventsList.push(`${b.otherEventName || 'Pre-Event'}: ${fmtDate(b.otherDate)}${b.otherTime ? ` @ ${b.otherTime}` : ''}`);
+    }
+  }
+
+  let eventsString = eventsList.join(' • ');
+  if (!eventsString && (b?.date || inv.eventDate)) {
+    eventsString = `Wedding: ${fmtDate(b?.date || inv.eventDate)}`;
+  }
+  const venue = b?.venue || inv.venue;
+  if (venue) {
+    eventsString = eventsString ? `${eventsString} • 📍 ${venue}` : `📍 ${venue}`;
+  }
+
+  const packageName = b?.packageName || (inv.lines && inv.lines[0]?.name) || 'Bridal Luxury Package';
+  const packagePrice = b
+    ? resolveBridalBookingPrice(b, bridalPackages, services) || inv.total
+    : inv.total;
+
+  const advancePaid = b?.advance !== undefined && Number(b.advance) > 0
+    ? Number(b.advance)
+    : (inv.advance || inv.paid || Math.max(0, inv.total - Number(inv.balance || 0)));
+
+  const advanceAccount = b?.advanceAccount || inv.advanceMode || inv.mode || 'Cash';
+  const dueBalance = b?.balance !== undefined ? Number(b.balance) : Number(inv.balance || 0);
+
+  return {
+    isBridal: true,
+    booking: b,
+    brideName,
+    brideMobile,
+    birthday,
+    primaryDate,
+    eventsString,
+    packageName,
+    packagePrice,
+    advancePaid,
+    advanceAccount,
+    dueBalance,
+  };
+};
 
 function BillingContent() {
   const searchParams = useSearchParams();
   const convertApptId = searchParams.get('convertApptId');
   const importBridalId = searchParams.get('bridalId') || searchParams.get('importBridalId') || searchParams.get('convertBridalId');
+  const tabParam = searchParams.get('tab') as BillingViewTab | null;
+  const searchParam = searchParams.get('search');
 
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<BillingViewTab>('builder');
-  const [historySearch, setHistorySearch] = useState('');
+  const [activeTab, setActiveTab] = useState<BillingViewTab>(
+    tabParam && TAB_ORDER.includes(tabParam)
+      ? tabParam
+      : 'builder'
+  );
+  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right'>('left');
+  const [swipePreview, setSwipePreview] = useState<{
+    offsetX: number;
+    targetTab: BillingViewTab | null;
+    direction: 'left' | 'right' | null;
+  }>({ offsetX: 0, targetTab: null, direction: null });
+
+  const activeTabRef = useRef<BillingViewTab>(activeTab);
+  activeTabRef.current = activeTab;
+  const prevTabParamRef = useRef<string | null>(tabParam);
+
+  const swipeStateRef = useRef<{
+    startX: number;
+    startY: number;
+    startTime: number;
+    axis: 'pending' | 'horizontal' | 'vertical';
+    targetEl: HTMLElement | null;
+  } | null>(null);
+  const billingTabsListRef = useRef<HTMLDivElement | null>(null);
+  const tabButtonRefs = useRef<{ [key in BillingViewTab]?: HTMLButtonElement | null }>({});
+
+  const handleSwitchTab = useCallback((tab: BillingViewTab, dir?: 'left' | 'right') => {
+    const prev = activeTabRef.current;
+    if (prev !== tab) {
+      const prevIdx = TAB_ORDER.indexOf(prev);
+      const nextIdx = TAB_ORDER.indexOf(tab);
+      setSwipeDirection(dir || (nextIdx > prevIdx ? 'left' : 'right'));
+      setActiveTab(tab);
+    }
+
+    prevTabParamRef.current = tab;
+
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      if (tab !== 'builder') {
+        url.searchParams.delete('convertApptId');
+        url.searchParams.delete('bridalId');
+        url.searchParams.delete('importBridalId');
+        url.searchParams.delete('convertBridalId');
+      }
+      if (tab !== 'appointments') {
+        url.searchParams.delete('new');
+        url.searchParams.delete('action');
+      }
+      if (tab !== 'history') {
+        url.searchParams.delete('search');
+      }
+      window.history.replaceState(null, '', url.pathname + url.search);
+      window.dispatchEvent(new CustomEvent('billing-tab-change', { detail: { tab } }));
+    }
+  }, []);
+
+  // Keep MobileBottomNav in sync whenever activeTab changes from any code path
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('billing-tab-change', { detail: { tab: activeTab } }));
+    }
+  }, [activeTab]);
+
+  // Auto-scroll active tab pill horizontally into center on mobile without jumping page scroll
+  useEffect(() => {
+    const container = billingTabsListRef.current;
+    const btn = tabButtonRefs.current[activeTab];
+    if (container && btn) {
+      const targetLeft = btn.offsetLeft - container.clientWidth / 2 + btn.offsetWidth / 2;
+      container.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior: 'smooth',
+      });
+    }
+  }, [activeTab]);
+
+  const clearSwipeGesture = () => {
+    swipeStateRef.current = null;
+    setSwipePreview((prev) => (prev.offsetX === 0 && prev.targetTab === null ? prev : { offsetX: 0, targetTab: null, direction: null }));
+  };
+
+  const handleContainerTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length !== 1) {
+      clearSwipeGesture();
+      return;
+    }
+
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (!isMobileViewport) {
+      clearSwipeGesture();
+      return;
+    }
+
+    // Do not swipe tabs while any modal/dialog is open
+    const hasOpenModal =
+      cameraModalOpen ||
+      paymentInModalOpen ||
+      Boolean(receiptModalInv) ||
+      qrModalOpen ||
+      contactModalOpen ||
+      Boolean(deleteInvoiceId) ||
+      Boolean(document.querySelector('.modal-backdrop, [role="dialog"][aria-modal="true"]'));
+    if (hasOpenModal) {
+      clearSwipeGesture();
+      return;
+    }
+
+    const target = e.target as HTMLElement | null;
+    if (isSwipeBlockedTarget(target, e.currentTarget)) {
+      clearSwipeGesture();
+      return;
+    }
+
+    // Skip far-left edge swipe (< 28px) so the mobile drawer edge swipe takes priority
+    if (e.touches[0].clientX < 28) {
+      clearSwipeGesture();
+      return;
+    }
+
+    swipeStateRef.current = {
+      startX: e.touches[0].clientX,
+      startY: e.touches[0].clientY,
+      startTime: Date.now(),
+      axis: 'pending',
+      targetEl: target,
+    };
+  };
+
+  const handleContainerTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    const state = swipeStateRef.current;
+    if (!state || e.touches.length !== 1) {
+      if (state) clearSwipeGesture();
+      return;
+    }
+
+    const dx = e.touches[0].clientX - state.startX;
+    const dy = e.touches[0].clientY - state.startY;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (state.axis === 'vertical') return;
+
+    if (state.axis === 'pending') {
+      if (absX < 10 && absY < 10) return;
+
+      // Vertical scroll takes priority so normal scrolling stays smooth
+      if (absY >= absX * 0.9) {
+        state.axis = 'vertical';
+        return;
+      }
+
+      if (absX > 12 && absX > absY * 1.3) {
+        // Respect horizontally-scrollable nested tables/containers
+        if (canScrollHorizontallyInDirection(state.targetEl, e.currentTarget, dx)) {
+          state.axis = 'vertical';
+          return;
+        }
+        state.axis = 'horizontal';
+      } else {
+        return;
+      }
+    }
+
+    // Axis is locked to horizontal: show gentle drag offset & target tab pill
+    const dir: 'left' | 'right' = dx < 0 ? 'left' : 'right';
+    const currentIndex = TAB_ORDER.indexOf(activeTabRef.current);
+    const targetIndex = dir === 'left' ? currentIndex + 1 : currentIndex - 1;
+    const hasTarget = targetIndex >= 0 && targetIndex < TAB_ORDER.length;
+
+    const dampenedOffset = hasTarget
+      ? Math.max(-28, Math.min(28, dx * 0.25))
+      : Math.max(-10, Math.min(10, dx * 0.08));
+
+    setSwipePreview({
+      offsetX: dampenedOffset,
+      targetTab: hasTarget && absX >= 20 ? TAB_ORDER[targetIndex] : null,
+      direction: dir,
+    });
+  };
+
+  const handleContainerTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const state = swipeStateRef.current;
+    clearSwipeGesture();
+    if (!state || state.axis === 'vertical') return;
+
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - state.startX;
+    const deltaY = touch.clientY - state.startY;
+    const elapsed = Date.now() - state.startTime;
+
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    const isStandardSwipe = absX >= 52 && absX > absY * 1.35 && elapsed <= 900;
+    const isQuickFlick = elapsed >= 40 && elapsed <= 260 && absX >= 32 && absX > absY * 1.5;
+
+    if (isStandardSwipe || isQuickFlick) {
+      if (
+        state.axis === 'pending' &&
+        canScrollHorizontallyInDirection(state.targetEl, e.currentTarget, deltaX)
+      ) {
+        return;
+      }
+
+      const currentIndex = TAB_ORDER.indexOf(activeTabRef.current);
+      if (deltaX < 0 && currentIndex < TAB_ORDER.length - 1) {
+        try {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate(12);
+          }
+        } catch {}
+        handleSwitchTab(TAB_ORDER[currentIndex + 1], 'left');
+      } else if (deltaX > 0 && currentIndex > 0) {
+        try {
+          if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+            navigator.vibrate(12);
+          }
+        } catch {}
+        handleSwitchTab(TAB_ORDER[currentIndex - 1], 'right');
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (tabParam !== prevTabParamRef.current) {
+      prevTabParamRef.current = tabParam;
+      if (tabParam && TAB_ORDER.includes(tabParam)) {
+        const prevIdx = TAB_ORDER.indexOf(activeTabRef.current);
+        const nextIdx = TAB_ORDER.indexOf(tabParam);
+        setSwipeDirection(nextIdx >= prevIdx ? 'left' : 'right');
+        setActiveTab(tabParam);
+      } else if (!tabParam && !convertApptId && !importBridalId && !searchParam) {
+        const prevIdx = TAB_ORDER.indexOf(activeTabRef.current);
+        const nextIdx = TAB_ORDER.indexOf('builder');
+        setSwipeDirection(nextIdx >= prevIdx ? 'left' : 'right');
+        setActiveTab('builder');
+      }
+    }
+  }, [tabParam, convertApptId, importBridalId, searchParam]);
+
+  const [historySearch, setHistorySearch] = useState(searchParam || '');
+
+  useEffect(() => {
+    if (searchParam) {
+      setHistorySearch(searchParam);
+      setActiveTab('history');
+    }
+  }, [searchParam]);
   const [layoutOrientation, setLayoutOrientation] = useState<'up-down' | 'side-by-side'>('side-by-side');
 
   useEffect(() => {
@@ -103,6 +506,15 @@ function BillingContent() {
     }
   }, []);
 
+  const paymentOptions = useMemo(
+    () => getPaymentOptions(data?.settings?.payments),
+    [data?.settings?.payments]
+  );
+  const upiPaymentOptions = useMemo(
+    () => getUpiOrOnlinePaymentOptions(data?.settings?.payments),
+    [data?.settings?.payments]
+  );
+
   // Form state
   const [customer, setCustomer] = useState('');
   const [mobile, setMobile] = useState('');
@@ -111,9 +523,9 @@ function BillingContent() {
   const [billDiscountPercent, setBillDiscountPercent] = useState<number | ''>('');
   const [discountMode, setDiscountMode] = useState<'percent' | 'amount'>('amount');
   const [advance, setAdvance] = useState(0);
-  const [advanceMode, setAdvanceMode] = useState('Cash');
+  const [advanceMode, setAdvanceMode] = useState(getDefaultPaymentOption(data?.settings?.payments));
   const [paid, setPaid] = useState<number | ''>('');
-  const [mode, setMode] = useState(data?.settings?.payments?.[0] || 'Cash');
+  const [mode, setMode] = useState(getDefaultPaymentOption(data?.settings?.payments));
   const [barcodeInput, setBarcodeInput] = useState('');
   const [appointmentRef, setAppointmentRef] = useState<string | null>(null);
 
@@ -132,7 +544,7 @@ function BillingContent() {
   const [splitCash, setSplitCash] = useState<number | ''>('');
   const [splitUpi, setSplitUpi] = useState<number | ''>('');
   const [splitCard, setSplitCard] = useState<number | ''>('');
-  const [splitUpiMode, setSplitUpiMode] = useState('GPay UPI');
+  const [splitUpiMode, setSplitUpiMode] = useState(upiPaymentOptions[0] || paymentOptions[0] || 'GPay UPI');
 
   // Camera Barcode Scanner State
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
@@ -141,7 +553,7 @@ function BillingContent() {
   const [paymentInModalOpen, setPaymentInModalOpen] = useState(false);
   const [settleInvoice, setSettleInvoice] = useState<Invoice | null>(null);
   const [settleAmount, setSettleAmount] = useState<number | ''>('');
-  const [settleMode, setSettleMode] = useState('GPay UPI');
+  const [settleMode, setSettleMode] = useState(upiPaymentOptions[0] || paymentOptions[0] || 'GPay UPI');
   const [settleRef, setSettleRef] = useState('');
 
   // Print state
@@ -265,6 +677,18 @@ function BillingContent() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
   const [deleteInvoiceId, setDeleteInvoiceId] = useState<string | null>(null);
 
+  // Sync active billing payment selectors when Studio Settings payment options change
+  useEffect(() => {
+    if (!editingInvoiceId) {
+      if (!paymentOptions.includes(mode)) {
+        setMode(paymentOptions[0] || 'Cash');
+      }
+      if (!upiPaymentOptions.includes(splitUpiMode)) {
+        setSplitUpiMode(upiPaymentOptions[0] || paymentOptions[0] || 'GPay UPI');
+      }
+    }
+  }, [paymentOptions, upiPaymentOptions, editingInvoiceId, mode, splitUpiMode]);
+
   const openEditInvoice = (inv: Invoice) => {
     setEditingInvoiceId(inv.id);
     setCustomer(inv.customer);
@@ -312,14 +736,9 @@ function BillingContent() {
       setCustomRoundOffValue('');
     }
     setIsEditingFinalPayable(false);
-    setActiveTab('builder');
+    handleSwitchTab('builder', 'right');
     toast(`Loaded invoice ${inv.no} for editing`);
   };
-
-  // Clear All Invoices State (History Tab)
-  const [clearAllInvoicesModalOpen, setClearAllInvoicesModalOpen] = useState(false);
-  const [confirmClearAllInvoicesText, setConfirmClearAllInvoicesText] = useState('');
-  const [restoreStockOnClearAll, setRestoreStockOnClearAll] = useState(true);
 
   const cancelEditInvoice = () => {
     setEditingInvoiceId(null);
@@ -330,7 +749,7 @@ function BillingContent() {
     setBillDiscountPercent('');
     setDiscountMode('amount');
     setAdvance(0);
-    setAdvanceMode('Cash');
+    setAdvanceMode(getDefaultPaymentOption(data?.settings?.payments));
     setPaid('');
     setIsManualRoundOff(false);
     setAutoRoundOff(true);
@@ -346,7 +765,7 @@ function BillingContent() {
     setRedeemPoints(0);
     setUseWallet(0);
     setSelectedCustomerObj(null);
-    setMode(data?.settings?.payments?.[0] || 'Cash');
+    setMode(getDefaultPaymentOption(data?.settings?.payments));
   };
 
   const handleAllClearInvoice = () => {
@@ -378,47 +797,6 @@ function BillingContent() {
       setLines([EMPTY_LINE()]);
       toast('Invoice items cleared');
     }
-  };
-
-  const handleClearAllInvoices = () => {
-    if (confirmClearAllInvoicesText.trim().toUpperCase() !== 'CLEAR') {
-      toast('Please type CLEAR to confirm deleting all invoices', 'error');
-      return;
-    }
-
-    const allInvs = data?.invoices || [];
-    if (allInvs.length === 0) {
-      setClearAllInvoicesModalOpen(false);
-      return;
-    }
-
-    updateData((d) => {
-      let inventory = [...(d.inventory || [])];
-
-      if (restoreStockOnClearAll) {
-        for (const inv of allInvs) {
-          (inv.lines || [])
-            .filter((l) => l.type === 'P')
-            .forEach((l) => {
-              inventory = inventory.map((item) =>
-                item.name === l.name ? { ...item, stock: item.stock + Number(l.qty || 0) } : item
-              );
-            });
-        }
-      }
-
-      return {
-        ...d,
-        inventory,
-        invoices: [],
-        inventoryTx: (d.inventoryTx || []).filter((tx) => !allInvs.some((inv) => inv.no === tx.invoiceNo)),
-      };
-    });
-
-    scheduleSave();
-    setClearAllInvoicesModalOpen(false);
-    setConfirmClearAllInvoicesText('');
-    toast(`All ${allInvs.length} invoices cleared successfully!`, 'info');
   };
 
   const handleDeleteInvoice = (id: string) => {
@@ -538,6 +916,30 @@ function BillingContent() {
             : x
         ),
       }));
+    }
+
+    // 🛡️ DUPLICATE GUARD: If an invoice already exists for this bridal booking, load it in EDIT mode so no duplicate is created!
+    const existingInv = (data?.invoices || []).find(
+      (i) =>
+        (b.invoiceId && i.id === b.invoiceId) ||
+        i.bridalBookingId === b.id ||
+        (i.mobile === b.mobile && i.customer?.trim().toLowerCase() === b.name?.trim().toLowerCase())
+    );
+
+    if (existingInv) {
+      setEditingInvoiceId(existingInv.id);
+      setCustomer(existingInv.customer || b.name);
+      setMobile(existingInv.mobile || b.mobile || '');
+      if (existingInv.lines && existingInv.lines.length > 0) {
+        setLines([...existingInv.lines, EMPTY_LINE()]);
+      }
+      setDiscount(existingInv.discount || 0);
+      setAdvance(Number(existingInv.advance || b.advance || 0));
+      setAdvanceMode(existingInv.advanceMode || b.advanceMode || 'Cash');
+      setMode(existingInv.mode || 'Cash');
+      setAppointmentRef(`Bridal Booking (${existingInv.no}): ${b.packageName || 'Luxury Package'}`);
+      toast(`🛡️ Duplicate Protection Active: Loaded existing Invoice ${existingInv.no}. Saving will update this invoice without creating a duplicate!`, 'info');
+      return;
     }
 
     setCustomer(b.name);
@@ -1545,12 +1947,55 @@ function BillingContent() {
       return;
     }
 
-    const no = `INV-${data?.invoiceSeq || 1001}`;
-    const invId = uid();
     const matchedBridal = (data?.bridal || []).find((b) =>
       (importBridalId && b.id === importBridalId) ||
       (appointmentRef?.includes(b.name) || (b.name.trim().toLowerCase() === customer.trim().toLowerCase() && (b.mobile === mobile || !mobile)))
     );
+
+    // 🛡️ STRICT DUPLICATE GUARD: If an invoice already exists for this bridal booking or customer, update it instead of creating a duplicate!
+    const existingDuplicateInv = (data?.invoices || []).find((i) =>
+      (matchedBridal && (i.bridalBookingId === matchedBridal.id || (matchedBridal.invoiceId && i.id === matchedBridal.invoiceId))) ||
+      (matchedBridal && i.customer?.trim().toLowerCase() === matchedBridal.name?.trim().toLowerCase() && (!matchedBridal.mobile || i.mobile === matchedBridal.mobile)) ||
+      (customer && i.customer?.trim().toLowerCase() === customer.trim().toLowerCase() && mobile && i.mobile === mobile && Math.abs(Number(i.total || 0) - roundedTotal) < 1)
+    );
+
+    if (existingDuplicateInv) {
+      const updatedInv: Invoice = {
+        ...existingDuplicateInv,
+        customer,
+        mobile,
+        lines: validLines,
+        subtotal: rawSubtotal,
+        discount: Number(discount || 0),
+        itemDiscountTotal,
+        serviceDiscountTotal,
+        productDiscountTotal,
+        total: roundedTotal,
+        advance: Number(advance || 0),
+        advanceMode: Number(advance || 0) > 0 ? advanceMode : undefined,
+        paid: effectivePaid,
+        balance,
+        mode: isSplitPayment ? 'Split Payment' : mode,
+        roundOff: roundOffDiff,
+        bridalBookingId: matchedBridal?.id || existingDuplicateInv.bridalBookingId,
+      };
+
+      updateData((d) => ({
+        ...d,
+        invoices: (d.invoices || []).map((i) => (i.id === existingDuplicateInv.id ? updatedInv : i)),
+        bridal: (d.bridal || []).map((b) =>
+          matchedBridal && b.id === matchedBridal.id ? { ...b, invoiceId: existingDuplicateInv.id } : b
+        ),
+      }));
+
+      scheduleSave();
+      toast(`🛡️ Duplicate Protection Active: Updated existing invoice ${existingDuplicateInv.no} without duplicates!`, 'success');
+      setReceiptModalInv(updatedInv);
+      return;
+    }
+
+    const no = `INV-${data?.invoiceSeq || 1001}`;
+    const invId = uid();
     const inv: Invoice = {
       id: invId,
       no,
@@ -1815,7 +2260,7 @@ function BillingContent() {
     setSplitCash('');
     setSplitUpi('');
     setSplitCard('');
-    setMode(data?.settings?.payments?.[0] || 'Cash');
+    setMode(getDefaultPaymentOption(data?.settings?.payments));
     setAppointmentRef(null);
     setRedeemPoints(0);
     setUseWallet(0);
@@ -1855,7 +2300,7 @@ function BillingContent() {
   const openPaymentInModal = (inv: Invoice) => {
     setSettleInvoice(inv);
     setSettleAmount(inv.balance);
-    setSettleMode('GPay UPI');
+    setSettleMode(upiPaymentOptions[0] || paymentOptions[0] || 'Cash');
     setSettleRef('');
     setPaymentInModalOpen(true);
   };
@@ -1948,12 +2393,92 @@ function BillingContent() {
   }, [filteredInvoices]);
 
   const tabs: { id: BillingViewTab; label: string; shortLabel: string; icon: any; count?: number }[] = [
-    { id: 'builder', label: 'New POS Bill', shortLabel: 'New Bill', icon: Receipt },
-    { id: 'history', label: 'Invoice Receipts History', shortLabel: 'History', icon: History, count: recentInvoices.length },
+    {
+      id: 'appointments',
+      label: 'Appointments',
+      shortLabel: 'Appointments',
+      icon: Calendar,
+      count: (data?.appointments || []).filter((a) => a.date === todayISO()).length,
+    },
+    {
+      id: 'bridal',
+      label: 'Bridal Booking',
+      shortLabel: 'Bridal',
+      icon: Heart,
+      count: (data?.bridal || []).length,
+    },
+    {
+      id: 'builder',
+      label: 'Billing (POS)',
+      shortLabel: 'Billing POS',
+      icon: Receipt,
+    },
+    {
+      id: 'history',
+      label: 'Invoice History',
+      shortLabel: 'History',
+      icon: History,
+      count: recentInvoices.length,
+    },
   ];
 
+  const sharedCustomerBridge: SharedCustomerBridge = useMemo(
+    () => ({
+      name: customer,
+      mobile,
+      onSetCustomer: (nextName: string, nextMobile: string) => {
+        setCustomer(autoCapitalizeName(nextName || ''));
+        setMobile((nextMobile || '').replace(/\D/g, '').slice(-10));
+      },
+      onClear: () => {
+        setCustomer('');
+        setMobile('');
+        setSelectedCustomerObj(null);
+      },
+    }),
+    [customer, mobile]
+  );
+
   return (
-    <div>
+    <div
+      className="billing-page-container"
+      onTouchStart={handleContainerTouchStart}
+      onTouchMove={handleContainerTouchMove}
+      onTouchEnd={handleContainerTouchEnd}
+      onTouchCancel={clearSwipeGesture}
+      style={{ position: 'relative', minHeight: '100%', touchAction: 'pan-y' }}
+    >
+      {/* Floating Swipe Preview Pill during active mobile drag */}
+      {swipePreview.targetTab && Math.abs(swipePreview.offsetX) > 6 && (
+        <div
+          className="no-print md:hidden"
+          style={{
+            position: 'fixed',
+            top: 66,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 105,
+            background: '#05424A',
+            color: '#ffffff',
+            padding: '5px 12px',
+            borderRadius: 99,
+            fontSize: 11.5,
+            fontWeight: 700,
+            boxShadow: '0 6px 20px rgba(5, 66, 74, 0.35)',
+            border: '1px solid rgba(234, 186, 56, 0.65)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span>{swipePreview.direction === 'right' ? '←' : ''}</span>
+          <span>{tabs.find((t) => t.id === swipePreview.targetTab)?.label}</span>
+          <span>{swipePreview.direction === 'left' ? '→' : ''}</span>
+        </div>
+      )}
+
       {/* Segmented Navigation Tabs & Box Layout Switcher */}
       <div
         className="no-print"
@@ -1966,18 +2491,19 @@ function BillingContent() {
           gap: 8,
         }}
       >
-        <div className="billing-tabs" role="tablist" aria-label="Billing Views">
+        <div ref={billingTabsListRef} className="billing-tabs" role="tablist" aria-label="Billing Views">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                ref={(el) => { tabButtonRefs.current[tab.id] = el; }}
                 type="button"
                 role="tab"
                 aria-selected={isActive}
                 className={`tab-btn ${isActive ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleSwitchTab(tab.id)}
               >
                 <Icon size={14} />
                 <span className="tab-label-full">{tab.label}</span>
@@ -1990,6 +2516,76 @@ function BillingContent() {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Mobile Swipe Navigation Bar (Dots indicator, current tab & quick arrows) */}
+      <div className="mobile-tab-swipe-bar no-print">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#05424A', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Sparkles size={12} color="#EABA38" />
+            {tabs.find((t) => t.id === activeTab)?.label}
+          </span>
+          <span style={{ fontSize: 10, color: '#64748b' }}>
+            ({TAB_ORDER.indexOf(activeTab) + 1}/4 · ⇄ Swipe)
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* 4 Active Dots for visual swipe position */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {TAB_ORDER.map((t) => {
+              const tabInfo = tabs.find((item) => item.id === t);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  aria-label={`Switch to ${tabInfo?.label || t}`}
+                  onClick={() => handleSwitchTab(t)}
+                  style={{
+                    width: activeTab === t ? 16 : 6,
+                    height: 6,
+                    padding: 0,
+                    border: 'none',
+                    borderRadius: 99,
+                    background: activeTab === t ? '#05424A' : '#cbd5e1',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Prev / Next touch buttons */}
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button
+              type="button"
+              disabled={TAB_ORDER.indexOf(activeTab) === 0}
+              onClick={() => {
+                const idx = TAB_ORDER.indexOf(activeTab);
+                if (idx > 0) handleSwitchTab(TAB_ORDER[idx - 1], 'right');
+              }}
+              className="swipe-nav-arrow-btn"
+              title="Previous tab (Swipe Right)"
+              aria-label="Previous tab"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              disabled={TAB_ORDER.indexOf(activeTab) === TAB_ORDER.length - 1}
+              onClick={() => {
+                const idx = TAB_ORDER.indexOf(activeTab);
+                if (idx < TAB_ORDER.length - 1) handleSwitchTab(TAB_ORDER[idx + 1], 'left');
+              }}
+              className="swipe-nav-arrow-btn"
+              title="Next tab (Swipe Left)"
+              aria-label="Next tab"
+            >
+              ›
+            </button>
+          </div>
         </div>
       </div>
 
@@ -2117,10 +2713,264 @@ function BillingContent() {
         </div>
       )}
 
-      {/* VIEW: Single Unified POS Builder or Full-width History */}
-      <div className={activeTab === 'history' ? '' : 'billing-layout'}>
-        {/* 1. BUILDER MODE: Single Unified POS Box (2 Boxes Mixed Into 1) */}
-        {activeTab === 'builder' && (
+      {/* Common Customer Name & Mobile Number Bar (Shared across Appointments, Bridal Booking & Billing POS) */}
+      {activeTab !== 'history' && (
+        <div
+          className="card billing-builder-card billing-unified-card no-print"
+          style={{
+            padding: '12px 14px',
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            background: '#ffffff',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
+            marginBottom: 8,
+          }}
+        >
+          <div
+            className="billing-customer-grid"
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 6,
+            }}
+          >
+            <div className="form-group" style={{ margin: 0, position: 'relative' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 2,
+                  height: 20,
+                }}
+              >
+                <label
+                  className="label"
+                  style={{
+                    fontSize: 14.5,
+                    fontWeight: 700,
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    color: '#1e293b',
+                  }}
+                >
+                  <span>Customer Name</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handlePickDeviceContact}
+                  title="Import contact from Android / iPhone"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    color: '#05424A',
+                    background: '#E2F7F4',
+                    border: '1px solid #7EDAD0',
+                    borderRadius: 4,
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  <Smartphone size={13} />
+                  <span>Import</span>
+                </button>
+              </div>
+              <input
+                type="text"
+                name="billing_customer_name_no_pop"
+                list="shared-cust-name-list"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                className="input"
+                placeholder="Start typing name or contact…"
+                value={customer}
+                onBlur={() => {
+                  setTimeout(() => {
+                    autoMatchCustomerByName(customer, true);
+                  }, 250);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    autoMatchCustomerByName(customer, true);
+                  }
+                }}
+                onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
+                style={{
+                  height: 42,
+                  fontSize: 17.5,
+                  borderRadius: 8,
+                  padding: '0 12px',
+                  border: '1.5px solid #cbd5e1',
+                  textTransform: 'capitalize',
+                  fontWeight: 600,
+                }}
+              />
+              <datalist id="shared-cust-name-list">
+                {(data?.customers || []).map((c) => (
+                  <option key={c.id} value={`${formatCustomerContactName(c.name)} (${c.mobile})`}>
+                    {formatCustomerContactName(c.name)} — 📞 {c.mobile}
+                  </option>
+                ))}
+              </datalist>
+            </div>
+
+            <div className="form-group" style={{ margin: 0, position: 'relative' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: 2,
+                  height: 24,
+                }}
+              >
+                <label
+                  className="label"
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    color: '#1e293b',
+                  }}
+                >
+                  <span>Mobile Number</span>
+                </label>
+              </div>
+              <input
+                type="tel"
+                inputMode="tel"
+                name="billing_customer_mobile_no_pop"
+                list="shared-cust-mob-list"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+                className="input"
+                placeholder="10-digit mobile number"
+                value={mobile}
+                onBlur={() => {
+                  setTimeout(() => {
+                    const clean = mobile.replace(/\D/g, '').slice(-10);
+                    if (clean.length === 10) {
+                      const c = (data?.customers || []).find(
+                        (x) => x.mobile.replace(/\D/g, '').slice(-10) === clean
+                      );
+                      if (c) {
+                        setSelectedCustomerObj(c);
+                        if (!customer || customer.trim() === '') {
+                          setCustomer(autoCapitalizeName(formatCustomerContactName(c.name)));
+                        }
+                      }
+                    }
+                  }, 250);
+                }}
+                onChange={(e) => handleMobileSelect(e.target.value)}
+                style={{
+                  height: 42,
+                  fontSize: 17.5,
+                  borderRadius: 8,
+                  padding: '0 12px',
+                  border: '1.5px solid #cbd5e1',
+                  fontWeight: 600,
+                }}
+              />
+              <datalist id="shared-cust-mob-list">
+                {(data?.customers || []).map((c) => (
+                  <option key={c.id} value={`${c.mobile} (${formatCustomerContactName(c.name)})`}>
+                    {c.mobile} — 👤 {formatCustomerContactName(c.name)}
+                  </option>
+                ))}
+              </datalist>
+
+              {/* 24-Hour Free Customer Service Window Status */}
+              {mobile.length === 10 && cust24hStatus.active ? (
+                <div
+                  style={{
+                    marginTop: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontSize: 9.5,
+                  }}
+                >
+                  <span
+                    style={{
+                      color: '#16a34a',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      background: '#f0fdf4',
+                      padding: '1px 5px',
+                      borderRadius: 4,
+                      border: '1px solid #bbf7d0',
+                    }}
+                    title={`Incoming message received. Meta Cloud API dispatch is ₹0 until ${cust24hStatus.expiresAt}`}
+                  >
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                    🟢 24h Free ({cust24hStatus.formattedRemaining})
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Swipeable Tab Stage (Drag offset applied only here so fixed bars/modals stay anchored) */}
+      <div
+        className="billing-swipe-stage"
+        style={
+          swipePreview.offsetX !== 0
+            ? { transform: `translateX(${swipePreview.offsetX}px)`, transition: 'none' }
+            : undefined
+        }
+      >
+        {/* 1. Appointments View */}
+        {activeTab === 'appointments' && (
+          <motion.div
+            key="appointments"
+            initial={{ opacity: 0, x: swipeDirection === 'left' ? 24 : -24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            style={{ marginTop: 2 }}
+          >
+            <AppointmentsPanel sharedCustomer={sharedCustomerBridge} viewMode="form" />
+          </motion.div>
+        )}
+
+        {/* 2. Bridal Booking View */}
+        {activeTab === 'bridal' && (
+          <motion.div
+            key="bridal"
+            initial={{ opacity: 0, x: swipeDirection === 'left' ? 24 : -24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            style={{ marginTop: 2 }}
+          >
+            <BridalPanel sharedCustomer={sharedCustomerBridge} />
+          </motion.div>
+        )}
+
+        {/* VIEW: Single Unified POS Builder or Full-width History */}
+        {(activeTab === 'builder' || activeTab === 'history') && (
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, x: swipeDirection === 'left' ? 24 : -24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className={activeTab === 'history' ? '' : 'billing-layout'}
+          >
+          {/* 1. BUILDER MODE: Single Unified POS Box (2 Boxes Mixed Into 1) */}
+          {activeTab === 'builder' && (
           <>
             <div
               className="card billing-builder-card billing-unified-card"
@@ -2134,281 +2984,47 @@ function BillingContent() {
                 flexDirection: 'column',
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                  flexWrap: 'wrap',
-                  gap: 8,
-                }}
-              >
-                <h2
+              {/* If editing an invoice or linked appointment, show a compact pill/banner */}
+              {(editingInvoiceId || appointmentRef) && (
+                <div
                   style={{
-                    fontWeight: 800,
-                    fontSize: 15,
-                    margin: 0,
-                    color: '#0f172a',
-                    letterSpacing: '-0.01em',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                    padding: '6px 10px',
+                    background: editingInvoiceId ? '#eff6ff' : '#f0fdf4',
+                    borderRadius: 8,
+                    border: editingInvoiceId ? '1px solid #bfdbfe' : '1px solid #bbf7d0',
                   }}
                 >
-                  {editingInvoiceId
-                    ? `✎ Edit Invoice — ${data?.invoices?.find((i) => i.id === editingInvoiceId)?.no || ''}`
-                    : 'New POS Invoice'}
-                </h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {editingInvoiceId ? (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: editingInvoiceId ? '#1d4ed8' : '#15803d' }}>
+                    {editingInvoiceId
+                      ? `✎ Editing Invoice: ${data?.invoices?.find((i) => i.id === editingInvoiceId)?.no || ''}`
+                      : `Appt: ${appointmentRef}`}
+                  </span>
+                  {editingInvoiceId && (
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
                       onClick={cancelEditInvoice}
-                      style={{ fontSize: 11, padding: '2px 8px', height: 26, borderRadius: 6 }}
+                      style={{ fontSize: 11, padding: '2px 8px', height: 24, borderRadius: 6, color: '#dc2626' }}
                     >
                       Cancel Edit
                     </button>
-                  ) : appointmentRef ? (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        background: '#e0f2fe',
-                        color: '#0369a1',
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        fontWeight: 700,
-                        border: '1px solid #bae6fd',
-                      }}
-                    >
-                      {appointmentRef}
-                    </span>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={handleAllClearInvoice}
-                    className="btn btn-ghost btn-sm"
-                    style={{
-                      fontSize: 11,
-                      padding: '2px 9px',
-                      height: 26,
-                      borderRadius: 6,
-                      color: '#e11d48',
-                      border: '1px solid #fecdd3',
-                      background: '#fff1f2',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                    title="Clear all fields, items & reset invoice (All Clear)"
-                  >
-                    <RotateCcw size={11} />
-                    <span>All Clear</span>
-                  </button>
+                  )}
                 </div>
-              </div>
+              )}
 
 
 
-              {/* Customer Information (Up & Down Layout) */}
-              <div
-                className="billing-customer-grid"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 6,
-                  marginBottom: 6,
-                }}
-              >
-                <div className="form-group" style={{ margin: 0, position: 'relative' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: 2,
-                      height: 20,
-                    }}
-                  >
-                    <label
-                      className="label"
-                      style={{
-                        fontSize: 10.5,
-                        fontWeight: 700,
-                        margin: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        color: '#1e293b',
-                      }}
-                    >
-                      <span>Customer Name</span>
-                      <span style={{ fontSize: 9.5, fontWeight: 600, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0 5px', borderRadius: 4 }}>
-                        ⚡ Auto-Match
-                      </span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={handlePickDeviceContact}
-                      title="Import contact from Android / iPhone"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 3,
-                        fontSize: 9.5,
-                        fontWeight: 600,
-                        color: '#05424A',
-                        background: '#E2F7F4',
-                        border: '1px solid #7EDAD0',
-                        borderRadius: 4,
-                        padding: '1px 6px',
-                        cursor: 'pointer',
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      <Smartphone size={10} />
-                      <span>Import</span>
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    name="billing_customer_name_no_pop"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    spellCheck="false"
-                    className="input"
-                    placeholder="Start typing name or contact…"
-                    value={customer}
-                    onBlur={() => {
-                      setTimeout(() => {
-                        autoMatchCustomerByName(customer, true);
-                      }, 250);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        autoMatchCustomerByName(customer, true);
-                      }
-                    }}
-                    onChange={(e) => handleCustomerSelect(autoCapitalizeName(e.target.value))}
-                    style={{
-                      height: 38,
-                      fontSize: 13.5,
-                      borderRadius: 8,
-                      padding: '0 10px',
-                      border: '1.5px solid #cbd5e1',
-                      textTransform: 'capitalize',
-                      fontWeight: 600,
-                    }}
-                  />
-                </div>
-                <div className="form-group" style={{ margin: 0, position: 'relative' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginBottom: 2,
-                      height: 20,
-                    }}
-                  >
-                    <label
-                      className="label"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        margin: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 3,
-                        color: '#1e293b',
-                      }}
-                    >
-                      <span>Mobile Number</span>
-                      <span style={{ fontSize: 9.5, fontWeight: 400, color: '#64748b' }}>
-                        (10-digit)
-                      </span>
-                    </label>
-                  </div>
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    name="billing_customer_mobile_no_pop"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    spellCheck="false"
-                    className="input"
-                    placeholder="10-digit mobile number"
-                    value={mobile}
-                    onBlur={() => {
-                      setTimeout(() => {
-                        const clean = mobile.replace(/\D/g, '').slice(-10);
-                        if (clean.length === 10) {
-                          const c = (data?.customers || []).find(
-                            (x) => x.mobile.replace(/\D/g, '').slice(-10) === clean
-                          );
-                          if (c) {
-                            setSelectedCustomerObj(c);
-                            if (!customer || customer.trim() === '') {
-                              setCustomer(autoCapitalizeName(formatCustomerContactName(c.name)));
-                            }
-                          }
-                        }
-                      }, 250);
-                    }}
-                    onChange={(e) => handleMobileSelect(e.target.value)}
-                    style={{
-                      height: 38,
-                      fontSize: 13.5,
-                      borderRadius: 8,
-                      padding: '0 10px',
-                      border: '1.5px solid #cbd5e1',
-                      fontWeight: 600,
-                    }}
-                  />
-
-                  {/* 24-Hour Free Customer Service Window Status */}
-                  {mobile.length === 10 && cust24hStatus.active ? (
-                    <div
-                      style={{
-                        marginTop: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        fontSize: 9.5,
-                      }}
-                    >
-                      <span
-                        style={{
-                          color: '#16a34a',
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                          background: '#f0fdf4',
-                          padding: '1px 5px',
-                          borderRadius: 4,
-                          border: '1px solid #bbf7d0',
-                        }}
-                        title={`Incoming message received. Meta Cloud API dispatch is ₹0 until ${cust24hStatus.expiresAt}`}
-                      >
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
-                        🟢 24h Free ({cust24hStatus.formattedRemaining})
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              {/* Barcode / Product Scanning Area (Compact & Action-Oriented) */}
+              {/* Barcode / Product Scanning Area (Clean Flat Row — No Outer Dashed Box) */}
               <div
                 className="billing-barcode-container"
                 style={{
                   display: 'flex',
                   gap: 6,
                   alignItems: 'center',
-                  background: '#f8fafc',
-                  border: '1.5px dashed #cbd5e1',
-                  borderRadius: 8,
-                  padding: '4px 6px',
                   margin: '4px 0 8px',
                 }}
               >
@@ -2423,11 +3039,11 @@ function BillingContent() {
                     style={{
                       flex: 1,
                       minWidth: 0,
-                      height: 38,
+                      height: 42,
                       border: '1px solid #cbd5e1',
                       borderRadius: 7,
-                      padding: '0 10px',
-                      fontSize: 13,
+                      padding: '0 12px',
+                      fontSize: 17,
                     }}
                     placeholder="Scan barcode or type item & press Enter…"
                     value={barcodeInput}
@@ -2442,15 +3058,15 @@ function BillingContent() {
                 </div>
                 <div
                   className="billing-barcode-actions"
-                  style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}
+                  style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}
                 >
                   <button
                     className="btn btn-primary btn-sm"
                     type="button"
                     style={{
-                      height: 38,
-                      padding: '0 12px',
-                      fontSize: 12,
+                      height: 42,
+                      padding: '0 14px',
+                      fontSize: 16,
                       fontWeight: 700,
                       borderRadius: 7,
                     }}
@@ -2463,18 +3079,18 @@ function BillingContent() {
                     className="btn btn-ghost btn-sm"
                     type="button"
                     style={{
-                      height: 38,
-                      padding: '0 10px',
-                      fontSize: 12,
+                      height: 42,
+                      padding: '0 12px',
+                      fontSize: 16,
                       border: '1px solid #cbd5e1',
                       borderRadius: 7,
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 3,
+                      gap: 4,
                     }}
                     onClick={() => setCameraModalOpen(true)}
                   >
-                    <Camera size={14} /> <span className="hide-on-mobile">Camera</span>
+                    <Camera size={16} /> <span className="hide-on-mobile">Camera</span>
                   </button>
 
                   {/* 👑 Bridal Booking Import (Placed right next to Camera) */}
@@ -2482,9 +3098,9 @@ function BillingContent() {
                     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                       <select
                         style={{
-                          height: 38,
-                          padding: '0 8px',
-                          fontSize: 12,
+                          height: 42,
+                          padding: '0 10px',
+                          fontSize: 16,
                           fontWeight: 700,
                           border: '1.5px solid #f472b6',
                           background: '#fff1f2',
@@ -2493,9 +3109,14 @@ function BillingContent() {
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          maxWidth: 135,
+                          maxWidth: 155,
                         }}
                         onChange={(e) => {
+                          if (e.target.value === '__new__') {
+                            handleSwitchTab('bridal', 'left');
+                            e.target.value = '';
+                            return;
+                          }
                           const b = data.bridal?.find((x) => x.id === e.target.value);
                           if (b) {
                             handleImportBridal(b);
@@ -2503,10 +3124,13 @@ function BillingContent() {
                           }
                         }}
                         defaultValue=""
-                        title="Load Bridal Booking into bill"
+                        title="Load Bridal Booking into bill or create new"
                       >
                         <option value="" disabled>
                           👑 Bridal ({data.bridal.length})
+                        </option>
+                        <option value="__new__" style={{ fontWeight: 800, color: '#be185d', background: '#fdf2f8' }}>
+                          ✨ + New Bridal Booking
                         </option>
                         {data.bridal.map((b) => {
                           const pPrice = resolveBridalBookingPrice(b, data?.bridalPackages, data?.services);
@@ -2605,14 +3229,14 @@ function BillingContent() {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(140px, 2fr) 48px 72px 84px 76px 26px',
-                      gap: 5,
-                      padding: '5px 8px',
+                      gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 58px 90px 105px 95px 32px' : 'minmax(140px, 2fr) 52px 80px 92px 84px 30px',
+                      gap: 6,
+                      padding: '7px 10px',
                       background: '#f1f5f9',
-                      borderRadius: '6px 6px 0 0',
-                      fontSize: 9.5,
+                      borderRadius: '8px 8px 0 0',
+                      fontSize: 13.5,
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: '#475569',
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em',
                       marginBottom: 4,
@@ -2648,8 +3272,8 @@ function BillingContent() {
                           key={idx}
                           style={{
                             display: 'grid',
-                            gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 52px 80px 96px 85px 28px' : 'minmax(140px, 2fr) 48px 72px 84px 76px 26px',
-                            gap: 5,
+                            gridTemplateColumns: layoutOrientation === 'up-down' ? 'minmax(180px, 1fr) 58px 90px 105px 95px 32px' : 'minmax(140px, 2fr) 52px 80px 92px 84px 30px',
+                            gap: 6,
                             alignItems: 'center',
                             background: isBelowBuy ? 'rgba(254, 242, 242, 0.75)' : 'transparent',
                             borderRadius: 6,
@@ -2659,17 +3283,17 @@ function BillingContent() {
                         >
                         {/* Item Name + Type Badge */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                             <button
                               type="button"
                               className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
                               style={{
                                 cursor: 'pointer',
-                                fontSize: 10,
-                                padding: '2px 5px',
+                                fontSize: 14,
+                                padding: '3px 6px',
                                 border: 'none',
                                 flexShrink: 0,
-                                borderRadius: 5,
+                                borderRadius: 6,
                               }}
                               title={
                                 line.type === 'P'
@@ -2690,9 +3314,9 @@ function BillingContent() {
                               onChange={(e) => handleItemSelect(idx, e.target.value)}
                               onKeyDown={(e) => handleLineKeyDown(e, idx)}
                               style={{
-                                height: 32,
-                                fontSize: 11.5,
-                                padding: '0 7px',
+                                height: 36,
+                                fontSize: 15.5,
+                                padding: '0 8px',
                                 border: '1px solid #cbd5e1',
                                 borderRadius: 6,
                               }}
@@ -2827,7 +3451,7 @@ function BillingContent() {
                         <div
                           className="qty-up-down-box"
                           style={{
-                            height: 32,
+                            height: 36,
                             position: 'relative',
                           }}
                         >
@@ -2846,7 +3470,7 @@ function BillingContent() {
                               textAlign: 'center',
                               height: '100%',
                               width: '100%',
-                              fontSize: 11.5,
+                              fontSize: 15.5,
                               fontWeight: 700,
                               padding: '0 16px 0 2px',
                               border: 'none',
@@ -2860,7 +3484,7 @@ function BillingContent() {
                               right: 0,
                               top: 0,
                               bottom: 0,
-                              width: 15,
+                              width: 16,
                               display: 'flex',
                               flexDirection: 'column',
                               borderLeft: '1px solid #e2e8f0',
@@ -2885,7 +3509,7 @@ function BillingContent() {
                                 borderBottom: '1px solid #e2e8f0',
                               }}
                             >
-                              <ChevronUp size={9} strokeWidth={2.5} />
+                              <ChevronUp size={10} strokeWidth={2.5} />
                             </button>
                             <button
                               type="button"
@@ -2904,7 +3528,7 @@ function BillingContent() {
                                 color: '#475569',
                               }}
                             >
-                              <ChevronDown size={9} strokeWidth={2.5} />
+                              <ChevronDown size={10} strokeWidth={2.5} />
                             </button>
                           </div>
                         </div>
@@ -2927,9 +3551,9 @@ function BillingContent() {
                               onKeyDown={(e) => handleLineKeyDown(e, idx)}
                               style={{
                                 textAlign: 'right',
-                                height: 32,
-                                fontSize: 11.5,
-                                padding: '0 5px',
+                                height: 36,
+                                fontSize: 15.5,
+                                padding: '0 6px',
                                 border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
                                 background: isLoss ? '#fef2f2' : '#ffffff',
                                 color: isLoss ? '#dc2626' : 'inherit',
@@ -2963,9 +3587,9 @@ function BillingContent() {
                                 onKeyDown={(e) => handleLineKeyDown(e, idx)}
                                 style={{
                                   textAlign: 'right',
-                                  height: 32,
-                                  fontSize: 11.5,
-                                  padding: '0 3px',
+                                  height: 36,
+                                  fontSize: 15.5,
+                                  padding: '0 4px',
                                   border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
                                   background: isLoss ? '#fef2f2' : '#ffffff',
                                   borderRadius: 6,
@@ -2978,9 +3602,9 @@ function BillingContent() {
                                 className="btn btn-ghost btn-sm"
                                 style={{
                                   padding: 0,
-                                  width: 22,
-                                  height: 32,
-                                  fontSize: 10,
+                                  width: 26,
+                                  height: 36,
+                                  fontSize: 13,
                                   fontWeight: 700,
                                   borderRadius: 5,
                                   color: isLoss ? '#dc2626' : ((line.discountType || '%') === '%' ? '#2563eb' : '#05424A'),
@@ -3010,7 +3634,7 @@ function BillingContent() {
                             <div style={{ textAlign: 'right', paddingRight: 3 }}>
                               <span
                                 style={{
-                                  fontSize: 12,
+                                  fontSize: 16,
                                   fontWeight: 800,
                                   color: isLoss ? '#dc2626' : '#0f172a',
                                   background: isLoss ? '#fee2e2' : 'transparent',
@@ -3046,8 +3670,8 @@ function BillingContent() {
                           type="button"
                           className="btn-icon danger"
                           style={{
-                            width: 26,
-                            height: 26,
+                            width: 30,
+                            height: 30,
                             borderRadius: 6,
                             display: 'flex',
                             alignItems: 'center',
@@ -3062,7 +3686,7 @@ function BillingContent() {
                           disabled={lines.length === 1 && !lines[0].name}
                           title="Remove item"
                         >
-                          <Trash2 size={12} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     );
@@ -3094,13 +3718,13 @@ function BillingContent() {
                           type="button"
                           className={`badge ${line.type === 'P' ? 'badge-blue' : 'badge-gold'}`}
                           style={{
-                            fontSize: 13,
+                            fontSize: 16,
                             padding: '0 6px',
                             border: 'none',
-                            borderRadius: 6,
+                            borderRadius: 7,
                             flexShrink: 0,
-                            height: 38,
-                            width: 36,
+                            height: 42,
+                            width: 40,
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -3117,12 +3741,12 @@ function BillingContent() {
                           value={line.name}
                           onChange={(e) => handleItemSelect(idx, e.target.value)}
                           onKeyDown={(e) => handleLineKeyDown(e, idx)}
-                          style={{ flex: 1, height: 38, fontSize: 13.5, padding: '0 10px', borderRadius: 7 }}
+                          style={{ flex: 1, height: 42, fontSize: 17.5, padding: '0 10px', borderRadius: 8 }}
                         />
                         <button
                           type="button"
                           className="btn-icon danger"
-                          style={{ width: 36, height: 38, borderRadius: 6, flexShrink: 0 }}
+                          style={{ width: 40, height: 42, borderRadius: 7, flexShrink: 0 }}
                           onClick={() =>
                             setLines((p) => {
                               const remaining = p.filter((_, i) => i !== idx);
@@ -3132,7 +3756,7 @@ function BillingContent() {
                           disabled={lines.length === 1 && !lines[0].name}
                           title="Remove item"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={16} />
                         </button>
                       </div>
 
@@ -3239,19 +3863,19 @@ function BillingContent() {
                       <div
                         style={{
                           display: 'grid',
-                          gridTemplateColumns: '56px 74px 1fr auto',
+                          gridTemplateColumns: '62px 82px 1fr auto',
                           gap: 6,
                           alignItems: 'center',
                         }}
                       >
                         <div>
-                          <span style={{ fontSize: 9.5, color: '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
+                          <span style={{ fontSize: 11, color: '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                             QTY
                           </span>
                           <div
                             className="qty-up-down-box"
                             style={{
-                              height: 32,
+                              height: 36,
                               position: 'relative',
                             }}
                           >
@@ -3268,7 +3892,7 @@ function BillingContent() {
                                 textAlign: 'center',
                                 height: '100%',
                                 width: '100%',
-                                fontSize: 13,
+                                fontSize: 17,
                                 fontWeight: 800,
                                 padding: '0 16px 0 2px',
                                 border: 'none',
@@ -3307,7 +3931,7 @@ function BillingContent() {
                                   borderBottom: '1px solid #e2e8f0',
                                 }}
                               >
-                                <ChevronUp size={9} strokeWidth={2.5} />
+                                <ChevronUp size={10} strokeWidth={2.5} />
                               </button>
                               <button
                                 type="button"
@@ -3326,7 +3950,7 @@ function BillingContent() {
                                   color: '#475569',
                                 }}
                               >
-                                <ChevronDown size={9} strokeWidth={2.5} />
+                                <ChevronDown size={10} strokeWidth={2.5} />
                               </button>
                             </div>
                           </div>
@@ -3337,7 +3961,7 @@ function BillingContent() {
                           return (
                             <>
                               <div>
-                                <span style={{ fontSize: 9.5, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
+                                <span style={{ fontSize: 11, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                                   RATE (₹)
                                 </span>
                                 <input
@@ -3351,8 +3975,8 @@ function BillingContent() {
                                   onKeyDown={(e) => handleLineKeyDown(e, idx)}
                                   style={{
                                     textAlign: 'right',
-                                    height: 32,
-                                    fontSize: 13,
+                                    height: 36,
+                                    fontSize: 17,
                                     padding: '0 6px',
                                     border: isLoss ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
                                     background: isLoss ? '#fef2f2' : '#ffffff',
@@ -3362,7 +3986,7 @@ function BillingContent() {
                                 />
                               </div>
                               <div>
-                                <span style={{ fontSize: 9.5, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
+                                <span style={{ fontSize: 11, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                                   DISCOUNT
                                 </span>
                                 <div style={{ display: 'flex', gap: 2 }}>
@@ -3379,8 +4003,8 @@ function BillingContent() {
                                     onKeyDown={(e) => handleLineKeyDown(e, idx)}
                                     style={{
                                       textAlign: 'right',
-                                      height: 32,
-                                      fontSize: 13,
+                                      height: 36,
+                                      fontSize: 17,
                                       padding: '0 6px',
                                       flex: 1,
                                       minWidth: 0,
@@ -3395,9 +4019,9 @@ function BillingContent() {
                                     className="btn btn-ghost btn-sm"
                                     style={{
                                       padding: 0,
-                                      width: 24,
-                                      height: 32,
-                                      fontSize: 12,
+                                      width: 28,
+                                      height: 36,
+                                      fontSize: 15,
                                       fontWeight: 800,
                                       borderRadius: 4,
                                       color: isLoss ? '#dc2626' : ((line.discountType || '%') === '%' ? '#2563eb' : '#05424A'),
@@ -3414,13 +4038,13 @@ function BillingContent() {
                                   </button>
                                 </div>
                               </div>
-                              <div style={{ textAlign: 'right', minWidth: 54 }}>
-                                <span style={{ fontSize: 9.5, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
+                              <div style={{ textAlign: 'right', minWidth: 60 }}>
+                                <span style={{ fontSize: 11, color: isLoss ? '#dc2626' : '#64748b', display: 'block', fontWeight: 700, marginBottom: 2 }}>
                                   TOTAL
                                 </span>
                                 <span
                                   style={{
-                                    fontSize: 13.5,
+                                    fontSize: 17.5,
                                     fontWeight: 900,
                                     color: isLoss ? '#dc2626' : '#0f172a',
                                     background: isLoss ? '#fee2e2' : 'transparent',
@@ -3435,7 +4059,7 @@ function BillingContent() {
                                   <span
                                     style={{
                                       display: 'block',
-                                      fontSize: 7.5,
+                                      fontSize: 8.5,
                                       fontWeight: 800,
                                       color: '#b91c1c',
                                       lineHeight: 1.1,
@@ -3565,13 +4189,13 @@ function BillingContent() {
                       padding: '4px 0',
                     }}
                   >
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
+                    <span style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
                       Total Payable:
                     </span>
 
                     {isEditingFinalPayable ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 13, fontWeight: 900, color: '#05424A' }}>₹</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 16, fontWeight: 900, color: '#05424A' }}>₹</span>
                         <input
                           type="number"
                           step="1"
@@ -3595,22 +4219,22 @@ function BillingContent() {
                             }
                           }}
                           style={{
-                            height: 30,
-                            width: 88,
+                            height: 36,
+                            width: 105,
                             textAlign: 'right',
-                            fontSize: 14,
+                            fontSize: 18,
                             fontWeight: 900,
                             color: '#05424A',
                             border: '2px solid #05424A',
-                            borderRadius: 6,
-                            padding: '0 5px',
+                            borderRadius: 7,
+                            padding: '0 6px',
                             background: '#f0fdfa',
                           }}
                         />
                       </div>
                     ) : (
                       <span
-                        style={{ fontSize: 20, fontWeight: 900, color: '#05424A', cursor: 'pointer' }}
+                        style={{ fontSize: 24, fontWeight: 900, color: '#05424A', cursor: 'pointer' }}
                         title="Click to edit final payable price directly"
                         onClick={() => setIsEditingFinalPayable(true)}
                       >
@@ -3638,39 +4262,39 @@ function BillingContent() {
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
-                      marginBottom: 6,
+                      marginBottom: 8,
                       flexWrap: 'wrap',
                       gap: 6,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 800, color: '#1e293b' }}>
+                      <span style={{ fontSize: 15.5, fontWeight: 800, color: '#1e293b' }}>
                         Payment Method
                       </span>
                       <span
                         style={{
-                          fontSize: 10.5,
+                          fontSize: 14.5,
                           fontWeight: 700,
                           color: balance > 0 ? '#dc2626' : '#16a34a',
                           background: balance > 0 ? '#fee2e2' : '#f0fdf4',
                           border: balance > 0 ? '1px solid #fca5a5' : '1px solid #bbf7d0',
-                          padding: '1px 6px',
-                          borderRadius: 4,
+                          padding: '2px 8px',
+                          borderRadius: 5,
                         }}
                       >
                         {balance > 0 ? `Due: ${money(balance)}` : `Status: ₹0.00`}
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <label
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: 4,
+                          gap: 5,
                           cursor: 'pointer',
                           userSelect: 'none',
-                          fontSize: 10.5,
+                          fontSize: 14.5,
                           fontWeight: 700,
                           color: balance === 0 ? '#16a34a' : '#05424A',
                         }}
@@ -3691,7 +4315,7 @@ function BillingContent() {
                               }
                             }
                           }}
-                          style={{ accentColor: '#16a34a', cursor: 'pointer', width: 13, height: 13 }}
+                          style={{ accentColor: '#16a34a', cursor: 'pointer', width: 17, height: 17 }}
                         />
                         <span>Fully Paid</span>
                       </label>
@@ -3699,10 +4323,10 @@ function BillingContent() {
                       {/* Split Payment Checkbox Toggle */}
                       <label
                         style={{
-                          fontSize: 10.5,
+                          fontSize: 14.5,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 4,
+                          gap: 5,
                           cursor: 'pointer',
                           color: isSplitPayment ? '#05424A' : '#64748b',
                           fontWeight: 600,
@@ -3721,20 +4345,18 @@ function BillingContent() {
                               setPaid(Math.max(0, totalAfterLoyalty - Number(advance || 0)));
                             }
                           }}
-                          style={{ accentColor: '#05424A', width: 13, height: 13, cursor: 'pointer' }}
+                          style={{ accentColor: '#05424A', width: 17, height: 17, cursor: 'pointer' }}
                         />
                         <span>🔀 Split Payment</span>
                       </label>
                     </div>
                   </div>
 
-
-
                   {isSplitPayment ? (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                          <label style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>
+                          <label style={{ fontSize: 14, color: '#64748b', fontWeight: 700 }}>
                             Cash (₹)
                           </label>
                           <button
@@ -3744,7 +4366,7 @@ function BillingContent() {
                               setSplitCash(remaining);
                             }}
                             title="Fill remaining into Cash"
-                            style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
+                            style={{ fontSize: 13, padding: '2px 8px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
                           >
                             Fill
                           </button>
@@ -3756,7 +4378,7 @@ function BillingContent() {
                           placeholder="0"
                           value={splitCash}
                           onChange={(e) => setSplitCash(Number(e.target.value) || '')}
-                          style={{ padding: '0 8px', height: 38, fontSize: 13.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
+                          style={{ padding: '0 8px', height: 42, fontSize: 17.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
                         />
                       </div>
                       <div>
@@ -3772,16 +4394,19 @@ function BillingContent() {
                             value={splitUpiMode}
                             onChange={(e) => setSplitUpiMode(e.target.value)}
                             style={{
-                              fontSize: 9.5,
-                              padding: '1px 4px',
+                              fontSize: 13.5,
+                              padding: '2px 6px',
                               borderRadius: 4,
                               border: '1px solid #cbd5e1',
                               background: '#ffffff',
                               fontWeight: 700,
                             }}
                           >
-                            <option value="GPay UPI">GPay (₹)</option>
-                            <option value="PhonePe UPI">PhonePe (₹)</option>
+                            {getUpiOrOnlinePaymentOptions(data?.settings?.payments, [splitUpiMode]).map((p) => (
+                              <option key={p} value={p}>
+                                {p} (₹)
+                              </option>
+                            ))}
                           </select>
                           <button
                             type="button"
@@ -3790,7 +4415,7 @@ function BillingContent() {
                               setSplitUpi(remaining);
                             }}
                             title="Fill remaining into UPI"
-                            style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
+                            style={{ fontSize: 13, padding: '2px 8px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
                           >
                             Fill
                           </button>
@@ -3802,12 +4427,12 @@ function BillingContent() {
                           placeholder="0"
                           value={splitUpi}
                           onChange={(e) => setSplitUpi(Number(e.target.value) || '')}
-                          style={{ padding: '0 8px', height: 38, fontSize: 13.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
+                          style={{ padding: '0 8px', height: 42, fontSize: 17.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
                         />
                       </div>
                       <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                          <label style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>
+                          <label style={{ fontSize: 14, color: '#64748b', fontWeight: 700 }}>
                             Card (₹)
                           </label>
                           <button
@@ -3817,7 +4442,7 @@ function BillingContent() {
                               setSplitCard(remaining);
                             }}
                             title="Fill remaining into Card"
-                            style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
+                            style={{ fontSize: 13, padding: '2px 8px', borderRadius: 4, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: 'pointer', color: '#05424A', fontWeight: 700 }}
                           >
                             Fill
                           </button>
@@ -3829,7 +4454,7 @@ function BillingContent() {
                           placeholder="0"
                           value={splitCard}
                           onChange={(e) => setSplitCard(Number(e.target.value) || '')}
-                          style={{ padding: '0 8px', height: 38, fontSize: 13.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
+                          style={{ padding: '0 8px', height: 42, fontSize: 17.5, fontWeight: 700, borderRadius: 8, border: '1.5px solid #cbd5e1' }}
                         />
                       </div>
                     </div>
@@ -3841,8 +4466,8 @@ function BillingContent() {
                           onChange={(e) => setMode(e.target.value)}
                           style={{
                             flex: 1,
-                            height: 38,
-                            fontSize: 13.5,
+                            height: 42,
+                            fontSize: 17.5,
                             fontWeight: 700,
                             padding: '0 10px',
                             borderRadius: 8,
@@ -3851,27 +4476,18 @@ function BillingContent() {
                             color: '#0f172a',
                           }}
                         >
-                          {(
-                            data?.settings?.payments || [
-                              'Cash',
-                              'GPay UPI',
-                              'PhonePe UPI',
-                              'Card',
-                              'Bank Transfer',
-                              'HDFC Bank',
-                            ]
-                          ).map((p) => (
+                          {getPaymentOptions(data?.settings?.payments, editingInvoiceId ? [mode] : undefined).map((p) => (
                             <option key={p} value={p}>
                               {p}
                             </option>
                           ))}
                         </select>
-                        <div style={{ width: 135, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <div style={{ width: 150, position: 'relative', display: 'flex', alignItems: 'center' }}>
                           <span
                             style={{
                               position: 'absolute',
                               left: 8,
-                              fontSize: 11,
+                              fontSize: 14,
                               fontWeight: 800,
                               color: '#64748b',
                               pointerEvents: 'none',
@@ -3888,10 +4504,10 @@ function BillingContent() {
                             onChange={(e) => setPaid(Number(e.target.value) || '')}
                             style={{
                               textAlign: 'right',
-                              height: 38,
-                              fontSize: 13.5,
+                              height: 42,
+                              fontSize: 17.5,
                               fontWeight: 800,
-                              padding: '0 8px 0 20px',
+                              padding: '0 8px 0 22px',
                               width: '100%',
                               borderRadius: 8,
                               border: '1.5px solid #cbd5e1',
@@ -3942,9 +4558,9 @@ function BillingContent() {
                   type="button"
                   className="btn btn-outline"
                   style={{
-                    padding: '0 14px',
-                    height: 42,
-                    fontSize: 13,
+                    padding: '0 16px',
+                    height: 46,
+                    fontSize: 17,
                     fontWeight: 700,
                     borderRadius: 8,
                     color: '#e11d48',
@@ -3959,7 +4575,7 @@ function BillingContent() {
                   onClick={editingInvoiceId ? cancelEditInvoice : handleAllClearInvoice}
                   title={editingInvoiceId ? 'Cancel editing invoice' : 'Clear all fields & reset invoice (All Clear)'}
                 >
-                  <RotateCcw size={14} />
+                  <RotateCcw size={17} />
                   <span>{editingInvoiceId ? 'Cancel Edit' : 'All Clear'}</span>
                 </button>
                 <button
@@ -3967,9 +4583,9 @@ function BillingContent() {
                   className="btn btn-primary"
                   style={{
                     flex: 1,
-                    height: 42,
-                    padding: '8px 16px',
-                    fontSize: 14,
+                    height: 46,
+                    padding: '10px 18px',
+                    fontSize: 18,
                     fontWeight: 800,
                     borderRadius: 8,
                     cursor: 'pointer',
@@ -3979,7 +4595,7 @@ function BillingContent() {
                   onClick={handleSave}
                   title={hasBelowBuyLines ? 'Cannot sell: Item marked in red is below purchase price!' : 'Save invoice and print receipt (Ctrl+Enter)'}
                 >
-                  <Printer size={16} />{' '}
+                  <Printer size={19} />{' '}
                   <span>
                     {hasBelowBuyLines
                       ? '⛔ Below Buy Price — Cannot Sell'
@@ -3994,98 +4610,12 @@ function BillingContent() {
             {/* End billing-checkout-section */}
           </div>
           {/* End billing-unified-card */}
-
-            {/* 3. Smart Mobile Sticky Bottom Action Bar (< 768px, Builder Only) */}
-            <div className="billing-mobile-bar no-print">
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  cursor: 'pointer',
-                  minWidth: 0,
-                }}
-                onClick={() => {
-                  const el = document.getElementById('billing-checkout-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                title="Click to jump to Settlement"
-              >
-                <div style={{ fontSize: 9.5, color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <span>{lines.filter((l) => l.name && l.name.trim() !== '').length} items</span>
-                  <span>•</span>
-                  <span style={{ color: '#05424A', fontWeight: 700 }}>
-                    {isSplitPayment ? '🔀 Split' : mode === 'Cash' ? '💵 Cash' : '📱 ' + mode}
-                  </span>
-                  <span style={{ fontSize: 9, color: '#05424A' }}>↓</span>
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#05424A', lineHeight: 1.15 }}>
-                  {money(totalAfterLoyalty - Number(advance || 0))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-                {/* Fast Payment Mode Switch Pill */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newMode = mode === 'Cash' ? 'GPay UPI' : 'Cash';
-                    setMode(newMode);
-                    setIsSplitPayment(false);
-                    const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
-                    setPaid(payAmt);
-                  }}
-                  title="Switch between Cash and UPI"
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '3px 7px',
-                    borderRadius: 6,
-                    border: '1px solid #cbd5e1',
-                    background: '#f8fafc',
-                    color: '#05424A',
-                    cursor: 'pointer',
-                    height: 32,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3,
-                  }}
-                >
-                  <span>{mode === 'Cash' ? '💵 Cash' : '📱 UPI'}</span>
-                  <span style={{ fontSize: 8.5, opacity: 0.7 }}>↺</span>
-                </button>
-
-                {/* 1-Tap Bill Generation */}
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={hasBelowBuyLines}
-                  style={{
-                    height: 34,
-                    padding: '0 12px',
-                    fontSize: 12,
-                    fontWeight: 800,
-                    borderRadius: 7,
-                    border: 'none',
-                    background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    boxShadow: hasBelowBuyLines ? 'none' : '0 2px 8px rgba(5, 66, 74, 0.3)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Printer size={13} />
-                  <span>{editingInvoiceId ? 'Update & Print' : 'Bill'}</span>
-                </button>
-              </div>
-            </div>
           </>
         )}
 
-        {/* 2. Invoice Receipts History Panel */}
+        {/* 2. Invoice Receipts History & Appointments Queue Panel */}
         {activeTab === 'history' && (
+          <>
           <div className="card billing-builder-card">
             {/* Header & Search */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
@@ -4106,33 +4636,6 @@ function BillingContent() {
                 >
                   {filteredInvoices.length}
                 </span>
-                {(data?.invoices || []).length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConfirmClearAllInvoicesText('');
-                      setClearAllInvoicesModalOpen(true);
-                    }}
-                    style={{
-                      height: 24,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: '#dc2626',
-                      background: '#fef2f2',
-                      border: '1px solid #fecaca',
-                      borderRadius: 6,
-                      padding: '0 8px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      cursor: 'pointer',
-                    }}
-                    title="Clear all saved invoices from history"
-                  >
-                    <Trash2 size={11} />
-                    <span>Clear All Invoices</span>
-                  </button>
-                )}
               </div>
               <div className="search-wrap" style={{ maxWidth: 220, flex: 1, minWidth: 140 }}>
                 <Search size={13} className="search-icon" />
@@ -4220,297 +4723,330 @@ function BillingContent() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
                       <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         <tr>
-                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
-                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Customer</th>
-                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap' }}>Amount &amp; Status</th>
-                          <th style={{ padding: '8px 8px', fontSize: 10, textAlign: 'right', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'nowrap', width: activeTab === 'history' ? 'auto' : 92 }}>Actions</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Invoice &amp; Date</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Bride &amp; Mobile</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Events &amp; Schedule</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Package Tier</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10, textAlign: 'left', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Payment &amp; Due</th>
+                          <th style={{ padding: '9px 10px', fontSize: 10, textAlign: 'right', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredInvoices.map((inv) => (
-                          <tr key={inv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '8px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                              <div style={{ height: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <button
-                                  type="button"
-                                  onClick={() => setReceiptModalInv(inv)}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: 0,
-                                    fontWeight: 800,
-                                    color: '#05424A',
-                                    cursor: 'pointer',
-                                    fontSize: 12,
-                                    fontFamily: 'monospace, sans-serif',
-                                  }}
-                                  title="Click to view receipt"
-                                >
-                                  {inv.no}
-                                </button>
-                                {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
-                                  <span style={{ fontSize: 9, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1px 5px', borderRadius: 4 }}>
-                                    👑 Bridal
-                                  </span>
-                                ) : (
-                                  <span style={{ fontSize: 9, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: 4 }}>
-                                    🛍️ POS
-                                  </span>
-                                )}
-                              </div>
-                              <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 10.5, color: '#64748b' }}>
-                                {fmtDate(inv.date)}
-                              </div>
-                            </td>
-                            <td style={{ padding: '8px 8px', verticalAlign: 'top' }}>
-                              <div style={{ height: 20, display: 'flex', alignItems: 'center' }}>
-                                <span
-                                  style={{ fontWeight: 700, fontSize: 12, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: activeTab === 'history' ? 220 : 105 }}
-                                  title={inv.customer}
-                                >
-                                  {inv.customer}
-                                </span>
-                              </div>
-                              <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 10.5, color: '#64748b' }}>
-                                {inv.mobile || '—'}
-                              </div>
-                            </td>
-                            <td style={{ padding: '8px 8px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                              <div style={{ height: 20, display: 'flex', alignItems: 'center' }}>
-                                <span style={{ fontWeight: 800, fontSize: 12.5, color: '#0f172a' }}>{money(inv.total)}</span>
-                              </div>
-                              <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2 }}>
-                                {Number(inv.balance) > 0 ? (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 10.5 }}>
-                                      Due: {money(inv.balance)}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      className="btn btn-xs"
-                                      style={{
-                                        fontSize: 9.5,
-                                        padding: '1px 5px',
-                                        height: 18,
-                                        borderRadius: 4,
-                                        background: '#f0fdf4',
-                                        color: '#15803d',
-                                        border: '1px solid #86efac',
-                                        fontWeight: 700,
-                                        cursor: 'pointer',
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                      }}
-                                      title="Record Payment-In"
-                                      onClick={() => openPaymentInModal(inv)}
-                                    >
-                                      + Collect
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <span style={{ color: '#16a34a', fontSize: 10.5, fontWeight: 600 }}>
-                                    Paid: {money(inv.paid)}
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td style={{ padding: '8px 8px', verticalAlign: 'top', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                              <div
-                                style={
-                                  activeTab === 'history'
-                                    ? { display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end', height: 40 }
-                                    : { display: 'grid', gridTemplateColumns: 'repeat(3, 24px)', gap: 3, justifyContent: 'flex-end', width: 80, marginLeft: 'auto' }
-                                }
-                              >
-                                <button
-                                  type="button"
-                                  className="pos-action-btn"
-                                  title="View Official Bill Layout"
-                                  style={{
-                                    background: '#f0f9ff',
-                                    color: '#0284c7',
-                                    borderColor: '#bae6fd',
-                                    height: activeTab === 'history' ? 26 : 20,
-                                    width: 24,
-                                    padding: 0,
-                                  }}
-                                  onClick={() => setReceiptModalInv(inv)}
-                                >
-                                  <Eye size={11} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="pos-action-btn"
-                                  title="Download PDF Bill"
-                                  style={{
-                                    background: '#fffbeb',
-                                    color: '#b45309',
-                                    borderColor: '#fde68a',
-                                    height: activeTab === 'history' ? 26 : 20,
-                                    width: 24,
-                                    padding: 0,
-                                  }}
-                                  onClick={() => handleDownloadInvoicePDF(inv)}
-                                >
-                                  <Download size={11} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="pos-action-btn"
-                                  title="Print Thermal / A4 Receipt"
-                                  style={{
-                                    background: '#f8fafc',
-                                    color: '#475569',
-                                    borderColor: '#cbd5e1',
-                                    height: activeTab === 'history' ? 26 : 20,
-                                    width: 24,
-                                    padding: 0,
-                                  }}
-                                  onClick={() => handlePrint(inv)}
-                                >
-                                  <Printer size={11} />
-                                </button>
-                                {/* 1. Send PDF Invoice via WhatsApp */}
-                                <button
-                                  type="button"
-                                  className="pos-action-btn"
-                                  title={
-                                    waPdfStatus[inv.id] === 'sending'
-                                      ? 'Sending PDF…'
-                                      : waPdfStatus[inv.id] === 'sent'
-                                      ? '✅ PDF Sent!'
-                                      : waPdfStatus[inv.id] === 'failed'
-                                      ? '❌ PDF Failed'
-                                      : 'Send PDF Invoice via WhatsApp'
-                                  }
-                                  style={{
-                                    background:
-                                      waPdfStatus[inv.id] === 'sent'
-                                        ? '#dcfce7'
-                                        : waPdfStatus[inv.id] === 'failed'
-                                        ? '#fee2e2'
-                                        : '#ecfdf5',
-                                    color:
-                                      waPdfStatus[inv.id] === 'sent'
-                                        ? '#16a34a'
-                                        : waPdfStatus[inv.id] === 'failed'
-                                        ? '#dc2626'
-                                        : '#059669',
-                                    borderColor:
-                                      waPdfStatus[inv.id] === 'sent'
-                                        ? '#86efac'
-                                        : waPdfStatus[inv.id] === 'failed'
-                                        ? '#fecaca'
-                                        : '#a7f3d0',
-                                    opacity: waPdfStatus[inv.id] === 'sending' ? 0.6 : 1,
-                                    cursor: waPdfStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
-                                    height: activeTab === 'history' ? 26 : 20,
-                                    minWidth: 24,
-                                    padding: '0 3px',
-                                    fontSize: 9.5,
-                                    fontWeight: 700,
-                                  }}
-                                  disabled={waPdfStatus[inv.id] === 'sending'}
-                                  onClick={() => handleSendInvoicePDF(inv)}
-                                >
-                                  {waPdfStatus[inv.id] === 'sending' ? (
-                                    <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />
-                                  ) : (
-                                    <>
-                                      <FileText size={10} />
-                                      <span style={{ fontSize: 8.5 }}>PDF</span>
-                                    </>
-                                  )}
-                                </button>
+                        {filteredInvoices.map((inv) => {
+                          const bridalInfo = getBridalDetailsForInvoice(inv, data?.bridal, data?.bridalPackages, data?.services);
 
-                                {/* 2. Send Text Receipt via WhatsApp */}
-                                <button
-                                  type="button"
-                                  className="pos-action-btn"
-                                  title={
-                                    waTextStatus[inv.id] === 'sending'
-                                      ? 'Sending Text…'
-                                      : waTextStatus[inv.id] === 'sent'
-                                      ? '✅ Text Sent!'
-                                      : waTextStatus[inv.id] === 'failed'
-                                      ? '❌ Text Failed'
-                                      : 'Send Text Receipt via WhatsApp'
-                                  }
-                                  style={{
-                                    background:
-                                      waTextStatus[inv.id] === 'sent'
-                                        ? '#dcfce7'
-                                        : waTextStatus[inv.id] === 'failed'
-                                        ? '#fee2e2'
-                                        : '#eff6ff',
-                                    color:
-                                      waTextStatus[inv.id] === 'sent'
-                                        ? '#16a34a'
-                                        : waTextStatus[inv.id] === 'failed'
-                                        ? '#dc2626'
-                                        : '#2563eb',
-                                    borderColor:
-                                      waTextStatus[inv.id] === 'sent'
-                                        ? '#86efac'
-                                        : waTextStatus[inv.id] === 'failed'
-                                        ? '#fecaca'
-                                        : '#bfdbfe',
-                                    opacity: waTextStatus[inv.id] === 'sending' ? 0.6 : 1,
-                                    cursor: waTextStatus[inv.id] === 'sending' ? 'wait' : 'pointer',
-                                    height: activeTab === 'history' ? 26 : 20,
-                                    minWidth: 24,
-                                    padding: '0 3px',
-                                    fontSize: 9.5,
-                                    fontWeight: 700,
-                                  }}
-                                  disabled={waTextStatus[inv.id] === 'sending'}
-                                  onClick={() => handleSendInvoiceText(inv)}
-                                >
-                                  {waTextStatus[inv.id] === 'sending' ? (
-                                    <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                          return (
+                            <tr
+                              key={inv.id}
+                              style={{
+                                borderBottom: '1px solid #f1f5f9',
+                                background: bridalInfo.isBridal ? '#fffbfd' : 'transparent',
+                              }}
+                            >
+                              {/* 1. Invoice & Date */}
+                              <td style={{ padding: '10px 10px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                                <div style={{ height: 20, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setReceiptModalInv(inv)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      padding: 0,
+                                      fontWeight: 800,
+                                      color: '#05424A',
+                                      cursor: 'pointer',
+                                      fontSize: 12.5,
+                                      fontFamily: 'monospace, sans-serif',
+                                    }}
+                                    title="Click to view official receipt"
+                                  >
+                                    {inv.no}
+                                  </button>
+                                  {bridalInfo.isBridal ? (
+                                    <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1px 5px', borderRadius: 4 }}>
+                                      👑 Bridal
+                                    </span>
                                   ) : (
-                                    <>
-                                      <MessageSquare size={10} />
-                                      <span style={{ fontSize: 8.5 }}>TXT</span>
-                                    </>
+                                    <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: 4 }}>
+                                      🛍️ POS
+                                    </span>
                                   )}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="pos-action-btn"
-                                  title="Edit Invoice"
-                                  style={{
-                                    background: '#f5f3ff',
-                                    color: '#7c3aed',
-                                    borderColor: '#ddd6fe',
-                                    height: activeTab === 'history' ? 26 : 20,
-                                    width: 24,
-                                    padding: 0,
-                                  }}
-                                  onClick={() => openEditInvoice(inv)}
-                                >
-                                  <Pencil size={11} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="pos-action-btn"
-                                  title="Delete Invoice & Return Stock"
-                                  style={{
-                                    background: '#fef2f2',
-                                    color: '#dc2626',
-                                    borderColor: '#fecaca',
-                                    height: activeTab === 'history' ? 26 : 20,
-                                    width: 24,
-                                    padding: 0,
-                                  }}
-                                  onClick={() => setDeleteInvoiceId(inv.id)}
-                                >
-                                  <Trash2 size={11} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                                </div>
+                                <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 11, color: '#64748b' }}>
+                                  {fmtDate(inv.date)}
+                                </div>
+                              </td>
+
+                              {/* 2. Bride & Mobile */}
+                              <td style={{ padding: '10px 10px', verticalAlign: 'top' }}>
+                                <div style={{ height: 20, display: 'flex', alignItems: 'center' }}>
+                                  <span
+                                    style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 180 }}
+                                    title={bridalInfo.isBridal ? bridalInfo.brideName : inv.customer}
+                                  >
+                                    {bridalInfo.isBridal ? bridalInfo.brideName : inv.customer}
+                                  </span>
+                                </div>
+                                <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 11, color: '#64748b' }}>
+                                  {bridalInfo.isBridal ? bridalInfo.brideMobile : (inv.mobile || '—')}
+                                  {bridalInfo.isBridal && bridalInfo.birthday ? ` • 🎂 ${fmtDate(bridalInfo.birthday)}` : ''}
+                                </div>
+                              </td>
+
+                              {/* 3. Events & Schedule */}
+                              <td style={{ padding: '10px 10px', verticalAlign: 'top', minWidth: 200, maxWidth: 320 }}>
+                                {bridalInfo.isBridal ? (
+                                  <>
+                                    <div style={{ height: 20, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#05424A', fontSize: 13 }}>
+                                      {fmtDate(bridalInfo.primaryDate)}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, lineHeight: 1.4 }} title={bridalInfo.eventsString}>
+                                      {bridalInfo.eventsString || 'Bridal Makeup'}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div style={{ height: 20, display: 'flex', alignItems: 'center', fontWeight: 600, color: '#475569', fontSize: 12 }}>
+                                      Salon Service
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                                      Counter Billing · {fmtDate(inv.date)}
+                                    </div>
+                                  </>
+                                )}
+                              </td>
+
+                              {/* 4. Package Tier */}
+                              <td style={{ padding: '10px 10px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                                {bridalInfo.isBridal ? (
+                                  <>
+                                    <div style={{ height: 20, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#05424A', fontSize: 13 }}>
+                                      {bridalInfo.packageName}
+                                    </div>
+                                    <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 11.5, color: '#64748b' }}>
+                                      {money(bridalInfo.packagePrice)}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div style={{ height: 20, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#334155', fontSize: 12.5 }}>
+                                      📦 {(inv.lines || []).length} {(inv.lines || []).length === 1 ? 'item' : 'items'}
+                                    </div>
+                                    <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2, fontSize: 11.5, color: '#64748b', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {(inv.lines || []).map((l) => l.name).slice(0, 2).join(', ') || money(inv.total)}
+                                    </div>
+                                  </>
+                                )}
+                              </td>
+
+                              {/* 5. Payment & Due */}
+                              <td style={{ padding: '10px 10px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
+                                {bridalInfo.isBridal ? (
+                                  <>
+                                    <div style={{ height: 20, display: 'flex', alignItems: 'center', fontSize: 11.5, color: '#16a34a', fontWeight: 600 }}>
+                                      Adv: {money(bridalInfo.advancePaid)} {bridalInfo.advanceAccount ? `(${bridalInfo.advanceAccount})` : ''}
+                                    </div>
+                                    <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2 }}>
+                                      {bridalInfo.dueBalance > 0 ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                          <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 11.5 }}>
+                                            Due: {money(bridalInfo.dueBalance)}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            className="btn btn-xs"
+                                            style={{
+                                              fontSize: 9.5,
+                                              padding: '1px 5px',
+                                              height: 18,
+                                              borderRadius: 4,
+                                              background: '#f0fdf4',
+                                              color: '#15803d',
+                                              border: '1px solid #86efac',
+                                              fontWeight: 700,
+                                              cursor: 'pointer',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                            }}
+                                            title="Record Payment-In"
+                                            onClick={() => openPaymentInModal(inv)}
+                                          >
+                                            + Collect
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span style={{ color: '#16a34a', fontSize: 11, fontWeight: 700 }}>
+                                          ✅ Fully Paid
+                                        </span>
+                                      )}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div style={{ height: 20, display: 'flex', alignItems: 'center' }}>
+                                      <span style={{ fontWeight: 800, fontSize: 12.5, color: '#0f172a' }}>{money(inv.total)}</span>
+                                    </div>
+                                    <div style={{ height: 18, display: 'flex', alignItems: 'center', marginTop: 2 }}>
+                                      {Number(inv.balance) > 0 ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 10.5 }}>
+                                            Due: {money(inv.balance)}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            className="btn btn-xs"
+                                            style={{
+                                              fontSize: 9.5,
+                                              padding: '1px 5px',
+                                              height: 18,
+                                              borderRadius: 4,
+                                              background: '#f0fdf4',
+                                              color: '#15803d',
+                                              border: '1px solid #86efac',
+                                              fontWeight: 700,
+                                              cursor: 'pointer',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                            }}
+                                            title="Record Payment-In"
+                                            onClick={() => openPaymentInModal(inv)}
+                                          >
+                                            + Collect
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span style={{ color: '#16a34a', fontSize: 10.5, fontWeight: 600 }}>
+                                          Paid: {money(inv.paid || inv.total)} {inv.mode ? `(${inv.mode})` : ''}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              </td>
+
+                              {/* 6. Actions */}
+                              <td style={{ padding: '10px 10px', verticalAlign: 'top', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end', height: 40 }}>
+                                  {/* View PDF Button matching user screenshot */}
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm"
+                                    style={{
+                                      fontSize: 11,
+                                      padding: '3px 8px',
+                                      color: '#047857',
+                                      borderColor: '#a7f3d0',
+                                      background: '#ecfdf5',
+                                      fontWeight: 700,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      borderRadius: 6,
+                                      height: 26,
+                                      boxShadow: '0 1px 2px rgba(4,120,87,0.06)',
+                                      cursor: 'pointer',
+                                    }}
+                                    title="📄 View, Download or Print Official PDF Bill Receipt"
+                                    onClick={() => setReceiptModalInv(inv)}
+                                  >
+                                    <FileText size={12} /> View PDF
+                                  </button>
+
+                                  {/* POS Load Button */}
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm"
+                                    style={{
+                                      fontSize: 10.5,
+                                      padding: '3px 7px',
+                                      color: '#7c3aed',
+                                      borderColor: '#ddd6fe',
+                                      background: '#f5f3ff',
+                                      fontWeight: 700,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      borderRadius: 6,
+                                      height: 26,
+                                      cursor: 'pointer',
+                                    }}
+                                    title="Open & Edit in POS Billing Builder"
+                                    onClick={() => openEditInvoice(inv)}
+                                  >
+                                    POS
+                                  </button>
+
+                                  {/* Thermal Print */}
+                                  <button
+                                    type="button"
+                                    className="pos-action-btn"
+                                    title="Print Thermal / A4 Receipt"
+                                    style={{
+                                      background: '#f8fafc',
+                                      color: '#475569',
+                                      borderColor: '#cbd5e1',
+                                      height: 26,
+                                      width: 26,
+                                      padding: 0,
+                                    }}
+                                    onClick={() => handlePrint(inv)}
+                                  >
+                                    <Printer size={11} />
+                                  </button>
+
+                                  {/* WhatsApp PDF */}
+                                  <button
+                                    type="button"
+                                    className="pos-action-btn"
+                                    title={
+                                      waPdfStatus[inv.id] === 'sending'
+                                        ? 'Sending PDF…'
+                                        : waPdfStatus[inv.id] === 'sent'
+                                        ? '✅ PDF Sent!'
+                                        : waPdfStatus[inv.id] === 'failed'
+                                        ? '❌ PDF Failed'
+                                        : 'Send PDF Invoice via WhatsApp'
+                                    }
+                                    style={{
+                                      background: waPdfStatus[inv.id] === 'sent' ? '#dcfce7' : waPdfStatus[inv.id] === 'failed' ? '#fee2e2' : '#ecfdf5',
+                                      color: waPdfStatus[inv.id] === 'sent' ? '#16a34a' : waPdfStatus[inv.id] === 'failed' ? '#dc2626' : '#059669',
+                                      borderColor: waPdfStatus[inv.id] === 'sent' ? '#86efac' : waPdfStatus[inv.id] === 'failed' ? '#fecaca' : '#a7f3d0',
+                                      height: 26,
+                                      width: 26,
+                                      padding: 0,
+                                    }}
+                                    disabled={waPdfStatus[inv.id] === 'sending'}
+                                    onClick={() => handleSendInvoicePDF(inv)}
+                                  >
+                                    {waPdfStatus[inv.id] === 'sending' ? (
+                                      <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />
+                                    ) : (
+                                      <MessageCircle size={11} />
+                                    )}
+                                  </button>
+
+                                  {/* Delete Invoice */}
+                                  <button
+                                    type="button"
+                                    className="pos-action-btn"
+                                    title="Delete Invoice & Return Stock"
+                                    style={{
+                                      background: '#fef2f2',
+                                      color: '#dc2626',
+                                      borderColor: '#fecaca',
+                                      height: 26,
+                                      width: 26,
+                                      padding: 0,
+                                    }}
+                                    onClick={() => setDeleteInvoiceId(inv.id)}
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -4518,191 +5054,179 @@ function BillingContent() {
 
                 {/* Mobile Cards View (<= 680px) */}
                 <div className="billing-invoices-mobile" style={{ maxHeight: '420px', overflowY: 'auto' }}>
-                  {filteredInvoices.map((inv) => (
-                    <div
-                      key={inv.id}
-                      style={{
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 9,
-                        padding: '10px 12px',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                      }}
-                    >
-                      {/* Top Row: Invoice Number, Badge, Date */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <button
-                            type="button"
-                            onClick={() => setReceiptModalInv(inv)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              padding: 0,
-                              fontWeight: 800,
-                              color: '#05424A',
-                              cursor: 'pointer',
-                              fontSize: 12.5,
-                              fontFamily: 'monospace, sans-serif',
-                            }}
-                          >
-                            {inv.no}
-                          </button>
-                          {inv.bridalBookingId || inv.lines?.some((l) => l.name?.toLowerCase().includes('bridal') || l.name?.toLowerCase().includes('makeup')) ? (
-                            <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1px 5px', borderRadius: 4 }}>
-                              👑 Bridal
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: 4 }}>
-                              🛍️ POS
-                            </span>
-                          )}
-                        </div>
-                        <span style={{ fontSize: 10.5, color: '#64748b' }}>{fmtDate(inv.date)}</span>
-                      </div>
+                  {filteredInvoices.map((inv) => {
+                    const bridalInfo = getBridalDetailsForInvoice(inv, data?.bridal, data?.bridalPackages, data?.services);
 
-                      {/* Middle Row: Customer Info & Amount */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a' }}>
-                            {inv.customer}
-                          </div>
-                          <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 1 }}>
-                            {inv.mobile || '—'}
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a' }}>
-                            {money(inv.total)}
-                          </div>
-                          {Number(inv.balance) > 0 ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 2 }}>
-                              <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 10.5 }}>
-                                Due: {money(inv.balance)}
-                              </span>
-                              <button
-                                type="button"
-                                className="btn btn-xs"
-                                style={{
-                                  fontSize: 9.5,
-                                  padding: '1px 6px',
-                                  height: 19,
-                                  borderRadius: 4,
-                                  background: '#f0fdf4',
-                                  color: '#15803d',
-                                  border: '1px solid #86efac',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                                onClick={() => openPaymentInModal(inv)}
-                              >
-                                + Collect
-                              </button>
-                            </div>
-                          ) : (
-                            <span style={{ color: '#16a34a', fontSize: 10.5, fontWeight: 600 }}>
-                              ✅ Paid: {money(inv.paid)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Actions Row */}
+                    return (
                       <div
+                        key={inv.id}
                         style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(4, 1fr) auto auto',
-                          gap: 5,
-                          borderTop: '1px solid #f1f5f9',
-                          paddingTop: 8,
-                          alignItems: 'center',
+                          background: '#ffffff',
+                          border: bridalInfo.isBridal ? '1px solid #fbcfe8' : '1px solid #e2e8f0',
+                          borderRadius: 9,
+                          padding: '10px 12px',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8,
                         }}
                       >
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => setReceiptModalInv(inv)}
-                          style={{ height: 28, fontSize: 10.5, borderRadius: 5, background: '#f0f9ff', color: '#0284c7', border: '1px solid #bae6fd', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 3px' }}
-                        >
-                          <Eye size={11} /> View
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => handleDownloadInvoicePDF(inv)}
-                          style={{ height: 28, fontSize: 10.5, borderRadius: 5, background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 3px' }}
-                        >
-                          <Download size={11} /> PDF
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => handlePrint(inv)}
-                          style={{ height: 28, fontSize: 10.5, borderRadius: 5, background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 3px' }}
-                        >
-                          <Printer size={11} /> Print
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          disabled={waPdfStatus[inv.id] === 'sending'}
-                          onClick={() => handleSendInvoicePDF(inv)}
+                        {/* Top Row: Invoice Number, Badge, Date */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <button
+                              type="button"
+                              onClick={() => setReceiptModalInv(inv)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                fontWeight: 800,
+                                color: '#05424A',
+                                cursor: 'pointer',
+                                fontSize: 12.5,
+                                fontFamily: 'monospace, sans-serif',
+                              }}
+                            >
+                              {inv.no}
+                            </button>
+                            {bridalInfo.isBridal ? (
+                              <span style={{ fontSize: 9.5, fontWeight: 800, color: '#be185d', background: '#fdf2f8', border: '1px solid #fbcfe8', padding: '1px 5px', borderRadius: 4 }}>
+                                👑 Bridal
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 9.5, fontWeight: 700, color: '#0369a1', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: 4 }}>
+                                🛍️ POS
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: 10.5, color: '#64748b' }}>{fmtDate(inv.date)}</span>
+                        </div>
+
+                        {/* Middle Row: Bride / Customer Info & Amount */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
+                              {bridalInfo.isBridal ? bridalInfo.brideName : inv.customer}
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
+                              {bridalInfo.isBridal ? bridalInfo.brideMobile : (inv.mobile || '—')}
+                              {bridalInfo.isBridal && bridalInfo.birthday ? ` • 🎂 ${fmtDate(bridalInfo.birthday)}` : ''}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            {bridalInfo.isBridal ? (
+                              <>
+                                <div style={{ fontWeight: 700, fontSize: 11.5, color: '#16a34a' }}>
+                                  Adv: {money(bridalInfo.advancePaid)}
+                                </div>
+                                <div style={{ fontWeight: 800, fontSize: 12.5, color: bridalInfo.dueBalance > 0 ? '#dc2626' : '#16a34a', marginTop: 1 }}>
+                                  {bridalInfo.dueBalance > 0 ? `Due: ${money(bridalInfo.dueBalance)}` : '✅ Paid'}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a' }}>
+                                  {money(inv.total)}
+                                </div>
+                                {Number(inv.balance) > 0 ? (
+                                  <div style={{ color: '#dc2626', fontWeight: 700, fontSize: 10.5, marginTop: 1 }}>
+                                    Due: {money(inv.balance)}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: '#16a34a', fontSize: 10.5, fontWeight: 600 }}>
+                                    ✅ Paid: {money(inv.paid)}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Bridal Details Box if Bridal Booking */}
+                        {bridalInfo.isBridal && (
+                          <div style={{ background: '#fdf4f8', border: '1px solid #fce7f3', borderRadius: 7, padding: '7px 10px', fontSize: 11, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, color: '#9d174d' }}>
+                                💍 {fmtDate(bridalInfo.primaryDate)}
+                              </span>
+                              <span style={{ fontWeight: 700, color: '#05424A' }}>
+                                {bridalInfo.packageName} ({money(bridalInfo.packagePrice)})
+                              </span>
+                            </div>
+                            <div style={{ color: '#64748b', fontSize: 10.5, lineHeight: 1.3 }}>
+                              {bridalInfo.eventsString || 'Bridal Events Schedule'}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions Row */}
+                        <div
                           style={{
-                            height: 28,
-                            fontSize: 10.5,
-                            borderRadius: 5,
-                            background:
-                              waPdfStatus[inv.id] === 'sent'
-                                ? '#dcfce7'
-                                : waPdfStatus[inv.id] === 'failed'
-                                ? '#fee2e2'
-                                : '#ecfdf5',
-                            color:
-                              waPdfStatus[inv.id] === 'sent'
-                                ? '#16a34a'
-                                : waPdfStatus[inv.id] === 'failed'
-                                ? '#dc2626'
-                                : '#059669',
-                            border: '1px solid #86efac',
-                            fontWeight: 600,
                             display: 'flex',
+                            gap: 5,
+                            borderTop: '1px solid #f1f5f9',
+                            paddingTop: 8,
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 2,
-                            padding: '0 3px',
+                            flexWrap: 'wrap',
                           }}
                         >
-                          {waPdfStatus[inv.id] === 'sending' ? (
-                            <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
-                          ) : (
-                            <FileText size={11} />
+                          <button
+                            type="button"
+                            className="btn btn-xs"
+                            onClick={() => setReceiptModalInv(inv)}
+                            style={{ height: 26, fontSize: 10.5, borderRadius: 5, background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '0 8px' }}
+                          >
+                            <FileText size={11} /> View PDF
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-xs"
+                            onClick={() => openEditInvoice(inv)}
+                            style={{ height: 26, fontSize: 10.5, borderRadius: 5, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '0 8px' }}
+                          >
+                            POS
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-xs"
+                            onClick={() => handlePrint(inv)}
+                            style={{ height: 26, fontSize: 10.5, borderRadius: 5, background: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '0 8px' }}
+                          >
+                            <Printer size={11} /> Print
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-xs"
+                            disabled={waPdfStatus[inv.id] === 'sending'}
+                            onClick={() => handleSendInvoicePDF(inv)}
+                            style={{ height: 26, fontSize: 10.5, borderRadius: 5, background: '#ecfdf5', color: '#059669', border: '1px solid #86efac', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3, padding: '0 8px' }}
+                          >
+                            <MessageCircle size={11} /> WA
+                          </button>
+                          {Number(inv.balance) > 0 && (
+                            <button
+                              type="button"
+                              className="btn btn-xs"
+                              onClick={() => openPaymentInModal(inv)}
+                              style={{ height: 26, fontSize: 10.5, borderRadius: 5, background: '#f0fdf4', color: '#15803d', border: '1px solid #86efac', fontWeight: 700, padding: '0 8px' }}
+                            >
+                              + Collect
+                            </button>
                           )}
-                          <span>PDF</span>
-                        </button>
-                        <button
-                          type="button"
-                          className="pos-action-btn"
-                          title="Edit Invoice"
-                          onClick={() => openEditInvoice(inv)}
-                          style={{ width: 28, height: 28, borderRadius: 5, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' }}
-                        >
-                          <Pencil size={12} />
-                        </button>
-                        <button
-                          type="button"
-                          className="pos-action-btn"
-                          title="Delete Invoice"
-                          onClick={() => setDeleteInvoiceId(inv.id)}
-                          style={{ width: 28, height: 28, borderRadius: 5, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                          <button
+                            type="button"
+                            className="pos-action-btn"
+                            title="Delete Invoice"
+                            onClick={() => setDeleteInvoiceId(inv.id)}
+                            style={{ width: 26, height: 26, borderRadius: 5, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', marginLeft: 'auto' }}
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -4844,8 +5368,112 @@ function BillingContent() {
               </div>
             </div>
           </div>
+
+          <div style={{ marginTop: 14 }}>
+            <AppointmentsPanel
+              viewMode="queue"
+              onRequestNewAppointment={() => handleSwitchTab('appointments', 'right')}
+            />
+          </div>
+          </>
         )}
+      </motion.div>
+      )}
       </div>
+      {/* End billing-swipe-stage */}
+
+      {/* 3. Smart Mobile Sticky Bottom Action Bar (< 768px, Builder Only) */}
+      {activeTab === 'builder' && (
+        <div className="billing-mobile-bar no-print">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              cursor: 'pointer',
+              minWidth: 0,
+            }}
+            onClick={() => {
+              const el = document.getElementById('billing-checkout-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            title="Click to jump to Settlement"
+          >
+            <div style={{ fontSize: 9.5, color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+              <span>{lines.filter((l) => l.name && l.name.trim() !== '').length} items</span>
+              <span>•</span>
+              <span style={{ color: '#05424A', fontWeight: 700 }}>
+                {isSplitPayment ? '🔀 Split' : mode === 'Cash' ? '💵 Cash' : '📱 ' + mode}
+              </span>
+              <span style={{ fontSize: 9, color: '#05424A' }}>↓</span>
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#05424A', lineHeight: 1.15 }}>
+              {money(totalAfterLoyalty - Number(advance || 0))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+            {/* Fast Payment Mode Switch Pill (cycles through all configured Studio payment options) */}
+            <button
+              type="button"
+              onClick={() => {
+                const currentIdx = paymentOptions.indexOf(mode);
+                const nextMode = paymentOptions[(currentIdx + 1) % paymentOptions.length] || paymentOptions[0];
+                setMode(nextMode);
+                setIsSplitPayment(false);
+                const payAmt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+                setPaid(payAmt);
+              }}
+              title="Tap to cycle payment option"
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                padding: '3px 8px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#05424A',
+                cursor: 'pointer',
+                height: 36,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                maxWidth: 120,
+              }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {getPaymentOptionIcon(mode)} {mode}
+              </span>
+              <span style={{ fontSize: 9.5, opacity: 0.7 }}>↺</span>
+            </button>
+
+            {/* 1-Tap Bill Generation */}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={hasBelowBuyLines}
+              style={{
+                height: 38,
+                padding: '0 14px',
+                fontSize: 14,
+                fontWeight: 800,
+                borderRadius: 7,
+                border: 'none',
+                background: hasBelowBuyLines ? '#dc2626' : 'linear-gradient(135deg, #05424A 0%, #0a6572 100%)',
+                color: '#ffffff',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                boxShadow: hasBelowBuyLines ? 'none' : '0 2px 8px rgba(5, 66, 74, 0.3)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <Printer size={15} />
+              <span>{editingInvoiceId ? 'Update & Print' : 'Bill'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Payment-In Modal for Historic Invoices */}
       {settleInvoice && (
@@ -4888,7 +5516,7 @@ function BillingContent() {
             <div className="form-group">
               <label className="label">Payment Mode</label>
               <select className="input" value={settleMode} onChange={(e) => setSettleMode(e.target.value)}>
-                {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Card', 'Bank']).map((p) => (
+                {getPaymentOptions(data?.settings?.payments, [settleMode]).map((p) => (
                   <option key={p} value={p}>{p}</option>
                 ))}
               </select>
@@ -4933,83 +5561,6 @@ function BillingContent() {
           <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>
             💡 All product quantities sold on this bill will be automatically restored back into your inventory stock.
           </p>
-        </Modal>
-      )}
-
-      {/* Clear All Invoices Confirmation Modal */}
-      {clearAllInvoicesModalOpen && (
-        <Modal
-          isOpen={clearAllInvoicesModalOpen}
-          onClose={() => setClearAllInvoicesModalOpen(false)}
-          title="⚠️ Clear All Invoices"
-          footer={
-            <>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setClearAllInvoicesModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                disabled={confirmClearAllInvoicesText.trim().toUpperCase() !== 'CLEAR'}
-                onClick={handleClearAllInvoices}
-                style={{
-                  background: '#dc2626',
-                  borderColor: '#dc2626',
-                  color: '#ffffff',
-                  opacity: confirmClearAllInvoicesText.trim().toUpperCase() !== 'CLEAR' ? 0.5 : 1,
-                }}
-              >
-                Delete All Invoices
-              </button>
-            </>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div
-              style={{
-                padding: '10px 12px',
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: 8,
-                color: '#991b1b',
-                fontSize: 12.5,
-                lineHeight: 1.5,
-              }}
-            >
-              <strong>Are you sure you want to clear all invoices?</strong>
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#7f1d1d' }}>
-                This will delete all <strong>{data?.invoices?.length || 0}</strong> historical invoices from the salon database.
-              </p>
-            </div>
-
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', color: '#1e293b' }}>
-              <input
-                type="checkbox"
-                checked={restoreStockOnClearAll}
-                onChange={(e) => setRestoreStockOnClearAll(e.target.checked)}
-                style={{ width: 16, height: 16, accentColor: '#05424A' }}
-              />
-              <span>Restore inventory stock for sold products on all deleted bills</span>
-            </label>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569' }}>
-                Type <span style={{ color: '#dc2626', fontWeight: 800 }}>CLEAR</span> to confirm:
-              </label>
-              <input
-                type="text"
-                className="input"
-                value={confirmClearAllInvoicesText}
-                onChange={(e) => setConfirmClearAllInvoicesText(e.target.value)}
-                placeholder="CLEAR"
-                style={{ height: 34, fontSize: 12.5, borderColor: '#fca5a5' }}
-              />
-            </div>
-          </div>
         </Modal>
       )}
 

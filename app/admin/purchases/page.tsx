@@ -19,6 +19,7 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import Link from 'next/link';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
 import { matchBillItemToInventory, addAliasToInventoryItem } from '@/lib/bill-product-matcher';
+import { getPaymentOptions, getDefaultPaymentOption } from '@/lib/payments';
 
 // Client-side image compression for fast bill upload
 const compressImage = (file: File): Promise<string> => {
@@ -256,7 +257,7 @@ export default function PurchasesPage() {
   const [lines, setLines] = useState<PurchaseLine[]>([EMPTY_LINE(defaultGst)]);
   const [discount, setDiscount] = useState(0);
   const [paid, setPaid] = useState(0);
-  const [mode, setMode] = useState(data?.settings?.payments?.[0] || 'Cash');
+  const [mode, setMode] = useState(getDefaultPaymentOption(data?.settings?.payments));
   const [notes, setNotes] = useState('');
   const [billImage, setBillImage] = useState<string>('');
   const [previewImageModal, setPreviewImageModal] = useState<string | null>(null);
@@ -727,7 +728,7 @@ export default function PurchasesPage() {
     setLines([EMPTY_LINE(defaultGst)]);
     setDiscount(0);
     setPaid(0);
-    setMode(data?.settings?.payments?.[0] || 'Cash');
+    setMode(getDefaultPaymentOption(data?.settings?.payments));
     setNotes('');
     setBillImage('');
     setModalOpen(true);
@@ -2150,7 +2151,7 @@ export default function PurchasesPage() {
           <div className="form-group">
             <label className="label">Paid via Payment Account</label>
             <select className="input" value={mode} onChange={(e) => setMode(e.target.value)}>
-              {(data?.settings?.payments || ['Cash', 'GPay UPI', 'HDFC Bank']).map((p) => (
+              {getPaymentOptions(data?.settings?.payments, [mode]).map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>

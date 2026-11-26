@@ -683,3 +683,10 @@ export interface SalonData {
     templateId?: string;
   }>;
 }
+
+export interface SharedCustomerBridge {
+  name: string;
+  mobile: string;
+  onSetCustomer: (name: string, mobile: string) => void;
+  onClear: () => void;
+}

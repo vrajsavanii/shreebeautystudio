@@ -49,6 +49,7 @@ import { staggerContainer, fadeSlideUp } from '@/variants';
 import { useForm } from 'react-hook-form';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import Link from 'next/link';
+import { getPaymentOptions, getDefaultPaymentOption, getPaymentOptionIcon } from '@/lib/payments';
 
 type RojmelTab = 'dashboard' | 'payment-in' | 'all' | 'today' | 'categories' | 'daybook' | 'banks';
 
@@ -1391,7 +1392,7 @@ export default function ExpensesPage() {
       date: today,
       category: 'Staff Tea & Refreshments',
       amount: '' as any,
-      mode: 'Cash',
+      mode: getDefaultPaymentOption(data?.settings?.payments),
       paidTo: '',
       notes: '',
     });
@@ -1725,17 +1726,15 @@ export default function ExpensesPage() {
   };
 
   const paymentModes = useMemo(() => {
-    const defaults = ['Cash', 'GPay UPI', 'PhonePe UPI', 'Card'];
-    const settingsModes = data?.settings?.payments || [];
     const bankNames = (data?.bankAccounts || []).map((b) => b.name);
-    return Array.from(new Set([...defaults, ...settingsModes, ...bankNames])).filter(Boolean);
+    return getPaymentOptions(data?.settings?.payments, bankNames);
   }, [data?.settings?.payments, data?.bankAccounts]);
 
   const openPaymentIn = (item: typeof paymentInItem) => {
     if (!item) return;
     setPaymentInItem(item);
     setPaymentInAmount(item.balance);
-    setPaymentInMode('Cash');
+    setPaymentInMode(getDefaultPaymentOption(data?.settings?.payments));
     setPaymentInDate(todayISO());
     setPaymentInNotes(
       `Payment received for ${
@@ -1753,7 +1752,7 @@ export default function ExpensesPage() {
     if (!item) return;
     setPaymentOutItem(item);
     setPaymentOutAmount(item.balance);
-    setPaymentOutMode('Cash');
+    setPaymentOutMode(getDefaultPaymentOption(data?.settings?.payments));
     setPaymentOutDate(todayISO());
     setPaymentOutNotes(`Payment made against Purchase ${item.no}`);
     setPaymentOutModalOpen(true);
@@ -3462,7 +3461,7 @@ export default function ExpensesPage() {
                   <option value="All">All Modes (તમામ મોડ)</option>
                   {paymentModes.map((m) => (
                     <option key={m} value={m}>
-                      {m === 'Cash' ? '💵 Cash' : m.includes('UPI') || m.includes('GPay') || m.includes('PhonePe') ? `📱 ${m}` : m === 'Card' ? `💳 Card` : `🏦 ${m}`}
+                      {getPaymentOptionIcon(m)} {m}
                     </option>
                   ))}
                 </select>
@@ -4708,8 +4707,8 @@ export default function ExpensesPage() {
           <div className="form-group">
             <label className="label">Payment Mode</label>
             <select className="input" {...register('mode')}>
-              {(data?.settings?.payments || ['Cash', 'GPay UPI', 'PhonePe UPI', 'Card', 'Bank']).map((p) => (
-                <option key={p} value={p}>{p}</option>
+              {paymentModes.map((p) => (
+                <option key={p} value={p}>{getPaymentOptionIcon(p)} {p}</option>
               ))}
             </select>
           </div>
@@ -5180,9 +5179,9 @@ export default function ExpensesPage() {
                   value={paymentInMode}
                   onChange={(e) => setPaymentInMode(e.target.value)}
                 >
-                  {paymentModes.map((m) => (
+                  {getPaymentOptions(paymentModes, [paymentInMode]).map((m) => (
                     <option key={m} value={m}>
-                      {m === 'Cash' ? '💵 Cash' : m.includes('UPI') || m.includes('GPay') || m.includes('PhonePe') ? `📱 ${m}` : m === 'Card' ? `💳 Card` : `🏦 ${m}`}
+                      {getPaymentOptionIcon(m)} {m}
                     </option>
                   ))}
                 </select>
@@ -5346,9 +5345,9 @@ export default function ExpensesPage() {
                   value={paymentOutMode}
                   onChange={(e) => setPaymentOutMode(e.target.value)}
                 >
-                  {paymentModes.map((m) => (
+                  {getPaymentOptions(paymentModes, [paymentOutMode]).map((m) => (
                     <option key={m} value={m}>
-                      {m === 'Cash' ? '💵 Cash' : m.includes('UPI') || m.includes('GPay') || m.includes('PhonePe') ? `📱 ${m}` : m === 'Card' ? `💳 Card` : `🏦 ${m}`}
+                      {getPaymentOptionIcon(m)} {m}
                     </option>
                   ))}
                 </select>
@@ -5671,9 +5670,9 @@ export default function ExpensesPage() {
                   value={editEntryMode}
                   onChange={(e) => setEditEntryMode(e.target.value)}
                 >
-                  {paymentModes.map((m) => (
+                  {getPaymentOptions(paymentModes, [editEntryMode]).map((m) => (
                     <option key={m} value={m}>
-                      {m === 'Cash' ? '💵 Cash' : m.includes('UPI') || m.includes('GPay') || m.includes('PhonePe') ? `📱 ${m}` : m === 'Card' ? `💳 Card` : `🏦 ${m}`}
+                      {getPaymentOptionIcon(m)} {m}
                     </option>
                   ))}
                 </select>

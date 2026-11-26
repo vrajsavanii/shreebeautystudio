@@ -264,7 +264,12 @@ export default function Sidebar() {
       >
         {visibleNav.map((item, index) => {
           const { href, label, icon: Icon, id } = item;
-          const isActive = href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+          const isCustomersGroup = id === 'customers' && (
+            pathname.startsWith('/admin/customers') ||
+            pathname.startsWith('/admin/staff') ||
+            pathname.startsWith('/admin/suppliers')
+          );
+          const isActive = isCustomersGroup || (href === '/admin' ? pathname === '/admin' : pathname.startsWith(href));
           const isFirst = index === 0;
           const isLast = index === visibleNav.length - 1;
           const isDragging = draggedIndex === index;

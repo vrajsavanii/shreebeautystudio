@@ -28,6 +28,12 @@ import {
   reorderArray,
   NavItem,
 } from '@/lib/navigation';
+import {
+  DEFAULT_PAYMENT_OPTIONS,
+  PRESET_PAYMENT_OPTIONS,
+  getPaymentOptions,
+  getPaymentOptionIcon,
+} from '@/lib/payments';
 
 type SettingsTab = 'profile' | 'sidebar' | 'services' | 'reminders' | 'billing' | 'loyalty' | 'whatsapp' | 'email' | 'calendar' | 'copilot' | 'cloud' | 'reset';
 
@@ -43,20 +49,22 @@ export default function SettingsPage() {
     custR1: 24,
     custR2: 4,
     staffR: 1,
-    printer: 'both',
-    payments: ['Cash', 'GPay UPI'],
+    printer: '58',
+    payments: DEFAULT_PAYMENT_OPTIONS,
     defaultGstRate: 0,
     gstin: '',
   };
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const [newPaymentOption, setNewPaymentOption] = useState('');
 
-  // Check URL query parameters on mount to auto-open sidebar tab if requested
+  // Check URL query parameters on mount to auto-open sidebar or billing tab if requested
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search);
-      if (p.get('tab') === 'sidebar') {
-        setActiveTab('sidebar');
+      const tab = p.get('tab');
+      if (tab === 'sidebar' || tab === 'billing') {
+        setActiveTab(tab);
       }
     }
   }, []);
@@ -408,6 +416,46 @@ export default function SettingsPage() {
   const update = (key: string, val: unknown) => {
     updateData((d) => ({ ...d, settings: { ...d.settings, [key]: val } }));
     scheduleSave();
+  };
+
+  const activePayments = getPaymentOptions(s.payments);
+
+  const handleAddPaymentOption = (rawValue?: string) => {
+    const clean = (rawValue ?? newPaymentOption).trim();
+    if (!clean) {
+      toast('Please enter a payment option name (e.g. Paytm UPI, ICICI Bank)', 'error');
+      return;
+    }
+    if (activePayments.some((p) => p.toLowerCase() === clean.toLowerCase())) {
+      toast(`"${clean}" is already in your payment options!`, 'info');
+      return;
+    }
+    const next = [...activePayments, clean];
+    update('payments', next);
+    if (!rawValue) setNewPaymentOption('');
+    toast(`✅ Added "${clean}" — now active across the entire app!`);
+  };
+
+  const handleRemovePaymentOption = (opt: string) => {
+    if (activePayments.length <= 1) {
+      toast('At least 1 payment option must remain active.', 'error');
+      return;
+    }
+    const next = activePayments.filter((p) => p !== opt);
+    update('payments', next);
+    toast(`🗑️ Removed "${opt}" from payment options.`, 'info');
+  };
+
+  const handleSetDefaultPaymentOption = (idx: number) => {
+    if (idx <= 0 || idx >= activePayments.length) return;
+    const next = reorderArray(activePayments, idx, 0);
+    update('payments', next);
+    toast(`⭐ "${activePayments[idx]}" set as default payment option!`);
+  };
+
+  const handleResetPaymentOptions = () => {
+    update('payments', [...DEFAULT_PAYMENT_OPTIONS]);
+    toast('🔄 Reset payment options to defaults!', 'info');
   };
 
   const handleSaveSettings = async (customMsg?: string) => {
@@ -1191,7 +1239,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleApplyPreset(
-                    ['billing', 'appointments', 'bridal', 'customers', 'whatsapp', 'dashboard', 'finance', 'inventory', 'purchases', 'services', 'staff', 'reminders', 'reports', 'instagram', 'google-maps', 'suppliers', 'settings'],
+                    ['billing', 'appointments', 'bridal', 'customers', 'whatsapp', 'dashboard', 'finance', 'inventory', 'purchases', 'services', 'reminders', 'reports', 'instagram', 'google-maps', 'settings'],
                     'Fast Counter POS Priority'
                   )}
                   style={{
@@ -1210,7 +1258,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleApplyPreset(
-                    ['dashboard', 'finance', 'billing', 'appointments', 'reports', 'customers', 'bridal', 'staff', 'purchases', 'inventory', 'suppliers', 'services', 'reminders', 'whatsapp', 'instagram', 'google-maps', 'settings'],
+                    ['dashboard', 'finance', 'billing', 'appointments', 'reports', 'customers', 'bridal', 'purchases', 'inventory', 'services', 'reminders', 'whatsapp', 'instagram', 'google-maps', 'settings'],
                     'Owner Financials & Rojmel First'
                   )}
                   style={{
@@ -1229,7 +1277,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => handleApplyPreset(
-                    ['dashboard', 'whatsapp', 'instagram', 'google-maps', 'appointments', 'bridal', 'customers', 'billing', 'finance', 'services', 'inventory', 'purchases', 'suppliers', 'staff', 'reminders', 'reports', 'settings'],
+                    ['dashboard', 'whatsapp', 'instagram', 'google-maps', 'appointments', 'bridal', 'customers', 'billing', 'finance', 'services', 'inventory', 'purchases', 'reminders', 'reports', 'settings'],
                     'Marketing & Social Growth First'
                   )}
                   style={{
@@ -1720,11 +1768,30 @@ export default function SettingsPage() {
 
             {/* Invoice Printing & Payment Accounts Card */}
             <div className="card" style={{ padding: 24 }}>
-              <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18 }}>
-                <h2>💳 Invoice Printing & Payment Accounts</h2>
+              <div className="card-head" style={{ padding: '0 0 16px', marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h2>💳 Invoice Printing &amp; Payment Accounts</h2>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    Add or remove payment options here — synced automatically across Billing, Appointments, Bridal, Customers, Purchases, Suppliers, Expenses &amp; Finance.
+                  </span>
+                </div>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    padding: '4px 12px',
+                    borderRadius: 999,
+                    background: '#ecfdf5',
+                    color: '#047857',
+                    border: '1px solid #a7f3d0',
+                  }}
+                >
+                  {activePayments.length} Payment Option{activePayments.length === 1 ? '' : 's'} Active
+                </span>
               </div>
-              <div className="form-grid">
-                <div className="form-group">
+
+              <div className="form-grid" style={{ marginBottom: 18 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="label">Receipt Printer Format</label>
                   <select
                     className="input"
@@ -1738,17 +1805,181 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
-              <div className="form-group">
-                <label className="label">Payment Modes / Accounts (Comma Separated)</label>
-                <input
-                  type="text" className="input"
-                  value={(s.payments || []).join(', ')}
-                  onChange={(e) => update('payments', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))}
-                  placeholder="Cash, GPay UPI, PhonePe UPI, HDFC Bank, Card"
-                />
-                <span style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 4 }}>
-                  These appear in all dropdowns for billing, bridal advances, and vendor purchases.
-                </span>
+
+              {/* Payment Options Manager: Add & Remove */}
+              <div
+                style={{
+                  background: '#f8fafc',
+                  border: '1.5px solid #e2e8f0',
+                  borderRadius: 12,
+                  padding: 16,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#05424A' }}>
+                      Payment Options (Add / Remove)
+                    </div>
+                    <div style={{ fontSize: 11.5, color: '#64748b' }}>
+                      The first option ({activePayments[0]}) is used as the default pre-selected mode across forms.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleResetPaymentOptions}
+                    style={{ fontSize: 11.5, padding: '5px 10px' }}
+                    title="Restore default payment options"
+                  >
+                    <RotateCcw size={12} /> Reset Defaults
+                  </button>
+                </div>
+
+                {/* Add New Payment Option Input */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                  <input
+                    type="text"
+                    className="input"
+                    style={{ flex: '1 1 240px', background: '#ffffff' }}
+                    value={newPaymentOption}
+                    onChange={(e) => setNewPaymentOption(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddPaymentOption();
+                      }
+                    }}
+                    placeholder="Enter new payment option (e.g. Paytm UPI, Kotak Bank, Razorpay, Cheque)…"
+                  />
+                  <motion.button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => handleAddPaymentOption()}
+                    whileTap={{ scale: 0.97 }}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <Plus size={15} /> Add Payment Option
+                  </motion.button>
+                </div>
+
+                {/* Active Payment Options List */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                  {activePayments.map((opt, idx) => {
+                    const isDefault = idx === 0;
+                    const canRemove = activePayments.length > 1;
+                    return (
+                      <div
+                        key={opt}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '7px 10px 7px 12px',
+                          borderRadius: 10,
+                          background: '#ffffff',
+                          border: isDefault ? '1.5px solid #05424A' : '1px solid #cbd5e1',
+                          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.05)',
+                        }}
+                      >
+                        <span style={{ fontSize: 15 }}>{getPaymentOptionIcon(opt)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{opt}</span>
+
+                        {isDefault ? (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: 99,
+                              background: '#05424A',
+                              color: '#ffffff',
+                            }}
+                          >
+                            Default
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSetDefaultPaymentOption(idx)}
+                            style={{
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: 6,
+                              border: '1px solid #cbd5e1',
+                              background: '#f8fafc',
+                              color: '#475569',
+                              cursor: 'pointer',
+                            }}
+                            title={`Make ${opt} the default payment mode`}
+                          >
+                            Set Default
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePaymentOption(opt)}
+                          disabled={!canRemove}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 24,
+                            height: 24,
+                            borderRadius: 6,
+                            border: 'none',
+                            background: canRemove ? '#fef2f2' : '#f1f5f9',
+                            color: canRemove ? '#dc2626' : '#cbd5e1',
+                            cursor: canRemove ? 'pointer' : 'not-allowed',
+                            padding: 0,
+                          }}
+                          title={canRemove ? `Remove ${opt}` : 'At least 1 payment option is required'}
+                          aria-label={`Remove ${opt}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Quick-Add Presets for remaining common modes */}
+                {PRESET_PAYMENT_OPTIONS.some(
+                  (preset) => !activePayments.some((a) => a.toLowerCase() === preset.toLowerCase())
+                ) && (
+                  <div style={{ paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+                      ⚡ Quick Add Popular Payment Options:
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {PRESET_PAYMENT_OPTIONS.filter(
+                        (preset) => !activePayments.some((a) => a.toLowerCase() === preset.toLowerCase())
+                      ).map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => handleAddPaymentOption(preset)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                            border: '1px dashed #94a3b8',
+                            background: '#ffffff',
+                            color: '#05424A',
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Plus size={11} /> {getPaymentOptionIcon(preset)} {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

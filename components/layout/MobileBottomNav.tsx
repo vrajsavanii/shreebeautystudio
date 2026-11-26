@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import {
   LayoutDashboard,
   Calendar,
@@ -46,7 +46,7 @@ const BOTTOM_NAV_TABS = [
   },
   {
     id: 'appointments',
-    href: '/admin/appointments',
+    href: '/admin/billing?tab=appointments',
     label: 'Appts',
     gujarati: 'એપોઇન્ટ',
     icon: Calendar,
@@ -58,7 +58,7 @@ const BOTTOM_NAV_TABS = [
   },
   {
     id: 'bridal',
-    href: '/admin/bridal',
+    href: '/admin/billing?tab=bridal',
     label: 'Bridal',
     gujarati: 'બ્રાઇડલ',
     icon: Heart,
@@ -71,7 +71,7 @@ const BOTTOM_NAV_TABS = [
   },
   {
     id: 'billing',
-    href: '/admin/billing',
+    href: '/admin/billing?tab=builder',
     label: 'Billing',
     gujarati: 'બિલિંગ',
     icon: Receipt,
@@ -97,7 +97,7 @@ const BOTTOM_NAV_TABS = [
 // ── Fast Quick Entry Actions inside More Drawer ───────────────────────
 const QUICK_ENTRY_ACTIONS = [
   {
-    href: '/admin/billing',
+    href: '/admin/billing?tab=builder',
     title: 'New Bill (POS)',
     gujarati: 'નવું બિલિંગ (POS)',
     desc: 'Instant counter billing & thermal print',
@@ -107,7 +107,7 @@ const QUICK_ENTRY_ACTIONS = [
     badge: 'Fast POS',
   },
   {
-    href: '/admin/appointments?new=1',
+    href: '/admin/billing?tab=appointments&new=1',
     title: 'New Appointment',
     gujarati: 'નવી એપોઇન્ટમેન્ટ',
     desc: 'Book client slot & assign beautician',
@@ -167,24 +167,59 @@ const QUICK_ENTRY_ACTIONS = [
 // ── All Studio Modules inside More Drawer ─────────────────────────────
 const MORE_NAV = [
   { href: '/admin/finance',     label: 'Finance & Rojmel', gujarati: 'રોજમેળ / ખર્ચ',   icon: Wallet,        color: '#d97706', bg: '#fffbeb' },
-  { href: '/admin/customers',   label: 'Customers',        gujarati: 'ગ્રાહક યાદી',    icon: Users,         color: '#0284c7', bg: '#f0f9ff' },
+  { href: '/admin/customers',   label: 'Staff, Suppliers, Customers', gujarati: 'સ્ટાફ, સપ્લાયર્સ & ગ્રાહક', icon: Users, color: '#0284c7', bg: '#f0f9ff' },
   { href: '/admin/whatsapp',    label: 'WhatsApp',         gujarati: 'મેસેજિંગ હબ',    icon: MessageCircle, color: '#16a34a', bg: '#f0fdf4' },
   { href: '/admin/instagram',   label: 'Instagram Auto',   gujarati: 'ઇન્સ્ટાગ્રામ ઓટો', icon: Instagram,    color: '#E1306C', bg: '#fdf2f8' },
   { href: '/admin/google-maps', label: 'Google Map Auto',  gujarati: 'ગૂગલ મેપ ઓટો',   icon: MapPin,       color: '#4285F4', bg: '#eff6ff' },
   { href: '/admin/inventory',   label: 'Inventory',        gujarati: 'પ્રોડક્ટ સ્ટોક',  icon: Package,       color: '#0d9488', bg: '#f0fdfa' },
   { href: '/admin/purchases',   label: 'Purchases',        gujarati: 'માલ ખરીદી બિલ',  icon: ShoppingBag,   color: '#ca8a04', bg: '#fefce8' },
-  { href: '/admin/suppliers',   label: 'Suppliers',        gujarati: 'વેપારી / પાર્ટી', icon: Building2,     color: '#4f46e5', bg: '#eef2ff' },
-  { href: '/admin/staff',       label: 'Staff',            gujarati: 'સ્ટાફ / કમિશન',   icon: UserCog,       color: '#9333ea', bg: '#faf5ff' },
   { href: '/admin/reminders',   label: 'Reminders',        gujarati: 'રિમાઇન્ડર્સ',    icon: Bell,          color: '#ea580c', bg: '#fff7ed' },
   { href: '/admin/reports',     label: 'Reports',          gujarati: 'રિપોર્ટ એનાલિટિક્સ', icon: BarChart3, color: '#059669', bg: '#ecfdf5' },
   { href: '/admin/settings',    label: 'Settings',         gujarati: 'સેટિંગ્સ',       icon: Settings,      color: '#475569', bg: '#f8fafc' },
 ];
+
+function SearchParamsTabSync({ onTabChange }: { onTabChange: (tab: string) => void }) {
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab') || '';
+
+  useEffect(() => {
+    onTabChange(tab);
+  }, [tab, onTabChange]);
+
+  return null;
+}
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const [activeTabSection, setActiveTabSection] = useState<'quick' | 'modules'>('quick');
   const [isMobile, setIsMobile] = useState(false);
+  const [currentTabParam, setCurrentTabParam] = useState<string>('');
+
+  // Sync current query param (e.g. ?tab=appointments) so bottom nav items glow accurately
+  useEffect(() => {
+    const syncQuery = () => {
+      if (typeof window !== 'undefined') {
+        const sp = new URLSearchParams(window.location.search);
+        setCurrentTabParam(sp.get('tab') || '');
+      }
+    };
+    const handleBillingTabChange = (e: Event) => {
+      const custom = e as CustomEvent<{ tab?: string }>;
+      if (custom.detail?.tab) {
+        setCurrentTabParam(custom.detail.tab);
+      } else {
+        syncQuery();
+      }
+    };
+    syncQuery();
+    window.addEventListener('popstate', syncQuery);
+    window.addEventListener('billing-tab-change', handleBillingTabChange);
+    return () => {
+      window.removeEventListener('popstate', syncQuery);
+      window.removeEventListener('billing-tab-change', handleBillingTabChange);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -203,11 +238,61 @@ export default function MobileBottomNav() {
     window.addEventListener('open-mobile-more', handleOpenMore);
     window.addEventListener('toggle-mobile-more', handleToggleMore);
     window.addEventListener('open-quick-entry', handleOpenQuick);
+
+    // ── Mobile Left-Edge Swipe Gesture to Open Drawer / Sidebar ──────
+    let isEdgeTracking = false;
+    let edgeStartX = 0;
+    let edgeStartY = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) {
+        isEdgeTracking = false;
+        return;
+      }
+      const startX = e.touches[0].clientX;
+      if (startX > 28) {
+        isEdgeTracking = false;
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('.modal-backdrop, .modal-panel, [role="dialog"], [aria-modal="true"]')) {
+        isEdgeTracking = false;
+        return;
+      }
+      isEdgeTracking = true;
+      edgeStartX = startX;
+      edgeStartY = e.touches[0].clientY;
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!isEdgeTracking) return;
+      isEdgeTracking = false;
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - edgeStartX;
+      const deltaY = touch.clientY - edgeStartY;
+
+      // Swiped right from left edge: open More / Sidebar drawer
+      if (deltaX > 65 && Math.abs(deltaY) < 80) {
+        setMoreOpen(true);
+      }
+    };
+
+    const onTouchCancel = () => {
+      isEdgeTracking = false;
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchCancel, { passive: true });
+
     return () => {
       window.removeEventListener('resize', checkMobile);
       window.removeEventListener('open-mobile-more', handleOpenMore);
       window.removeEventListener('toggle-mobile-more', handleToggleMore);
       window.removeEventListener('open-quick-entry', handleOpenQuick);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchCancel);
     };
   }, []);
 
@@ -217,6 +302,9 @@ export default function MobileBottomNav() {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <SearchParamsTabSync onTabChange={setCurrentTabParam} />
+      </Suspense>
       <style>{`
         @media (min-width: 768px) {
           .mobile-bottom-nav {
@@ -248,6 +336,14 @@ export default function MobileBottomNav() {
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.5 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 80 || info.velocity.y > 300) {
+                  setMoreOpen(false);
+                }
+              }}
               transition={{ type: 'spring', stiffness: 380, damping: 32 }}
               style={{
                 position: 'fixed',
@@ -581,8 +677,17 @@ export default function MobileBottomNav() {
       >
         {BOTTOM_NAV_TABS.map((tab) => {
           const Icon = tab.icon;
+          const isBillingRoot = pathname.startsWith('/admin/billing');
           const isActive = tab.isMore
             ? moreOpen
+            : isBillingRoot
+            ? tab.id === 'appointments'
+              ? currentTabParam === 'appointments'
+              : tab.id === 'bridal'
+              ? currentTabParam === 'bridal'
+              : tab.id === 'billing'
+              ? currentTabParam === '' || currentTabParam === 'builder' || currentTabParam === 'history'
+              : false
             : tab.exact
             ? pathname === tab.href
             : pathname.startsWith(tab.href!);

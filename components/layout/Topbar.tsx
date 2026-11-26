@@ -292,12 +292,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
           </Link>
         )}
 
-        {/* Quick Action Shortcuts (Uniform 28px height) */}
-        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }} className="topbar-actions">
-          {!isSalesperson && pathname !== '/admin/whatsapp' && (
+        {/* Quick Action Shortcuts (Uniform 28px height, Fixed Across All Pages) */}
+        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }} className="topbar-actions">
+          {!isSalesperson && (
             <Link
               href="/admin/whatsapp"
-              className="topbar-btn"
+              className={`topbar-btn ${pathname === '/admin/whatsapp' ? 'active' : ''}`}
               style={{
                 fontSize: 11.5,
                 height: 28,
@@ -319,53 +319,54 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
               <MessageCircle size={13} /> <span className="topbar-action-label">WhatsApp</span>
             </Link>
           )}
-          {pathname !== '/admin/billing' && (
-            <Link
-              href="/admin/billing"
-              className="topbar-btn"
-              style={{
-                fontSize: 11.5,
-                height: 28,
-                padding: '0 9px',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                borderRadius: 6,
-                background: '#05424A',
-                color: '#ffffff',
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-              title="New POS Bill"
-            >
-              <Zap size={12} /> <span className="topbar-action-label">POS Bill</span>
-            </Link>
-          )}
-          {pathname !== '/admin/appointments' && (
-            <Link
-              href="/admin/appointments"
-              className="topbar-btn"
-              style={{
-                fontSize: 11.5,
-                height: 28,
-                padding: '0 9px',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                borderRadius: 6,
-                background: '#f1f5f9',
-                border: '1px solid #cbd5e1',
-                color: '#334155',
-                fontWeight: 600,
-                flexShrink: 0,
-              }}
-              title="Book Appointment"
-            >
-              <Plus size={12} /> <span className="topbar-action-label">Book</span>
-            </Link>
-          )}
+          <Link
+            href="/admin/billing"
+            className={`topbar-btn ${pathname === '/admin/billing' ? 'active' : ''}`}
+            style={{
+              fontSize: 11.5,
+              height: 28,
+              padding: '0 9px',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              borderRadius: 6,
+              background: '#05424A',
+              color: '#ffffff',
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+            title="New POS Bill"
+          >
+            <Zap size={12} /> <span className="topbar-action-label">POS Bill</span>
+          </Link>
+          <Link
+            href="/admin/billing?tab=appointments&new=1"
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('open-inline-new-appointment'));
+              }
+            }}
+            className={`topbar-btn ${pathname === '/admin/appointments' ? 'active' : ''}`}
+            style={{
+              fontSize: 11.5,
+              height: 28,
+              padding: '0 9px',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              borderRadius: 6,
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
+              fontWeight: 600,
+              flexShrink: 0,
+            }}
+            title="Book Appointment"
+          >
+            <Plus size={12} /> <span className="topbar-action-label">Book</span>
+          </Link>
           <Link
             href="/"
             target="_blank"

@@ -1277,10 +1277,43 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
       payments: incoming.settings?.payments?.length ? incoming.settings.payments : DEFAULT_DATA.settings.payments,
     },
     services: (() => {
-      const inc = Array.isArray(incoming.services) ? incoming.services : [];
+      let inc = Array.isArray(incoming.services) ? [...incoming.services] : [];
       if (inc.length === 0 || inc.some((s) => s.id === 's1' || s.id === 's2' || s.id === 's10')) {
-        return DEFAULT_DATA.services;
+        inc = [...DEFAULT_DATA.services];
       }
+
+      // Auto-bridge: ensure 14 Luxury Bridal & Siders packages exist in 'Makeup & Bridal'
+      const existingNames = new Set(inc.map((s) => (s.name || '').toLowerCase()));
+      const bridalPkgs = Array.isArray(incoming.bridalPackages) && incoming.bridalPackages.length
+        ? incoming.bridalPackages
+        : DEFAULT_BRIDAL_PACKAGES;
+
+      for (const pkg of bridalPkgs) {
+        const isSider = pkg.type === 'Siders Package';
+        const isBridal = pkg.type === 'Bridal Package';
+        let svcName = pkg.name;
+        if (isSider && !svcName.toLowerCase().includes('sider')) {
+          svcName = `${pkg.name} (Siders Package)`;
+        } else if (isBridal && !svcName.toLowerCase().includes('bridal')) {
+          svcName = `${pkg.name} (Bridal Package)`;
+        } else if (!isSider && !isBridal && !svcName.toLowerCase().includes('package')) {
+          svcName = `${pkg.name} (Luxury Package)`;
+        }
+
+        if (!existingNames.has(svcName.toLowerCase()) && !existingNames.has((pkg.name || '').toLowerCase())) {
+          existingNames.add(svcName.toLowerCase());
+          inc.push({
+            id: `svc_${pkg.id || uid()}`,
+            name: svcName,
+            price: Number(pkg.price || 0),
+            category: 'Makeup & Bridal',
+            duration: (pkg.sessions && pkg.sessions > 1) ? pkg.sessions * 60 : (isBridal ? 180 : (isSider ? 60 : 90)),
+            description: pkg.includes ? `${pkg.includes} (${pkg.sessions || 1} ${(pkg.sessions || 1) === 1 ? 'Session' : 'Sessions'})` : '',
+            pricingType: 'fixed',
+          });
+        }
+      }
+
       return inc;
     })(),
     staff: (() => {

@@ -28,6 +28,7 @@ import {
   Printer,
   MessageCircle,
   Eye,
+  Pencil,
   Trash2,
   Phone,
   Filter,
@@ -63,6 +64,7 @@ import Modal from '@/components/ui/Modal';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import { useToast } from '@/components/ui/Toast';
 import { format, isToday, isThisMonth, parseISO } from 'date-fns';
+import { getPaymentOptions, getDefaultPaymentOption, getPaymentOptionIcon } from '@/lib/payments';
 
 type TabType =
   | 'transactions'
@@ -141,6 +143,22 @@ export default function FinanceAccountingPage() {
   // Receipt Modal
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const [viewPurchase, setViewPurchase] = useState<any | null>(null);
+
+  // Edit Transaction Modal
+  const [editTxModalOpen, setEditTxModalOpen] = useState(false);
+  const [editingTx, setEditingTx] = useState<UnifiedTransaction | null>(null);
+  const [editForm, setEditForm] = useState({
+    partyName: '',
+    partyMobile: '',
+    date: todayISO(),
+    totalAmount: 0,
+    paidAmount: 0,
+    balanceDue: 0,
+    paymentMode: 'Cash',
+    notes: '',
+    category: '',
+    supplierInvoice: '',
+  });
 
   // Daily Cashbook Date & Filters
   const [rojmelDate, setRojmelDate] = useState(todayISO());
@@ -224,6 +242,13 @@ export default function FinanceAccountingPage() {
 
   // ── Form States ─────────────────────────────────────────────────────────────
 
+  // Active Payment Modes configured in Studio Settings (+ custom Bank Accounts)
+  const defaultFinanceMode = getDefaultPaymentOption(data?.settings?.payments);
+  const paymentModes = useMemo(() => {
+    const bankNames = (data?.bankAccounts || []).map((b: BankAccount) => b.name);
+    return getPaymentOptions(data?.settings?.payments, bankNames);
+  }, [data?.settings?.payments, data?.bankAccounts]);
+
   // Quick Sale Form
   const [saleForm, setSaleForm] = useState({
     customer: '',
@@ -231,7 +256,7 @@ export default function FinanceAccountingPage() {
     serviceName: '',
     total: '',
     paid: '',
-    mode: 'Cash',
+    mode: defaultFinanceMode,
     notes: '',
   });
 
@@ -244,7 +269,7 @@ export default function FinanceAccountingPage() {
     qty: '1',
     rate: '',
     paid: '',
-    mode: 'Cash',
+    mode: defaultFinanceMode,
     notes: '',
   });
 
@@ -255,7 +280,7 @@ export default function FinanceAccountingPage() {
     partyName: '',
     partyMobile: '',
     amount: '',
-    mode: 'Cash',
+    mode: defaultFinanceMode,
     referenceNo: '',
     notes: '',
   });
@@ -267,7 +292,7 @@ export default function FinanceAccountingPage() {
     partyName: '',
     partyMobile: '',
     amount: '',
-    mode: 'Cash',
+    mode: defaultFinanceMode,
     referenceNo: '',
     notes: '',
   });
@@ -277,7 +302,7 @@ export default function FinanceAccountingPage() {
     category: 'Staff Tea & Refreshments',
     amount: '',
     paidTo: '',
-    mode: 'Cash',
+    mode: defaultFinanceMode,
     notes: '',
   });
 
@@ -1132,7 +1157,7 @@ export default function FinanceAccountingPage() {
       serviceName: '',
       total: '',
       paid: '',
-      mode: 'Cash',
+      mode: defaultFinanceMode,
       notes: '',
     });
   };
@@ -1192,7 +1217,7 @@ export default function FinanceAccountingPage() {
       qty: '1',
       rate: '',
       paid: '',
-      mode: 'Cash',
+      mode: defaultFinanceMode,
       notes: '',
     });
   };
@@ -1237,7 +1262,7 @@ export default function FinanceAccountingPage() {
       partyName: '',
       partyMobile: '',
       amount: '',
-      mode: 'Cash',
+      mode: defaultFinanceMode,
       referenceNo: '',
       notes: '',
     });
@@ -1283,7 +1308,7 @@ export default function FinanceAccountingPage() {
       partyName: '',
       partyMobile: '',
       amount: '',
-      mode: 'Cash',
+      mode: defaultFinanceMode,
       referenceNo: '',
       notes: '',
     });
@@ -1323,7 +1348,7 @@ export default function FinanceAccountingPage() {
       category: 'Staff Tea & Refreshments',
       amount: '',
       paidTo: '',
-      mode: 'Cash',
+      mode: defaultFinanceMode,
       notes: '',
     });
   };
@@ -1423,6 +1448,113 @@ export default function FinanceAccountingPage() {
     toast(`Deleted bank account "${name}"`);
   };
 
+  const openEditTx = (tx: UnifiedTransaction) => {
+    setEditingTx(tx);
+    const tot = Number(tx.totalAmount || 0);
+    const pd = Number(tx.paidAmount || 0);
+    const bal = tx.balanceDue !== undefined ? Number(tx.balanceDue) : Math.max(0, tot - pd);
+    setEditForm({
+      partyName: tx.partyName || '',
+      partyMobile: tx.partyMobile || tx.rawItem?.mobile || '',
+      date: tx.date || todayISO(),
+      totalAmount: tot,
+      paidAmount: pd,
+      balanceDue: bal,
+      paymentMode: tx.paymentMode || 'Cash',
+      notes: tx.notes || '',
+      category: tx.category || tx.rawItem?.category || '',
+      supplierInvoice: tx.rawItem?.supplierInvoice || '',
+    });
+    setEditTxModalOpen(true);
+  };
+
+  const handleSaveEditTx = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTx) return;
+
+    const tot = Number(editForm.totalAmount || 0);
+    const pd = Number(editForm.paidAmount || 0);
+    const bal = Math.max(0, tot - pd);
+
+    if (editingTx.type === 'Purchase') {
+      updateData((prev: SalonData) => ({
+        ...prev,
+        purchases: (prev.purchases || []).map((p) => {
+          if (p.id !== editingTx.rawItem?.id) return p;
+          return {
+            ...p,
+            supplier: editForm.partyName.trim() || p.supplier,
+            date: editForm.date || p.date,
+            supplierInvoice: editForm.supplierInvoice !== undefined ? editForm.supplierInvoice : p.supplierInvoice,
+            total: tot,
+            subtotal: tot,
+            paid: pd,
+            balance: bal,
+            mode: editForm.paymentMode || p.mode,
+            notes: editForm.notes,
+          };
+        }),
+      }));
+    } else if (editingTx.type === 'Payment In' || editingTx.type === 'Payment Out') {
+      const amt = Number(editForm.paidAmount || editForm.totalAmount || 0);
+      updateData((prev: SalonData) => ({
+        ...prev,
+        vouchers: (prev.vouchers || []).map((v: PaymentVoucher) => {
+          if (v.id !== editingTx.rawItem?.id) return v;
+          return {
+            ...v,
+            partyName: editForm.partyName.trim() || v.partyName,
+            partyMobile: editForm.partyMobile || v.partyMobile,
+            date: editForm.date || v.date,
+            amount: amt,
+            mode: editForm.paymentMode || v.mode,
+            notes: editForm.notes,
+          };
+        }),
+      }));
+    } else if (editingTx.type === 'Sale') {
+      updateData((prev: SalonData) => ({
+        ...prev,
+        invoices: (prev.invoices || []).map((inv) => {
+          if (inv.id !== editingTx.rawItem?.id) return inv;
+          return {
+            ...inv,
+            customer: editForm.partyName.trim() || inv.customer,
+            mobile: editForm.partyMobile || inv.mobile,
+            date: editForm.date || inv.date,
+            total: tot,
+            paid: pd,
+            balance: bal,
+            mode: editForm.paymentMode || inv.mode,
+            notes: editForm.notes,
+          };
+        }),
+      }));
+    } else if (editingTx.type === 'Expense') {
+      const amt = Number(editForm.totalAmount || 0);
+      updateData((prev: SalonData) => ({
+        ...prev,
+        expenses: (prev.expenses || []).map((exp) => {
+          if (exp.id !== editingTx.rawItem?.id) return exp;
+          return {
+            ...exp,
+            paidTo: editForm.partyName.trim() || exp.paidTo,
+            amount: amt,
+            date: editForm.date || exp.date,
+            category: (editForm.category as Expense['category']) || exp.category,
+            mode: editForm.paymentMode || exp.mode,
+            notes: editForm.notes || exp.notes,
+          };
+        }),
+      }));
+    }
+
+    scheduleSave();
+    toast(`✅ Updated ${editingTx.type} #${editingTx.billNo} successfully!`);
+    setEditTxModalOpen(false);
+    setEditingTx(null);
+  };
+
   const handleDeleteTx = (tx: UnifiedTransaction) => {
     if (!window.confirm(`Are you sure you want to delete ${tx.type} #${tx.billNo}?`)) return;
 
@@ -1432,10 +1564,23 @@ export default function FinanceAccountingPage() {
         invoices: (prev.invoices || []).filter((i) => i.id !== tx.rawItem.id),
       }));
     } else if (tx.type === 'Purchase') {
-      updateData((prev: SalonData) => ({
-        ...prev,
-        purchases: (prev.purchases || []).filter((p) => p.id !== tx.rawItem.id),
-      }));
+      updateData((prev: SalonData) => {
+        let inventory = [...(prev.inventory || [])];
+        if (tx.rawItem?.lines) {
+          (tx.rawItem.lines || []).forEach((l: any) => {
+            inventory = inventory.map((item) =>
+              item.name === l.name || (l.barcode && item.barcode === l.barcode)
+                ? { ...item, stock: Math.max(0, item.stock - Number(l.qty || 0)) }
+                : item
+            );
+          });
+        }
+        return {
+          ...prev,
+          purchases: (prev.purchases || []).filter((p) => p.id !== tx.rawItem.id),
+          inventory,
+        };
+      });
     } else if (tx.type === 'Payment In' || tx.type === 'Payment Out') {
       updateData((prev: SalonData) => ({
         ...prev,
@@ -1463,7 +1608,7 @@ export default function FinanceAccountingPage() {
   };
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1600, margin: '0 auto', color: '#1e293b' }}>
+    <div style={{ padding: '8px 4px', width: '100%', maxWidth: '100%', margin: 0, color: '#1e293b' }}>
       {/* ─── 7 QUICK ACTION BUTTONS (SINGLE HORIZONTAL ROW) ─── */}
       <div
         className="no-scrollbar"
@@ -2402,28 +2547,28 @@ export default function FinanceAccountingPage() {
 
           {/* Transactions Table */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '12px 16px' }}>DATE</th>
-                  <th style={{ padding: '12px 16px' }}>TYPE</th>
-                  <th style={{ padding: '12px 16px' }}>BILL NO</th>
-                  <th style={{ padding: '12px 16px' }}>PARTY NAME</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>TOTAL AMOUNT</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>PAID AMOUNT</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>BALANCE DUE</th>
-                  <th style={{ padding: '12px 16px' }}>MODE</th>
-                  <th style={{ padding: '12px 16px' }}>STATUS</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>ACTIONS</th>
+                <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #e2e8f0', fontSize: 10.5, letterSpacing: '0.02em' }}>
+                  <th style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>DATE</th>
+                  <th style={{ padding: '8px 5px', whiteSpace: 'nowrap' }}>TYPE</th>
+                  <th style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>BILL #</th>
+                  <th style={{ padding: '8px 6px' }}>PARTY NAME</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>TOTAL</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>PAID</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>BALANCE</th>
+                  <th style={{ padding: '8px 5px', whiteSpace: 'nowrap' }}>MODE</th>
+                  <th style={{ padding: '8px 5px', whiteSpace: 'nowrap' }}>STATUS</th>
+                  <th style={{ padding: '8px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ textAlign: 'center', padding: '54px 20px', color: '#94a3b8' }}>
-                      <FileText size={40} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
-                      <div style={{ fontWeight: 700, fontSize: 15, color: '#64748b' }}>No Transactions Found</div>
-                      <div style={{ fontSize: 13, marginTop: 4 }}>Click the buttons above to record a new Sale, Purchase, or Payment.</div>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '40px 16px', color: '#94a3b8' }}>
+                      <FileText size={36} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#64748b' }}>No Transactions Found</div>
+                      <div style={{ fontSize: 12, marginTop: 4 }}>Click the buttons above to record a new Sale, Purchase, or Payment.</div>
                     </td>
                   </tr>
                 ) : (
@@ -2439,15 +2584,15 @@ export default function FinanceAccountingPage() {
 
                     return (
                       <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px', color: '#64748b', fontWeight: 600 }}>
+                        <td style={{ padding: '7px 6px', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11.5 }}>
                           {fmtDate(tx.date)}
                         </td>
-                        <td style={{ padding: '12px 16px' }}>
+                        <td style={{ padding: '7px 5px', whiteSpace: 'nowrap' }}>
                           <span
                             style={{
-                              padding: '3px 8px',
-                              borderRadius: 6,
-                              fontSize: 11,
+                              padding: '1.5px 6px',
+                              borderRadius: 4,
+                              fontSize: 10,
                               fontWeight: 800,
                               background: badge.bg,
                               color: badge.text,
@@ -2457,23 +2602,25 @@ export default function FinanceAccountingPage() {
                             {tx.type}
                           </span>
                         </td>
-                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>
+                        <td style={{ padding: '7px 6px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', fontSize: 11.5 }}>
                           {tx.billNo}
                         </td>
-                        <td style={{ padding: '12px 16px', maxWidth: 280 }}>
-                          <div style={{ fontWeight: 700, color: '#1e293b' }}>{tx.partyName}</div>
+                        <td style={{ padding: '7px 6px', minWidth: 100, maxWidth: 170 }}>
+                          <div style={{ fontWeight: 700, color: '#1e293b', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tx.partyName}>
+                            {tx.partyName}
+                          </div>
                           {tx.itemsCount ? (
                             <div
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 4,
-                                marginTop: 3,
-                                fontSize: 11,
+                                gap: 2,
+                                marginTop: 1,
+                                fontSize: 10,
                                 color: '#475569',
                                 background: '#f8fafc',
-                                padding: '2px 7px',
-                                borderRadius: 5,
+                                padding: '1px 5px',
+                                borderRadius: 4,
                                 border: '1px solid #e2e8f0',
                                 maxWidth: '100%',
                               }}
@@ -2498,13 +2645,13 @@ export default function FinanceAccountingPage() {
                           ) : tx.notes ? (
                             <div
                               style={{
-                                fontSize: 11.5,
+                                fontSize: 10.5,
                                 color: '#94a3b8',
-                                maxWidth: 260,
+                                maxWidth: 160,
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap',
-                                marginTop: 2,
+                                marginTop: 1,
                               }}
                               title={tx.notes}
                             >
@@ -2512,17 +2659,17 @@ export default function FinanceAccountingPage() {
                             </div>
                           ) : null}
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#0f172a' }}>
+                        <td style={{ padding: '7px 6px', textAlign: 'right', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', fontSize: 12 }}>
                           {money(tx.totalAmount)}
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#15803d' }}>
+                        <td style={{ padding: '7px 6px', textAlign: 'right', fontWeight: 700, color: '#15803d', whiteSpace: 'nowrap', fontSize: 12 }}>
                           {money(tx.paidAmount)}
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: tx.balanceDue > 0 ? '#dc2626' : '#94a3b8' }}>
+                        <td style={{ padding: '7px 6px', textAlign: 'right', fontWeight: 700, color: tx.balanceDue > 0 ? '#dc2626' : '#94a3b8', whiteSpace: 'nowrap', fontSize: 12 }}>
                           {tx.balanceDue > 0 ? money(tx.balanceDue) : '₹0'}
                         </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#475569', background: '#f8fafc', padding: '3px 7px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '7px 5px', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 600, color: '#475569', background: '#f8fafc', padding: '1.5px 5px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
                             {tx.paidAmount === 0 && tx.balanceDue > 0
                               ? 'Credit / Due'
                               : tx.paidAmount > 0 && tx.balanceDue > 0
@@ -2530,10 +2677,10 @@ export default function FinanceAccountingPage() {
                               : tx.paymentMode}
                           </span>
                         </td>
-                        <td style={{ padding: '12px 16px' }}>
+                        <td style={{ padding: '7px 5px', whiteSpace: 'nowrap' }}>
                           <span
                             style={{
-                              fontSize: 11.5,
+                              fontSize: 10.5,
                               fontWeight: 700,
                               color:
                                 tx.status === 'Paid' || tx.status === 'Completed'
@@ -2546,53 +2693,85 @@ export default function FinanceAccountingPage() {
                             ● {tx.status}
                           </span>
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <td
+                          style={{
+                            padding: '5px 4px',
+                            textAlign: 'center',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
                             {tx.type === 'Sale' && (
                               <button
+                                type="button"
                                 onClick={() => setViewInvoice(tx.rawItem)}
                                 title="View & Print Invoice Receipt"
                                 style={{
-                                  padding: '5px 8px',
-                                  borderRadius: 6,
+                                  padding: '4px 6px',
+                                  borderRadius: 4,
                                   background: '#f1f5f9',
                                   border: '1px solid #cbd5e1',
                                   color: '#334155',
                                   cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
                                 }}
                               >
-                                <Eye size={13} />
+                                <Eye size={12} />
                               </button>
                             )}
                             {tx.type === 'Purchase' && (
                               <button
+                                type="button"
                                 onClick={() => setViewPurchase(tx.rawItem)}
                                 title="View Purchase Bill Receipt"
                                 style={{
-                                  padding: '5px 8px',
-                                  borderRadius: 6,
+                                  padding: '4px 6px',
+                                  borderRadius: 4,
                                   background: '#f1f5f9',
                                   border: '1px solid #cbd5e1',
                                   color: '#334155',
                                   cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
                                 }}
                               >
-                                <Eye size={13} />
+                                <Eye size={12} />
                               </button>
                             )}
                             <button
+                              type="button"
+                              onClick={() => openEditTx(tx)}
+                              title="Edit Transaction"
+                              style={{
+                                padding: '4px 6px',
+                                borderRadius: 4,
+                                background: '#eff6ff',
+                                border: '1px solid #bfdbfe',
+                                color: '#1d4ed8',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                              }}
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleDeleteTx(tx)}
                               title="Delete Transaction"
                               style={{
-                                padding: '5px 8px',
-                                borderRadius: 6,
+                                padding: '4px 6px',
+                                borderRadius: 4,
                                 background: '#fee2e2',
                                 border: '1px solid #fecaca',
                                 color: '#dc2626',
                                 cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
                               }}
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         </td>
@@ -2812,18 +2991,18 @@ export default function FinanceAccountingPage() {
 
             {/* Table */}
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
                 <thead>
-                  <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '12px 16px' }}>DATE</th>
-                    <th style={{ padding: '12px 16px' }}>TYPE</th>
-                    <th style={{ padding: '12px 16px' }}>CUSTOMER / CONTACT</th>
-                    <th style={{ padding: '12px 16px' }}>SERVICE / PACKAGE</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>ADVANCE PAID</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>TOTAL DEAL</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>BALANCE DUE</th>
-                    <th style={{ padding: '12px 16px' }}>STATUS</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>ACTIONS</th>
+                  <tr style={{ background: '#f1f5f9', color: '#475569', textAlign: 'left', fontWeight: 700, borderBottom: '1px solid #e2e8f0', fontSize: 11, letterSpacing: '0.02em' }}>
+                    <th style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>DATE</th>
+                    <th style={{ padding: '10px 6px', whiteSpace: 'nowrap' }}>TYPE</th>
+                    <th style={{ padding: '10px 8px' }}>CUSTOMER / CONTACT</th>
+                    <th style={{ padding: '10px 8px' }}>SERVICE / PACKAGE</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>ADVANCE PAID</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>TOTAL DEAL</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>BALANCE DUE</th>
+                    <th style={{ padding: '10px 6px', whiteSpace: 'nowrap' }}>STATUS</th>
+                    <th style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2837,15 +3016,15 @@ export default function FinanceAccountingPage() {
                     filteredAdvances.map((item) => {
                       return (
                         <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.1s ease' }}>
-                          <td style={{ padding: '12px 16px', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
+                          <td style={{ padding: '8px 8px', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
                             {fmtDate(item.date)}
                           </td>
-                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                          <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
                             <span
                               style={{
-                                padding: '3px 8px',
-                                borderRadius: 6,
-                                fontSize: 11,
+                                padding: '2px 7px',
+                                borderRadius: 5,
+                                fontSize: 10.5,
                                 fontWeight: 700,
                                 background: item.bookingType === 'Bridal' ? '#ffe4e6' : '#e0f2fe',
                                 color: item.bookingType === 'Bridal' ? '#e11d48' : '#0284c7',
@@ -2854,22 +3033,22 @@ export default function FinanceAccountingPage() {
                               {item.bookingType === 'Bridal' ? '👰 Bridal Booking' : '💅 Appointment'}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 16px' }}>
+                          <td style={{ padding: '8px 8px' }}>
                             <div style={{ fontWeight: 700, color: '#0f172a' }}>{item.customer}</div>
                             {item.mobile && (
                               <div style={{ fontSize: 11, color: '#64748b' }}>📞 {item.mobile}</div>
                             )}
                           </td>
-                          <td style={{ padding: '12px 16px', color: '#334155', fontWeight: 600, maxWidth: 220 }}>
+                          <td style={{ padding: '8px 8px', color: '#334155', fontWeight: 600, maxWidth: 200 }}>
                             {item.service}
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: '#b45309' }}>
+                          <td style={{ padding: '8px 8px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: '#b45309' }}>
                               {money(item.advance)}
                             </div>
                             <span
                               style={{
-                                fontSize: 10,
+                                fontSize: 9.5,
                                 fontWeight: 700,
                                 padding: '1px 5px',
                                 borderRadius: 4,
@@ -2880,22 +3059,22 @@ export default function FinanceAccountingPage() {
                               {item.mode}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: '#1e293b' }}>
+                          <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: '#1e293b' }}>
                             {money(item.totalPrice)}
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: item.balance > 0 ? '#dc2626' : '#16a34a' }}>
+                          <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: item.balance > 0 ? '#dc2626' : '#16a34a' }}>
                             {money(item.balance)}
                           </td>
-                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                          <td style={{ padding: '8px 6px', whiteSpace: 'nowrap' }}>
                             {item.isConverted ? (
                               <span
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
-                                  padding: '3px 8px',
+                                  padding: '2px 7px',
                                   borderRadius: 99,
-                                  fontSize: 11,
+                                  fontSize: 10.5,
                                   fontWeight: 700,
                                   background: '#dcfce7',
                                   color: '#15803d',
@@ -2909,9 +3088,9 @@ export default function FinanceAccountingPage() {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: 4,
-                                  padding: '3px 8px',
+                                  padding: '2px 7px',
                                   borderRadius: 99,
-                                  fontSize: 11,
+                                  fontSize: 10.5,
                                   fontWeight: 700,
                                   background: '#fef3c7',
                                   color: '#b45309',
@@ -2921,7 +3100,7 @@ export default function FinanceAccountingPage() {
                               </span>
                             )}
                           </td>
-                          <td style={{ padding: '12px 16px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <td style={{ padding: '8px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                               {!item.isConverted && (
                                 <button
@@ -3975,10 +4154,11 @@ export default function FinanceAccountingPage() {
               onChange={(e) => setSaleForm({ ...saleForm, mode: e.target.value })}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
             >
-              <option value="Cash">Cash (Counter Drawer)</option>
-              <option value="UPI / GPay">UPI (GPay / PhonePe / Paytm)</option>
-              <option value="Card">Card POS</option>
-              <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
+              {getPaymentOptions(paymentModes, [saleForm.mode]).map((p) => (
+                <option key={p} value={p}>
+                  {getPaymentOptionIcon(p)} {p}
+                </option>
+              ))}
             </select>
           </div>
           <button
@@ -4063,10 +4243,11 @@ export default function FinanceAccountingPage() {
               onChange={(e) => setPurchaseForm({ ...purchaseForm, mode: e.target.value })}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
             >
-              <option value="Cash">Cash</option>
-              <option value="Bank Transfer">Bank Transfer (HDFC / ICICI)</option>
-              <option value="UPI">UPI</option>
-              <option value="Cheque">Cheque</option>
+              {getPaymentOptions(paymentModes, [purchaseForm.mode]).map((p) => (
+                <option key={p} value={p}>
+                  {getPaymentOptionIcon(p)} {p}
+                </option>
+              ))}
             </select>
           </div>
           <button
@@ -4120,9 +4301,11 @@ export default function FinanceAccountingPage() {
               onChange={(e) => setPaymentInForm({ ...paymentInForm, mode: e.target.value })}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
             >
-              <option value="Cash">Cash (Counter Drawer)</option>
-              <option value="UPI / GPay">UPI (GPay / PhonePe / Paytm)</option>
-              <option value="Bank Transfer">Bank Transfer (HDFC / ICICI)</option>
+              {getPaymentOptions(paymentModes, [paymentInForm.mode]).map((p) => (
+                <option key={p} value={p}>
+                  {getPaymentOptionIcon(p)} {p}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -4186,9 +4369,11 @@ export default function FinanceAccountingPage() {
               onChange={(e) => setPaymentOutForm({ ...paymentOutForm, mode: e.target.value })}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
             >
-              <option value="Cash">Cash (Counter Drawer)</option>
-              <option value="UPI / GPay">UPI (GPay / PhonePe / Paytm)</option>
-              <option value="Bank Transfer">Bank Transfer (HDFC / ICICI)</option>
+              {getPaymentOptions(paymentModes, [paymentOutForm.mode]).map((p) => (
+                <option key={p} value={p}>
+                  {getPaymentOptionIcon(p)} {p}
+                </option>
+              ))}
             </select>
           </div>
           <button
@@ -4255,9 +4440,11 @@ export default function FinanceAccountingPage() {
               onChange={(e) => setExpenseForm({ ...expenseForm, mode: e.target.value })}
               style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}
             >
-              <option value="Cash">Cash (Counter Drawer)</option>
-              <option value="UPI / GPay">UPI (GPay / PhonePe / Paytm)</option>
-              <option value="Bank Transfer">Bank Transfer (HDFC / ICICI)</option>
+              {getPaymentOptions(paymentModes, [expenseForm.mode]).map((p) => (
+                <option key={p} value={p}>
+                  {getPaymentOptionIcon(p)} {p}
+                </option>
+              ))}
             </select>
           </div>
           <button
@@ -4809,6 +4996,278 @@ export default function FinanceAccountingPage() {
               </button>
             </div>
           </div>
+        </Modal>
+      )}
+
+      {/* ─── EDIT TRANSACTION MODAL ─── */}
+      {editTxModalOpen && editingTx && (
+        <Modal
+          isOpen={editTxModalOpen}
+          onClose={() => {
+            setEditTxModalOpen(false);
+            setEditingTx(null);
+          }}
+          title={`✏️ Edit ${editingTx.type} #${editingTx.billNo}`}
+        >
+          <form onSubmit={handleSaveEditTx} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Party Name */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                {editingTx.type === 'Sale'
+                  ? 'Customer Name *'
+                  : editingTx.type === 'Purchase' || editingTx.type === 'Payment Out'
+                  ? 'Supplier / Vendor Name *'
+                  : editingTx.type === 'Expense'
+                  ? 'Expense Description / Paid To *'
+                  : 'Party Name *'}
+              </label>
+              <input
+                type="text"
+                required
+                value={editForm.partyName}
+                onChange={(e) => setEditForm({ ...editForm, partyName: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                placeholder="Enter party / vendor / customer name"
+              />
+            </div>
+
+            {/* Mobile (for Sale, Payment In, Payment Out) */}
+            {(editingTx.type === 'Sale' || editingTx.type === 'Payment In' || editingTx.type === 'Payment Out') && (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                  Mobile Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  value={editForm.partyMobile}
+                  onChange={(e) => setEditForm({ ...editForm, partyMobile: e.target.value.replace(/\D/g, '') })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                  placeholder="10-digit mobile number"
+                />
+              </div>
+            )}
+
+            {/* Supplier Invoice # for Purchases */}
+            {editingTx.type === 'Purchase' && (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                  Supplier Bill / Invoice #
+                </label>
+                <input
+                  type="text"
+                  value={editForm.supplierInvoice}
+                  onChange={(e) => setEditForm({ ...editForm, supplierInvoice: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                  placeholder="e.g. GST-9982"
+                />
+              </div>
+            )}
+
+            {/* Date */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                Transaction Date *
+              </label>
+              <input
+                type="date"
+                required
+                value={editForm.date}
+                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+              />
+            </div>
+
+            {/* Amounts Grid */}
+            {editingTx.type === 'Purchase' || editingTx.type === 'Sale' ? (
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                      Total Bill Amount (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={editForm.totalAmount || ''}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setEditForm((prev) => ({
+                          ...prev,
+                          totalAmount: val,
+                          balanceDue: Math.max(0, val - Number(prev.paidAmount || 0)),
+                        }));
+                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, fontWeight: 700 }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
+                        Paid Amount (₹)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditForm((prev) => ({
+                            ...prev,
+                            paidAmount: prev.totalAmount,
+                            balanceDue: 0,
+                          }));
+                        }}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#15803d',
+                          background: '#dcfce7',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: 4,
+                          padding: '1px 6px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ⚡ Full Paid
+                      </button>
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.paidAmount !== undefined ? editForm.paidAmount : ''}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setEditForm((prev) => ({
+                          ...prev,
+                          paidAmount: val,
+                          balanceDue: Math.max(0, Number(prev.totalAmount || 0) - val),
+                        }));
+                      }}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, fontWeight: 700, color: '#15803d' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Remaining Balance Due Display */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 8px', background: '#ffffff', borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 12.5, fontWeight: 700 }}>
+                  <span style={{ color: '#64748b' }}>Remaining Balance Due:</span>
+                  <span style={{ color: editForm.balanceDue > 0 ? '#dc2626' : '#15803d', fontSize: 13 }}>
+                    {money(editForm.balanceDue)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                  Amount (₹) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={editForm.totalAmount || ''}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setEditForm((prev) => ({
+                      ...prev,
+                      totalAmount: val,
+                      paidAmount: val,
+                      balanceDue: 0,
+                    }));
+                  }}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, fontWeight: 700 }}
+                />
+              </div>
+            )}
+
+            {/* Category for Expense */}
+            {editingTx.type === 'Expense' && (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                  Expense Category
+                </label>
+                <select
+                  value={editForm.category}
+                  onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                >
+                  {EXPENSE_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Payment Mode */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                Payment Mode / Account
+              </label>
+              <select
+                value={editForm.paymentMode}
+                onChange={(e) => setEditForm({ ...editForm, paymentMode: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+              >
+                {getPaymentOptions(paymentModes, [editForm.paymentMode]).map((p) => (
+                  <option key={p} value={p}>
+                    {getPaymentOptionIcon(p)} {p}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: '#334155' }}>
+                Notes / Remarks
+              </label>
+              <input
+                type="text"
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                placeholder="Optional notes or reference details"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditTxModalOpen(false);
+                  setEditingTx(null);
+                }}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: 8,
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  color: '#475569',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #05424a 0%, #032b30 100%)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(5,66,74,0.25)',
+                }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
 

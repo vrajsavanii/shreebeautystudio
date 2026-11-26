@@ -13,7 +13,7 @@ const SERVICE_KEY =
 
 function sanitizeCloudInvoices(invoices: any[], bridalList: any[] = []) {
   if (!Array.isArray(invoices)) return [];
-  return invoices
+  const mapped = invoices
     .filter((i: any) => i.id !== 'mtvk1tvbmodfe' && i.no !== 'INV-1025')
     .map((inv: any) => {
       const total = Number(inv.total || 0);
@@ -67,6 +67,19 @@ function sanitizeCloudInvoices(invoices: any[], bridalList: any[] = []) {
 
       return inv;
     });
+
+  // Strict Deduplication: ensure no duplicates by 'no' or 'bridalBookingId'
+  const seenNos = new Set<string>();
+  const seenBridal = new Set<string>();
+  const deduped: any[] = [];
+  for (const inv of mapped) {
+    if (inv.no && seenNos.has(inv.no)) continue;
+    if (inv.bridalBookingId && seenBridal.has(inv.bridalBookingId)) continue;
+    if (inv.no) seenNos.add(inv.no);
+    if (inv.bridalBookingId) seenBridal.add(inv.bridalBookingId);
+    deduped.push(inv);
+  }
+  return deduped;
 }
 
 export async function GET() {

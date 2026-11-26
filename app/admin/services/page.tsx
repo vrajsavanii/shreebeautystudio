@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -28,12 +28,17 @@ import {
   CheckSquare,
   Square,
   Crown,
+  Eye,
+  Download,
+  ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
-import { useSalonStore } from '@/lib/store';
+import { useSalonStore, DEFAULT_BRIDAL_PACKAGES } from '@/lib/store';
+import { downloadBridalRateCardPDF, sendBridalRateCardPDFViaWhatsApp } from '@/lib/bridal-pdf';
 import { scheduleSave } from '@/lib/sync';
 import { uid, money, getServicePricingBasis } from '@/lib/utils';
 import { openWAApp } from '@/lib/whatsapp';
-import { Service, ServicePricingType } from '@/types/salon';
+import { Service, ServicePricingType, BridalPackage } from '@/types/salon';
 import Modal from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { staggerContainer, fadeSlideUp } from '@/variants';
@@ -208,6 +213,158 @@ export default function ServicesPage() {
   const { data, updateData } = useSalonStore();
   const { toast } = useToast();
 
+  // Main Tab: Services vs Packages
+  type MainTab = 'services' | 'packages';
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('services');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const tabParam = new URLSearchParams(window.location.search).get('tab');
+      if (tabParam === 'packages' || tabParam === 'bridal') {
+        setActiveCategory('Makeup & Bridal');
+      }
+    }
+  }, []);
+
+  const bridalPackages = (data?.bridalPackages && data.bridalPackages.length > 0)
+    ? data.bridalPackages
+    : DEFAULT_BRIDAL_PACKAGES;
+
+  // Package Management State
+  const [packageModalOpen, setPackageModalOpen] = useState(false);
+  const [editPackageId, setEditPackageId] = useState<string | null>(null);
+  const [deletePackageId, setDeletePackageId] = useState<string | null>(null);
+
+  const [packageForm, setPackageForm] = useState<Partial<BridalPackage>>({
+    type: 'Bridal Package',
+    name: '',
+    price: 25000,
+    sessions: 3,
+    includes: 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping',
+  });
+
+  const openNewPackage = (type: 'Bridal Package' | 'Siders Package' | 'Makeup Package' = 'Makeup Package') => {
+    setEditPackageId(null);
+    setPackageForm({
+      type,
+      name: '',
+      price: type === 'Bridal Package' ? 25000 : type === 'Makeup Package' ? 12000 : 5000,
+      sessions: type === 'Bridal Package' ? 3 : type === 'Makeup Package' ? 2 : 1,
+      includes: type === 'Bridal Package'
+        ? 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping'
+        : type === 'Makeup Package'
+        ? 'Makeup, hairstyle, draping, eyelashes and lenses'
+        : 'Makeup, hairstyle and draping',
+    });
+    setPackageModalOpen(true);
+  };
+
+  const openEditPackage = (pkg: BridalPackage) => {
+    setEditPackageId(pkg.id);
+    setPackageForm({ ...pkg });
+    setPackageModalOpen(true);
+  };
+
+  const handleSavePackage = () => {
+    if (!packageForm.name?.trim()) {
+      toast('Please enter package name.', 'error');
+      return;
+    }
+    if (!packageForm.price || packageForm.price <= 0) {
+      toast('Please enter a valid price.', 'error');
+      return;
+    }
+
+    const id = editPackageId || uid();
+    const newPkg: BridalPackage = {
+      id,
+      type: packageForm.type || 'Bridal Package',
+      name: packageForm.name.trim(),
+      price: Number(packageForm.price),
+      sessions: Number(packageForm.sessions || 1),
+      includes: packageForm.includes || '',
+    };
+
+    updateData((d) => {
+      const existing = d.bridalPackages || [];
+      const idx = existing.findIndex((p) => p.id === id);
+      let updated: BridalPackage[];
+      if (idx >= 0) {
+        updated = [...existing];
+        updated[idx] = newPkg;
+      } else {
+        updated = [...existing, newPkg];
+      }
+
+      // Also mirror/update in services under 'Makeup & Bridal'
+      const isSider = newPkg.type === 'Siders Package';
+      const isBridal = newPkg.type === 'Bridal Package';
+      let svcName = newPkg.name;
+      if (isSider && !svcName.toLowerCase().includes('sider')) {
+        svcName = `${newPkg.name} (Siders Package)`;
+      } else if (isBridal && !svcName.toLowerCase().includes('bridal')) {
+        svcName = `${newPkg.name} (Bridal Package)`;
+      } else if (!isSider && !isBridal && !svcName.toLowerCase().includes('package')) {
+        svcName = `${newPkg.name} (Luxury Package)`;
+      }
+
+      const services = [...(d.services || [])];
+      const svcIdx = services.findIndex((s) => s.id === `svc_${id}` || s.name.toLowerCase() === svcName.toLowerCase());
+      const svcObj = {
+        id: `svc_${id}`,
+        name: svcName,
+        price: newPkg.price,
+        category: 'Makeup & Bridal',
+        duration: (newPkg.sessions && newPkg.sessions > 1) ? newPkg.sessions * 60 : (isBridal ? 180 : (isSider ? 60 : 90)),
+        description: newPkg.includes ? `${newPkg.includes} (${newPkg.sessions || 1} ${(newPkg.sessions || 1) === 1 ? 'Session' : 'Sessions'})` : '',
+        pricingType: 'fixed' as const,
+      };
+
+      if (svcIdx >= 0) {
+        services[svcIdx] = svcObj;
+      } else {
+        services.push(svcObj);
+      }
+
+      return { ...d, bridalPackages: updated, services };
+    });
+
+    scheduleSave();
+    toast(editPackageId ? `✅ Package "${newPkg.name}" updated successfully!` : `🎉 New package "${newPkg.name}" added!`);
+    setPackageModalOpen(false);
+  };
+
+  const handleDeletePackage = (id: string) => {
+    updateData((d) => ({
+      ...d,
+      bridalPackages: (d.bridalPackages || []).filter((p) => p.id !== id),
+      services: (d.services || []).filter((s) => s.id !== `svc_${id}`),
+    }));
+    scheduleSave();
+    toast('🗑️ Package removed from rate card.');
+    setDeletePackageId(null);
+  };
+
+  const handleDownloadPDF = async () => {
+    toast('⏳ Generating high-res Glamour Lounge Rate Card PDF…');
+    await downloadBridalRateCardPDF(data?.bridalPackages || [], data);
+    toast('✅ Rate Card PDF downloaded!');
+  };
+
+  const handleSendPDFWhatsApp = async (mobile?: string, name?: string) => {
+    const targetMob = mobile || prompt('Enter recipient WhatsApp mobile number (10 digits):');
+    if (!targetMob) return;
+
+    toast(`⏳ Sending Bridal Rate Card PDF to ${targetMob} via Meta WhatsApp API…`);
+    const res = await sendBridalRateCardPDFViaWhatsApp(data?.bridalPackages || [], targetMob, name, data);
+    if (res.success) {
+      toast(`✅ Bridal Rate Card PDF sent directly to ${targetMob}'s WhatsApp via Meta API!`);
+    } else {
+      toast(`❌ Error sending PDF via Meta API: ${res.message}`, 'error');
+    }
+  };
+
+
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
@@ -381,18 +538,37 @@ export default function ServicesPage() {
 
   const handleAddBridalCatalog = () => {
     const existingNames = new Set((data?.services || []).map((s) => s.name.toLowerCase()));
-    const toAdd = OFFICIAL_BRIDAL_CATALOG_SERVICES.filter((b) => !existingNames.has(b.name.toLowerCase())).map((b) => ({
-      id: uid(),
-      name: b.name,
-      category: b.category,
-      price: b.price,
-      duration: b.duration,
-      pricingType: b.pricingType,
-      description: b.description,
-    }));
+    const bridalPkgs = (data?.bridalPackages && data.bridalPackages.length > 0)
+      ? data.bridalPackages
+      : DEFAULT_BRIDAL_PACKAGES;
+
+    const toAdd: Service[] = bridalPkgs
+      .map((pkg: BridalPackage) => {
+        const isSider = pkg.type === 'Siders Package';
+        const isBridal = pkg.type === 'Bridal Package';
+        let svcName = pkg.name;
+        if (isSider && !svcName.toLowerCase().includes('sider')) {
+          svcName = `${pkg.name} (Siders Package)`;
+        } else if (isBridal && !svcName.toLowerCase().includes('bridal')) {
+          svcName = `${pkg.name} (Bridal Package)`;
+        } else if (!isSider && !isBridal && !svcName.toLowerCase().includes('package')) {
+          svcName = `${pkg.name} (Luxury Package)`;
+        }
+
+        return {
+          id: `svc_${pkg.id || uid()}`,
+          name: svcName,
+          category: 'Makeup & Bridal',
+          price: Number(pkg.price || 0),
+          duration: (pkg.sessions && pkg.sessions > 1) ? pkg.sessions * 60 : (isBridal ? 180 : (isSider ? 60 : 90)),
+          pricingType: 'fixed' as ServicePricingType,
+          description: pkg.includes ? `${pkg.includes} (${pkg.sessions || 1} ${(pkg.sessions || 1) === 1 ? 'Session' : 'Sessions'})` : '',
+        };
+      })
+      .filter((s: Service) => !existingNames.has(s.name.toLowerCase()));
 
     if (toAdd.length === 0) {
-      toast('All official bridal & makeup services are already present in your catalog!', 'info');
+      toast('All 14 Luxury Bridal & Siders packages are already present in your Services catalog!', 'info');
       setActiveCategory('Makeup & Bridal');
       return;
     }
@@ -403,7 +579,7 @@ export default function ServicesPage() {
     }));
 
     scheduleSave();
-    toast(`🎉 Successfully added ${toAdd.length} Luxury Bridal & Makeup services to catalog!`);
+    toast(`🎉 Successfully moved ${toAdd.length} Luxury Packages to Makeup & Bridal services!`, 'success');
     setActiveCategory('Makeup & Bridal');
   };
 
@@ -431,8 +607,11 @@ export default function ServicesPage() {
       const cat = s.category || 'Other Treatments';
       map[cat] = (map[cat] || 0) + 1;
     });
+    if (bridalPackages.length > 0) {
+      map['Makeup & Bridal'] = Math.max(map['Makeup & Bridal'] || 0, bridalPackages.length);
+    }
     return map;
-  }, [services, categories]);
+  }, [services, categories, bridalPackages]);
 
   // Filtered Services
   const filtered = useMemo(() => {
@@ -772,7 +951,6 @@ export default function ServicesPage() {
           </motion.button>
         </div>
       </div>
-
       {/* Search & Category Filter Bar */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <div className="search-wrap" style={{ flex: 1, minWidth: 260 }}>
@@ -814,88 +992,278 @@ export default function ServicesPage() {
         })}
       </div>
 
-      {/* Dynamic Pricing Policy Banner */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #f0fdfa 0%, #fdf2f8 50%, #eff6ff 100%)',
-          border: '1px solid #ccfbf1',
-          borderRadius: 12,
-          padding: '12px 16px',
-          marginBottom: 16,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 20 }}>💡</span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
-              Pricing Basis Options
+      {/* 👑 The Glamour Lounge — Official Rate Card & Packages (ONLY shown when Makeup & Bridal tab is clicked) */}
+      {activeCategory === 'Makeup & Bridal' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
+          {/* Top Actions Bar for Rate Card */}
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1.5px solid #bbf7d0',
+              borderRadius: 12,
+              padding: '14px 18px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
+                👑 The Glamour Lounge — Official Rate Card &amp; Packages
+              </div>
+              <div style={{ fontSize: 12, color: '#15803d', marginTop: 2 }}>
+                Update prices anytime. Generated PDF &amp; WhatsApp rate card will reflect your updated prices live!
+              </div>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4, marginTop: 2 }}>
-              🏷️ <b>Fixed Price:</b> Exact rate for standard services (Eyebrow, Threading, Waxing). • 💇‍♀️ <b>Hair Services:</b> Starting prices quoted according to <b>Hair Length & Density</b>. • ✨ <b>Skin Services:</b> Custom tailored according to <b>Skin Type & Concerns</b>.
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <motion.a
+                href="/shree-bridal-rate-card.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-sm"
+                style={{ background: '#ffffff', borderColor: '#86efac', color: '#15803d', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                whileTap={{ scale: 0.96 }}
+                title="View 100% original uploaded PDF rate card"
+              >
+                <Eye size={14} /> View Original PDF
+              </motion.a>
+
+              <motion.a
+                href="/shree-bridal-rate-card.pdf"
+                download="Shree_Beauty_Studio_Bridal_Rate_Card.pdf"
+                className="btn btn-ghost btn-sm"
+                style={{ background: '#ffffff', borderColor: '#86efac', color: '#15803d', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                whileTap={{ scale: 0.96 }}
+                title="Direct download Bridal Rate Card PDF"
+              >
+                <Download size={14} /> Download Rate Card PDF
+              </motion.a>
+
+              <motion.button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => handleSendPDFWhatsApp()}
+                style={{ background: '#25D366', color: '#ffffff', border: 'none', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}
+                whileTap={{ scale: 0.96 }}
+              >
+                <MessageCircle size={14} /> Send PDF via WhatsApp
+              </motion.button>
+
+              <motion.button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => openNewPackage('Bridal Package')}
+                whileTap={{ scale: 0.96 }}
+              >
+                <Plus size={14} /> Add New Package
+              </motion.button>
+            </div>
+          </div>
+          {/* Bridal Packages (3 Sessions) */}
+          <div>
+            <div className="section-header" style={{ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  👰 Bridal Packages (3 Sessions)
+                </h2>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  3-session package with makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => openNewPackage('Bridal Package')}
+                style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }}
+              >
+                + Add Bridal Package
+              </button>
+            </div>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+              {(data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES).filter((p) => p.type === 'Bridal Package').map((pkg) => (
+                <div key={pkg.id || pkg.name} className="stat-card" style={{ border: '1.5px solid #cbd5e1', padding: 18, background: '#ffffff', position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>{pkg.name}</div>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'var(--gold-light)', color: 'var(--teal-dark)', display: 'inline-block', marginTop: 4 }}>
+                        {pkg.sessions || 3} Sessions Package
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        type="button"
+                        className="btn-icon edit"
+                        onClick={() => openEditPackage(pkg)}
+                        title="Edit Package & Price"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon danger"
+                        onClick={() => setDeletePackageId(pkg.id)}
+                        title="Delete Package"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text)', margin: '10px 0 6px', fontFamily: 'monospace' }}>
+                    {money(pkg.price)}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4 }}>{pkg.includes}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Siders Packages (1 Session) */}
+          <div>
+            <div className="section-header" style={{ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ✨ Siders &amp; Family Packages (1 Session)
+                </h2>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  1-Time package with makeup, hairstyle and draping.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => openNewPackage('Siders Package')}
+                style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }}
+              >
+                + Add Siders Package
+              </button>
+            </div>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+              {(data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES).filter((p) => p.type === 'Siders Package').map((pkg) => (
+                <div key={pkg.id || pkg.name} className="stat-card" style={{ border: '1.5px solid #cbd5e1', padding: 16, background: '#ffffff', position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--teal)' }}>{pkg.name}</div>
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 99, background: '#eff6ff', color: '#1e40af', display: 'inline-block', marginTop: 4 }}>
+                        1 Session
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        type="button"
+                        className="btn-icon edit"
+                        onClick={() => openEditPackage(pkg)}
+                        title="Edit Package & Price"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon danger"
+                        onClick={() => setDeletePackageId(pkg.id)}
+                        title="Delete Package"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: '8px 0 4px', fontFamily: 'monospace' }}>
+                    {money(pkg.price)}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4 }}>{pkg.includes}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Makeup Packages (Custom Sessions) */}
+          <div>
+            <div className="section-header" style={{ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  💄 Makeup Packages (Custom Sessions / સેશન નક્કી કરો)
+                </h2>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  Customizable session packages (1, 2, 3, 4+ sessions) with HD makeup, hair styling, lenses and draping.
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => openNewPackage('Makeup Package')}
+                style={{ fontSize: 11.5, color: 'var(--teal)', fontWeight: 700 }}
+              >
+                + Add Makeup Package
+              </button>
+            </div>
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+              {(data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES).filter((p) => p.type === 'Makeup Package').length === 0 ? (
+                <div style={{ gridColumn: '1 / -1', padding: 20, textAlign: 'center', background: '#f8fafc', borderRadius: 10, border: '1px dashed #cbd5e1', color: 'var(--muted)', fontSize: 13 }}>
+                  No makeup packages added yet. Click <b>+ Add Makeup Package</b> to create one with custom sessions.
+                </div>
+              ) : (
+                (data?.bridalPackages || DEFAULT_BRIDAL_PACKAGES).filter((p) => p.type === 'Makeup Package').map((pkg) => (
+                  <div key={pkg.id || pkg.name} className="stat-card" style={{ border: '1.5px solid #cbd5e1', padding: 16, background: '#ffffff', position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--teal)' }}>{pkg.name}</div>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#fdf4ff', color: '#c026d3', border: '1px solid #f0abfc', display: 'inline-block', marginTop: 4 }}>
+                          {pkg.sessions || 1} {(pkg.sessions || 1) === 1 ? 'Session' : 'Sessions'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          type="button"
+                          className="btn-icon edit"
+                          onClick={() => openEditPackage(pkg)}
+                          title="Edit Package & Price"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-icon danger"
+                          onClick={() => setDeletePackageId(pkg.id)}
+                          title="Delete Package"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)', margin: '8px 0 4px', fontFamily: 'monospace' }}>
+                      {money(pkg.price)}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.4 }}>{pkg.includes}</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <span className="badge" style={{ background: '#f0fdfa', color: '#0f766e', border: '1px solid #99f6e4', fontSize: 11 }}>
-            🏷️ Fixed Price
-          </span>
-          <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', fontSize: 11 }}>
-            💇‍♀️ Hair Length Based
-          </span>
-          <span className="badge" style={{ background: '#fdf2f8', color: '#be185d', border: '1px solid #fbcfe8', fontSize: 11 }}>
-            ✨ Skin Type Based
-          </span>
-        </div>
-      </div>
+      )}
+
 
       {/* Services Content: Grid Cards or Table */}
       {filtered.length === 0 ? (
-        <div className="card">
-          <div className="empty-state">
-            <Sparkles size={44} />
-            <h3>{search ? 'No matching services found' : activeCategory === 'Makeup & Bridal' ? 'No Bridal Services in Catalog Yet' : 'No services in this category'}</h3>
-            <p>
-              {activeCategory === 'Makeup & Bridal'
-                ? 'Quickly import the complete luxury Bridal, HD Party, Airbrush & Siders makeup catalog.'
-                : 'Add treatment services to your salon price menu with customizable duration and rates.'}
-            </p>
-            {activeCategory === 'Makeup & Bridal' ? (
-              <motion.button
-                className="btn btn-primary"
-                onClick={handleAddBridalCatalog}
-                whileTap={{ scale: 0.97 }}
-                style={{
-                  marginTop: 10,
-                  background: 'linear-gradient(135deg, #be185d 0%, #9d174d 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '9px 18px',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  borderRadius: 9,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  boxShadow: '0 4px 14px rgba(190,24,93,0.3)',
-                }}
-              >
-                <Crown size={15} />
-                <span>Import Official Bridal Catalog (8 Luxury Services)</span>
-              </motion.button>
-            ) : (
-              !search && (
+        activeCategory !== 'Makeup & Bridal' && (
+          <div className="card">
+            <div className="empty-state">
+              <Sparkles size={44} />
+              <h3>{search ? 'No matching services found' : 'No services in this category'}</h3>
+              <p>Add treatment services to your salon price menu with customizable duration and rates.</p>
+              {!search && (
                 <motion.button className="btn btn-primary btn-sm" onClick={openNew} whileTap={{ scale: 0.97 }} style={{ marginTop: 8 }}>
                   <Plus size={14} /> Add First Service
                 </motion.button>
-              )
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )
       ) : viewMode === 'cards' ? (
         /* Luxury Cards Grid */
         <motion.div
@@ -1114,6 +1482,8 @@ export default function ServicesPage() {
           </div>
         </div>
       )}
+
+
 
       {/* Add / Edit Service Modal */}
       <Modal
@@ -1592,6 +1962,140 @@ export default function ServicesPage() {
           </div>
         )}
       </Modal>
+
+      {/* 👑 Package Edit / Add Modal */}
+      {packageModalOpen && (
+        <Modal
+          isOpen={packageModalOpen}
+          onClose={() => setPackageModalOpen(false)}
+          title={editPackageId ? '✏️ Edit Package & Price' : '➕ Add New Glamour Lounge Package'}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setPackageModalOpen(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSavePackage}>
+                Save Package
+              </button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="form-group">
+              <label className="label">Package Type *</label>
+              <select
+                className="input"
+                value={packageForm.type}
+                onChange={(e) => {
+                  const t = e.target.value as 'Bridal Package' | 'Siders Package' | 'Makeup Package';
+                  setPackageForm((prev) => ({
+                    ...prev,
+                    type: t,
+                    sessions: t === 'Bridal Package' ? 3 : t === 'Makeup Package' ? (prev.sessions || 2) : 1,
+                    includes: t === 'Bridal Package'
+                      ? 'Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping'
+                      : t === 'Makeup Package'
+                      ? 'HD Makeup, hairstyle, draping, eyelashes and lenses'
+                      : 'Makeup, hairstyle and draping',
+                  }));
+                }}
+              >
+                <option value="Bridal Package">👰 Bridal Package (3 Sessions)</option>
+                <option value="Siders Package">✨ Siders Package (1 Session)</option>
+                <option value="Makeup Package">💄 Makeup Package (Custom Sessions / સેશન નક્કી કરો)</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="label">Package / Brand Name *</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="e.g. Mac | Forever, HD Party Look, Charlotte Tilbury"
+                value={packageForm.name || ''}
+                onChange={(e) => setPackageForm((prev) => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="label">Package Price (₹) *</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="input"
+                  placeholder="25300"
+                  value={packageForm.price || ''}
+                  onChange={(e) => setPackageForm((prev) => ({ ...prev, price: Number(e.target.value) }))}
+                  style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700 }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="label">Number of Sessions (સેશન સંખ્યા) *</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  className="input"
+                  value={packageForm.sessions ?? 1}
+                  onChange={(e) => setPackageForm((prev) => ({ ...prev, sessions: Math.max(1, Number(e.target.value)) }))}
+                  style={{ fontFamily: 'monospace', fontWeight: 700 }}
+                />
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setPackageForm((prev) => ({ ...prev, sessions: num }))}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: packageForm.sessions === num ? '1.5px solid var(--teal)' : '1px solid var(--border)',
+                        background: packageForm.sessions === num ? 'var(--teal)' : '#ffffff',
+                        color: packageForm.sessions === num ? '#ffffff' : 'var(--text)',
+                        fontWeight: packageForm.sessions === num ? 700 : 500,
+                        fontSize: 11,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {num} {num === 1 ? 'Session' : 'Sessions'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="label">Included Services / Description</label>
+              <textarea
+                className="input"
+                rows={3}
+                placeholder="Makeup, hairstyle, jewellery, lenses, hair extensions, eyelashes, hair decor and draping..."
+                value={packageForm.includes || ''}
+                onChange={(e) => setPackageForm((prev) => ({ ...prev, includes: e.target.value }))}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Package Confirmation Modal */}
+      {deletePackageId && (
+        <Modal
+          isOpen={!!deletePackageId}
+          onClose={() => setDeletePackageId(null)}
+          title="Delete Package from Rate Card?"
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setDeletePackageId(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => handleDeletePackage(deletePackageId)}>Delete</button>
+            </>
+          }
+        >
+          <p>Are you sure you want to remove this package from your Glamour Lounge Rate Card?</p>
+        </Modal>
+      )}
+
+
     </div>
   );
 }
