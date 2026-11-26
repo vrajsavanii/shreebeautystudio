@@ -36,8 +36,8 @@ import {
   Calendar,
   Heart,
 } from 'lucide-react';
-import { AppointmentsPanel } from '@/app/admin/appointments/AppointmentsView';
-import { BridalPanel } from '@/app/admin/bridal/BridalView';
+import { AppointmentsPanel } from '@/app/admin/appointments/page';
+import { BridalPanel } from '@/app/admin/bridal/page';
 import { useSalonStore, resolveBridalBookingPrice } from '@/lib/store';
 import { scheduleSave, cloudSave } from '@/lib/sync';
 import { uid, todayISO, money, fmtDate, formatCustomerContactName, autoCapitalizeName, getServicePricingBasis, fmtExpiry } from '@/lib/utils';
