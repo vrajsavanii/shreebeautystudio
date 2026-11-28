@@ -1038,7 +1038,33 @@ function BillingContent() {
     }
   };
 
-  const allServices = useMemo(() => data?.services || [], [data?.services]);
+  const allServices = useMemo(() => {
+    return (data?.services || []).filter((s) => {
+      const n = (s.name || '').toLowerCase();
+      // Do not show bridal / siders packages in billing item search (managed via Bridal module)
+      if (
+        s.id?.startsWith('svc_bridal-') ||
+        s.id?.startsWith('svc_sider-') ||
+        n.includes('(bridal package)') ||
+        n.includes('(siders package)') ||
+        n.includes('(luxury package)') ||
+        n.includes('airbrush couture bridal') ||
+        n.includes('royal bridal hd makeover') ||
+        n.includes('siders & bridesmaids makeup') ||
+        n.includes('pre-bridal luxury skin') ||
+        (n.includes('package') && (n.includes('bridal') || n.includes('sider') || n.includes('siders'))) ||
+        n.startsWith('mac | forever') ||
+        n.startsWith('huda | bobbi') ||
+        n.startsWith('armani | dior') ||
+        n.startsWith('hourglass') ||
+        n.startsWith('charlotte tilbury') ||
+        n.startsWith('very valentino')
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [data?.services]);
 
   const popularServices = useMemo(() => {
     const priority = ['hair cut', 'haircut', 'cleanup', 'clean up', 'facial', 'hair spa', 'threading', 'waxing', 'd-tan', 'bleach', 'pedicure', 'manicure'];

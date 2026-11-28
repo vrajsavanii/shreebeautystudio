@@ -1434,7 +1434,29 @@ export function AppointmentsPanel({
         </div>
 
         <datalist id="appt-service-list">
-          {(data?.services || []).map((s) => {
+          {(data?.services || [])
+            .filter((s) => {
+              const n = (s.name || '').toLowerCase();
+              return !(
+                s.id?.startsWith('svc_bridal-') ||
+                s.id?.startsWith('svc_sider-') ||
+                n.includes('(bridal package)') ||
+                n.includes('(siders package)') ||
+                n.includes('(luxury package)') ||
+                n.includes('airbrush couture bridal') ||
+                n.includes('royal bridal hd makeover') ||
+                n.includes('siders & bridesmaids makeup') ||
+                n.includes('pre-bridal luxury skin') ||
+                (n.includes('package') && (n.includes('bridal') || n.includes('sider') || n.includes('siders'))) ||
+                n.startsWith('mac | forever') ||
+                n.startsWith('huda | bobbi') ||
+                n.startsWith('armani | dior') ||
+                n.startsWith('hourglass') ||
+                n.startsWith('charlotte tilbury') ||
+                n.startsWith('very valentino')
+              );
+            })
+            .map((s) => {
             const basis = getServicePricingBasis(s.category, s.name, s.pricingType);
             const tag = basis.badgeShort ? ` [${basis.badgeShort}]` : '';
             const priceLabel = basis.isFixed ? `Fixed ${money(s.price)}` : `Starts ${money(s.price)}${tag}`;

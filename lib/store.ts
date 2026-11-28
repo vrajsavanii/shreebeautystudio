@@ -417,48 +417,12 @@ export const DEFAULT_DATA: SalonData = {
       "pricingType": "starting"
     },
     {
-      "id": "mus8o58bupr29",
-      "name": "Royal Bridal HD Makeover",
-      "price": 15000,
-      "category": "Makeup & Bridal",
-      "duration": 180,
-      "description": "Signature bridal couture makeover, hair styling, jewelry setting, extensions, lenses & draping",
-      "pricingType": "fixed"
-    },
-    {
-      "id": "mus8o58bx3yhl",
-      "name": "Airbrush Couture Bridal Package",
-      "price": 25000,
-      "category": "Makeup & Bridal",
-      "duration": 180,
-      "description": "Ultra-HD water-resistant airbrush bridal makeup, 3D lashes, real flower hair styling & dupatta styling",
-      "pricingType": "fixed"
-    },
-    {
-      "id": "mus8o58bulgub",
-      "name": "Siders & Bridesmaids Makeup",
-      "price": 3500,
-      "category": "Makeup & Bridal",
-      "duration": 60,
-      "description": "Elegant party makeover, designer hairstyle & traditional draping for relatives & bridesmaids",
-      "pricingType": "starting"
-    },
-    {
       "id": "mus8o58bdpeve",
       "name": "Saree & Lehenga Dupatta Draping",
       "price": 500,
       "category": "Makeup & Bridal",
       "duration": 25,
       "description": "Flawless pleating, Gujarati/Can-Can style draping & jewelry placement",
-      "pricingType": "fixed"
-    },
-    {
-      "id": "mus8o58bxssbf",
-      "name": "Pre-Bridal Luxury Skin & Hair Ritual",
-      "price": 4500,
-      "category": "Makeup & Bridal",
-      "duration": 120,
-      "description": "Full body polishing, gold radiance facial, L'Oreal hair spa, waxing & manicure/pedicure glow",
       "pricingType": "fixed"
     },
     {
@@ -1282,37 +1246,31 @@ export function mergeWithDefaults(incoming?: Partial<SalonData> | null): SalonDa
         inc = [...DEFAULT_DATA.services];
       }
 
-      // Auto-bridge: ensure 14 Luxury Bridal & Siders packages exist in 'Makeup & Bridal'
-      const existingNames = new Set(inc.map((s) => (s.name || '').toLowerCase()));
-      const bridalPkgs = Array.isArray(incoming.bridalPackages) && incoming.bridalPackages.length
-        ? incoming.bridalPackages
-        : DEFAULT_BRIDAL_PACKAGES;
-
-      for (const pkg of bridalPkgs) {
-        const isSider = pkg.type === 'Siders Package';
-        const isBridal = pkg.type === 'Bridal Package';
-        let svcName = pkg.name;
-        if (isSider && !svcName.toLowerCase().includes('sider')) {
-          svcName = `${pkg.name} (Siders Package)`;
-        } else if (isBridal && !svcName.toLowerCase().includes('bridal')) {
-          svcName = `${pkg.name} (Bridal Package)`;
-        } else if (!isSider && !isBridal && !svcName.toLowerCase().includes('package')) {
-          svcName = `${pkg.name} (Luxury Package)`;
+      // Filter out bridal & siders packages from general services so they do not pollute billing line items
+      inc = inc.filter((s) => {
+        const n = (s.name || '').toLowerCase();
+        if (
+          s.id?.startsWith('svc_bridal-') ||
+          s.id?.startsWith('svc_sider-') ||
+          n.includes('(bridal package)') ||
+          n.includes('(siders package)') ||
+          n.includes('(luxury package)') ||
+          n.includes('airbrush couture bridal') ||
+          n.includes('royal bridal hd makeover') ||
+          n.includes('siders & bridesmaids makeup') ||
+          n.includes('pre-bridal luxury skin') ||
+          (n.includes('package') && (n.includes('bridal') || n.includes('sider') || n.includes('siders'))) ||
+          n.startsWith('mac | forever') ||
+          n.startsWith('huda | bobbi') ||
+          n.startsWith('armani | dior') ||
+          n.startsWith('hourglass') ||
+          n.startsWith('charlotte tilbury') ||
+          n.startsWith('very valentino')
+        ) {
+          return false;
         }
-
-        if (!existingNames.has(svcName.toLowerCase()) && !existingNames.has((pkg.name || '').toLowerCase())) {
-          existingNames.add(svcName.toLowerCase());
-          inc.push({
-            id: `svc_${pkg.id || uid()}`,
-            name: svcName,
-            price: Number(pkg.price || 0),
-            category: 'Makeup & Bridal',
-            duration: (pkg.sessions && pkg.sessions > 1) ? pkg.sessions * 60 : (isBridal ? 180 : (isSider ? 60 : 90)),
-            description: pkg.includes ? `${pkg.includes} (${pkg.sessions || 1} ${(pkg.sessions || 1) === 1 ? 'Session' : 'Sessions'})` : '',
-            pricingType: 'fixed',
-          });
-        }
-      }
+        return true;
+      });
 
       return inc;
     })(),

@@ -296,35 +296,8 @@ export default function ServicesPage() {
         updated = [...existing, newPkg];
       }
 
-      // Also mirror/update in services under 'Makeup & Bridal'
-      const isSider = newPkg.type === 'Siders Package';
-      const isBridal = newPkg.type === 'Bridal Package';
-      let svcName = newPkg.name;
-      if (isSider && !svcName.toLowerCase().includes('sider')) {
-        svcName = `${newPkg.name} (Siders Package)`;
-      } else if (isBridal && !svcName.toLowerCase().includes('bridal')) {
-        svcName = `${newPkg.name} (Bridal Package)`;
-      } else if (!isSider && !isBridal && !svcName.toLowerCase().includes('package')) {
-        svcName = `${newPkg.name} (Luxury Package)`;
-      }
-
-      const services = [...(d.services || [])];
-      const svcIdx = services.findIndex((s) => s.id === `svc_${id}` || s.name.toLowerCase() === svcName.toLowerCase());
-      const svcObj = {
-        id: `svc_${id}`,
-        name: svcName,
-        price: newPkg.price,
-        category: 'Makeup & Bridal',
-        duration: (newPkg.sessions && newPkg.sessions > 1) ? newPkg.sessions * 60 : (isBridal ? 180 : (isSider ? 60 : 90)),
-        description: newPkg.includes ? `${newPkg.includes} (${newPkg.sessions || 1} ${(newPkg.sessions || 1) === 1 ? 'Session' : 'Sessions'})` : '',
-        pricingType: 'fixed' as const,
-      };
-
-      if (svcIdx >= 0) {
-        services[svcIdx] = svcObj;
-      } else {
-        services.push(svcObj);
-      }
+      // Clean up any legacy mirrored package service from services so it doesn't pollute general services/billing
+      const services = (d.services || []).filter((s) => s.id !== `svc_${id}` && !s.name.toLowerCase().includes(newPkg.name.toLowerCase()));
 
       return { ...d, bridalPackages: updated, services };
     });
