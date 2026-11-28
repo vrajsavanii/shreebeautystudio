@@ -35,6 +35,13 @@ import {
   Zap,
   Calendar,
   Heart,
+  PauseCircle,
+  PlayCircle,
+  Layers,
+  LayoutGrid,
+  Volume2,
+  VolumeX,
+  Keyboard,
 } from 'lucide-react';
 import { AppointmentsPanel } from '@/app/admin/appointments/AppointmentsView';
 import { BridalPanel } from '@/app/admin/bridal/BridalView';
@@ -51,6 +58,8 @@ import ReceptionDeskQRModal from '@/components/whatsapp/ReceptionDeskQRModal';
 import { SHREE_INVOICE_BILL_LOGO_BASE64 } from '@/lib/logo-base64';
 import InvoiceReceiptModal from '@/components/billing/InvoiceReceiptModal';
 import ContactImportModal from '@/components/billing/ContactImportModal';
+import PetpoojaPosView from '@/components/billing/PetpoojaPosView';
+import { playSuccessChime, playAdminPendingBillSound, isAudioNotificationMuted, setAudioNotificationMuted } from '@/lib/notification-sound';
 import { staggerContainer, fadeSlideUp } from '@/variants';
 import CameraBarcodeScanner from '@/components/barcode/CameraBarcodeScanner';
 import {
@@ -88,6 +97,22 @@ const calcLineTotal = (l: InvoiceLine): number => {
   const discAmt = calcLineDiscount(l);
   return Math.max(0, gross - discAmt);
 };
+
+export interface ParkedBill {
+  id: string;
+  parkedAt: number;
+  customer: string;
+  mobile: string;
+  lines: InvoiceLine[];
+  discount: number;
+  discountMode: 'percent' | 'amount';
+  billDiscountPercent: number | '';
+  staff: string;
+  advance: number;
+  advanceMode: string;
+  appointmentRef: string | null;
+  total: number;
+}
 
 type BillingViewTab = 'appointments' | 'bridal' | 'builder' | 'history';
 const TAB_ORDER: BillingViewTab[] = ['appointments', 'bridal', 'builder', 'history'];
@@ -528,6 +553,50 @@ function BillingContent() {
   const [mode, setMode] = useState(getDefaultPaymentOption(data?.settings?.payments));
   const [barcodeInput, setBarcodeInput] = useState('');
   const [appointmentRef, setAppointmentRef] = useState<string | null>(null);
+
+  // Petpooja Enterprise POS View Mode & Parked Bills System
+  const [posViewMode, setPosViewMode] = useState<'split' | 'classic'>('split');
+  const [posStaffAssigned, setPosStaffAssigned] = useState<string>('');
+  const [posAudioMuted, setPosAudioMuted] = useState<boolean>(false);
+  const [parkedBills, setParkedBills] = useState<ParkedBill[]>([]);
+  const [parkedModalOpen, setParkedModalOpen] = useState<boolean>(false);
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState<boolean>(false);
+  const posSearchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedMode = localStorage.getItem('shree_pos_view_mode');
+        if (savedMode === 'split' || savedMode === 'classic') {
+          setPosViewMode(savedMode);
+        }
+        const savedParked = localStorage.getItem('shree_pos_parked_bills');
+        if (savedParked) {
+          setParkedBills(JSON.parse(savedParked));
+        }
+        setPosAudioMuted(isAudioNotificationMuted());
+      } catch {}
+    }
+  }, []);
+
+  const handleTogglePosAudio = () => {
+    const next = !posAudioMuted;
+    setPosAudioMuted(next);
+    setAudioNotificationMuted(next);
+    if (!next) {
+      playSuccessChime(true);
+      toast('🔔 POS Audio enabled');
+    } else {
+      toast('🔕 POS Audio muted');
+    }
+  };
+
+  const handleSwitchPosViewMode = (m: 'split' | 'classic') => {
+    setPosViewMode(m);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('shree_pos_view_mode', m);
+    }
+  };
 
   // Loyalty & Wallet
   const [redeemPoints, setRedeemPoints] = useState(0);
@@ -1383,6 +1452,85 @@ function BillingContent() {
     } else {
       setPaid(finalPayable);
     }
+  };
+
+  const handleParkCurrentBill = useCallback(() => {
+    const validLines = lines.filter((l) => l.name && l.name.trim() !== '');
+    if (validLines.length === 0 && !customer.trim()) {
+      toast('⚠️ Current ticket is empty. Nothing to hold.');
+      return;
+    }
+    const newParked: ParkedBill = {
+      id: 'park_' + Date.now(),
+      parkedAt: Date.now(),
+      customer: customer.trim(),
+      mobile: mobile.trim(),
+      lines: validLines.length > 0 ? validLines : [EMPTY_LINE()],
+      discount,
+      discountMode,
+      billDiscountPercent,
+      staff: posStaffAssigned,
+      advance,
+      advanceMode,
+      appointmentRef,
+      total: totalAfterLoyalty,
+    };
+    const updated = [newParked, ...parkedBills];
+    setParkedBills(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('shree_pos_parked_bills', JSON.stringify(updated));
+      } catch {}
+    }
+    // Clear active ticket
+    setCustomer('');
+    setMobile('');
+    setLines([EMPTY_LINE()]);
+    setDiscount(0);
+    setBillDiscountPercent('');
+    setPaid('');
+    setAdvance(0);
+    setAppointmentRef(null);
+    setPosStaffAssigned('');
+    playAdminPendingBillSound();
+    toast(`⏸️ Bill for "${newParked.customer || 'Guest'}" held! Ready for next customer.`);
+  }, [lines, customer, mobile, discount, discountMode, billDiscountPercent, posStaffAssigned, advance, advanceMode, appointmentRef, totalAfterLoyalty, parkedBills, toast]);
+
+  const handleRecallParkedBill = (bill: ParkedBill) => {
+    setCustomer(bill.customer || '');
+    setMobile(bill.mobile || '');
+    setLines(bill.lines && bill.lines.length > 0 ? bill.lines : [EMPTY_LINE()]);
+    setDiscount(bill.discount || 0);
+    setDiscountMode(bill.discountMode || 'amount');
+    setBillDiscountPercent(bill.billDiscountPercent ?? '');
+    setPosStaffAssigned(bill.staff || '');
+    setAdvance(bill.advance || 0);
+    setAdvanceMode(bill.advanceMode || getDefaultPaymentOption(data?.settings?.payments));
+    setAppointmentRef(bill.appointmentRef || null);
+    const payAmt = Math.max(0, bill.total - Number(bill.advance || 0));
+    setPaid(payAmt);
+
+    const updated = parkedBills.filter((b) => b.id !== bill.id);
+    setParkedBills(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('shree_pos_parked_bills', JSON.stringify(updated));
+      } catch {}
+    }
+    setParkedModalOpen(false);
+    playSuccessChime();
+    toast(`▶️ Resumed ticket for "${bill.customer || 'Guest'}"`);
+  };
+
+  const handleDiscardParkedBill = (id: string) => {
+    const updated = parkedBills.filter((b) => b.id !== id);
+    setParkedBills(updated);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('shree_pos_parked_bills', JSON.stringify(updated));
+      } catch {}
+    }
+    toast('🗑️ Held ticket discarded.');
   };
 
   const setLine = (idx: number, updates: Partial<InvoiceLine>) => {
@@ -2312,11 +2460,32 @@ function BillingContent() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         handleSave();
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        posSearchInputRef.current?.focus();
+        posSearchInputRef.current?.select();
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        setMode('Cash');
+        setIsSplitPayment(false);
+        const amt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+        setPaid(amt);
+        toast('💵 Cash mode selected (Exact)');
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        setMode(upiPaymentOptions[0] || 'GPay UPI');
+        setIsSplitPayment(false);
+        const amt = Math.max(0, totalAfterLoyalty - Number(advance || 0));
+        setPaid(amt);
+        toast('📱 UPI mode selected');
+      } else if (e.key === 'F7') {
+        e.preventDefault();
+        handleParkCurrentBill();
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleSave]);
+  }, [handleSave, totalAfterLoyalty, advance, upiPaymentOptions, handleParkCurrentBill, toast]);
 
   const handlePrint = (inv: Invoice) => {
     setReceiptModalInv(inv);
@@ -2995,9 +3164,227 @@ function BillingContent() {
             transition={{ duration: 0.18, ease: 'easeOut' }}
             className={activeTab === 'history' ? '' : 'billing-layout'}
           >
-          {/* 1. BUILDER MODE: Single Unified POS Box (2 Boxes Mixed Into 1) */}
+          {/* 1. BUILDER MODE: Petpooja POS Split Grid or Classic Unified Card */}
           {activeTab === 'builder' && (
           <>
+            {/* Top POS Control Bar */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 8,
+                marginBottom: 10,
+                padding: '7px 10px',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 10,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {/* View Mode Toggle: Split Grid vs Classic */}
+                <div style={{ display: 'inline-flex', padding: 2, background: '#f1f5f9', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchPosViewMode('split')}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: posViewMode === 'split' ? '#05424A' : 'transparent',
+                      color: posViewMode === 'split' ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <LayoutGrid size={13} />
+                    <span>POS Split Touch</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchPosViewMode('classic')}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      borderRadius: 6,
+                      border: 'none',
+                      background: posViewMode === 'classic' ? '#05424A' : 'transparent',
+                      color: posViewMode === 'classic' ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Layers size={13} />
+                    <span>Classic Form</span>
+                  </button>
+                </div>
+
+                {/* Petpooja KOT Hold Bill Button */}
+                <button
+                  type="button"
+                  onClick={handleParkCurrentBill}
+                  title="Hold active bill in memory (F7) to serve another customer"
+                  style={{
+                    padding: '4px 9px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    borderRadius: 7,
+                    border: '1px solid #fed7aa',
+                    background: '#fff7ed',
+                    color: '#c2410c',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <PauseCircle size={13} />
+                  <span>Hold Bill</span>
+                  <span style={{ fontSize: 9, opacity: 0.8, padding: '0 3px', background: '#ffedd5', borderRadius: 3 }}>F7</span>
+                </button>
+
+                {/* Recall Held Bills Button */}
+                {parkedBills.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setParkedModalOpen(true)}
+                    style={{
+                      padding: '4px 9px',
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      borderRadius: 7,
+                      border: '1px solid #bbf7d0',
+                      background: '#f0fdf4',
+                      color: '#15803d',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <PlayCircle size={13} />
+                    <span>Held Bills ({parkedBills.length})</span>
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {/* Audio Sound Toggle */}
+                <button
+                  type="button"
+                  onClick={handleTogglePosAudio}
+                  title={posAudioMuted ? 'Unmute sounds' : 'Mute sounds'}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    borderRadius: 7,
+                    border: '1px solid #e2e8f0',
+                    background: posAudioMuted ? '#fef2f2' : '#f8fafc',
+                    color: posAudioMuted ? '#dc2626' : '#475569',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  {posAudioMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                  <span className="hide-on-mobile">{posAudioMuted ? 'Muted' : 'Sound On'}</span>
+                </button>
+
+                {/* Keyboard Shortcuts Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setShortcutsModalOpen(true)}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    borderRadius: 7,
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Keyboard size={13} />
+                  <span className="hide-on-mobile">Hotkeys</span>
+                </button>
+              </div>
+            </div>
+
+            {posViewMode === 'split' ? (
+              <PetpoojaPosView
+                data={data}
+                customer={customer}
+                setCustomer={setCustomer}
+                mobile={mobile}
+                setMobile={setMobile}
+                lines={lines}
+                setLines={setLines}
+                discount={discount}
+                setDiscount={setDiscount}
+                discountMode={discountMode}
+                setDiscountMode={setDiscountMode}
+                billDiscountPercent={billDiscountPercent}
+                setBillDiscountPercent={setBillDiscountPercent}
+                advance={advance}
+                setAdvance={setAdvance}
+                advanceMode={advanceMode}
+                setAdvanceMode={setAdvanceMode}
+                paid={paid}
+                setPaid={setPaid}
+                mode={mode}
+                setMode={setMode}
+                isSplitPayment={isSplitPayment}
+                setIsSplitPayment={setIsSplitPayment}
+                splitCash={splitCash}
+                setSplitCash={setSplitCash}
+                splitUpi={splitUpi}
+                setSplitUpi={setSplitUpi}
+                splitCard={splitCard}
+                setSplitCard={setSplitCard}
+                rawSubtotal={rawSubtotal}
+                totalAllDiscount={totalAllDiscount}
+                roundOffDiff={roundOffDiff}
+                roundedTotal={roundedTotal}
+                totalAfterLoyalty={totalAfterLoyalty}
+                finalPayable={Math.max(0, totalAfterLoyalty - Number(advance || 0))}
+                balance={balance}
+                handleSave={handleSave}
+                handleParkCurrentBill={handleParkCurrentBill}
+                posStaffAssigned={posStaffAssigned}
+                setPosStaffAssigned={setPosStaffAssigned}
+                barcodeInput={barcodeInput}
+                setBarcodeInput={setBarcodeInput}
+                handleScanBarcode={handleScanBarcode}
+                setCameraModalOpen={setCameraModalOpen}
+                setContactModalOpen={setContactModalOpen}
+                handleAllClearInvoice={handleAllClearInvoice}
+                cancelEditInvoice={cancelEditInvoice}
+                editingInvoiceId={editingInvoiceId}
+                appointmentRef={appointmentRef}
+                hasBelowBuyLines={hasBelowBuyLines}
+                paymentOptions={paymentOptions}
+                upiPaymentOptions={upiPaymentOptions}
+                posSearchInputRef={posSearchInputRef}
+                onImportBridalBooking={handleImportBridal}
+              />
+            ) : (
             <div
               className="card billing-builder-card billing-unified-card"
               style={{
@@ -4635,7 +5022,7 @@ function BillingContent() {
             </div>
             {/* End billing-checkout-section */}
           </div>
-          {/* End billing-unified-card */}
+          )}
           </>
         )}
 
@@ -5622,6 +6009,140 @@ function BillingContent() {
         customers={data?.customers || []}
         onSelectContact={(name, mob) => handleImportContact(name, mob)}
       />
+
+      {/* Held / Parked Bills Modal (Petpooja KOT Hold System) */}
+      <Modal
+        isOpen={parkedModalOpen}
+        onClose={() => setParkedModalOpen(false)}
+        title={`Held / Parked Bills (${parkedBills.length})`}
+      >
+        {parkedBills.length === 0 ? (
+          <div style={{ padding: '28px 12px', textAlign: 'center', color: '#64748b' }}>
+            <PauseCircle size={32} style={{ opacity: 0.35, margin: '0 auto 8px' }} />
+            <p style={{ fontSize: 13.5, fontWeight: 700 }}>No held bills found</p>
+            <span style={{ fontSize: 11.5 }}>Click &quot;Hold Bill&quot; (F7) during billing to hold an active ticket and serve another client.</span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 380, overflowY: 'auto' }}>
+            {parkedBills.map((bill) => {
+              const elapsedMins = Math.max(0, Math.round((Date.now() - bill.parkedAt) / 60000));
+              const timeStr = elapsedMins === 0 ? 'Just now' : `${elapsedMins}m ago`;
+              const itemCount = bill.lines.filter((l) => l.name && l.name.trim() !== '').length;
+
+              return (
+                <div
+                  key={bill.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1.5px solid #fed7aa',
+                    background: '#fffaf5',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>
+                        {bill.customer || 'Walk-in Guest'}
+                      </span>
+                      {bill.mobile && (
+                        <span style={{ fontSize: 11, color: '#64748b' }}>({bill.mobile})</span>
+                      )}
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#c2410c', background: '#ffedd5', padding: '1px 5px', borderRadius: 4 }}>
+                        ⏱️ {timeStr}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>
+                      <span>{itemCount} item{itemCount !== 1 ? 's' : ''}</span>
+                      {bill.lines[0]?.name && <span>: {bill.lines[0].name}{itemCount > 1 ? ` +${itemCount - 1} more` : ''}</span>}
+                      {bill.staff && <span> • 👤 {bill.staff}</span>}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: '#05424A' }}>
+                      {money(bill.total)}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{
+                        height: 30,
+                        padding: '0 10px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        borderRadius: 6,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                      onClick={() => handleRecallParkedBill(bill)}
+                    >
+                      <PlayCircle size={13} />
+                      <span>Resume</span>
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#dc2626',
+                        cursor: 'pointer',
+                        padding: 4,
+                      }}
+                      onClick={() => handleDiscardParkedBill(bill.id)}
+                      title="Discard held bill"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
+
+      {/* POS Keyboard Shortcuts Help Modal */}
+      <Modal
+        isOpen={shortcutsModalOpen}
+        onClose={() => setShortcutsModalOpen(false)}
+        title="POS Keyboard Shortcuts"
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '10px 14px', alignItems: 'center', fontSize: 13 }}>
+          <span style={{ fontWeight: 800, padding: '3px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 5, textAlign: 'center', color: '#0f172a' }}>
+            F2
+          </span>
+          <span style={{ color: '#334155' }}>Focus Catalog Search input</span>
+
+          <span style={{ fontWeight: 800, padding: '3px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 5, textAlign: 'center', color: '#0f172a' }}>
+            F4
+          </span>
+          <span style={{ color: '#334155' }}>Select Cash Payment mode (auto-fills exact payable)</span>
+
+          <span style={{ fontWeight: 800, padding: '3px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 5, textAlign: 'center', color: '#0f172a' }}>
+            F8
+          </span>
+          <span style={{ color: '#334155' }}>Select UPI Payment mode (auto-fills exact payable)</span>
+
+          <span style={{ fontWeight: 800, padding: '3px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 5, textAlign: 'center', color: '#0f172a' }}>
+            F7
+          </span>
+          <span style={{ color: '#334155' }}>Hold / Park active bill to serve another customer</span>
+
+          <span style={{ fontWeight: 800, padding: '3px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 5, textAlign: 'center', color: '#0f172a' }}>
+            Ctrl + Enter
+          </span>
+          <span style={{ color: '#334155' }}>Save Invoice &amp; Open Print Receipt</span>
+
+          <span style={{ fontWeight: 800, padding: '3px 8px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 5, textAlign: 'center', color: '#0f172a' }}>
+            Esc
+          </span>
+          <span style={{ color: '#334155' }}>Close open modal / dialog</span>
+        </div>
+      </Modal>
     </div>
   );
 }
